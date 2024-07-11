@@ -35,7 +35,9 @@
                                     <td>{{ $report->reporting_period }}</td>
                                     <td>Women in Distress</td>
                                     <td>
-                                        <a href="{{ route('coordinator.reports.show', ['type' => 'rqwd', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a>
+                                        {{-- <a href="{{ route('coordinator.reports.show', ['type' => 'rqwd', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a> --}}
+                                        <a class="btn btn-primary btn-sm">View</a>
+
                                     </td>
                                 </tr>
                                 @endforeach
@@ -49,7 +51,9 @@
                                     <td>{{ $report->reporting_period }}</td>
                                     <td>Skill Training</td>
                                     <td>
-                                        <a href="{{ route('coordinator.reports.show', ['type' => 'rqst', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a>
+                                        {{-- <a href="{{ route('coordinator.reports.show', ['type' => 'rqst', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a> --}}
+                                        <a class="btn btn-primary btn-sm">View</a>
+
                                     </td>
                                 </tr>
                                 @endforeach
@@ -63,7 +67,9 @@
                                     <td>{{ $report->reporting_period }}</td>
                                     <td>Institutional Support</td>
                                     <td>
-                                        <a href="{{ route('coordinator.reports.show', ['type' => 'rqis', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a>
+                                        {{-- <a href="{{ route('coordinator.reports.show', ['type' => 'rqis', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a> --}}
+                                        <a class="btn btn-primary btn-sm">View</a>
+
                                     </td>
                                 </tr>
                                 @endforeach
@@ -77,7 +83,8 @@
                                     <td>{{ $report->reporting_period }}</td>
                                     <td>Development Project</td>
                                     <td>
-                                        <a href="{{ route('coordinator.reports.show', ['type' => 'rqdp', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a>
+                                        {{-- <a href="{{ route('coordinator.reports.show', ['type' => 'rqdp', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a> --}}
+                                        <a class="btn btn-primary btn-sm">View</a>
                                     </td>
                                 </tr>
                                 @endforeach
@@ -91,7 +98,8 @@
                                     <td>{{ $report->reporting_period }}</td>
                                     <td>Development Livelihood</td>
                                     <td>
-                                        <a href="{{ route('coordinator.reports.show', ['type' => 'rqdl', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a>
+                                        {{-- <a href="{{ route('coordinator.reports.show', ['type' => 'rqdl', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a> --}}
+                                        <a class="btn btn-primary btn-sm">View</a>
                                     </td>
                                 </tr>
                                 @endforeach

@@ -36,9 +36,24 @@ Route::get('/', function () {
 //logout for all (except admin i think)
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
+// Route::get('/dashboard', function () {
+//     return view('dashboard');
+// })->middleware(['auth', 'verified'])->name('dashboard');
+
+// default redirtec to dashboard based on role
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    $role = Auth::user()->role;
+    $url = match($role) {
+        'admin' => 'admin/dashboard',
+        'coordinator' => 'coordinator/dashboard',
+        'provincial' => 'provincial/dashboard',
+        'executor' => 'executor/dashboard',
+        default => 'dashboard',
+    };
+
+    return redirect()->intended($url);
 })->middleware(['auth', 'verified'])->name('dashboard');
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

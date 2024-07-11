@@ -15,9 +15,27 @@ class Role
      */
     public function handle(Request $request, Closure $next, $role): Response
     {
-        if($request->user()->role != $role){
-            return redirect ('/dashboard');
+        if ($request->user()->role != $role) {
+            // Redirect to the appropriate dashboard based on the user's role
+            return redirect($this->getDashboardUrl($request->user()->role));
         }
         return $next($request);
+    }
+
+    /**
+     * Get the dashboard URL based on the user's role.
+     *
+     * @param  string  $role
+     * @return string
+     */
+    protected function getDashboardUrl(string $role): string
+    {
+        return match($role) {
+            'admin' => 'admin/dashboard',
+            'coordinator' => 'coordinator/dashboard',
+            'provincial' => 'provincial/dashboard',
+            'executor' => 'executor/dashboard',
+            default => 'dashboard',
+        };
     }
 }
