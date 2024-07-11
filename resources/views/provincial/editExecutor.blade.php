@@ -1,4 +1,3 @@
-<!-- resources/views/provincial/edit_executor.blade.php -->
 @extends('provincial.dashboard')
 
 @section('content')
@@ -13,15 +12,15 @@
                 @csrf
                 <div class="form-group">
                     <label for="name">Name</label>
-                    <input type="text" class="form-control" id="name" name="name" value="{{ $executor->name }}" disabled>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ $executor->name }}" required>
                 </div>
                 <div class="form-group">
                     <label for="username">Username</label>
-                    <input type="text" class="form-control" id="username" name="username" value="{{ $executor->username }}" disabled>
+                    <input type="text" class="form-control" id="username" name="username" value="{{ $executor->username }}" required>
                 </div>
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" class="form-control" id="email" name="email" value="{{ $executor->email }}"disabled>
+                    <input type="email" class="form-control" id="email" name="email" value="{{ $executor->email }}" required>
                 </div>
                 <div class="form-group">
                     <label for="phone">Phone</label>
@@ -30,6 +29,10 @@
                 <div class="form-group">
                     <label for="center">Center</label>
                     <input type="text" class="form-control" id="center" name="center" value="{{ $executor->center }}">
+                </div>
+                <div class="form-group">
+                    <label for="address">Address</label>
+                    <input type="text" class="form-control" id="address" name="address" value="{{ $executor->address }}">
                 </div>
                 <div class="form-group">
                     <label for="status">Status</label>

@@ -50,13 +50,13 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 
-// Registration Routes
-Route::get('register', [RegisteredUserController::class, 'create'])
-    ->middleware('guest')
-    ->name('register');
+// // Registration Routes
+// Route::get('register', [RegisteredUserController::class, 'create'])
+//     ->middleware('guest')
+//     ->name('register');
 
-Route::post('register', [RegisteredUserController::class, 'store'])
-    ->middleware('guest');
+// Route::post('register', [RegisteredUserController::class, 'store'])
+//     ->middleware('guest');
 
 // Admin routes
 Route::middleware(['auth', 'role:admin'])->group(function () {
@@ -67,12 +67,27 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
 // Coordinator routes
 Route::middleware(['auth', 'role:coordinator'])->group(function () {
+    // Route::get('/coordinator/dashboard', [CoordinatorController::class, 'CoordinatorDashboard'])->name('coordinator.dashboard');
+
+    //manage Provinicals
+    Route::get('/coordinator/create-provincial', [CoordinatorController::class, 'createProvincial'])->name('coordinator.createProvincial');
+    Route::post('/coordinator/create-provincial', [CoordinatorController::class, 'storeProvincial'])->name('coordinator.storeProvincial');
+    Route::get('/coordinator/provincials', [CoordinatorController::class, 'listProvincials'])->name('coordinator.provincials');
+    Route::get('/coordinator/provincial/{id}/edit', [CoordinatorController::class, 'editProvincial'])->name('coordinator.editProvincial');
+    Route::post('/coordinator/provincial/{id}/update', [CoordinatorController::class, 'updateProvincial'])->name('coordinator.updateProvincial');
+    Route::post('/coordinator/provincial/{id}/reset-password', [CoordinatorController::class, 'resetProvincialPassword'])->name('coordinator.resetProvincialPassword');
+
+
+    // Reports Routes for Coordinator
     Route::get('/coordinator/dashboard', [CoordinatorController::class, 'CoordinatorDashboard'])->name('coordinator.dashboard');
+    Route::get('/coordinator/reports/{type}/{id}', [CoordinatorController::class, 'showReport'])->name('coordinator.reports.show');
+
+
 });
 
 // Provincial routes
 Route::middleware(['auth', 'role:provincial'])->group(function () {
-    Route::get('/provincial/dashboard', [ProvincialController::class, 'ProvincialDashboard'])->name('provincial.dashboard');
+    // Route::get('/provincial/dashboard', [ProvincialController::class, 'ProvincialDashboard'])->name('provincial.dashboard');
     //manage executors
     Route::get('/provincial/create-executor', [ProvincialController::class, 'CreateExecutor'])->name('provincial.createExecutor');
     Route::post('/provincial/create-executor', [ProvincialController::class, 'StoreExecutor'])->name('provincial.storeExecutor');

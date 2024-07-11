@@ -20,7 +20,7 @@
         </li>
         <li class="nav-item nav-category">web apps</li>
         <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="collapse" href="#emails" role="button" aria-expanded="false" aria-controls="emails">
+            <a class="nav-link" data-bs-toggle="collapse" href="#" role="button" aria-expanded="false" aria-controls="emails">
             <i class="link-icon" data-feather="mail"></i>
             <span class="link-title">Email</span>
             <i class="link-arrow" data-feather="chevron-down"></i>
@@ -28,13 +28,13 @@
             <div class="collapse" id="emails">
             <ul class="nav sub-menu">
                 <li class="nav-item">
-                <a href="pages/email/inbox.html" class="nav-link">Inbox</a>
+                <a href="#" class="nav-link">Inbox</a>
                 </li>
                 <li class="nav-item">
-                <a href="pages/email/read.html" class="nav-link">Read</a>
+                <a href="#" class="nav-link">Read</a>
                 </li>
                 <li class="nav-item">
-                <a href="pages/email/compose.html" class="nav-link">Compose</a>
+                <a href="#" class="nav-link">Compose</a>
                 </li>
             </ul>
             </div>
@@ -46,7 +46,7 @@
             </a>
         </li> --}}
         <li class="nav-item">
-            <a href="pages/apps/calendar.html" class="nav-link">
+            <a href="#" class="nav-link">
             <i class="link-icon" data-feather="calendar"></i>
             <span class="link-title">Calendar</span>
             </a>
@@ -93,19 +93,19 @@
                     <div class="collapse" id="uiComponents">
                         <ul class="nav sub-menu">
                             <li class="nav-item">
-                                <a href="{{ route('quarterly.developmentProject.create') }}" class="nav-link">Development Projects</a>
+                                <a href="#" class="nav-link">All Project Reports</a>
                             </li>
                             <li class="nav-item">
-                                <a href="{{ route('quarterly.developmentLivelihood.create') }}" class="nav-link">Development Livelihood</a>
+                                <a href="#" class="nav-link">Development Livelihood</a>
                             </li>
                             <li class="nav-item">
-                                <a href="{{ route('quarterly.institutionalSupport.create') }}" class="nav-link">Institutional / Non-Inst Support</a>
+                                <a href="#" class="nav-link">Institutional / Non-Inst Support</a>
                             </li>
                             <li class="nav-item">
-                                <a href="{{ route('quarterly.womenInDistress.create') }}" class="nav-link">Women in Distress</a>
+                                <a href="#" class="nav-link">Women in Distress</a>
                             </li>
                             <li class="nav-item">
-                                <a href="{{ route('quarterly.skillTraining.create') }}" class="nav-link"> Skill Training</a>
+                                <a href="#" class="nav-link"> Skill Training</a>
                             </li>
                         </ul>
                     </div>
@@ -233,13 +233,13 @@
             <div class="collapse" id="general-pages">
             <ul class="nav sub-menu">
                 <li class="nav-item">
-                <a href="pages/general/blank-page.html" class="nav-link">Health</a>
+                <a href="#" class="nav-link">Health</a>
                 </li>
                 <li class="nav-item">
-                <a href="pages/general/faq.html" class="nav-link">Education</a>
+                <a href="#" class="nav-link">Education</a>
                 </li>
                 <li class="nav-item">
-                <a href="pages/general/invoice.html" class="nav-link">Social</a>
+                <a href="#" class="nav-link">Social</a>
                 </li>
                 {{-- <li class="nav-item">
                 <a href="pages/general/profile.html" class="nav-link">Profile</a>
@@ -262,13 +262,13 @@
             <div class="collapse" id="authPages">
             <ul class="nav sub-menu">
                 <li class="nav-item">
-                <a href="pages/auth/login.html" class="nav-link">Health</a>
+                <a href="#" class="nav-link">Health</a>
                 </li>
                 <li class="nav-item">
-                <a href="pages/auth/register.html" class="nav-link">Education</a>
+                <a href="#" class="nav-link">Education</a>
                 </li>
                 <li class="nav-item">
-                <a href="pages/auth/register.html" class="nav-link">Social</a>
+                <a href="#" class="nav-link">Social</a>
                 </li>
             </ul>
             </div>
@@ -282,10 +282,10 @@
             <div class="collapse" id="errorPages">
             <ul class="nav sub-menu">
                 <li class="nav-item">
-                <a href="pages/error/404.html" class="nav-link">404</a>
+                <a href="#" class="nav-link">404</a>
                 </li>
                 <li class="nav-item">
-                <a href="pages/error/500.html" class="nav-link">500</a>
+                <a href="#" class="nav-link">500</a>
                 </li>
             </ul>
             </div>

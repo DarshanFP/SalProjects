@@ -58,6 +58,7 @@
                             <p class="tx-16 fw-bolder">{{ $profileData->name }}</p>
                             <p class="tx-12 text-muted">{{ $profileData->province }}</p>
                             <p class="tx-12 text-muted">{{ $profileData->center }}</p>
+                            <p class="tx-12 text-muted">{{ $profileData->role }}</p>
                             <p class="tx-12 text-muted">{{ $profileData->email }}</p>
                         </div>
                     </div>

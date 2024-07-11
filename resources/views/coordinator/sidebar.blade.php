@@ -51,6 +51,36 @@
             <span class="link-title">Calendar</span>
             </a>
         </li>
+        {{-- my team --}}
+        <li class="nav-item nav-category">My Team</li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#uiComponents" role="button" aria-expanded="false" aria-controls="uiComponents">
+                    <i class="link-icon" data-feather="feather"></i>
+                    <span class="link-title">Manage Team</span>
+                    <i class="link-arrow" data-feather="chevron-down"></i>
+                </a>
+                    {{-- reports sub menu --}}
+                    <div class="collapse" id="uiComponents">
+                        <ul class="nav sub-menu">
+                            <li class="nav-item">
+                                <a href="{{ route('coordinator.createProvincial') }}" class="nav-link">Add Member</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('coordinator.provincials') }}" class="nav-link">View Member</a>
+                            </li>
+                            {{-- <li class="nav-item">
+                                <a href="{{ route('quarterly.institutionalSupport.create') }}" class="nav-link">Institutional / Non-Inst Support</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('quarterly.womenInDistress.create') }}" class="nav-link">Women in Distress</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('quarterly.skillTraining.create') }}" class="nav-link"> Skill Training</a>
+                            </li> --}}
+                        </ul>
+                    </div>
+            </li>
+        {{-- end my team --}}
         <li class="nav-item nav-category">Reports</li>
         <li class="nav-item">
             <a class="nav-link" data-bs-toggle="collapse" href="#uiComponents" role="button" aria-expanded="false" aria-controls="uiComponents">

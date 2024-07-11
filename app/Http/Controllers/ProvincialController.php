@@ -133,23 +133,32 @@ public function showReport($type, $id)
     }
     // Update Executor
     public function updateExecutor(Request $request, $id)
-    {
-        $executor = User::findOrFail($id);
+{
+    $executor = User::findOrFail($id);
 
-        $request->validate([
-            'phone' => 'nullable|string|max:255',
-            'center' => 'nullable|string|max:255',
-            'status' => 'required|in:active,inactive',
-        ]);
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'username' => 'required|string|max:255|unique:users,username,' . $executor->id,
+        'email' => 'required|string|email|max:255|unique:users,email,' . $executor->id,
+        'phone' => 'nullable|string|max:255',
+        'center' => 'nullable|string|max:255',
+        'address' => 'nullable|string',
+        'status' => 'required|in:active,inactive',
+    ]);
 
-        $executor->update([
-            'phone' => $request->phone,
-            'center' => $request->center,
-            'status' => $request->status,
-        ]);
+    $executor->update([
+        'name' => $request->name,
+        'username' => $request->username,
+        'email' => $request->email,
+        'phone' => $request->phone,
+        'center' => $request->center,
+        'address' => $request->address,
+        'status' => $request->status,
+    ]);
 
-        return redirect()->route('provincial.executors')->with('success', 'Executor updated successfully.');
-    }
+    return redirect()->route('provincial.executors')->with('success', 'Executor updated successfully.');
+}
+
     //Reset Executor Password
     public function resetExecutorPassword(Request $request, $id)
     {
