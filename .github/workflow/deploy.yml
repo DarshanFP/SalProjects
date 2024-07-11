@@ -1,0 +1,23 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches:
+      - main  # or your main branch name
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Sync files to Hostinger
+        uses: SamKirkland/FTP-Deploy-Action@4.3.0
+        with:
+          server: ftp://your-ftp-server-address
+          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          local-dir: ./  # Directory to sync (your project root)
+          server-dir: /path/on/server  # Path on your server where you want to deploy
