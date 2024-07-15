@@ -135,7 +135,11 @@ Route::middleware(['auth', 'role:executor'])->group(function () {
                 Route::put('{id}', [DevelopmentProjectController::class, 'update'])->name('quarterly.developmentProject.update');
                 Route::get('{id}/review', [DevelopmentProjectController::class, 'review'])->name('quarterly.developmentProject.review');
                 Route::post('{id}/revert', [DevelopmentProjectController::class, 'revert'])->name('quarterly.developmentProject.revert');
+                //list view of reports for executor
                 Route::get('list', [DevelopmentProjectController::class, 'index'])->name('quarterly.developmentProject.index');
+                //show individual report when clicked on "view"
+                Route::get('quarterly/developmentProject/{id}', [DevelopmentProjectController::class, 'show'])->name('quarterly.developmentProject.show');
+
             });
 
             // Skill Training Reportings
@@ -146,18 +150,28 @@ Route::middleware(['auth', 'role:executor'])->group(function () {
                 Route::put('{id}', [SkillTrainingController::class, 'update'])->name('quarterly.skillTraining.update');
                 Route::get('{id}/review', [SkillTrainingController::class, 'review'])->name('quarterly.skillTraining.review');
                 Route::post('{id}/revert', [SkillTrainingController::class, 'revert'])->name('quarterly.skillTraining.revert');
+                //view list of reports for executor
                 Route::get('list', [SkillTrainingController::class, 'index'])->name('quarterly.skillTraining.index');
+                //show individual report when clicked on "view"
+                Route::get('quarterly/skillTraining/{id}', [SkillTrainingController::class, 'show'])->name('quarterly.skillTraining.show');
+
+
             });
 
             // Development Livelihood Reportings
             Route::prefix('development-livelihood')->group(function () {
                 Route::get('create', [DevelopmentLivelihoodController::class, 'create'])->name('quarterly.developmentLivelihood.create');
                 Route::post('store', [DevelopmentLivelihoodController::class, 'store'])->name('quarterly.developmentLivelihood.store');
+                Route::get('quarterly/developmentLivelihood/{id}', [DevelopmentLivelihoodController::class, 'show'])->name('quarterly.developmentLivelihood.show');
                 Route::get('{id}/edit', [DevelopmentLivelihoodController::class, 'edit'])->name('quarterly.developmentLivelihood.edit');
                 Route::put('{id}', [DevelopmentLivelihoodController::class, 'update'])->name('quarterly.developmentLivelihood.update');
                 Route::get('{id}/review', [DevelopmentLivelihoodController::class, 'review'])->name('quarterly.developmentLivelihood.review');
                 Route::post('{id}/revert', [DevelopmentLivelihoodController::class, 'revert'])->name('quarterly.developmentLivelihood.revert');
+                //view list of reports for executor
                 Route::get('list', [DevelopmentLivelihoodController::class, 'index'])->name('quarterly.developmentLivelihood.index');
+                //show individual report when clicked on "view"
+
+
 
             });
 
@@ -169,7 +183,11 @@ Route::middleware(['auth', 'role:executor'])->group(function () {
                 Route::put('{id}', [InstitutionalSupportController::class, 'update'])->name('quarterly.institutionalSupport.update');
                 Route::get('{id}/review', [InstitutionalSupportController::class, 'review'])->name('quarterly.institutionalSupport.review');
                 Route::post('{id}/revert', [InstitutionalSupportController::class, 'revert'])->name('quarterly.institutionalSupport.revert');
+                //view list of reports for executor
                 Route::get('list', [InstitutionalSupportController::class, 'index'])->name('quarterly.institutionalSupport.index');
+                //show individual report when clicked on "view"
+                Route::get('quarterly/institutionalSupport/{id}', [InstitutionalSupportController::class, 'show'])->name('quarterly.institutionalSupport.show');
+
             });
 
             // Women in Distress Reportings
@@ -180,7 +198,11 @@ Route::middleware(['auth', 'role:executor'])->group(function () {
                 Route::put('{id}', [WomenInDistressController::class, 'update'])->name('quarterly.womenInDistress.update');
                 Route::get('{id}/review', [WomenInDistressController::class, 'review'])->name('quarterly.womenInDistress.review');
                 Route::post('{id}/revert', [WomenInDistressController::class, 'revert'])->name('quarterly.womenInDistress.revert');
+                // view list of reports for executor
                 Route::get('list', [WomenInDistressController::class, 'index'])->name('quarterly.womenInDistress.index');
+                // show individual report when clicked on "view"
+                Route::get('quarterly/womenInDistress/{id}', [WomenInDistressController::class, 'show'])->name('quarterly.womenInDistress.show');
+
             });
         });
     });

@@ -119,6 +119,10 @@
                         </div>
                         <div class="card-body">
                             <div class="mb-3">
+                                <div class="mb-3">
+                                    <label for="objective[1]" class="form-label">Objective</label>
+                                    <textarea name="objective[1]" class="form-control" rows="2"></textarea>
+                                </div>
                                 <label for="expected_outcome[1]" class="form-label">Expected Outcome</label>
                                 <textarea name="expected_outcome[1]" class="form-control" rows="2"></textarea>
                             </div>
@@ -337,6 +341,10 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
+                        <div class="mb-3">
+                            <label for="objective[${index}]" class="form-label">Objective</label>
+                            <textarea name="objective[${index}]" class="form-control" rows="2"></textarea>
+                        </div>
                         <label for="expected_outcome[${index}]" class="form-label">Expected Outcome</label>
                         <textarea name="expected_outcome[${index}]" class="form-control" rows="2"></textarea>
                     </div>

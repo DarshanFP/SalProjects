@@ -14,6 +14,7 @@ class RQSTObjective extends Model
 
     protected $fillable = [
         'report_id',
+        'objective',
         'expected_outcome',
         'not_happened',
         'why_not_happened',

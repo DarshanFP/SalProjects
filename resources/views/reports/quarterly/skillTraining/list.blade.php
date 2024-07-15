@@ -32,8 +32,8 @@
                                     <a href="#" class="btn btn-primary btn-sm">Edit</a>
                                     <a href="#" class="btn btn-secondary btn-sm">Review</a>
                                     <form action="#"  style="display:inline;">
-                                    {{-- <a href="{{ route('quarterly.developmentLivelihood.edit', $report->id) }}" class="btn btn-primary btn-sm">Edit</a>
-                                    <a href="{{ route('quarterly.developmentLivelihood.review', $report->id) }}" class="btn btn-secondary btn-sm">Review</a>
+                                    <a href="{{ route('quarterly.skillTraining.show', $report->id) }}" class="btn btn-primary btn-sm">View</a> --}}
+                                   {{--  <a href="{{ route('quarterly.developmentLivelihood.review', $report->id) }}" class="btn btn-secondary btn-sm">Review</a>
                                     <form action="{{ route('quarterly.developmentLivelihood.revert', $report->id) }}" method="POST" style="display:inline;"> --}}
                                         @csrf
                                         <button type="submit" class="btn btn-danger btn-sm">Revert</button>

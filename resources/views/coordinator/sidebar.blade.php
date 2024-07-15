@@ -15,7 +15,7 @@
         <li class="nav-item">
             <a href="{{ route('admin.dashboard') }}" class="nav-link">
             <i class="link-icon" data-feather="box"></i>
-            <span class="link-title">Dashboard</span>
+            <span class="link-title">Dashboard - Coordinator</span>
             </a>
         </li>
         <li class="nav-item nav-category">web apps</li>

@@ -175,6 +175,14 @@ class DevelopmentProjectController extends Controller
         return view('reports.quarterly.developmentProject.list', compact('reports'));
     }
 
+    // Show individual report when clicked on "view"
+    public function show($id)
+{
+    $report = RQDPReport::with(['objectives.activities', 'photos', 'accountDetails', 'outlooks'])->findOrFail($id);
+    return view('reports.quarterly.developmentProject.show', compact('report'));
+}
+
+
     public function edit($id)
     {
         // Logic to get the report data for editing

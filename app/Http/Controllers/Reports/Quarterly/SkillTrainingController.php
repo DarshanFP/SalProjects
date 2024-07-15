@@ -78,25 +78,35 @@ class SkillTrainingController extends Controller
                 '10_pass',
                 'intermediate',
                 'above_intermediate',
-                $request->input('other_education')
             ];
 
             foreach ($educationCategories as $category) {
-                if ($category) {
-                    $numberField = "count_other_education";
-                    if ($request->input($numberField) !== null) {
-                        $traineeProfileData = [
-                            'report_id' => $report->id,
-                            'education_category' => $category,
-                            'number' => $request->input($numberField),
-                        ];
+                if ($request->input($category) !== null) {
+                    $traineeProfileData = [
+                        'report_id' => $report->id,
+                        'education_category' => str_replace('_', ' ', $category),
+                        'number' => $request->input($category),
+                    ];
 
-                        Log::info('Trainee Profile Data:', $traineeProfileData);
+                    Log::info('Trainee Profile Data:', $traineeProfileData);
 
-                        $traineeProfile = RQSTTraineeProfile::create($traineeProfileData);
-                        Log::info('Trainee Profile Created: ', $traineeProfile->toArray());
-                    }
+                    $traineeProfile = RQSTTraineeProfile::create($traineeProfileData);
+                    Log::info('Trainee Profile Created: ', $traineeProfile->toArray());
                 }
+            }
+
+            // Save "other education" profile if provided
+            if ($request->input('other_education') !== null && $request->input('count_other_education') !== null) {
+                $traineeProfileData = [
+                    'report_id' => $report->id,
+                    'education_category' => $request->input('other_education'),
+                    'number' => $request->input('count_other_education'),
+                ];
+
+                Log::info('Other Education Trainee Profile Data:', $traineeProfileData);
+
+                $traineeProfile = RQSTTraineeProfile::create($traineeProfileData);
+                Log::info('Other Education Trainee Profile Created: ', $traineeProfile->toArray());
             }
 
             // Save objectives and activities
@@ -197,12 +207,22 @@ class SkillTrainingController extends Controller
         return redirect()->route('quarterly.skillTraining.create')->with('success', 'Report submitted successfully.');
     }
 
+
     //LIST REPORTS
     public function index()
     {
         $reports = RQSTReport::where('user_id', Auth::id())->get();
         return view('reports.quarterly.skillTraining.list', compact('reports'));
     }
+
+    // view individual report for executor when clicked on view button
+    public function show($id)
+    {
+        $report = RQSTReport::with(['objectives.activities', 'photos', 'accountDetails', 'outlooks', 'traineeProfiles'])->findOrFail($id);
+        return view('reports.quarterly.skillTraining.show', compact('report'));
+    }
+
+
     public function edit($id)
     {
         $report = RQSTReport::with(['objectives.activities', 'photos', 'accountDetails', 'outlooks', 'traineeProfiles'])->findOrFail($id);

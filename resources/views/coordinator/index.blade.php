@@ -7,7 +7,7 @@
         <div class="col-md-12 col-xl-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="fp-text-center1">ALL DEVELOPMENT PROJECT REPORTS</h4>
+                    <h4 class="fp-text-center1">ALL  PROJECT REPORTS</h4>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">

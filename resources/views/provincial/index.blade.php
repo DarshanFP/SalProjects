@@ -1,5 +1,5 @@
 <!-- resources/views/coordinator/index.blade.php -->
-@extends('coordinator.dashboard')
+@extends('provincial.dashboard')
 
 @section('content')
 <div class="page-content">
@@ -7,7 +7,7 @@
         <div class="col-md-12 col-xl-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="fp-text-center1">ALL DEVELOPMENT PROJECT REPORTS</h4>
+                    <h4 class="fp-text-center1">ALL my PROJECT REPORTS</h4>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -105,7 +105,7 @@
                                     <td>{{ $report->reporting_period }}</td>
                                     <td>Development Livelihood</td>
                                     <td>
-                                        {{-- <a href="{{ route('coordinator.reports.show', ['type' => 'rqdl', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a> --}}
+                                        {{-- <a href="{{ route('coordinator.reports.show', ['type' => 'rqdl', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View Report</a> --}}
                                         <a class="btn btn-primary btn-sm">View</a>
 
                                     </td>

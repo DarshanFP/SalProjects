@@ -38,7 +38,7 @@
 <body>
     <div class="main-wrapper">
 
-        @include('provincial.sidebar')
+        @include('provincial/sidebar')
 
         <div class="page-wrapper">
             <!-- partial:partials/_navbar.html -->

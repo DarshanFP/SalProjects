@@ -222,6 +222,12 @@ class WomenInDistressController extends Controller
         return view('reports.quarterly.womenInDistress.list', compact('reports'));
     }
 
+    // Show individual report details for executor when clicke on view
+        public function show($id)
+    {
+        $report = RQWDReport::with(['objectives.activities', 'photos', 'accountDetails', 'outlooks', 'inmatesProfiles'])->findOrFail($id);
+        return view('reports.quarterly.womenInDistress.show', compact('report'));
+    }
 
 
     public function edit($id)
