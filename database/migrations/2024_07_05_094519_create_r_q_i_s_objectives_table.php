@@ -11,6 +11,7 @@ class CreateRqisObjectivesTable extends Migration
         Schema::create('rqis_objectives', function (Blueprint $table) {
             $table->id();
             $table->foreignId('report_id')->constrained('rqis_reports')->onDelete('cascade');
+            $table->text('objective')->nullable();
             $table->text('expected_outcome')->nullable();
             $table->text('not_happened')->nullable();
             $table->text('why_not_happened')->nullable();

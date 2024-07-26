@@ -6,11 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateRQDPAccountDetailsTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
         Schema::create('rqdp_account_details', function (Blueprint $table) {
@@ -28,11 +23,6 @@ class CreateRQDPAccountDetailsTable extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
         Schema::dropIfExists('rqdp_account_details');

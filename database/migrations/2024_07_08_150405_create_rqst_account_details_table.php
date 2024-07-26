@@ -11,7 +11,7 @@ class CreateRqstAccountDetailsTable extends Migration
         Schema::create('rqst_account_details', function (Blueprint $table) {
             $table->id();
             $table->foreignId('report_id')->constrained('rqst_reports')->onDelete('cascade');
-            $table->string('particulars')->nullable();
+            $table->text('particulars')->nullable();
             $table->decimal('amount_forwarded', 15, 2)->nullable();
             $table->decimal('amount_sanctioned', 15, 2)->nullable();
             $table->decimal('total_amount', 15, 2)->nullable();

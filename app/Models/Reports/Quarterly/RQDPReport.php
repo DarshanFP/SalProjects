@@ -8,24 +8,28 @@ use Illuminate\Database\Eloquent\Model;
 
 class RQDPReport extends Model
 {
-    protected $table = 'rqdp_reports';  // Ensure the table name is correct
+    use HasFactory;
+
+    protected $table = 'rqdp_reports';
 
     protected $fillable = [
         'user_id',
+        'project_id',
         'project_title',
         'place',
         'society_name',
         'commencement_month_year',
         'in_charge',
         'total_beneficiaries',
-        'reporting_period',
+        'reporting_period_from',
+        'reporting_period_to',
         'goal',
         'account_period_start',
         'account_period_end',
         'amount_sanctioned_overview',
         'amount_forwarded_overview',
-        'total_balance_forwarded',
         'amount_in_hand',
+        'total_balance_forwarded',
     ];
 
     public function user()
@@ -53,4 +57,3 @@ class RQDPReport extends Model
         return $this->hasMany(RQDPAccountDetail::class, 'report_id');
     }
 }
-

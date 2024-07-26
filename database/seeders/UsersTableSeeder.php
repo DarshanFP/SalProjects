@@ -54,6 +54,8 @@ class UsersTableSeeder extends Seeder
                 'password' => Hash::make('login'),
                 'role' => 'executor',
                 'status' => 'active',
+                'center' => 'AjitSing Nagar',
+                'society_name' => 'SARVAJANA SNEHA CHARITABLE TRUST',
                 'parent_id' => $provincial->id,
             ]
         );

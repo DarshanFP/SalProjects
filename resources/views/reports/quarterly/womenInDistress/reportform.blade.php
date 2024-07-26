@@ -641,7 +641,24 @@
             calculateTotal();
         });
     });
+    //start total Acounts Section
+    document.addEventListener('DOMContentLoaded', function() {
+    const amountSanctionedField = document.querySelector('[name="prjct_amount_sanctioned"]');
+    const amountForwardedField = document.querySelector('[name="l_y_amount_forwarded"]');
+    const totalAmountField = document.querySelector('[name="amount_in_hand"]');
 
+    function calculateTotalAmount() {
+        const amountSanctioned = parseFloat(amountSanctionedField.value) || 0;
+        const amountForwarded = parseFloat(amountForwardedField.value) || 0;
+        const totalAmount = amountSanctioned + amountForwarded;
+        totalAmountField.value = totalAmount.toFixed(2);
+    }
+
+    amountSanctionedField.addEventListener('input', calculateTotalAmount);
+    amountForwardedField.addEventListener('input', calculateTotalAmount);
+});
+
+    //end total
     function calculateRowTotals(row) {
         const amountForwarded = parseFloat(row.querySelector('[name="amount_forwarded[]"]').value) || 0;
         const amountSanctioned = parseFloat(row.querySelector('[name="amount_sanctioned[]"]').value) || 0;
@@ -722,14 +739,6 @@
         const row = button.closest('tr');
         row.remove();
         calculateTotal(); // Recalculate totals after removing a row
-    }
-
-    function calculateTotalAmount() {
-        const amountSanctioned = parseFloat(document.querySelector('[name="amount_sanctioned"]').value) || 0;
-        const amountForwarded = parseFloat(document.querySelector('[name="amount_forwarded"]').value) || 0;
-        const totalAmount = amountSanctioned + amountForwarded;
-
-        document.querySelector('[name="total_amount"]').value = totalAmount.toFixed(2);
     }
 
     // Photo and Description Section

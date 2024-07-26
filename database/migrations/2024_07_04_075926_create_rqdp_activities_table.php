@@ -6,17 +6,12 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateRqdpActivitiesTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
         Schema::create('rqdp_activities', function (Blueprint $table) {
             $table->id();
             $table->foreignId('objective_id')->constrained('rqdp_objectives')->onDelete('cascade');
-            $table->string('month')->nullable();
+            $table->date('month')->nullable();
             $table->text('summary_activities')->nullable();
             $table->text('qualitative_quantitative_data')->nullable();
             $table->text('intermediate_outcomes')->nullable();
@@ -24,11 +19,6 @@ class CreateRqdpActivitiesTable extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
         Schema::dropIfExists('rqdp_activities');

@@ -31,6 +31,6 @@ class RQSTObjective extends Model
 
     public function activities()
     {
-        return $this->hasMany(RqstActivity::class, 'objective_id');
+        return $this->hasMany(RQSTActivity::class, 'objective_id');
     }
 }

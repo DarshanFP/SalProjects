@@ -15,6 +15,11 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesAndPermissionsSeeder::class,
             UsersTableSeeder::class,
+
+            //projects
+            OldDevelopmentProjectSeeder::class,
+            OldDevelopmentProjectBudgetSeeder::class,
+            OldDevelopmentProjectAttachmentSeeder::class,
         ]);
 
         \App\Models\User::factory(10)->create();

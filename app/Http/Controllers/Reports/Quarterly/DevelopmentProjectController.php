@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Reports\Quarterly;
 
 use App\Http\Controllers\Controller;
+use App\Models\OldProjects\OldDevelopmentProject;
+use App\Models\OldProjects\OldDevelopmentProjectBudget;
 use App\Models\Reports\Quarterly\QRDLAnnexure;
 use App\Models\Reports\Quarterly\RQDPReport;
 use App\Models\Reports\Quarterly\RQDPObjective;
@@ -16,10 +18,51 @@ use Illuminate\Support\Facades\Log;
 
 class DevelopmentProjectController extends Controller
 {
-    public function create()
+    public function create($id)
     {
-        return view('reports.quarterly.developmentProject.reportform');
+        // Retrieve the project details
+        $project = OldDevelopmentProject::findOrFail($id);
+
+        // Determine the highest phase for the given project
+        $highestPhase = OldDevelopmentProjectBudget::where('project_id', $project->id)->max('phase');
+
+        // Retrieve the budget data for the highest phase
+        $budgets = OldDevelopmentProjectBudget::where('project_id', $project->id)
+                                              ->where('phase', $highestPhase)
+                                              ->get();
+
+        // Calculate total amounts for the current year and initialize previous year amounts
+        $amountSanctionedOverview = $budgets->sum('this_phase');
+        $amountForwardedOverview = 0;
+
+        // Fetch the previous report data to calculate the forwarded amount
+        $previousReports = RQDPAccountDetail::whereHas('report', function($query) use ($project) {
+            $query->where('project_id', $project->id)
+                  ->where('created_at', '>=', now()->startOfYear()->subMonths(9)) // Adjust for financial year starting from April
+                  ->where('created_at', '<=', now()->startOfYear()->addMonths(3));
+        })->get();
+
+        if ($previousReports) {
+            $amountForwardedOverview = $previousReports->sum('balance_amount');
+        }
+
+        // Calculate expenses up to last month for each particular
+        $expensesUpToLastMonth = [];
+        foreach ($budgets as $budget) {
+            $expensesUpToLastMonth[$budget->id] = RQDPAccountDetail::where('report_id', function($query) use ($project) {
+                $query->select('id')
+                      ->from('rqdp_reports')
+                      ->where('project_id', $project->id)
+                      ->orderBy('created_at', 'desc')
+                      ->first();
+            })->sum('expenses_this_month');
+        }
+
+        $user = Auth::user();
+
+        return view('reports.quarterly.developmentProject.reportform', compact('project', 'user', 'amountSanctionedOverview', 'amountForwardedOverview', 'budgets', 'expensesUpToLastMonth'));
     }
+
     public function store(Request $request)
 {
     // Log the request data
@@ -28,13 +71,10 @@ class DevelopmentProjectController extends Controller
 
     // Validate the incoming request data
     $validatedData = $request->validate([
-        'project_title' => 'nullable|string|max:255',
-        'place' => 'nullable|string|max:255',
-        'society_name' => 'nullable|string|max:255',
-        'commencement_month_year' => 'nullable|string|max:255',
-        'in_charge' => 'nullable|string|max:255',
+        'project_id' => 'required|exists:oldDevelopmentProjects,id',
         'total_beneficiaries' => 'nullable|integer',
-        'reporting_period' => 'nullable|string|max:255',
+        'reporting_period_month' => 'required|integer|min:1|max:12',
+        'reporting_period_year' => 'required|integer|min:1900|max:' . date('Y'),
         'goal' => 'nullable|string',
         'account_period_start' => 'nullable|date',
         'account_period_end' => 'nullable|date',
@@ -45,9 +85,13 @@ class DevelopmentProjectController extends Controller
         'photos' => 'nullable|array',
         'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:3072',
         'photo_descriptions' => 'nullable|array',
-        'objective' => 'nullable|array', // Add this line
-        'objective.*' => 'nullable|string', // Add this line
+        'objective' => 'nullable|array',
+        'objective.*' => 'nullable|string',
     ]);
+
+    // Concatenate reporting period
+    $validatedData['reporting_period_from'] = date('Y-m-d', strtotime("{$request->reporting_period_year}-{$request->reporting_period_month}-01"));
+    $validatedData['reporting_period_to'] = date("Y-m-t", strtotime($validatedData['reporting_period_from'])); // Get the last day of the month
 
     // Temporarily set user_id to null for testing if not authenticated
     $validatedData['user_id'] = auth()->check() ? auth()->id() : null;
@@ -58,19 +102,18 @@ class DevelopmentProjectController extends Controller
     $report = RQDPReport::create($validatedData);
     Log::info('Report Created: ', $report->toArray());
 
-    // Ensure input arrays are initialized
+    // Save objectives and activities
     $expected_outcome = $request->input('expected_outcome', []);
-    $objectives = $request->input('objective', []); // Add this line
+    $objectives = $request->input('objective', []);
     $months = $request->input('month', []);
 
     Log::info('Expected Outcome:', $expected_outcome);
     Log::info('Months:', $months);
 
-    // Save objectives and activities
     foreach ($expected_outcome as $index => $expectedOutcome) {
         $objectiveData = [
             'report_id' => $report->id,
-            'objective' => $objectives[$index] ?? null, // Add this line
+            'objective' => $objectives[$index] ?? null,
             'expected_outcome' => $expectedOutcome,
             'not_happened' => $request->input("not_happened.$index"),
             'why_not_happened' => $request->input("why_not_happened.$index"),
@@ -85,19 +128,16 @@ class DevelopmentProjectController extends Controller
         $objective = RQDPObjective::create($objectiveData);
         Log::info('Objective Created: ', $objective->toArray());
 
-        // Ensure months input array is initialized
         $activityMonths = $request->input("month.$index", []);
 
-        // Save activities for each objective
         foreach ($activityMonths as $activityIndex => $month) {
             $summaryActivities = $request->input("summary_activities.$index.$activityIndex");
             $qualitativeQuantitativeData = $request->input("qualitative_quantitative_data.$index.$activityIndex");
             $intermediateOutcomes = $request->input("intermediate_outcomes.$index.$activityIndex");
 
-            // Convert activity fields to strings if they are arrays
             $activityData = [
                 'objective_id' => $objective->id,
-                'month' => $month,
+                'month' => date("Y-m-d", strtotime($month . " 01")), // Convert month to a full date
                 'summary_activities' => is_array($summaryActivities) ? implode(', ', $summaryActivities) : $summaryActivities,
                 'qualitative_quantitative_data' => is_array($qualitativeQuantitativeData) ? implode(', ', $qualitativeQuantitativeData) : $qualitativeQuantitativeData,
                 'intermediate_outcomes' => is_array($intermediateOutcomes) ? implode(', ', $intermediateOutcomes) : $intermediateOutcomes,
@@ -170,65 +210,36 @@ class DevelopmentProjectController extends Controller
         Log::info('Outlook Created: ', $outlook->toArray());
     }
 
-    // Save annexure data
-    $beneficiaryNames = $request->input('beneficiary_name', []);
-    $supportDates = $request->input('support_date', []);
-    $selfEmployments = $request->input('self_employment', []);
-    $amountSanctioneds = $request->input('amount_sanctioned_annexure', []);
-    $monthlyProfits = $request->input('monthly_profit', []);
-    $annualProfits = $request->input('annual_profit', []);
-    $impacts = $request->input('impact', []);
-    $challenges = $request->input('challenges', []);
-    foreach ($beneficiaryNames as $index => $beneficiaryName) {
-        $annexureData = [
-            'report_id' => $report->id,
-            'beneficiary_name' => $beneficiaryName,
-            'support_date' => $supportDates[$index] ?? null,
-            'self_employment' => $selfEmployments[$index] ?? null,
-            'amount_sanctioned' => $amountSanctioneds[$index] ?? null,
-            'monthly_profit' => $monthlyProfits[$index] ?? null,
-            'annual_profit' => $annualProfits[$index] ?? null,
-            'impact' => $impacts[$index] ?? null,
-            'challenges' => $challenges[$index] ?? null,
-        ];
-
-        Log::info('Annexure Data:', $annexureData);
-
-        $annexure = QRDLAnnexure::create($annexureData);
-        Log::info('Annexure Created: ', $annexure->toArray());
-    }
-
-    return redirect()->route('quarterly.developmentProject.create')->with('success', 'Report submitted successfully.');
+    return redirect()->route('quarterly.developmentProject.create', ['projectId' => $request->project_id])->with('success', 'Report submitted successfully.');
 }
 
 
-    //LIST REPORTS
+
+
+    // end of Store Function
+
     public function index()
     {
         $reports = RQDPReport::where('user_id', Auth::id())->get();
         return view('reports.quarterly.developmentProject.list', compact('reports'));
     }
 
-    // Show individual report when clicked on "view"
     public function show($id)
-{
-    $report = RQDPReport::with(['objectives.activities', 'photos', 'accountDetails', 'outlooks'])->findOrFail($id);
-    return view('reports.quarterly.developmentProject.show', compact('report'));
-}
-
+    {
+        $report = RQDPReport::with(['objectives.activities', 'photos', 'accountDetails', 'outlooks'])->findOrFail($id);
+        return view('reports.quarterly.developmentProject.show', compact('report'));
+    }
 
     public function edit($id)
     {
-        // Logic to get the report data for editing
         $report = RQDPReport::with(['objectives.activities', 'photos', 'accountDetails'])->findOrFail($id);
         return view('reports.quarterly.developmentProject.edit', compact('report'));
     }
+
     public function update(Request $request, $id)
     {
-        // Logic to update the report
         $report = RQDPReport::findOrFail($id);
 
-        // Validate and update report data
         $validatedData = $request->validate([
             'project_title' => 'nullable|string|max:255',
             'place' => 'nullable|string|max:255',
@@ -245,15 +256,11 @@ class DevelopmentProjectController extends Controller
 
         $report->update($validatedData);
 
-        // Handle objectives, activities, photos, and account details similarly
-        // ...
-
         return redirect()->route('quarterly.developmentProject.edit', $report->id)->with('success', 'Report updated successfully.');
     }
 
     public function review($id)
     {
-        // Logic to get the report data for review by senior
         $report = RQDPReport::with(['objectives.activities', 'photos', 'accountDetails'])->findOrFail($id);
         return view('reports.quarterly.developmentProject.review', compact('report'));
     }

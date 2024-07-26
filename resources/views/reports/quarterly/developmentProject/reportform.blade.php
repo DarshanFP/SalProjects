@@ -1,3 +1,5 @@
+resources/views/reports/quarterly/developmentProject/reportform.blade.php --}}
+
 @extends('executor.dashboard')
 
 @section('content')
@@ -6,6 +8,7 @@
         <div class="col-md-12 col-xl-12">
             <form action="{{ route('quarterly.developmentProject.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
+                <input type="hidden" name="project_id" value="{{ $project->id }}">
                 <div class="mb-3 card">
                     <div class="card-header">
                         <h4 class="fp-text-center1">TRACKING DEVELOPMENT PROJECT</h4>
@@ -19,31 +22,44 @@
                     <div class="card-body">
                         <div class="mb-3">
                             <label for="project_title" class="form-label">Title of the Project</label>
-                            <input type="text" name="project_title" class="form-control">
+                            <input type="text" name="project_title" class="form-control" value="{{ $project->project_title }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label for="place" class="form-label">Place</label>
-                            <input type="text" name="place" class="form-control">
+                            <input type="text" name="place" class="form-control" value="{{ $user->center }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label for="society_name" class="form-label">Name of the Society / Trust</label>
-                            <input type="text" name="society_name" class="form-control">
+                            <input type="text" name="society_name" class="form-control" value="{{ $user->province }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label for="commencement_month_year" class="form-label">Month & Year of Commencement of the Project</label>
-                            <input type="text" name="commencement_month_year" class="form-control">
+                            <input type="text" name="commencement_month_year" class="form-control" value="{{ $project->commencement_month_year }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label for="in_charge" class="form-label">Sister/s In-Charge</label>
-                            <input type="text" name="in_charge" class="form-control">
+                            <input type="text" name="in_charge" class="form-control" value="{{ $user->name }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label for="total_beneficiaries" class="form-label">Total No. of Beneficiaries</label>
-                            <input type="number" name="total_beneficiaries" class="form-control">
+                            <input type="number" name="total_beneficiaries" class="form-control" >
                         </div>
                         <div class="mb-3">
                             <label for="reporting_period" class="form-label">Reporting Period</label>
-                            <input type="text" name="reporting_period" class="form-control">
+                            <div class="d-flex">
+                                <select name="reporting_period_month" class="form-control me-2">
+                                    <option value="" disabled selected>Month</option>
+                                    @foreach(range(1, 12) as $month)
+                                        <option value="{{ $month }}">{{ date('F', mktime(0, 0, 0, $month, 1)) }}</option>
+                                    @endforeach
+                                </select>
+                                <select name="reporting_period_year" class="form-control">
+                                    <option value="" disabled selected>Year</option>
+                                    @foreach(range(date('Y'), date('Y') - 100) as $year)
+                                        <option value="{{ $year }}">{{ $year }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -56,7 +72,7 @@
                     <div class="card-body">
                         <div class="mb-3">
                             <label for="goal" class="form-label">Goal of the Project</label>
-                            <textarea name="goal" class="form-control" rows="3" required></textarea>
+                            <textarea name="goal" class="form-control" rows="3" required>{{ old('goal', $project->goal) }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -75,7 +91,7 @@
                             <div class="mb-3">
                                 <label for="objective[1]" class="form-label">Objective</label>
                                 <textarea name="objective[1]" class="form-control" rows="2"></textarea>
-			                </div>
+                            </div>
                             <div class="mb-3">
                                 <label for="expected_outcome[1]" class="form-label">Expected Outcome</label>
                                 <textarea name="expected_outcome[1]" class="form-control" rows="2"></textarea>
@@ -157,7 +173,7 @@
                         <div class="card-body">
                             <div class="mb-3">
                                 <label for="date[1]" class="form-label">Date</label>
-                                <input type="date" name="date[1]" class="form-control">
+                                <input type="date" name="date[1]" class="form-control" class="form-control fp-custom-date-input>
                             </div>
                             <div class="mb-3">
                                 <label for="plan_next_month[1]" class="form-label">Action Plan for Next Month</label>
@@ -168,8 +184,8 @@
                 </div>
                 <button type="button" class="btn btn-primary" onclick="addOutlook()">Add More Outlook</button>
 
-                <!-- Statement of Accounts Section -->
-                <div class="mb-3 card">
+                <!-- Statement of Accounts Section Old -->
+                {{-- <div class="mb-3 card">
                     <div class="card-header">
                         <h4>4. Statements of Account</h4>
                     </div>
@@ -243,8 +259,249 @@
                             <input type="number" name="total_balance_forwarded" class="form-control" readonly>
                         </div>
                     </div>
-                </div>
+                </div> --}}
 
+                <!-- Statements of Account Section Old ends -->
+                <!-- Statement of Accounts Section  -->
+
+<!-- Statements of Account Section -->
+{{-- <div class="mb-3 card">
+    <div class="card-header">
+        <h4>4. Statements of Account</h4>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label for="account_period" class="form-label">Account Statement Period:</label>
+            <div class="d-flex">
+                <input type="date" name="account_period_start" class="form-control">
+                <span class="mx-2">to</span>
+                <input type="date" name="account_period_end" class="form-control">
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="amount_sanctioned_overview" class="form-label">Amount Sanctioned: Rs.</label>
+            <input type="number" name="amount_sanctioned_overview" class="form-control" value="{{ $amountSanctionedOverview }}" readonly>
+        </div>
+        <div class="mb-3">
+            <label for="amount_forwarded_overview" class="form-label">Amount Forwarded from the Last Financial Year: Rs.</label>
+            <input type="number" name="amount_forwarded_overview" class="form-control" value="{{ $amountForwardedOverview }}" readonly>
+        </div>
+        <div class="mb-3">
+            <label for="amount_in_hand" class="form-label">Total Amount: Rs.</label>
+            <input type="number" name="amount_in_hand" class="form-control" value="{{ $amountSanctionedOverview + $amountForwardedOverview }}" readonly>
+        </div>
+
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Particulars</th>
+                    <th>Amount Forwarded from the Previous Year</th>
+                    <th>Amount Sanctioned Current Year</th>
+                    <th>Total Amount (2+3)</th>
+                    <th>Expenses Up to Last Month</th>
+                    <th>Expenses of This Month</th>
+                    <th>Total Expenses (5+6)</th>
+                    <th>Balance Amount</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="account-rows">
+                @foreach($budget as $index => $item)
+                <tr>
+                    <td><input type="text" name="particulars[]" class="form-control" value="{{ $item->description }}"></td>
+                    <td><input type="number" name="amount_forwarded[]" class="form-control" value="{{ $item->amount_forwarded }}" oninput="calculateRowTotals(this)"></td>
+                    <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ $item->amount_sanctioned }}" oninput="calculateRowTotals(this)"></td>
+                    <td><input type="number" name="total_amount[]" class="form-control" value="{{ $item->amount_forwarded + $item->amount_sanctioned }}" readonly></td>
+                    <td><input type="number" name="expenses_last_month[]" class="form-control" oninput="calculateRowTotals(this)"></td>
+                    <td><input type="number" name="expenses_this_month[]" class="form-control" oninput="calculateRowTotals(this)"></td>
+                    <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
+                    <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>
+                    <td><button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button></td>
+                </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th>Total</th>
+                    <th><input type="number" id="total_forwarded" class="form-control" readonly></th>
+                    <th><input type="number" id="total_sanctioned" class="form-control" readonly></th>
+                    <th><input type="number" id="total_amount_total" class="form-control" readonly></th>
+                    <th><input type="number" id="total_expenses_last_month" class="form-control" readonly></th>
+                    <th><input type="number" id="total_expenses_this_month" class="form-control" readonly></th>
+                    <th><input type="number" id="total_expenses_total" class="form-control" readonly></th>
+                    <th><input type="number" id="total_balance" class="form-control" readonly></th>
+                    <th></th>
+                </tr>
+            </tfoot>
+        </table>
+        <button type="button" class="btn btn-primary" onclick="addAccountRow()">Add Row</button>
+
+        <div class="mt-3">
+            <label for="total_balance_forwarded" class="form-label">Total Balance Amount Forwarded for the Following Month: Rs.</label>
+            <input type="number" name="total_balance_forwarded" class="form-control" readonly>
+        </div>
+    </div>
+</div> --}}
+<!-- Statements of Account Section ends -->
+
+                <!-- Statements of Account Section -->
+                {{-- <div class="mb-3 card">
+                    <div class="card-header">
+                        <h4>4. Statements of Account</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="account_period" class="form-label">Account Statement Period:</label>
+                            <div class="d-flex">
+                                <input type="date" name="account_period_start" class="form-control">
+                                <span class="mx-2">to</span>
+                                <input type="date" name="account_period_end" class="form-control">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amount_sanctioned_overview" class="form-label">Amount Sanctioned: Rs.</label>
+                            <input type="number" name="amount_sanctioned_overview" class="form-control" value="{{ $amountSanctionedOverview }}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amount_forwarded_overview" class="form-label">Amount Forwarded from the Last Financial Year: Rs.</label>
+                            <input type="number" name="amount_forwarded_overview" class="form-control" value="{{ $amountForwardedOverview }}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amount_in_hand" class="form-label">Total Amount: Rs.</label>
+                            <input type="number" name="amount_in_hand" class="form-control" value="{{ $amountSanctionedOverview + $amountForwardedOverview }}" readonly>
+                        </div>
+
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Particulars</th>
+                                    <th>Amount Forwarded from the Previous Year</th>
+                                    <th>Amount Sanctioned Current Year</th>
+                                    <th>Total Amount (2+3)</th>
+                                    <th>Expenses Up to Last Month</th>
+                                    <th>Expenses of This Month</th>
+                                    <th>Total Expenses (5+6)</th>
+                                    <th>Balance Amount</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="account-rows">
+                                @foreach($budgets as $index => $budget)
+                                <tr>
+                                    <td><input type="text" name="particulars[]" class="form-control" value="{{ $budget->description }}"></td>
+                                    <td><input type="number" name="amount_forwarded[]" class="form-control" value="{{ old('amount_forwarded.'.$index) }}" oninput="calculateRowTotals(this)"></td>
+                                    <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ $budget->this_phase }}" oninput="calculateRowTotals(this)"></td>
+                                    <td><input type="number" name="total_amount[]" class="form-control" value="{{ $budget->amount_forwarded + $budget->this_phase }}" readonly></td>
+                                    <td><input type="number" name="expenses_last_month[]" class="form-control" oninput="calculateRowTotals(this)"></td>
+                                    <td><input type="number" name="expenses_this_month[]" class="form-control" oninput="calculateRowTotals(this)"></td>
+                                    <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
+                                    <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>
+                                    <td><button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button></td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th>Total</th>
+                                    <th><input type="number" id="total_forwarded" class="form-control" readonly></th>
+                                    <th><input type="number" id="total_sanctioned" class="form-control" readonly></th>
+                                    <th><input type="number" id="total_amount_total" class="form-control" readonly></th>
+                                    <th><input type="number" id="total_expenses_last_month" class="form-control" readonly></th>
+                                    <th><input type="number" id="total_expenses_this_month" class="form-control" readonly></th>
+                                    <th><input type="number" id="total_expenses_total" class="form-control" readonly></th>
+                                    <th><input type="number" id="total_balance" class="form-control" readonly></th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <button type="button" class="btn btn-primary" onclick="addAccountRow()">Add Row</button>
+
+                        <div class="mt-3">
+                            <label for="total_balance_forwarded" class="form-label">Total Balance Amount Forwarded for the Following Month: Rs.</label>
+                            <input type="number" name="total_balance_forwarded" class="form-control" readonly>
+                        </div>
+                    </div>
+                </div> --}}
+                <!-- Statements of Account Section ends -->
+
+                  <!-- Statements of Account Section -->
+                  <div class="mb-3 card">
+                    <div class="card-header">
+                        <h4>4. Statements of Account</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="account_period" class="form-label">Account Statement Period:</label>
+                            <div class="d-flex">
+                                <input type="date" name="account_period_start" class="form-control">
+                                <span class="mx-2">to</span>
+                                <input type="date" name="account_period_end" class="form-control">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amount_sanctioned_overview" class="form-label">Amount Sanctioned: Rs.</label>
+                            <input type="number" name="amount_sanctioned_overview" class="form-control" value="{{ $amountSanctionedOverview }}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amount_forwarded_overview" class="form-label">Amount Forwarded from the Last Financial Year: Rs.</label>
+                            <input type="number" name="amount_forwarded_overview" class="form-control" value="{{ $amountForwardedOverview }}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amount_in_hand" class="form-label">Total Amount: Rs.</label>
+                            <input type="number" name="amount_in_hand" class="form-control" value="{{ $amountSanctionedOverview + $amountForwardedOverview }}" readonly>
+                        </div>
+
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Particulars</th>
+                                    <th>Amount Forwarded from the Previous Year</th>
+                                    <th>Amount Sanctioned Current Year</th>
+                                    <th>Total Amount (2+3)</th>
+                                    <th>Expenses Up to Last Month</th>
+                                    <th>Expenses of This Month</th>
+                                    <th>Total Expenses (5+6)</th>
+                                    <th>Balance Amount</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="account-rows">
+                                @foreach($budgets as $index => $budget)
+                                <tr>
+                                    <td><input type="text" name="particulars[]" class="form-control" value="{{ $budget->description }}"></td>
+                                    <td><input type="number" name="amount_forwarded[]" class="form-control" value="{{ old('amount_forwarded.'.$index) }}" oninput="calculateRowTotals(this)"></td>
+                                    <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ $budget->this_phase }}" oninput="calculateRowTotals(this)"></td>
+                                    <td><input type="number" name="total_amount[]" class="form-control" value="{{ $budget->amount_forwarded + $budget->this_phase }}" readonly></td>
+                                    <td><input type="number" name="expenses_last_month[]" class="form-control" value="{{ $expensesUpToLastMonth[$budget->id] ?? 0 }}" oninput="calculateRowTotals(this)"></td>
+                                    <td><input type="number" name="expenses_this_month[]" class="form-control" oninput="calculateRowTotals(this)"></td>
+                                    <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
+                                    <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>
+                                    <td><button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button></td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th>Total</th>
+                                    <th><input type="number" id="total_forwarded" class="form-control" readonly></th>
+                                    <th><input type="number" id="total_sanctioned" class="form-control" readonly></th>
+                                    <th><input type="number" id="total_amount_total" class="form-control" readonly></th>
+                                    <th><input type="number" id="total_expenses_last_month" class="form-control" readonly></th>
+                                    <th><input type="number" id="total_expenses_this_month" class="form-control" readonly></th>
+                                    <th><input type="number" id="total_expenses_total" class="form-control" readonly></th>
+                                    <th><input type="number" id="total_balance" class="form-control" readonly></th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <button type="button" class="btn btn-primary" onclick="addAccountRow()">Add Row</button>
+
+                        <div class="mt-3">
+                            <label for="total_balance_forwarded" class="form-label">Total Balance Amount Forwarded for the Following Month: Rs.</label>
+                            <input type="number" name="total_balance_forwarded" class="form-control" readonly>
+                        </div>
+                    </div>
+                </div>
                 <!-- Statements of Account Section ends -->
 
                 <div class="mb-3 card">
@@ -476,7 +733,7 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label for="date[${index}]" class="form-label">Date</label>
-                        <input type="date" name="date[${index}]" class="form-control">
+                        <input type="date" name="date[${index}]" class="form-control fp-custom-date-input>
                     </div>
                     <div class="mb-3">
                         <label for="plan_next_month[${index}]" class="form-label">Action Plan for Next Month</label>
@@ -689,6 +946,28 @@
     document.addEventListener('DOMContentLoaded', function() {
         updatePhotoLabels();
     });
+
+    /* date picker color change */
+
+    /*
+    document.addEventListener('DOMContentLoaded', function () {
+    flatpickr('.fp-custom-date-input', {
+      dateFormat: 'd/m/Y',
+      wrap: true,
+      clickOpens: true,
+      allowInput: true,
+      // Customize the appearance
+      defaultDate: 'today',
+      onReady: function () {
+        document.querySelectorAll('.flatpickr-calendar').forEach(function (cal) {
+          cal.style.backgroundColor = '#1a1a2e'; // Change to your desired color
+          cal.style.color = 'white'; // Change to your desired text color
+        });
+      }
+    });
+  });
+  */
+
 </script>
 
 
@@ -727,5 +1006,24 @@
     .fp-text-margin {
             margin-bottom: 15px; /* Adjust the value as needed */
     }
+
+    // Custom styles for the date input.flatpickr-calendar {
+  background-color: #1a1a2e; /* Your desired background color */
+  color: white; /* Your desired text color */
+}
+
+.flatpickr-day {
+  color: white; /* Your desired day text color */
+}
+
+.flatpickr-day:hover, .flatpickr-day:focus {
+  background-color: #4e4e9b; /* Your desired hover color */
+}
+
+.flatpickr-day.selected {
+  background-color: #3f51b5; /* Your desired selected date color */
+  color: white;
+}
 </style>
 @endsection
+

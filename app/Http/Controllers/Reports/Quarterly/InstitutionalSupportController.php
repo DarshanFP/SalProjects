@@ -21,7 +21,7 @@ class InstitutionalSupportController extends Controller
         return view('reports.quarterly.institutionalSupport.reportform');
     }
 
-        public function store(Request $request)
+    public function store(Request $request)
     {
         // Log the request data
         Log::info('Store method called');
@@ -60,6 +60,8 @@ class InstitutionalSupportController extends Controller
             'photos' => 'nullable|array',
             'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:3072',
             'photo_descriptions' => 'nullable|array',
+            'objective' => 'nullable|array', // Add this line
+            'objective.*' => 'nullable|string', // Add this line
         ]);
 
         // Temporarily set user_id to null for testing if not authenticated
@@ -73,6 +75,7 @@ class InstitutionalSupportController extends Controller
 
         // Ensure input arrays are initialized
         $expected_outcome = $request->input('expected_outcome', []);
+        $objectives = $request->input('objective', []); // Add this line
         $months = $request->input('month', []);
 
         Log::info('Expected Outcome:', $expected_outcome);
@@ -82,6 +85,7 @@ class InstitutionalSupportController extends Controller
         foreach ($expected_outcome as $index => $expectedOutcome) {
             $objectiveData = [
                 'report_id' => $report->id,
+                'objective' => $objectives[$index] ?? null, // Add this line
                 'expected_outcome' => $expectedOutcome,
                 'not_happened' => $request->input("not_happened.$index"),
                 'why_not_happened' => $request->input("why_not_happened.$index"),
@@ -234,7 +238,6 @@ class InstitutionalSupportController extends Controller
 
         return redirect()->route('quarterly.institutionalSupport.create')->with('success', 'Report submitted successfully.');
     }
-
 
     //LIST REPORTS
     public function index()

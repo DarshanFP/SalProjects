@@ -14,10 +14,11 @@ class CreateRqstReportsTable extends Migration
             $table->string('project_title')->nullable();
             $table->string('place')->nullable();
             $table->string('society_name')->nullable();
-            $table->string('commencement_month_year')->nullable();
+            $table->date('commencement_month_year')->nullable();
             $table->string('in_charge')->nullable();
             $table->integer('total_beneficiaries')->nullable();
-            $table->string('reporting_period')->nullable();
+            $table->date('reporting_period_from')->nullable();
+            $table->date('reporting_period_to')->nullable(); // added new field, add it in blade
             $table->text('goal')->nullable();
             $table->date('account_period_start')->nullable();
             $table->date('account_period_end')->nullable();

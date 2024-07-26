@@ -6,11 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateRqdpOutlooksTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
         Schema::create('rqdp_outlooks', function (Blueprint $table) {
@@ -22,11 +17,6 @@ class CreateRqdpOutlooksTable extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
         Schema::dropIfExists('rqdp_outlooks');

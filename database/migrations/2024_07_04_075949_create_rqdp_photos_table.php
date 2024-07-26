@@ -6,11 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateRqdpPhotosTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
         Schema::create('rqdp_photos', function (Blueprint $table) {
@@ -22,11 +17,6 @@ class CreateRqdpPhotosTable extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
         Schema::dropIfExists('rqdp_photos');

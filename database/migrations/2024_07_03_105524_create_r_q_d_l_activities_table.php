@@ -10,7 +10,7 @@ class CreateRQDLActivitiesTable extends Migration
         Schema::create('rqdl_activities', function (Blueprint $table) {
             $table->id();
             $table->foreignId('objective_id')->constrained('rqdl_objectives')->onDelete('cascade');
-            $table->string('month')->nullable();
+            $table->date('month')->nullable();
             $table->text('summary_activities')->nullable();
             $table->text('qualitative_quantitative_data')->nullable();
             $table->text('intermediate_outcomes')->nullable();

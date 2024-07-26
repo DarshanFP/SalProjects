@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\OldProjects\Project;
 use App\Models\Reports\Quarterly\RQDPReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,14 +12,11 @@ class ExecutorController extends Controller
     //
     public function ExecutorDashboard()
     {
-        //commented out the return view ('executor.index'); and replaced it with the code below
-    //     return view ('executor.index');
-    // }
+    // Get the authenticated user's projects
+    $projects = Project::where('user_id', Auth::id())->get();
+    $user = Auth::user();
 
-    // public function index()
-    // {
-
-        $reports = RQDPReport::where('user_id', Auth::id())->get();
-        return view('executor.index', compact('reports'));
+    // Pass the projects to the executor index view
+    return view('executor.index', compact('projects', 'user'));
     }
 }

@@ -16,7 +16,7 @@ class CreateQrdlAnnexureTable extends Migration
             $table->foreignId('report_id')->constrained('rqdl_reports')->onDelete('cascade');
             $table->string('beneficiary_name')->nullable();
             $table->date('support_date')->nullable();
-            $table->string('self_employment')->nullable();
+            $table->text('self_employment')->nullable();
             $table->decimal('amount_sanctioned', 10, 2)->nullable();
             $table->decimal('monthly_profit', 10, 2)->nullable();
             $table->decimal('annual_profit', 10, 2)->nullable();

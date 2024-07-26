@@ -6,16 +6,12 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateRqdpObjectivesTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
         Schema::create('rqdp_objectives', function (Blueprint $table) {
             $table->id();
             $table->foreignId('report_id')->constrained('rqdp_reports')->onDelete('cascade');
+            $table->text('objective')->nullable();
             $table->text('expected_outcome')->nullable();
             $table->text('not_happened')->nullable();
             $table->text('why_not_happened')->nullable();
@@ -27,11 +23,6 @@ class CreateRqdpObjectivesTable extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
         Schema::dropIfExists('rqdp_objectives');

@@ -2,49 +2,47 @@
 
 namespace Database\Factories;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
- */
 class UserFactory extends Factory
 {
     /**
-     * The current password being used by the factory.
+     * The name of the factory's corresponding model.
+     *
+     * @var string
      */
-    protected static ?string $password;
+    protected $model = User::class;
 
     /**
      * Define the model's default state.
      *
-     * @return array<string, mixed>
+     * @return array
      */
-    public function definition(): array
+    public function definition()
     {
         return [
-            'name' => fake()->name(),
-            'username' => fake()->userName(),
-            'email' => fake()->unique()->safeEmail(),
+            'parent_id' => null,
+            'name' => $this->faker->name,
+            'username' => $this->faker->unique()->userName,
+            'role' => 'executor', // Default role set to executor
+            'province' => $this->faker->randomElement(['Bangalore', 'Vijayawada', 'Visakhapatnam', 'Generalate', 'none']),
+            'society_name' => $this->faker->randomElement([
+                "ST. ANN'S EDUCATIONAL SOCIETY",
+                "SARVAJANA SNEHA CHARITABLE TRUST",
+                "ST. ANNS'S SOCIETY, VISAKHAPATNAM",
+                "WILHELM MEYERS DEVELOPMENTAL SOCIETY",
+                "ST.ANN'S SOCIETY, SOUTHERN REGION"
+            ]),
+            'center' => $this->faker->city,
+            'phone' => $this->faker->phoneNumber,
+            'email' => $this->faker->unique()->safeEmail,
             'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
+            'password' => bcrypt('password'), // password
+            'address' => $this->faker->address,
+            'status' => $this->faker->randomElement(['active', 'inactive']),
             'remember_token' => Str::random(10),
-            'phone' => fake()->phoneNumber,
-            'center' => fake()->city(),
-            'address' => fake()->address,
-            'role' => fake()->randomElement(['admin', 'coordinator', 'provincial', 'executor']),
-            'status' => fake()->randomElement(['active', 'inactive']),
         ];
-    }
-
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    public function unverified(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
-        ]);
     }
 }

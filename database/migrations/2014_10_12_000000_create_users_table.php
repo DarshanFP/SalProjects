@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateUsersTable extends Migration
 {
     /**
      * Run the migrations.
@@ -17,7 +17,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('username')->nullable()->unique();
             $table->enum('role', ['admin', 'coordinator', 'provincial', 'executor'])->default('executor');
-            $table->enum('province', ['Bangalore', 'Vijayawada', 'Visakhapatnam', 'Generalate','none']);  // Add province column here
+            $table->enum('province', ['Bangalore', 'Vijayawada', 'Visakhapatnam', 'Generalate', 'none']);
+            $table->string('society_name')->nullable();
             $table->string('center')->nullable();
             $table->string('phone')->nullable();
             $table->string('email')->unique();
@@ -56,4 +57,4 @@ return new class extends Migration
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
     }
-};
+}

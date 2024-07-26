@@ -124,6 +124,10 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
+                        <div class="mb-3">
+                            <label class="form-label">Objective</label>
+                            <p>{{ $objective->objective }}</p>
+                        </div>
                         <label class="form-label">Expected Outcome</label>
                         <p>{{ $objective->expected_outcome }}</p>
                     </div>

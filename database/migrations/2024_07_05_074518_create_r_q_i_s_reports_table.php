@@ -14,13 +14,14 @@ class CreateRqisReportsTable extends Migration
             $table->string('project_title')->nullable();
             $table->string('place')->nullable();
             $table->string('society_name')->nullable();  // Add this field
-            $table->string('commencement_month_year')->nullable();  // Add this field
+            $table->date('commencement_month_year')->nullable();  // Add this field - changes to date type from sting , need to date, must update blade file to calendar, with fixed date
             $table->string('province')->nullable();
             $table->string('in_charge')->nullable();
             $table->integer('total_beneficiaries')->nullable();  // Add this field
             $table->string('institution_type')->nullable();
-            $table->text('beneficiary_statistics')->nullable();
-            $table->string('monitoring_period')->nullable();
+            $table->string('beneficiary_statistics')->nullable();
+            $table->date('monitoring_period_from')->nullable();
+            $table->date('monitoring_period_to')->nullable();
             $table->text('goal')->nullable();
             $table->date('account_period_start')->nullable();
             $table->date('account_period_end')->nullable();
