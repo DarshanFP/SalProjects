@@ -19,7 +19,7 @@ class CreateProjectsTable extends Migration
             $table->string('project_title')->nullable();
             $table->string('society_name')->nullable();
             $table->string('president_name')->nullable();
-            $table->string('in_charge');
+            $table->unsignedBigInteger('in_charge');
             $table->string('in_charge_name')->nullable();
             $table->string('in_charge_mobile')->nullable();
             $table->string('in_charge_email')->nullable();

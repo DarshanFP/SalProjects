@@ -6,11 +6,11 @@
         <div class="col-md-12 col-xl-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="fp-text-center1">ALL my PROJECT REPORTS</h4>
+                    <h4 class="fp-text-center1">My Projects</h4>
                 </div>
                 <div class="card-body">
-                    < class="table-responsive">
-                        <table class="table table-bordered">
+                    
+                        <table class="table table-bordered table-responsive">
                             <thead>
                                 <tr>
                                     <th>Project ID</th>
