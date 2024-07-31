@@ -144,7 +144,7 @@ Route::middleware(['auth', 'role:executor'])->group(function () {
 
     });
 
-// Monthly  Project Reporting Routes common for Executor 
+// Monthly  Project Reporting Routes common for Executor
 Route::prefix('reports/monthly')->group(function () {
     Route::get('create/{project_id}', [ReportController::class, 'create'])->name('monthly.report.create');
     Route::post('store', [ReportController::class, 'store'])->name('monthly.report.store');

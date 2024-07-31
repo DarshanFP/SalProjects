@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 class BudgetController extends Controller
 {
-    public function store(Request $request, $project)
+    public function store(Request $request, Project $project)
     {
         Log::info('BudgetController@store - Data received from form', $request->all());
 
@@ -32,7 +32,7 @@ class BudgetController extends Controller
         $totalAmountSanctioned = 0;
         $totalAmountForwarded = 0;
 
-        foreach ($request->phases as $phaseIndex => $phase) {
+        foreach ($validated['phases'] as $phaseIndex => $phase) {
             $amountSanctioned = $phase['amount_sanctioned'] ?? 0;
             $amountForwarded = $phase['amount_forwarded'] ?? 0;
 
@@ -40,7 +40,7 @@ class BudgetController extends Controller
             $totalAmountForwarded += $amountForwarded;
 
             if (isset($phase['budget'])) {
-                foreach ($phase['budget'] as $budgetIndex => $budget) {
+                foreach ($phase['budget'] as $budget) {
                     ProjectBudget::create([
                         'project_id' => $project->project_id,
                         'phase' => $phaseIndex + 1,
@@ -66,7 +66,7 @@ class BudgetController extends Controller
         return $project;
     }
 
-    public function update(Request $request, $project)
+    public function update(Request $request, Project $project)
     {
         Log::info('BudgetController@update - Data received from form', $request->all());
 
@@ -89,7 +89,7 @@ class BudgetController extends Controller
 
         ProjectBudget::where('project_id', $project->project_id)->delete();
 
-        foreach ($request->phases as $phaseIndex => $phase) {
+        foreach ($validated['phases'] as $phaseIndex => $phase) {
             $amountSanctioned = $phase['amount_sanctioned'] ?? 0;
             $amountForwarded = $phase['amount_forwarded'] ?? 0;
 
@@ -97,7 +97,7 @@ class BudgetController extends Controller
             $totalAmountForwarded += $amountForwarded;
 
             if (isset($phase['budget'])) {
-                foreach ($phase['budget'] as $budgetIndex => $budget) {
+                foreach ($phase['budget'] as $budget) {
                     ProjectBudget::create([
                         'project_id' => $project->project_id,
                         'phase' => $phaseIndex + 1,
@@ -123,14 +123,8 @@ class BudgetController extends Controller
         return $project;
     }
 
-    //to view the budget of a project
+    // To view the budget of a project
 
-    /**
-     * Display the budget for a specific project.
-     *
-     * @param int $projectId The ID of the project.
-     * @return \Illuminate\View\View The view displaying the project budget.
-     */
     public function viewBudget($projectId)
     {
         $projectBudget = ProjectBudget::with('dpAccountDetails')->where('project_id', $projectId)->firstOrFail();
@@ -139,13 +133,8 @@ class BudgetController extends Controller
         return view('budgets.view', compact('projectBudget', 'remainingBalance'));
     }
 
-    /**
-     * Add an expense to a project.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $projectId
-     * @return \Illuminate\Http\RedirectResponse
-     */
+    // To add an expense to a project
+
     public function addExpense(Request $request, $projectId)
     {
         $validated = $request->validate([

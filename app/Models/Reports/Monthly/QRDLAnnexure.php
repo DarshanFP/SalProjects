@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Reports\Quarterly;
+namespace App\Models\Reports\Monthly;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -25,6 +25,6 @@ class QRDLAnnexure extends Model
 
     public function report()
     {
-        return $this->belongsTo(RQDLReport::class, 'report_id');
+        return $this->belongsTo(DPReport::class, 'report_id');
     }
 }

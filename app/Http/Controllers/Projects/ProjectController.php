@@ -32,12 +32,7 @@ class ProjectController extends Controller
         try {
             Log::info('ProjectController@store - Data received from form', $request->all());
 
-            // $project = (new GeneralInfoController())->store($request);
-            $project = new Project();
-            // Populate the project with request data here, save it
-            $project->fill($request->all());
-            $project->user_id = Auth::id();
-            $project->save();
+            $project = (new GeneralInfoController())->store($request);
 
             $keyInformation = (new KeyInformationController())->store($request, $project);
             $budget = (new BudgetController())->store($request, $project);
@@ -75,6 +70,7 @@ class ProjectController extends Controller
             Log::info('ProjectController@update - Data received from form', $request->all());
 
             $project = (new GeneralInfoController())->update($request, $id);
+
             $keyInformation = (new KeyInformationController())->update($request, $project);
             $budget = (new BudgetController())->update($request, $project);
             $attachments = (new AttachmentController())->update($request, $project);

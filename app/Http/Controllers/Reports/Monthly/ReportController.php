@@ -22,6 +22,14 @@ use Illuminate\Validation\ValidationException;
 
 class ReportController extends Controller
 {
+    protected $partialDevelopmentLivelihoodController;
+
+    public function __construct(PartialDevelopmentLivelihoodController $partialDevelopmentLivelihoodController)
+    {
+        $this->partialDevelopmentLivelihoodController = $partialDevelopmentLivelihoodController;
+    }
+
+
     public function create($project_id)
     {
         Log::info('Entering create method', ['project_id' => $project_id]);
@@ -206,6 +214,12 @@ class ReportController extends Controller
         // Handle photos
         $this->handlePhotos($request, $report_id);
 
+        // Handle annexures if project type is Livelihood Development Projects
+        if ($request->input('project_type') === 'Livelihood Development Projects') {
+            $livelihoodController = new PartialDevelopmentLivelihoodController();
+            $livelihoodController->storeAnnexure($request, $report->report_id);
+        }
+
         DB::commit();
         Log::info('Transaction committed and report created successfully.');
         return redirect()->route('monthly.report.index')->with('success', 'Report submitted successfully.');
@@ -220,154 +234,6 @@ class ReportController extends Controller
     }
 }
 
-//     public function store(Request $request)
-// {
-//     Log::info('Store method initiated with data:', ['data' => $request->all()]);
-
-//     DB::beginTransaction();
-//     try {
-//         // Validation logic
-//         $validatedData = $request->validate([
-//             'project_id' => 'required|string|max:255',
-//             'project_title' => 'nullable|string|max:255',
-//             'project_type' => 'nullable|string|max:255',
-//             'place' => 'nullable|string|max:255',
-//             'society_name' => 'nullable|string|max:255',
-//             'commencement_month_year' => 'nullable|date',
-//             'in_charge' => 'nullable|string|max:255',
-//             'total_beneficiaries' => 'nullable|integer',
-//             'report_month' => 'nullable|integer|between:1,12',
-//             'report_year' => 'nullable|integer',
-//             'goal' => 'nullable|string',
-//             'account_period_start' => 'nullable|date',
-//             'account_period_end' => 'nullable|date',
-//             'photos' => 'nullable|array',
-//             'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:3072',
-//             'photo_descriptions' => 'nullable|array',
-//             'photo_descriptions.*' => 'nullable|string|max:255',
-//             'objective' => 'nullable|array',
-//             'objective.*' => 'nullable|string',
-//             'expected_outcome' => 'nullable|array',
-//             'expected_outcome.*' => 'nullable|string',
-//             'month' => 'nullable|array',
-//             'summary_activities' => 'nullable|array',
-//             'qualitative_quantitative_data' => 'nullable|array',
-//             'intermediate_outcomes' => 'nullable|array',
-//             'particulars' => 'nullable|array',
-//             'amount_forwarded' => 'nullable|array',
-//             'amount_sanctioned' => 'nullable|array',
-//             'total_amount' => 'nullable|array',
-//             'expenses_last_month' => 'nullable|array',
-//             'expenses_this_month' => 'nullable|array',
-//             'total_expenses' => 'nullable|array',
-//             'balance_amount' => 'nullable|array',
-//             'date' => 'nullable|array',
-//             'plan_next_month' => 'nullable|array'
-//         ]);
-
-//         // Generate report_id with concurrency handling
-//         $project_id = $validatedData['project_id'];
-//         $report_id = $this->generateReportId($project_id);
-
-//         // Create the main report
-//         $report = DPReport::create([
-//             'report_id' => $report_id,
-//             'user_id' => auth()->id() ?? null,
-//             'project_id' => $project_id,
-//             'project_title' => $validatedData['project_title'] ?? '',
-//             'project_type' => $validatedData['project_type'] ?? '',
-//             'place' => $validatedData['place'] ?? '',
-//             'society_name' => $validatedData['society_name'] ?? '',
-//             'commencement_month_year' => $validatedData['commencement_month_year'] ?? null,
-//             'in_charge' => $validatedData['in_charge'] ?? '',
-//             'total_beneficiaries' => $validatedData['total_beneficiaries'] ?? 0,
-//             'report_month_year' => isset($validatedData['report_year']) && isset($validatedData['report_month']) ? Carbon::createFromDate($validatedData['report_year'], $validatedData['report_month'], 1) : null,
-//             'goal' => $validatedData['goal'] ?? '',
-//             'account_period_start' => $validatedData['account_period_start'] ?? null,
-//             'account_period_end' => $validatedData['account_period_end'] ?? null,
-//             'amount_sanctioned_overview' => $validatedData['amount_sanctioned_overview'] ?? 0,
-//             'amount_forwarded_overview' => $validatedData['amount_forwarded_overview'] ?? 0,
-//             'amount_in_hand' => $validatedData['amount_in_hand'] ?? 0,
-//             'total_balance_forwarded' => $validatedData['total_balance_forwarded'] ?? 0
-//         ]);
-
-//         if (!$report) {
-//             throw new Exception('Failed to create report');
-//         }
-//         Log::info('Report created successfully', ['report_id' => $report->report_id]);
-
-//         // Handle objectives and activities
-//         foreach ($request->input('expected_outcome', []) as $index => $expectedOutcome) {
-//             // Generate objective_id
-//             $objective_id_suffix = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
-//             $objective_id = "{$report_id}-{$objective_id_suffix}";
-
-//             $objectiveData = [
-//                 'objective_id' => $objective_id,
-//                 'report_id' => $report->report_id,
-//                 'objective' => $request->input("objective.$index"), // Add this line
-//                 'expected_outcome' => $expectedOutcome,
-//                 'not_happened' => $request->input("not_happened.$index"),
-//                 'why_not_happened' => $request->input("why_not_happened.$index"),
-//                 'changes' => $request->input("changes.$index") === 'yes',
-//                 'why_changes' => $request->input("why_changes.$index"),
-//                 'lessons_learnt' => $request->input("lessons_learnt.$index"),
-//                 'todo_lessons_learnt' => $request->input("todo_lessons_learnt.$index"),
-//             ];
-
-//             Log::info('Objective Data:', $objectiveData);
-
-//             $objective = DPObjective::create($objectiveData);
-//             Log::info('Objective Created: ', $objective->toArray());
-
-//             // Save activities for each objective
-//             foreach ($request->input("month.$index", []) as $activityIndex => $month) {
-//                 // Generate activity_id
-//                 $activity_id_suffix = str_pad($activityIndex + 1, 3, '0', STR_PAD_LEFT);
-//                 $activity_id = "{$objective_id}-{$activity_id_suffix}";
-
-//                 $summaryActivities = $request->input("summary_activities.$index.$activityIndex.1");
-//                 $qualitativeQuantitativeData = $request->input("qualitative_quantitative_data.$index.$activityIndex.1");
-//                 $intermediateOutcomes = $request->input("intermediate_outcomes.$index.$activityIndex.1");
-
-//                 $activityData = [
-//                     'activity_id' => $activity_id,
-//                     'objective_id' => $objective->objective_id,
-//                     'month' => $month,
-//                     'summary_activities' => $summaryActivities,
-//                     'qualitative_quantitative_data' => $qualitativeQuantitativeData,
-//                     'intermediate_outcomes' => $intermediateOutcomes,
-//                 ];
-
-//                 Log::info('Activity Data:', $activityData);
-
-//                 $activity = DPActivity::create($activityData);
-//                 Log::info('Activity Created: ', $activity->toArray());
-//             }
-//         }
-
-//         // Handle account details
-//         $this->handleAccountDetails($request, $report_id, $project_id);
-
-//         // Handle outlooks
-//         $this->handleOutlooks($request, $report_id);
-
-//         // Handle photos
-//         $this->handlePhotos($request, $report_id);
-
-//         DB::commit();
-//         Log::info('Transaction committed and report created successfully.');
-//         return redirect()->route('monthly.report.index')->with('success', 'Report submitted successfully.');
-//     } catch (ValidationException $ve) {
-//         DB::rollBack();
-//         Log::error('Validation failed', ['error' => $ve->errors()]);
-//         return back()->withErrors($ve);
-//     } catch (\Exception $e) {
-//         DB::rollBack();
-//         Log::error('Failed to create report', ['error' => $e->getMessage()]);
-//         return back()->withErrors(['msg' => 'Failed to create report due to an error: ' . $e->getMessage()]);
-//     }
-// }
     private function handleAccountDetails($request, $report_id, $project_id)
     {
         $particulars = $request->input('particulars', []);

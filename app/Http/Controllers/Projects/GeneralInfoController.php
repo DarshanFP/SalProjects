@@ -8,13 +8,10 @@ use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 
-
 class GeneralInfoController extends Controller
 {
     public function store(Request $request)
     {
-        Log::info('GeneralInfoController@store - Data received from form', $request->all());
-
         $validated = $request->validate([
             'project_type' => 'required|string|max:255',
             'project_title' => 'required|string|max:255',
@@ -42,51 +39,26 @@ class GeneralInfoController extends Controller
             'coordinator_luzern_phone' => 'nullable|string|max:255',
             'coordinator_luzern_email' => 'nullable|string|max:255',
             'goal' => 'required|string',
-            'total_amount_sanctioned' => 'required|numeric',
-            'total_amount_forwarded' => 'required|numeric',
+            'total_amount_sanctioned' => 'nullable|numeric',
+            'total_amount_forwarded' => 'nullable|numeric',
         ]);
 
-        $project = Project::create([
-            'project_type' => $validated['project_type'],
-            'project_title' => $validated['project_title'],
-            'society_name' => $validated['society_name'],
-            'president_name' => $validated['president_name'],
-            'in_charge' => $validated['in_charge'],
-            'in_charge_name' => $validated['in_charge_name'],
-            'in_charge_mobile' => $validated['in_charge_mobile'],
-            'in_charge_email' => $validated['in_charge_email'],
-            'executor_name' => $validated['executor_name'],
-            'executor_mobile' => $validated['executor_mobile'],
-            'executor_email' => $validated['executor_email'],
-            'full_address' => $validated['full_address'],
-            'overall_project_period' => $validated['overall_project_period'],
-            'current_phase' => $validated['current_phase'],
-            'commencement_month_year' => $validated['commencement_year'] . '-' . $validated['commencement_month'] . '-01',
-            'overall_project_budget' => $validated['overall_project_budget'],
-            'coordinator_india' => $validated['coordinator_india'],
-            'coordinator_india_name' => $validated['coordinator_india_name'],
-            'coordinator_india_phone' => $validated['coordinator_india_phone'],
-            'coordinator_india_email' => $validated['coordinator_india_email'],
-            'coordinator_luzern' => $validated['coordinator_luzern'],
-            'coordinator_luzern_name' => $validated['coordinator_luzern_name'],
-            'coordinator_luzern_phone' => $validated['coordinator_luzern_phone'],
-            'coordinator_luzern_email' => $validated['coordinator_luzern_email'],
-            'goal' => $validated['goal'],
-            'amount_sanctioned' => $validated['total_amount_sanctioned'],
-            'amount_forwarded' => $validated['total_amount_forwarded'],
-            'status' => 'underwriting',
-            'user_id' => Auth::id(),
-        ]);
+        $validated['commencement_month_year'] = ($validated['commencement_year'] && $validated['commencement_month'])
+            ? $validated['commencement_year'] . '-' . str_pad($validated['commencement_month'], 2, '0', STR_PAD_LEFT) . '-01'
+            : null;
 
-        Log::info('GeneralInfoController@store - Data passed to database', $project->toArray());
+        $validated['user_id'] = Auth::id();
+        $validated['status'] = 'underwriting';
+
+        Log::info('GeneralInfoController@store - Data passed to database', $validated);
+
+        $project = Project::create($validated);
 
         return $project;
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, $project_id)
     {
-        Log::info('GeneralInfoController@update - Data received from form', $request->all());
-
         $validated = $request->validate([
             'project_type' => 'required|string|max:255',
             'project_title' => 'required|string|max:255',
@@ -114,40 +86,16 @@ class GeneralInfoController extends Controller
             'coordinator_luzern_phone' => 'nullable|string|max:255',
             'coordinator_luzern_email' => 'nullable|string|max:255',
             'goal' => 'required|string',
-            'total_amount_sanctioned' => 'required|numeric',
-            'total_amount_forwarded' => 'required|numeric',
+            'total_amount_sanctioned' => 'nullable|numeric',
+            'total_amount_forwarded' => 'nullable|numeric',
         ]);
 
-        $project = Project::where('project_id', $id)->firstOrFail();
-        $project->update([
-            'project_type' => $validated['project_type'],
-            'project_title' => $validated['project_title'],
-            'society_name' => $validated['society_name'],
-            'president_name' => $validated['president_name'],
-            'in_charge' => $validated['in_charge'],
-            'in_charge_name' => $validated['in_charge_name'],
-            'in_charge_mobile' => $validated['in_charge_mobile'],
-            'in_charge_email' => $validated['in_charge_email'],
-            'executor_name' => $validated['executor_name'],
-            'executor_mobile' => $validated['executor_mobile'],
-            'executor_email' => $validated['executor_email'],
-            'full_address' => $validated['full_address'],
-            'overall_project_period' => $validated['overall_project_period'],
-            'current_phase' => $validated['current_phase'],
-            'commencement_month_year' => $validated['commencement_year'] . '-' . $validated['commencement_month'] . '-01',
-            'overall_project_budget' => $validated['overall_project_budget'],
-            'coordinator_india' => $validated['coordinator_india'],
-            'coordinator_india_name' => $validated['coordinator_india_name'],
-            'coordinator_india_phone' => $validated['coordinator_india_phone'],
-            'coordinator_india_email' => $validated['coordinator_india_email'],
-            'coordinator_luzern' => $validated['coordinator_luzern'],
-            'coordinator_luzern_name' => $validated['coordinator_luzern_name'],
-            'coordinator_luzern_phone' => $validated['coordinator_luzern_phone'],
-            'coordinator_luzern_email' => $validated['coordinator_luzern_email'],
-            'goal' => $validated['goal'],
-            'amount_sanctioned' => $validated['total_amount_sanctioned'],
-            'amount_forwarded' => $validated['total_amount_forwarded'],
-        ]);
+        $validated['commencement_month_year'] = ($validated['commencement_year'] && $validated['commencement_month'])
+            ? $validated['commencement_year'] . '-' . str_pad($validated['commencement_month'], 2, '0', STR_PAD_LEFT) . '-01'
+            : null;
+
+        $project = Project::findOrFail($project_id);
+        $project->update($validated);
 
         Log::info('GeneralInfoController@update - Data passed to database', $project->toArray());
 

@@ -67,4 +67,9 @@ class DPReport extends Model
     {
         return $this->hasMany(DPOutlook::class, 'report_id', 'report_id');
     }
+
+    public function annexures()
+    {
+        return $this->hasMany(QRDLAnnexure::class, 'report_id', 'report_id');
+    }
 }

@@ -18,7 +18,7 @@ class KeyInformationController extends Controller
         ]);
 
         try {
-            $project->goal = $request->goal;
+            $project->goal = $validated['goal'];
             $project->save();
 
             Log::info('KeyInformationController@store - Data passed to database', $project->toArray());
@@ -39,7 +39,7 @@ class KeyInformationController extends Controller
         ]);
 
         try {
-            $project->goal = $request->goal;
+            $project->goal = $validated['goal'];
             $project->save();
 
             Log::info('KeyInformationController@update - Data passed to database', $project->toArray());

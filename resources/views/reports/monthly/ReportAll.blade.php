@@ -100,6 +100,11 @@
                 <!-- Statements of Account Section -->
                 @include('reports.monthly.partials.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
 
+
+                @if($project->project_type === 'Livelihood Development Projects')
+                    @include('reports.monthly.partials.LivelihoodAnnexure', ['report' => $project])
+                @endif
+
                 <!-- Photos Section -->
                 <div class="mb-3 card">
                     <div class="card-header">
