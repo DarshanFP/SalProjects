@@ -76,6 +76,7 @@ class CoordinatorController extends Controller
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'role' => 'required|string|max:50',
+            'province' => 'required|string|max:255', // Add validation rule for province
             'status' => 'required|string|max:50',
         ]);
 
@@ -89,6 +90,7 @@ class CoordinatorController extends Controller
             'center' => $request->center,
             'address' => $request->address,
             'role' => 'provincial',
+            'province' => $request->province, // Ensure province is being set
             'status' => $request->status,
         ]);
 
