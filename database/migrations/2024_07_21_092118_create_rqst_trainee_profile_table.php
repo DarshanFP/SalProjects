@@ -17,7 +17,7 @@ return new class extends Migration
             $table->text('education_category')->nullable();
             $table->integer('number')->nullable();
             $table->timestamps();
-            
+
             $table->foreign('report_id')->references('report_id')->on('DP_Reports')->onDelete('cascade');
 
         });
