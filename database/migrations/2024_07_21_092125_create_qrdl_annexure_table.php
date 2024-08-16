@@ -13,6 +13,7 @@ class CreateQrdlAnnexureTable extends Migration
     {
         Schema::create('qrdl_annexure', function (Blueprint $table) {
             $table->id();
+            $table->string('report_id');
             $table->foreign('report_id')->references('report_id')->on('DP_Reports')->onDelete('cascade');
             $table->string('dla_beneficiary_name')->nullable();
             $table->date('dla_support_date')->nullable();
