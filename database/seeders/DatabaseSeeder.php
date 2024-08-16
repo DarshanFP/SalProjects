@@ -17,9 +17,9 @@ class DatabaseSeeder extends Seeder
             UsersTableSeeder::class,
 
             //projects
-            OldDevelopmentProjectSeeder::class,
-            OldDevelopmentProjectBudgetSeeder::class,
-            OldDevelopmentProjectAttachmentSeeder::class,
+            // OldDevelopmentProjectSeeder::class,
+            // OldDevelopmentProjectBudgetSeeder::class,
+            // OldDevelopmentProjectAttachmentSeeder::class,
         ]);
 
         \App\Models\User::factory(10)->create();

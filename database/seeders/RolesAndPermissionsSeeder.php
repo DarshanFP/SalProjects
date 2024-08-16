@@ -20,6 +20,7 @@ class RolesAndPermissionsSeeder extends Seeder
         Role::create(['name' => 'coordinator']);
         Role::create(['name' => 'provincial']);
         Role::create(['name' => 'executor']);
+        Role::create(['name' => 'general']);  // Adding the general role
 
         // You can create permissions and assign them to roles as needed
         // Permission::create(['name' => 'edit articles']);
