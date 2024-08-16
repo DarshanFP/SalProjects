@@ -81,12 +81,14 @@
 </div>
 
 
-<script>
+ <script>
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Document is ready. Calculating total.');
     calculateAllRowTotals();
     calculateTotal();
+    updateAllBalanceColors(); // Check initial balance colors on page load
+
 });
 
 function calculateRowTotals(row) {
@@ -144,6 +146,26 @@ function calculateTotal() {
     document.getElementById('total_expenses_this_month').value = totalExpensesThisMonth.toFixed(2);
     document.getElementById('total_expenses_total').value = totalExpensesTotal.toFixed(2);
     document.getElementById('total_balance').value = totalBalance.toFixed(2);
+
+    // if avalilable balance is negative, change the background color to red
+    function updateBalanceColor(inputElement) {
+    const value = parseFloat(inputElement.value) || 0;
+    console.log('Checking balance:', value);
+
+    if (value < 0) {
+        inputElement.style.backgroundColor = 'red';
+    } else {
+        inputElement.style.backgroundColor = ''; // Reset to default
+    }
+}
+
+function updateAllBalanceColors() {
+    const balanceFields = document.querySelectorAll('[name="balance_amount[]"], #total_balance');
+    balanceFields.forEach(field => {
+        updateBalanceColor(field);
+    });
+}
+
 
     document.querySelector('[name="total_balance_forwarded"]').value = totalBalance.toFixed(2);
 

@@ -13,6 +13,7 @@ use App\Http\Controllers\Projects\OldDevelopmentProjectController;
 use App\Http\Controllers\Projects\ProjectController;
 use App\Http\Controllers\ProvincialController;
 use App\Http\Controllers\Reports\Monthly\ExportReportController;
+use App\Http\Controllers\Reports\Monthly\LivelihoodAnnexureController;
 use App\Http\Controllers\Reports\Monthly\MonthlyDevelopmentProjectController;
 use App\Http\Controllers\Reports\Monthly\ReportController;
 use App\Http\Controllers\Reports\Quarterly\DevelopmentLivelihoodController;
@@ -56,8 +57,8 @@ Route::middleware('auth')->group(function () {
 
 // Download routes accessible to all authenticated users
 Route::middleware('auth')->group(function () {
-    Route::get('/projects/{project_id}/download-pdf', [ProjectController::class, 'downloadPdf'])->name('projects.downloadPdf');
-    Route::get('/projects/{project_id}/download-doc', [ProjectController::class, 'downloadDoc'])->name('projects.downloadDoc');
+    // Route::get('/projects/{project_id}/download-pdf', [ProjectController::class, 'downloadPdf'])->name('projects.downloadPdf');
+    // Route::get('/projects/{project_id}/download-doc', [ProjectController::class, 'downloadDoc'])->name('projects.downloadDoc');
 
 
     Route::get('/budgets/{projectId}', [BudgetController::class, 'viewBudget']);
@@ -134,7 +135,7 @@ Route::middleware(['auth', 'role:executor'])->group(function () {
         Route::post('store', [ProjectController::class, 'store'])->name('projects.store');
         Route::get('{project_id}', [ProjectController::class, 'show'])->name('projects.show');
         Route::get('{project_id}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
-        Route::post('{project_id}/update', [ProjectController::class, 'update'])->name('projects.update');
+        Route::put('{project_id}/update', [ProjectController::class, 'update'])->name('projects.update');
         Route::get('download/{id}', [AttachmentController::class, 'downloadAttachment'])->name('projects.downloadAttachment');
         Route::get('{project_id}/download-pdf', [ExportController::class, 'downloadPdf'])->name('projects.downloadPdf');
         Route::get('{project_id}/download-doc', [ExportController::class, 'downloadDoc'])->name('projects.downloadDoc');
@@ -154,23 +155,30 @@ Route::prefix('reports/monthly')->group(function () {
     Route::put('update/{report_id}', [ReportController::class, 'update'])->name('monthly.report.update');
     Route::get('review/{report_id}', [ReportController::class, 'review'])->name('monthly.report.review');
     Route::post('revert/{report_id}', [ReportController::class, 'revert'])->name('monthly.report.revert');
+
     Route::get('reports/monthly/downloadPdf/{report_id}', [ExportReportController::class, 'downloadPdf'])->name('monthly.report.downloadPdf');
-Route::get('reports/monthly/downloadDoc/{report_id}', [ExportReportController::class, 'downloadDoc'])->name('monthly.report.downloadDoc');
+    Route::get('reports/monthly/downloadDoc/{report_id}', [ExportReportController::class, 'downloadDoc'])->name('monthly.report.downloadDoc');
+
+    Route::get('livelihood-annexure/{report_id}', [LivelihoodAnnexureController::class, 'show'])->name('livelihood.annexure.show');
+    Route::get('livelihood-annexure/{report_id}/edit', [LivelihoodAnnexureController::class, 'edit'])->name('livelihood.annexure.edit');
+    Route::put('livelihood-annexure/{report_id}', [LivelihoodAnnexureController::class, 'update'])->name('livelihood.annexure.update');
+
+
 });
 
     // Monthly Development Project Reporting Routes for Executor
-    Route::prefix('reports/monthly/developmentProject')->group(function () {
-        Route::get('create/{project_id}', [MonthlyDevelopmentProjectController::class, 'create'])->name('monthly.developmentProject.create');
-        Route::post('store', [MonthlyDevelopmentProjectController::class, 'store'])->name('monthly.developmentProject.store');
-        Route::get('index', [MonthlyDevelopmentProjectController::class, 'index'])->name('monthly.developmentProject.index');
-        Route::get('show/{report_id}', [MonthlyDevelopmentProjectController::class, 'show'])->name('monthly.developmentProject.show');
-        Route::get('edit/{report_id}', [MonthlyDevelopmentProjectController::class, 'edit'])->name('monthly.developmentProject.edit');
-        Route::post('update/{report_id}', [MonthlyDevelopmentProjectController::class, 'update'])->name('monthly.developmentProject.update');
-        Route::get('review/{report_id}', [MonthlyDevelopmentProjectController::class, 'review'])->name('monthly.developmentProject.review');
-        Route::post('revert/{report_id}', [MonthlyDevelopmentProjectController::class, 'revert'])->name('monthly.developmentProject.revert');
+    // Route::prefix('reports/monthly/developmentProject')->group(function () {
+    //     Route::get('create/{project_id}', [MonthlyDevelopmentProjectController::class, 'create'])->name('monthly.developmentProject.create');
+    //     Route::post('store', [MonthlyDevelopmentProjectController::class, 'store'])->name('monthly.developmentProject.store');
+    //     Route::get('index', [MonthlyDevelopmentProjectController::class, 'index'])->name('monthly.developmentProject.index');
+    //     Route::get('show/{report_id}', [MonthlyDevelopmentProjectController::class, 'show'])->name('monthly.developmentProject.show');
+    //     Route::get('edit/{report_id}', [MonthlyDevelopmentProjectController::class, 'edit'])->name('monthly.developmentProject.edit');
+    //     Route::post('update/{report_id}', [MonthlyDevelopmentProjectController::class, 'update'])->name('monthly.developmentProject.update');
+    //     Route::get('review/{report_id}', [MonthlyDevelopmentProjectController::class, 'review'])->name('monthly.developmentProject.review');
+    //     Route::post('revert/{report_id}', [MonthlyDevelopmentProjectController::class, 'revert'])->name('monthly.developmentProject.revert');
 
 
-    });
+    // });
 
     // Quarterly Development Project Reporting Routes for Executor
     Route::prefix('reports/quarterly/development-project')->group(function () {

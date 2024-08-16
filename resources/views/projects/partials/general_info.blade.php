@@ -2,7 +2,7 @@
 <div class="card-body">
     <div class="mb-3">
         <label for="project_type" class="form-label">Project Type</label>
-        <select name="project_type" id="project_type" class="form-control select-input" required>
+        <select name="project_type" id="project_type" class="form-control select-input" required  style="background-color: #202ba3;">
             <option value="" disabled selected>Select Project Type</option>
             <!-- Add other project types here -->
             <option value="CHILD CARE INSTITUTION" {{ old('project_type') == 'CHILD CARE INSTITUTION' ? 'selected' : '' }}>CHILD CARE INSTITUTION - Welfare home for children - Ongoing</option>
@@ -21,7 +21,7 @@
     </div>
     <div class="mb-3">
         <label for="project_title" class="form-label">Project Title</label>
-        <input type="text" name="project_title" class="form-control select-input" value="{{ old('project_title') }}" required>
+        <input type="text" name="project_title" class="form-control select-input" value="{{ old('project_title') }}" required  style="background-color: #202ba3;">
     </div>
     <div class="mb-3">
         <label for="society_name" class="form-label">Name of the Society / Trust</label>
@@ -32,13 +32,17 @@
         <input type="text" name="president_name" class="form-control readonly-input" value="{{ $user->parent->name }}" readonly>
     </div>
     <div class="mb-3">
-        <label for="parent_id" class="form-label">Provincial Superior</label>
-        <input type="text" name="parent_id" class="form-control readonly-input" value="{{ $user->parent->name }}" readonly>
+        <label for="applicant_name" class="form-label">Project Applicant</label>
+        <div class="d-flex">
+            <input type="text" name="applicant_name" class="form-control readonly-input me-2" value="{{ $user->name }}" readonly>
+            <input type="text" name="applicant_mobile" class="form-control readonly-input me-2" value="{{ $user->phone }}" readonly>
+            <input type="text" name="applicant_email" class="form-control readonly-input" value="{{ $user->email }}" readonly>
+        </div>
     </div>
     <div class="mb-3">
         <label for="in_charge" class="form-label">Project In-Charge</label>
         <div class="d-flex">
-            <select name="in_charge" id="in_charge" class="form-control select-input me-2" required>
+            <select name="in_charge" id="in_charge" class="form-control select-input me-2" required  style="background-color: #202ba3;">
                 <option value="" disabled selected>Select In-Charge</option>
                 @foreach($users as $potential_in_charge)
                     @if($potential_in_charge->province == $user->province)
@@ -48,26 +52,18 @@
                     @endif
                 @endforeach
             </select>
-            <input type="hidden" name="in_charge_name" id="in_charge_name">
+            <input type="hidden" name="in_charge_name" id="in_charge_name" style="background-color: #202ba3;">
             <input type="text" name="in_charge_mobile" id="in_charge_mobile" class="form-control readonly-input me-2" readonly>
             <input type="text" name="in_charge_email" id="in_charge_email" class="form-control readonly-input" readonly>
         </div>
     </div>
     <div class="mb-3">
-        <label for="executor_name" class="form-label">Project Executor</label>
-        <div class="d-flex">
-            <input type="text" name="executor_name" class="form-control readonly-input me-2" value="{{ $user->name }}" readonly>
-            <input type="text" name="executor_mobile" class="form-control readonly-input me-2" value="{{ $user->phone }}" readonly>
-            <input type="text" name="executor_email" class="form-control readonly-input" value="{{ $user->email }}" readonly>
-        </div>
-    </div>
-    <div class="mb-3">
         <label for="full_address" class="form-label">Full Address</label>
-        <textarea name="full_address" class="form-control select-input" rows="2" required>{{ old('full_address', $user->address) }}</textarea>
+        <textarea name="full_address" class="form-control select-input" rows="2" required style="background-color: #091122;">{{ old('full_address', $user->address) }}</textarea>
     </div>
     <div class="mb-3">
         <label for="overall_project_period" class="form-label">Overall Project Period</label>
-        <select name="overall_project_period" id="overall_project_period" class="form-control select-input" required>
+        <select name="overall_project_period" id="overall_project_period" class="form-control select-input" required  style="background-color: #202ba3;">
             <option value="" disabled selected>Select Period</option>
             <option value="1" {{ old('overall_project_period') == 1 ? 'selected' : '' }}>1 Year</option>
             <option value="2" {{ old('overall_project_period') == 2 ? 'selected' : '' }}>2 Years</option>
@@ -76,8 +72,8 @@
         </select>
     </div>
     <div class="mb-3">
-        <label for="current_phase" class="form-label">Phase</label>
-        <select name="current_phase" id="current_phase" class="form-control readonly-select" required>
+        <label for="current_phase" class="form-label">Current Phase</label>
+        <select name="current_phase" id="current_phase" class="form-control readonly-select" required  style="background-color: #202ba3;">
             <option value="" disabled selected>Select Phase</option>
             @for ($i = 1; $i <= old('overall_project_period', 4); $i++)
                 <option value="{{ $i }}" {{ old('current_phase') == $i ? 'selected' : '' }}>Phase {{ $i }}</option>
@@ -85,22 +81,25 @@
         </select>
     </div>
     <div class="mb-3">
-        <label for="commencement_month_year" class="form-label">Commencement Month & Year</label>
-        <div class="d-flex">
-            <select name="commencement_month" id="commencement_month" class="form-control select-input me-2">
-                <option value="" disabled selected>Select Month</option>
-                @foreach (range(1, 12) as $month)
-                    <option value="{{ $month }}" {{ old('commencement_month') == $month ? 'selected' : '' }}>{{ date('F', mktime(0, 0, 0, $month, 1)) }}</option>
-                @endforeach
-            </select>
-            <select name="commencement_year" id="commencement_year" class="form-control select-input">
-                <option value="" disabled selected>Select Year</option>
-                @for ($year = date('Y'); $year >= 1900; $year--)
-                    <option value="{{ $year }}" {{ old('commencement_year') == $year ? 'selected' : '' }}>{{ $year }}</option>
-                @endfor
-            </select>
-        </div>
-    </div>
+    <label for="commencement_month" class="form-label">Commencement Month</label>
+    <select name="commencement_month" id="commencement_month" class="form-control select-input" style="background-color: #202ba3;">
+        <option value="" disabled selected>Select Month</option>
+        @for ($month = 1; $month <= 12; $month++)
+            <option value="{{ $month }}">{{ date('F', mktime(0, 0, 0, $month, 1)) }}</option>
+        @endfor
+    </select>
+</div>
+
+<div class="mb-3">
+    <label for="commencement_year" class="form-label">Commencement Year</label>
+    <select name="commencement_year" id="commencement_year" class="form-control select-input" style="background-color: #202ba3;">
+        <option value="" disabled selected>Select Year</option>
+        @for ($year = now()->year; $year >= 2000; $year--)
+            <option value="{{ $year }}">{{ $year }}</option>
+        @endfor
+    </select>
+</div>
+
     <div class="mb-3">
         <label for="overall_project_budget" class="form-label">Overall Project Budget</label>
         <input type="number" name="overall_project_budget" id="overall_project_budget" class="form-control select-input" value="{{ old('overall_project_budget') }}" required>
@@ -118,7 +117,7 @@
                 <input type="text" name="coordinator_india_email" class="form-control readonly-input" value="{{ $coordinator_india->email }}" readonly>
             @else
                 <input type="text" name="coordinator_india_name" class="form-control readonly-input me-2" placeholder="Name not found for Project Co-Ordinator, India" readonly>
-                <input type="text" name="coordinator_india_phone" class="form-control readonly-input me-2" placeholder="Phone not updated for Project Co-Ordinator, India">
+                <input type="text" name="coordinator_india_phone" class="form-control readonly-input me-2" placeholder="Phone not updated for Project Co-Ordinator, India" readonly>
                 <input type="text" name="coordinator_india_email" class="form-control readonly-input" placeholder="Email not found for Project Co-Ordinator, India" readonly>
             @endif
         </div>
@@ -142,3 +141,28 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Update the current phase options based on the selected overall project period
+    document.getElementById('overall_project_period').addEventListener('change', function() {
+        const projectPeriod = parseInt(this.value);
+        const phaseSelect = document.getElementById('current_phase');
+
+        // Clear previous options
+        phaseSelect.innerHTML = '<option value="" disabled selected>Select Phase</option>';
+
+        // Add new options based on the selected value
+        for (let i = 1; i <= projectPeriod; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.text = `Phase ${i}`;
+            phaseSelect.appendChild(option);
+        }
+    });
+
+    // Placeholder for future additional dynamic interactions
+    // Example: You can add more event listeners here to handle other dynamic interactions
+
+});
+</script>

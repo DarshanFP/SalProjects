@@ -13,14 +13,14 @@ class QRDLAnnexure extends Model
 
     protected $fillable = [
         'report_id',
-        'beneficiary_name',
-        'support_date',
-        'self_employment',
-        'amount_sanctioned',
-        'monthly_profit',
-        'annual_profit',
-        'impact',
-        'challenges',
+        'dla_beneficiary_name',
+        'dla_support_date',
+        'dla_self_employment',
+        'dla_amount_sanctioned',
+        'dla_monthly_profit',
+        'dla_annual_profit',
+        'dla_impact',
+        'dla_challenges',
     ];
 
     public function report()

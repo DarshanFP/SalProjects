@@ -1,4 +1,11 @@
 <script>
+    function beforeSubmit() {
+    const formData = new FormData(document.querySelector('form'));
+    formData.forEach((value, key) => {
+        console.log(`${key}: ${value}`);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Update the mobile and email fields based on the selected project in-charge
     document.getElementById('in_charge').addEventListener('change', function() {
@@ -134,13 +141,13 @@ function addBudgetRow(button) {
     const newRow = document.createElement('tr');
 
     newRow.innerHTML = `
-        <td><input type="text" name="phases[${phaseIndex}][budget][${tableBody.children.length}][particular]" class="form-control"></td>
-        <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)"></td>
-        <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"></td>
-        <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"></td>
-        <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_increase]" class="form-control" oninput="calculateBudgetRowTotals(this)"></td>
+        <td><input type="text" name="phases[${phaseIndex}][budget][${tableBody.children.length}][particular]" class="form-control"  style="background-color: #202ba3;"></td>
+        <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)" style="background-color: #202ba3;"></td>
+        <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" style="background-color: #202ba3;"></td>
+        <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" style="background-color: #202ba3;"></td>
+        <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_increase]" class="form-control" oninput="calculateBudgetRowTotals(this)";"  style="background-color: #122F6B"></td>
         <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][this_phase]" class="form-control readonly-input" readonly></td>
-        <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][next_phase]" class="form-control"></td>
+        <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][next_phase]" class="form-control" style="background-color: #122F6B"></td>
         <td><button type="button" class="btn btn-danger btn-sm" onclick="removeBudgetRow(this)">Remove</button></td>
     `;
 
@@ -203,13 +210,13 @@ function addPhase() {
             </thead>
             <tbody class="budget-rows">
                 <tr>
-                    <td><input type="text" name="phases[${phaseCount}][budget][0][particular]" class="form-control"></td>
-                    <td><input type="number" name="phases[${phaseCount}][budget][0][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)"></td>
-                    <td><input type="number" name="phases[${phaseCount}][budget][0][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"></td>
-                    <td><input type="number" name="phases[${phaseCount}][budget][0][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"></td>
-                    <td><input type="number" name="phases[${phaseCount}][budget][0][rate_increase]" class="form-control" oninput="calculateBudgetRowTotals(this)"></td>
+                    <td><input type="text" name="phases[${phaseCount}][budget][0][particular]" class="form-control"  style="background-color: #202ba3;"></td>
+                    <td><input type="number" name="phases[${phaseCount}][budget][0][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)"  style="background-color: #202ba3;"></td>
+                    <td><input type="number" name="phases[${phaseCount}][budget][0][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"  style="background-color: #202ba3;"></td>
+                    <td><input type="number" name="phases[${phaseCount}][budget][0][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"  style="background-color: #202ba3;"></td>
+                    <td><input type="number" name="phases[${phaseCount}][budget][0][rate_increase]" class="form-control" oninput="calculateBudgetRowTotals(this)" style="background-color: #122F6B"></td>
                     <td><input type="number" name="phases[${phaseCount}][budget][0][this_phase]" class="form-control readonly-input" readonly></td>
-                    <td><input type="number" name="phases[${phaseCount}][budget][0][next_phase]" class="form-control"></td>
+                    <td><input type="number" name="phases[${phaseCount}][budget][0][next_phase]" class="form-control" style="background-color: #122F6B"></td>
                     <td><button type="button" class="btn btn-danger btn-sm" onclick="removeBudgetRow(this)">Remove</button></td>
                 </tr>
             </tbody>

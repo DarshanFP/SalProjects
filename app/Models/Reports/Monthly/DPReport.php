@@ -72,4 +72,16 @@ class DPReport extends Model
     {
         return $this->hasMany(QRDLAnnexure::class, 'report_id', 'report_id');
     }
+    public function rqis_age_profile()
+    {
+        return $this->hasMany(RQISAgeProfile::class, 'report_id', 'report_id');
+    }
+    public function rqst_trainee_profile()
+    {
+        return $this->hasMany(RQSTTraineeProfile::class, 'report_id', 'report_id');
+    }
+    public function rqwd_inmate_profile()
+    {
+        return $this->hasMany(RQWDInmatesProfile::class, 'report_id', 'report_id');
+    }
 }

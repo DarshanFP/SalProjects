@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Project extends Model
 {
     use HasFactory;
+    // protected $primaryKey = 'project_id';
 
     protected $fillable = [
         'user_id',
@@ -86,4 +87,29 @@ class Project extends Model
     {
         return $this->hasMany(ProjectAttachment::class, 'project_id', 'project_id');
     }
+    public function logical_frameworks()
+    {
+        return $this->hasMany(ProjectObjective::class, 'project_id', 'project_id');
+    }
+    public function sustainabilities()
+    {
+        return $this->hasMany(ProjectSustainability::class, 'project_id', 'project_id');
+    }
+    public function objectives()
+    {
+        return $this->hasMany(ProjectObjective::class, 'project_id', 'project_id');
+    }
+
+    // Accessor for Commencement Month
+    public function getCommencementMonthAttribute()
+    {
+        return $this->commencement_month_year ? date('m', strtotime($this->commencement_month_year)) : null;
+    }
+
+    // Accessor for Commencement Year
+    public function getCommencementYearAttribute()
+    {
+        return $this->commencement_month_year ? date('Y', strtotime($this->commencement_month_year)) : null;
+    }
+
 }

@@ -13,10 +13,13 @@ return new class extends Migration
     {
         Schema::create('rqst_trainee_profile', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('report_id')->constrained('rqst_reports')->onDelete('cascade');
+            $table->string('report_id');
             $table->text('education_category')->nullable();
             $table->integer('number')->nullable();
             $table->timestamps();
+            
+            $table->foreign('report_id')->references('report_id')->on('DP_Reports')->onDelete('cascade');
+
         });
     }
 

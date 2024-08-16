@@ -273,6 +273,12 @@
                     </div>
                 </div>
                 <!-- Statements of Account Section ends -->
+                <!-- In your view for editing the annexure -->
+
+                <!-- Livelihood Annexure Section -->
+                @if($report->project_type === 'Livelihood Development Projects' && !empty($annexures))
+                    @include('reports.monthly.partials.edit.dl_annexure_edit', ['annexures' => $annexures])
+                @endif
 
                 <div class="mb-3 card">
                     <div class="card-header">

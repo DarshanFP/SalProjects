@@ -28,11 +28,11 @@
                     </thead>
                     <tbody class="budget-rows">
                         <tr>
-                            <td><input type="text" name="phases[0][budget][0][particular]" class="form-control select-input" value="{{ old('phases.0.budget.0.particular') }}"></td>
-                            <td><input type="number" name="phases[0][budget][0][rate_quantity]" class="form-control select-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_quantity') }}"></td>
-                            <td><input type="number" name="phases[0][budget][0][rate_multiplier]" class="form-control select-input" value="1" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_multiplier', 1) }}"></td>
-                            <td><input type="number" name="phases[0][budget][0][rate_duration]" class="form-control select-input" value="1" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_duration', 1) }}"></td>
-                            <td><input type="number" name="phases[0][budget][0][rate_increase]" class="form-control select-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_increase') }}"></td>
+                            <td><input type="text" name="phases[0][budget][0][particular]" class="form-control select-input" value="{{ old('phases.0.budget.0.particular') }}"  style="background-color: #202ba3;"></td>
+                            <td><input type="number" name="phases[0][budget][0][rate_quantity]" class="form-control select-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_quantity') }}"  style="background-color: #202ba3;"></td>
+                            <td><input type="number" name="phases[0][budget][0][rate_multiplier]" class="form-control select-input" value="1" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_multiplier', 1) }}" style="background-color: #202ba3;"></td>
+                            <td><input type="number" name="phases[0][budget][0][rate_duration]" class="form-control select-input" value="1" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_duration', 1) }}" style="background-color: #202ba3;"></td>
+                            <td><input type="number" name="phases[0][budget][0][rate_increase]" class="form-control select-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_increase') }}" style="background-color: #122F6B;"></td>
                             <td><input type="number" name="phases[0][budget][0][this_phase]" class="form-control readonly-input" readonly value="{{ old('phases.0.budget.0.this_phase') }}"></td>
                             <td><input type="number" name="phases[0][budget][0][next_phase]" class="form-control select-input" value="{{ old('phases.0.budget.0.next_phase') }}"></td>
                             <td><button type="button" class="btn btn-danger btn-sm" onclick="removeBudgetRow(this)">Remove</button></td>

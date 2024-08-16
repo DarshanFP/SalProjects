@@ -13,15 +13,15 @@ class CreateQrdlAnnexureTable extends Migration
     {
         Schema::create('qrdl_annexure', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('report_id')->constrained('rqdl_reports')->onDelete('cascade');
-            $table->string('beneficiary_name')->nullable();
-            $table->date('support_date')->nullable();
-            $table->text('self_employment')->nullable();
-            $table->decimal('amount_sanctioned', 10, 2)->nullable();
-            $table->decimal('monthly_profit', 10, 2)->nullable();
-            $table->decimal('annual_profit', 10, 2)->nullable();
-            $table->text('impact')->nullable();
-            $table->text('challenges')->nullable();
+            $table->foreign('report_id')->references('report_id')->on('DP_Reports')->onDelete('cascade');
+            $table->string('dla_beneficiary_name')->nullable();
+            $table->date('dla_support_date')->nullable();
+            $table->text('dla_self_employment')->nullable();
+            $table->decimal('dla_amount_sanctioned', 10, 2)->nullable();
+            $table->decimal('dla_monthly_profit', 10, 2)->nullable();
+            $table->decimal('dla_annual_profit', 10, 2)->nullable();
+            $table->text('dla_impact')->nullable();
+            $table->text('dla_challenges')->nullable();
             $table->timestamps();
         });
     }

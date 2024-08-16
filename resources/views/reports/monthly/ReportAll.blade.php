@@ -11,7 +11,7 @@
                 <!-- Basic Information Section -->
                 <div class="mb-3 card">
                     <div class="card-header">
-                        <h4 class="fp-text-center1">TRACKING - - PROJECT</h4>
+                        <h4 class="fp-text-center1">TRACKING -@- PROJECT</h4>
                         <h4 class="fp-text-center1">MONTHLY PROGRESS REPORT (common)</h4>
                     </div>
                     <div class="card-header">
@@ -70,6 +70,54 @@
                         </div>
                     </div>
                 </div>
+                                 <!-- Include specific project type partials -->
+
+                @if($project->project_type === 'Livelihood Development Projects')
+                    @include('reports.monthly.partials.LivelihoodAnnexure', ['report' => $project])
+
+                @elseif($project->project_type === 'Institutional Ongoing Group Educational proposal')
+                    @include('reports.monthly.partials.institutional_ongoing_group', ['report' => $project])
+
+                @elseif($project->project_type === 'Residential Skill Training Proposal 2')
+                    @include('reports.monthly.partials.residential_skill_training', ['report' => $project])
+
+                @elseif($project->project_type === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER')
+                    @include('reports.monthly.partials.crisis_intervention_center', ['report' => $project])
+
+
+
+{{--
+                @elseif($project->project_type === 'CHILD CARE INSTITUTION')
+                    @include('reports.monthly.partials.child_care_institution', ['report' => $project])
+
+                @elseif($project->project_type === 'Rural-Urban-Tribal')
+                    @include('reports.monthly.partials.rural_urban_tribal', ['report' => $project])
+
+                @elseif($project->project_type === 'NEXT PHASE - DEVELOPMENT PROPOSAL')
+                    @include('reports.monthly.partials.next_phase_development', ['report' => $project])
+
+
+                @elseif($project->project_type === 'Individual - Ongoing Educational support')
+                    @include('reports.monthly.partials.individual_ongoing_educational', ['report' => $project])
+
+                @elseif($project->project_type === 'Individual - Livelihood Application')
+                    @include('reports.monthly.partials.individual_livelihood', ['report' => $project])
+
+                @elseif($project->project_type === 'Individual - Access to Health')
+                    @include('reports.monthly.partials.individual_access_health', ['report' => $project])
+
+                @elseif($project->project_type === 'Individual - Initial - Educational support')
+                    @include('reports.monthly.partials.individual_initial_educational', ['report' => $project]) --}}
+
+
+                    @endif
+
+                    <!-- already in ReportAll.blade.php -->
+                {{-- @elseif($project->project_type === 'Development Projects')
+                    @include('reports.monthly.partials.development_projects', ['report' => $project]) --}}
+
+                 <!-- Include project type Partial Ends -->
+
 
                 <!-- Include Objectives Section Partial -->
                 @include('reports.monthly.partials.objectives')
@@ -97,13 +145,9 @@
                 </div>
                 <button type="button" class="btn btn-primary" onclick="addOutlook()">Add More Outlook</button>
 
-                <!-- Statements of Account Section -->
+                <!-- Statements of Account Section  -->
                 @include('reports.monthly.partials.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
 
-
-                @if($project->project_type === 'Livelihood Development Projects')
-                    @include('reports.monthly.partials.LivelihoodAnnexure', ['report' => $project])
-                @endif
 
                 <!-- Photos Section -->
                 <div class="mb-3 card">

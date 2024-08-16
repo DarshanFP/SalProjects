@@ -22,7 +22,7 @@ class AttachmentController extends Controller
 
         $file = $request->file('file');
         $filename = $request->input('file_name', 'default_filename') . '.' . $file->getClientOriginalExtension();
-        $filename = str_replace(' ', '_', $filename); // Replace spaces with underscores
+        $filename = str_replace(' ', '_', $filename);
 
         $path = $file->storeAs('public/attachments', $filename);
         if (!$path) {
@@ -46,7 +46,7 @@ class AttachmentController extends Controller
         }
 
         Log::info('AttachmentController@store - File uploaded and database updated', ['file_name' => $filename, 'project_id' => $project->project_id]);
-        return response()->json(['message' => 'File uploaded successfully', 'path' => $publicUrl], 200);
+        return $attachment;
     }
 
     public function downloadAttachment($id)
@@ -66,43 +66,89 @@ class AttachmentController extends Controller
         }
     }
 
-    public function update(Request $request, $projectId)
-    {
-        Log::info('AttachmentController@update - Data received', ['data' => $request->all(), 'project_id' => $projectId]);
+    public function update(Request $request, $project_id)
+{
+    Log::info('AttachmentController@update - Data received', ['data' => $request->all(), 'project_id' => $project_id]);
 
-        $project = Project::findOrFail($projectId);
+    $project = Project::where('project_id', $project_id)->firstOrFail();
 
-        if (!$request->hasFile('file') || !$request->file('file')->isValid()) {
-            Log::error('AttachmentController@update - Invalid file upload');
-            return response()->json(['error' => 'Invalid file upload'], 400);
-        }
-
-        $file = $request->file('file');
-        $filename = $request->input('file_name', 'default_filename') . '.' . $file->getClientOriginalExtension();
-        $filename = str_replace(' ', '_', $filename); // Replace spaces with underscores
-
-        $path = $file->storeAs('public/attachments', $filename);
-        if (!$path) {
-            Log::error('AttachmentController@update - File storage failed');
-            return response()->json(['error' => 'File storage failed'], 500);
-        }
-
-        $publicUrl = Storage::url($path);
-
-        $attachment = new ProjectAttachment([
-            'project_id' => $project->project_id,
-            'file_name' => $filename,
-            'file_path' => $path,
-            'description' => $request->input('description', ''),
-            'public_url' => $publicUrl,
-        ]);
-
-        if (!$attachment->save()) {
-            Log::error('AttachmentController@update - Database insertion failed');
-            return response()->json(['error' => 'Database insertion failed'], 500);
-        }
-
-        Log::info('AttachmentController@update - New attachment added and database updated', ['file_name' => $filename, 'project_id' => $project->project_id]);
-        return response()->json(['message' => 'New attachment added successfully', 'path' => $publicUrl], 200);
+    if (!$request->hasFile('file')) {
+        Log::info('AttachmentController@update - No new file uploaded');
+        return response()->json(['message' => 'No new file uploaded, existing files retained'], 200);
     }
+
+    if (!$request->file('file')->isValid()) {
+        Log::error('AttachmentController@update - Invalid file upload');
+        return response()->json(['error' => 'Invalid file upload'], 400);
+    }
+
+
+    $file = $request->file('file');
+    $filename = $request->input('file_name', 'default_filename') . '.' . $file->getClientOriginalExtension();
+    $filename = str_replace(' ', '_', $filename);
+
+    $path = $file->storeAs('public/attachments', $filename);
+    if (!$path) {
+        Log::error('AttachmentController@update - File storage failed');
+        return response()->json(['error' => 'File storage failed'], 500);
+    }
+
+    $publicUrl = Storage::url($path);
+
+    $attachment = new ProjectAttachment([
+        'project_id' => $project->project_id,
+        'file_name' => $filename,
+        'file_path' => $path,
+        'description' => $request->input('description', ''),
+        'public_url' => $publicUrl,
+    ]);
+
+    if (!$attachment->save()) {
+        Log::error('AttachmentController@update - Database insertion failed');
+        return response()->json(['error' => 'Database insertion failed'], 500);
+    }
+
+    Log::info('AttachmentController@update - New attachment added and database updated', ['file_name' => $filename, 'project_id' => $project->project_id]);
+    return $attachment;
+}
+
+    // public function update(Request $request, $project_id)
+    // {
+    //     Log::info('AttachmentController@update - Data received', ['data' => $request->all(), 'project_id' => $project_id]);
+
+    //     $project = Project::findOrFail($project_id);
+
+    //     if (!$request->hasFile('file') || !$request->file('file')->isValid()) {
+    //         Log::error('AttachmentController@update - Invalid file upload');
+    //         return response()->json(['error' => 'Invalid file upload'], 400);
+    //     }
+
+    //     $file = $request->file('file');
+    //     $filename = $request->input('file_name', 'default_filename') . '.' . $file->getClientOriginalExtension();
+    //     $filename = str_replace(' ', '_', $filename);
+
+    //     $path = $file->storeAs('public/attachments', $filename);
+    //     if (!$path) {
+    //         Log::error('AttachmentController@update - File storage failed');
+    //         return response()->json(['error' => 'File storage failed'], 500);
+    //     }
+
+    //     $publicUrl = Storage::url($path);
+
+    //     $attachment = new ProjectAttachment([
+    //         'project_id' => $project->project_id,
+    //         'file_name' => $filename,
+    //         'file_path' => $path,
+    //         'description' => $request->input('description', ''),
+    //         'public_url' => $publicUrl,
+    //     ]);
+
+    //     if (!$attachment->save()) {
+    //         Log::error('AttachmentController@update - Database insertion failed');
+    //         return response()->json(['error' => 'Database insertion failed'], 500);
+    //     }
+
+    //     Log::info('AttachmentController@update - New attachment added and database updated', ['file_name' => $filename, 'project_id' => $project->project_id]);
+    //     return $attachment;
+    // }
 }

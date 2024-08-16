@@ -3,16 +3,18 @@
 @section('content')
 <div class="container">
     <h1>Edit Project</h1>
-    <form action="{{ route('projects.update', $project->id) }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('projects.update', $project->project_id) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
+        <!-- General Information Section -->
         <div class="mb-3 card">
             <div class="card-header">
                 <h4 class="fp-text-center1">EDIT PROJECT APPLICATION FORM</h4>
             </div>
             <div class="card-header">
                 <h4 class="fp-text-margin">General Information</h4>
+                <h4 class="fp-text-margin">Project ID : {{ $project->project_id }}</h4>
             </div>
 
             <!-- General Information Fields -->
@@ -49,7 +51,7 @@
                 </div>
                 <div class="mb-3">
                     <label for="parent_id" class="form-label">Provincial Superior</label>
-                    <input type="text" name="parent_id" class="form-control" value="{{ $project->parent_id }}" readonly>
+                    <input type="text" name="parent_id" class="form-control" value="{{ $project->president_name }}" readonly>
                 </div>
                 <div class="mb-3">
                     <label for="in_charge" class="form-label">Project In-Charge</label>
@@ -72,7 +74,7 @@
                     <label for="executor_name" class="form-label">Project Executor</label>
                     <div class="d-flex">
                         <input type="text" name="executor_name" class="form-control me-2" value="{{ $project->executor_name }}" readonly>
-                        <input type="text" name="executor_mobile" class="form-control me-2" value="{{ $project->executor_phone }}" readonly>
+                        <input type="text" name="executor_mobile" class="form-control me-2" value="{{ $project->executor_mobile }}" readonly>
                         <input type="text" name="executor_email" class="form-control" value="{{ $project->executor_email }}" readonly>
                     </div>
                 </div>
@@ -101,6 +103,33 @@
                         @endfor
                     </select>
                 </div>
+                <!-- Commencement Month Selector -->
+<!-- Commencement Month Selector -->
+<div class="mb-3">
+    <label for="commencement_month" class="form-label">Commencement Month</label>
+    <select name="commencement_month" id="commencement_month" class="form-control select-input" style="background-color: #202ba3;">
+        <option value="" disabled>Select Month</option>
+        @for ($month = 1; $month <= 12; $month++)
+            <option value="{{ $month }}" {{ $project->commencement_month == $month ? 'selected' : '' }}>
+                {{ date('F', mktime(0, 0, 0, $month, 1)) }}
+            </option>
+        @endfor
+    </select>
+</div>
+
+<!-- Commencement Year Selector -->
+<div class="mb-3">
+    <label for="commencement_year" class="form-label">Commencement Year</label>
+    <select name="commencement_year" id="commencement_year" class="form-control select-input" style="background-color: #202ba3;">
+        <option value="" disabled>Select Year</option>
+        @for ($year = now()->year; $year >= 2000; $year--)
+            <option value="{{ $year }}" {{ $project->commencement_year == $year ? 'selected' : '' }}>
+                {{ $year }}
+            </option>
+        @endfor
+    </select>
+</div>
+
 
                 <div class="mb-3">
                     <label for="overall_project_budget" class="form-label">Overall Project Budget</label>
@@ -141,6 +170,110 @@
             </div>
         </div>
 
+        <!-- Logical Framework Section -->
+        <div class="mb-3 card">
+            <div class="card-header">
+                <h4>Logical Framework</h4>
+            </div>
+            <div class="card-body">
+                @foreach($project->objectives as $objectiveIndex => $objective)
+                <div class="p-3 mb-4 border rounded objective-card">
+                    <h5 class="mb-3">Objective</h5>
+                    <textarea name="objectives[{{ $objectiveIndex }}][objective]" class="mb-3 form-control objective-description" rows="2" required>{{ $objective->objective }}</textarea>
+
+                    <div class="results-container">
+                        <h6>Results / Outcomes</h6>
+                        @foreach($objective->results as $resultIndex => $result)
+                        <div class="mb-3 result-section">
+                            <textarea name="objectives[{{ $objectiveIndex }}][results][{{ $resultIndex }}][result]" class="mb-3 form-control result-outcome" rows="2" required>{{ $result->result }}</textarea>
+                        </div>
+                        @endforeach
+                        <button type="button" class="mb-3 btn btn-primary" onclick="addResult(this)">Add Result</button>
+                    </div>
+
+                    <div class="risks-container">
+                        <h6>Risks</h6>
+                        @foreach($objective->risks as $riskIndex => $risk)
+                            <div class="mb-3 risk-section">
+                                <textarea name="objectives[{{ $objectiveIndex }}][risks][{{ $riskIndex }}][risk]" class="mb-3 form-control risk-description" rows="2" required>{{ $risk->risk }}</textarea>
+                            </div>
+                        @endforeach
+                        <button type="button" class="mb-3 btn btn-primary" onclick="addRisk(this, {{ $objectiveIndex }})">Add Risk</button>
+                    </div>
+
+
+                    <div class="activities-container">
+                        <h6>Activities and Means of Verification</h6>
+                        <table class="table table-bordered activities-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col" style="width: 40%;">Activities</th>
+                                    <th scope="col">Means of Verification</th>
+                                    <th scope="col" style="width: 10%;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($objective->activities as $activityIndex => $activity)
+                                <tr class="activity-row">
+                                    <td>
+                                        <textarea name="objectives[{{ $objectiveIndex }}][activities][{{ $activityIndex }}][activity]" class="form-control activity-description" rows="2" required>{{ $activity->activity }}</textarea>
+                                    </td>
+                                    <td>
+                                        <textarea name="objectives[{{ $objectiveIndex }}][activities][{{ $activityIndex }}][verification]" class="form-control activity-verification" rows="2" required>{{ $activity->verification }}</textarea>
+                                    </td>
+                                    <td><button type="button" class="btn btn-danger btn-sm" onclick="removeActivity(this)">Remove</button></td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        <button type="button" class="mb-3 btn btn-primary" onclick="addActivity(this)">Add Activity</button>
+                    </div>
+
+                    <!-- Time Frame Section -->
+                    @include('projects.partials.edit_timeframe', ['objectiveIndex' => $objectiveIndex])
+                </div>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="mb-4 card">
+            <div class="card-header">
+                <h4 class="mb-0">Project Sustainability, Monitoring, and Methodologies</h4>
+            </div>
+            <div class="card-body">
+                @if($project->sustainabilities->isNotEmpty())
+                    @foreach($project->sustainabilities as $sustainability)
+                        <!-- Sustainability Section -->
+                        <div class="mb-3">
+                            <h5>Explain the Sustainability of the Project:</h5>
+                            <textarea name="sustainability" class="form-control" rows="2" required>{{ $sustainability->sustainability }}</textarea>
+                        </div>
+
+                        <!-- Monitoring Process Section -->
+                        <div class="mb-3">
+                            <h5>Explain the Monitoring Process of the Project:</h5>
+                            <textarea name="monitoring_process" class="form-control" rows="2" required>{{ $sustainability->monitoring_process }}</textarea>
+                        </div>
+
+                        <!-- Reporting Methodology Section -->
+                        <div class="mb-3">
+                            <h5>Explain the Methodology of Reporting:</h5>
+                            <textarea name="reporting_methodology" class="form-control" rows="2" required>{{ $sustainability->reporting_methodology }}</textarea>
+                        </div>
+
+                        <!-- Evaluation Methodology Section -->
+                        <div class="mb-3">
+                            <h5>Explain the Methodology of Evaluation:</h5>
+                            <textarea name="evaluation_methodology" class="form-control" rows="2" required>{{ $sustainability->evaluation_methodology }}</textarea>
+                        </div>
+                    @endforeach
+                @else
+                    <p>No sustainability information available for this project.</p>
+                @endif
+            </div>
+        </div>
+
+
         <!-- Budget Section -->
         <div class="mb-3 card">
             <div class="card-header">
@@ -156,16 +289,16 @@
                             @if($phaseIndex > 0)
                                 <div class="mb-3">
                                     <label for="phases[{{ $phaseIndex }}][amount_forwarded]" class="form-label">Amount Forwarded from the Last Financial Year: Rs.</label>
-                                    <input type="number" name="phases[{{ $phaseIndex }}][amount_forwarded]" class="form-control" value="{{ $budgets->first()->amount_forwarded }}" oninput="calculateBudgetTotals(this.closest('.phase-card'))">
+                                    <input type="number" name="phases[{{ $phaseIndex }}][amount_forwarded]" class="form-control" value="{{ $budgets->first()->amount_forwarded ?? '' }}" oninput="calculateBudgetTotals(this.closest('.phase-card'))">
                                 </div>
                             @endif
                             <div class="mb-3">
                                 <label for="phases[{{ $phaseIndex }}][amount_sanctioned]" class="form-label">Amount Sanctioned in Phase {{ $phaseIndex }}: Rs.</label>
-                                <input type="number" name="phases[{{ $phaseIndex }}][amount_sanctioned]" class="form-control" value="{{ $budgets->first()->amount_sanctioned }}" readonly>
+                                <input type="number" name="phases[{{ $phaseIndex }}][amount_sanctioned]" class="form-control" value="{{ $budgets->first()->amount_sanctioned ?? '' }}" readonly>
                             </div>
                             <div class="mb-3">
                                 <label for="phases[{{ $phaseIndex }}][opening_balance]" class="form-label">Opening balance in Phase {{ $phaseIndex }}: Rs.</label>
-                                <input type="number" name="phases[{{ $phaseIndex }}][opening_balance]" class="form-control" value="{{ $budgets->first()->opening_balance }}" readonly>
+                                <input type="number" name="phases[{{ $phaseIndex }}][opening_balance]" class="form-control" value="{{ $budgets->first()->opening_balance ?? '' }}" readonly>
                             </div>
                             <table class="table table-bordered">
                                 <thead>
@@ -211,7 +344,7 @@
                         </div>
                     @endforeach
                 </div>
-                <button type="button" class="mt-3 btn btn-primary" onclick="addPhase()">Add Phase</button>
+                <button  id="addPhaseButton" type="button" class="mt-3 btn btn-primary" onclick="addPhase()">Add Phase</button>
                 <div class="mt-3" style="margin-bottom: 20px;">
                     <label for="total_amount_sanctioned" class="form-label">Total Amount Sanctioned: Rs.</label>
                     <input type="number" name="total_amount_sanctioned" class="form-control" value="{{ $project->total_amount_sanctioned }}" readonly>
@@ -245,287 +378,7 @@
     </form>
 </div>
 
-@include('projects.partials.scripts')
-{{-- <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Update the mobile and email fields based on the selected project in-charge
-        document.getElementById('in_charge').addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const mobile = selectedOption.getAttribute('data-mobile');
-            const email = selectedOption.getAttribute('data-email');
-
-            document.getElementById('in_charge_mobile').value = mobile;
-            document.getElementById('in_charge_email').value = email;
-        });
-
-        // Update the phase options based on the selected overall project period
-        document.getElementById('overall_project_period').addEventListener('change', function() {
-            const projectPeriod = parseInt(this.value);
-            const phaseSelect = document.getElementById('current_phase');
-
-            // Clear previous options
-            phaseSelect.innerHTML = '<option value="" disabled selected>Select Phase</option>';
-
-            // Add new options based on the selected value
-            for (let i = 1; i <= projectPeriod; i++) {
-                const option = document.createElement('option');
-                option.value = i;
-                option.text = `${i}${i === 1 ? 'st' : i === 2 ? 'nd' : i === 3 ? 'rd' : 'th'} Phase`;
-                phaseSelect.appendChild(option);
-            }
-
-            // Update all budget rows based on the selected project period
-            updateAllBudgetRows();
-        });
-    });
-
-    // Calculate the budget totals for a single budget row
-    function calculateBudgetRowTotals(element) {
-        const row = element.closest('tr');
-        const rateQuantity = parseFloat(row.querySelector('[name$="[rate_quantity]"]').value) || 0;
-        const rateMultiplier = parseFloat(row.querySelector('[name$="[rate_multiplier]"]').value) || 1;
-        const rateDuration = parseFloat(row.querySelector('[name$="[rate_duration]"]').value) || 1;
-        const rateIncrease = parseFloat(row.querySelector('[name$="[rate_increase]"]').value) || 0;
-
-        const thisPhase = rateQuantity * rateMultiplier * rateDuration;
-        let nextPhase = 0;
-
-        const projectPeriod = parseInt(document.getElementById('overall_project_period').value);
-        if (projectPeriod !== 1) {
-            nextPhase = (rateQuantity + rateIncrease) * rateMultiplier * rateDuration;
-        }
-
-        row.querySelector('[name$="[this_phase]"]').value = thisPhase.toFixed(2);
-        row.querySelector('[name$="[next_phase]"]').value = nextPhase.toFixed(2);
-
-        calculateBudgetTotals(row.closest('.phase-card')); // Recalculate totals for the phase whenever a row total is updated
-    }
-
-    // Update all budget rows based on the selected project period
-    function updateAllBudgetRows() {
-        const phases = document.querySelectorAll('.phase-card');
-        phases.forEach(phase => {
-            const rows = phase.querySelectorAll('.budget-rows tr');
-            rows.forEach(row => {
-                calculateBudgetRowTotals(row.querySelector('input'));
-            });
-        });
-    }
-
-    // Calculate the total budget for a phase
-    function calculateBudgetTotals(phaseCard) {
-        const rows = phaseCard.querySelectorAll('.budget-rows tr');
-        let totalRateQuantity = 0;
-        let totalRateMultiplier = 0;
-        let totalRateDuration = 0;
-        let totalRateIncrease = 0;
-        let totalThisPhase = 0;
-        let totalNextPhase = 0;
-
-        rows.forEach(row => {
-            totalRateQuantity += parseFloat(row.querySelector('[name$="[rate_quantity]"]').value) || 0;
-            totalRateMultiplier += parseFloat(row.querySelector('[name$="[rate_multiplier]"]').value) || 1;
-            totalRateDuration += parseFloat(row.querySelector('[name$="[rate_duration]"]').value) || 1;
-            totalRateIncrease += parseFloat(row.querySelector('[name$="[rate_increase]"]').value) || 0;
-            totalThisPhase += parseFloat(row.querySelector('[name$="[this_phase]"]').value) || 0;
-            totalNextPhase += parseFloat(row.querySelector('[name$="[next_phase]"]').value) || 0;
-        });
-
-        phaseCard.querySelector('.total_rate_quantity').value = totalRateQuantity.toFixed(2);
-        phaseCard.querySelector('.total_rate_multiplier').value = totalRateMultiplier.toFixed(2);
-        phaseCard.querySelector('.total_rate_duration').value = totalRateDuration.toFixed(2);
-        phaseCard.querySelector('.total_rate_increase').value = totalRateIncrease.toFixed(2);
-        phaseCard.querySelector('.total_this_phase').value = totalThisPhase.toFixed(2);
-        phaseCard.querySelector('.total_next_phase').value = totalNextPhase.toFixed(2);
-
-        calculateTotalAmountSanctioned();
-    }
-
-    // Calculate the total amount sanctioned and update the overall project budget
-    function calculateTotalAmountSanctioned() {
-        const phases = document.querySelectorAll('.phase-card');
-        let totalAmount = 0;
-        let totalNextPhase = 0;
-
-        phases.forEach((phase, index) => {
-            const thisPhaseTotal = parseFloat(phase.querySelector('.total_this_phase').value) || 0;
-            phase.querySelector('[name^="phases"][name$="[amount_sanctioned]"]').value = thisPhaseTotal.toFixed(2);
-
-            if (index > 0) {
-                const amountForwarded = parseFloat(phase.querySelector('[name^="phases"][name$="[amount_forwarded]"]').value) || 0;
-                const openingBalance = amountForwarded + thisPhaseTotal;
-                phase.querySelector('[name^="phases"][name$="[opening_balance]"]').value = openingBalance.toFixed(2);
-            }
-
-            totalAmount += thisPhaseTotal;
-        });
-
-        const lastPhase = phases[phases.length - 1];
-        const rows = lastPhase.querySelectorAll('.budget-rows tr');
-        rows.forEach(row => {
-            totalNextPhase += parseFloat(row.querySelector('[name$="[next_phase]"]').value) || 0;
-        });
-
-        document.querySelector('[name="total_amount_sanctioned"]').value = totalAmount.toFixed(2);
-        document.getElementById('overall_project_budget').value = (totalAmount + totalNextPhase).toFixed(2);
-    }
-
-    // Add a new budget row to the phase card
-    function addBudgetRow(button) {
-        const tableBody = button.closest('.phase-card').querySelector('.budget-rows');
-        const phaseIndex = button.closest('.phase-card').dataset.phase;
-        const newRow = document.createElement('tr');
-
-        newRow.innerHTML = `
-            <td><input type="string" name="phases[${phaseIndex}][budget][${tableBody.children.length}][particular]" class="form-control" required></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)" required></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" required></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" required></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_increase]" class="form-control" oninput="calculateBudgetRowTotals(this)" required></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][this_phase]" class="form-control" readonly></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][next_phase]" class="form-control" readonly></td>
-            <td><button type="button" class="btn btn-danger btn-sm" onclick="removeBudgetRow(this)">Remove</button></td>
-        `;
-
-        newRow.querySelectorAll('input').forEach(input => {
-            input.addEventListener('input', function() {
-                calculateBudgetRowTotals(input);
-            });
-        });
-
-        tableBody.appendChild(newRow);
-        calculateBudgetTotals(tableBody.closest('.phase-card'));
-    }
-
-    // Remove a budget row from the phase card
-    function removeBudgetRow(button) {
-        const row = button.closest('tr');
-        const phaseCard = row.closest('.phase-card');
-        row.remove();
-        calculateBudgetTotals(phaseCard); // Recalculate totals after removing a row
-    }
-
-    // Add a new phase card
-    function addPhase() {
-        const phasesContainer = document.getElementById('phases-container');
-        const phaseCount = phasesContainer.children.length;
-        const newPhase = document.createElement('div');
-        newPhase.className = 'phase-card';
-        newPhase.dataset.phase = phaseCount;
-
-        newPhase.innerHTML = `
-            <div class="card-header">
-                <h4>Phase ${phaseCount + 1}</h4>
-            </div>
-            ${phaseCount > 0 ? `
-            <div class="mb-3">
-                <label for="phases[${phaseCount}][amount_forwarded]" class="form-label">Amount Forwarded from the Last Financial Year: Rs.</label>
-                <input type="number" name="phases[${phaseCount}][amount_forwarded]" class="form-control" oninput="calculateBudgetTotals(this.closest('.phase-card'))">
-            </div>
-            ` : ''}
-            <div class="mb-3">
-                <label for="phases[${phaseCount}][amount_sanctioned]" class="form-label">Amount Sanctioned in Phase ${phaseCount + 1}: Rs.</label>
-                <input type="number" name="phases[${phaseCount}][amount_sanctioned]" class="form-control" readonly>
-            </div>
-            <div class="mb-3">
-                <label for="phases[${phaseCount}][opening_balance]" class="form-label">Opening balance in Phase ${phaseCount + 1}: Rs.</label>
-                <input type="number" name="phases[${phaseCount}][opening_balance]" class="form-control" readonly>
-            </div>
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Particular</th>
-                        <th>Costs</th>
-                        <th>Rate Multiplier</th>
-                        <th>Rate Duration</th>
-                        <th>Rate Increase (next phase)</th>
-                        <th>This Phase (Auto)</th>
-                        <th>Next Phase (Auto)</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody class="budget-rows">
-                    <tr>
-                        <td><input type="string" name="phases[${phaseCount}][budget][0][particular]" class="form-control" required></td>
-                        <td><input type="number" name="phases[${phaseCount}][budget][0][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)" required></td>
-                        <td><input type="number" name="phases[${phaseCount}][budget][0][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" required></td>
-                        <td><input type="number" name="phases[${phaseCount}][budget][0][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" required></td>
-                        <td><input type="number" name="phases[${phaseCount}][budget][0][rate_increase]" class="form-control" oninput="calculateBudgetRowTotals(this)" required></td>
-                        <td><input type="number" name="phases[${phaseCount}][budget][0][this_phase]" class="form-control" readonly></td>
-                        <td><input type="number" name="phases[${phaseCount}][budget][0][next_phase]" class="form-control" readonly></td>
-                        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeBudgetRow(this)">Remove</button></td>
-                    </tr>
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <th>Total</th>
-                        <th><input type="number" class="total_rate_quantity form-control" readonly></th>
-                        <th><input type="number" class="total_rate_multiplier form-control" readonly></th>
-                        <th><input type="number" class="total_rate_duration form-control" readonly></th>
-                        <th><input type="number" class="total_rate_increase form-control" readonly></th>
-                        <th><input type="number" class="total_this_phase form-control" readonly></th>
-                        <th><input type="number" class="total_next_phase form-control" readonly></th>
-                        <th></th>
-                    </tr>
-                </tfoot>
-            </table>
-            <button type="button" class="btn btn-primary" onclick="addBudgetRow(this)">Add Row</button>
-            <div>
-                <button type="button" class="mt-3 btn btn-danger" onclick="removePhase(this)">Remove Phase</button>
-            </div>
-        `;
-
-        phasesContainer.appendChild(newPhase);
-        calculateTotalAmountSanctioned();
-    }
-
-    // Remove a phase card
-    function removePhase(button) {
-        const phaseCard = button.closest('.phase-card');
-        phaseCard.remove();
-        calculateTotalAmountSanctioned();
-    }
-
-    // Add a new attachment field
-    function addAttachment() {
-        const attachmentsContainer = document.getElementById('attachments-container');
-        const currentAttachments = attachmentsContainer.children.length;
-
-        const index = currentAttachments;
-        const attachmentTemplate = `
-            <div class="mb-3 attachment-group" data-index="${index}">
-                <label class="form-label">Attachment ${index + 1}</label>
-                <input type="file" name="attachments[${index}][file]" class="mb-2 form-control" accept=".pdf,.doc,.docx,.xlsx">
-                <input type="text" name="attachments[${index}][file_name]" class="form-control" placeholder="Name of File Attached">
-                <textarea name="attachments[${index}][description]" class="form-control" rows="3" placeholder="Brief Description"></textarea>
-                <button type="button" class="mt-2 btn btn-danger" onclick="removeAttachment(this)">Remove</button>
-            </div>
-        `;
-        attachmentsContainer.insertAdjacentHTML('beforeend', attachmentTemplate);
-        updateAttachmentLabels();
-    }
-
-    // Remove an attachment field
-    function removeAttachment(button) {
-        const attachmentGroup = button.closest('.attachment-group');
-        attachmentGroup.remove();
-        updateAttachmentLabels();
-    }
-
-    // Update the labels for the attachments
-    function updateAttachmentLabels() {
-        const attachmentGroups = document.querySelectorAll('.attachment-group');
-        attachmentGroups.forEach((group, index) => {
-            const label = group.querySelector('label');
-            label.textContent = `Attachment ${index + 1}`;
-        });
-    }
-
-    // Update the attachment labels on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        updateAttachmentLabels();
-    });
-</script> --}}
+@include('projects.partials.scripts-edit')
 
 <style>
     .table th, .table td {

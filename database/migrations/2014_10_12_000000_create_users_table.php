@@ -16,7 +16,7 @@ class CreateUsersTable extends Migration
             $table->unsignedBigInteger('parent_id')->nullable();
             $table->string('name');
             $table->string('username')->nullable()->unique();
-            $table->enum('role', ['admin', 'coordinator', 'provincial', 'executor'])->default('executor');
+            $table->enum('role', ['admin', 'coordinator', 'provincial', 'executor', 'general'])->default('executor');
             $table->enum('province', ['Bangalore', 'Vijayawada', 'Visakhapatnam', 'Generalate', 'none']);
             $table->string('society_name')->nullable();
             $table->string('center')->nullable();

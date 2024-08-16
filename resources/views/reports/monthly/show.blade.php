@@ -160,6 +160,11 @@
             <div>
         </div>
     </div>
+<!-- In your view for showing the annexure -->
+    <!-- Livelihood Annexure Section -->
+    @if($report->project_type === 'Livelihood Development Projects' && !empty($annexures))
+        @include('reports.monthly.partials.view.dl_annexure_view', ['annexures' => $annexures])
+    @endif
 
     <!-- Photos Section -->
     <div class="mb-3 card">

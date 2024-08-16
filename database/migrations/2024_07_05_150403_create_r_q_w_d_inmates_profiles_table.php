@@ -10,11 +10,15 @@ class CreateRqwdInmatesProfilesTable extends Migration
     {
         Schema::create('rqwd_inmates_profiles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('report_id')->constrained('rqwd_reports')->onDelete('cascade');
+            $table->string('report_id');
             $table->string('age_category')->nullable();
             $table->string('status')->nullable();
             $table->integer('number')->nullable();
+            $table->integer('total')->nullable();
             $table->timestamps();
+
+            $table->foreign('report_id')->references('report_id')->on('DP_Reports')->onDelete('cascade');
+
         });
     }
 

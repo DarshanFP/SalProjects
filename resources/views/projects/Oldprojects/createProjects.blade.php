@@ -4,7 +4,7 @@
 <div class="page-content">
     <div class="row justify-content-center">
         <div class="col-md-12 col-xl-12">
-            <form action="{{ route('projects.store') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('projects.store') }}" method="POST" enctype="multipart/form-data"  >
                 @csrf
                 <div class="mb-3 card">
                     <div class="card-header">
@@ -22,6 +22,12 @@
 
                 <!-- Key Information Section -->
                 @include('projects.partials.key_information')
+
+                <!-- Logical Framework Section -->
+                @include('projects.partials.logical_framework')
+
+                <!-- Project Sustainability, Monitoring, and Evaluation Framework -->
+                @include('projects.partials.sustainability')
 
                 <!-- Budget Section -->
                 @include('projects.partials.budget')
