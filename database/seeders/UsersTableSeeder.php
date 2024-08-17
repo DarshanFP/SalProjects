@@ -193,7 +193,7 @@ class UsersTableSeeder extends Seeder
                 'password' => Hash::make('login'),
                 'role' => 'general',
                 'status' => 'active',
-                'province' => 'none',
+                'province' => 'Generalate',  
             ]
         );
         $general->assignRole('general');
