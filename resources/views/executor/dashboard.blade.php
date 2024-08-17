@@ -39,7 +39,6 @@
 </head>
 <body>
     <div class="main-wrapper">
-
         @include('executor.sidebar')
 
         <div class="page-wrapper">
@@ -47,12 +46,15 @@
             @include('layoutAll.header')
             <!-- partial -->
 
-            @yield('content')
+            <div class="content-wrapper">
+                @yield('content')
+            </div>
 
             <!-- partial:partials/_footer.html -->
             @include('layoutAll.footer')
             <!-- partial -->
         </div>
+
     </div>
 
     <!-- core:js -->
@@ -78,3 +80,28 @@
 
 </body>
 </html>
+<style>
+ .main-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100vh;
+}
+
+.page-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+}
+
+.footer {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    box-sizing: border-box;
+}
+
+</style>
