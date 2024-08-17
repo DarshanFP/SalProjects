@@ -40,24 +40,24 @@
             </div>
         </li>
         {{-- //Create old Projects --}}
-        <li class="nav-item nav-category">Create old projects</li>
+        <li class="nav-item nav-category">Create projects</li>
         <li class="nav-item">
             <a class="nav-link" data-bs-toggle="collapse" href="#emails" role="button" aria-expanded="false" aria-controls="emails">
             <i class="link-icon" data-feather="mail"></i>
-            <span class="link-title">Old Projects</span>
+            <span class="link-title">Projects</span>
             <i class="link-arrow" data-feather="chevron-down"></i>
             </a>
             <div class="collapse" id="emails">
             <ul class="nav sub-menu">
                 <li class="nav-item">
-                <a href="{{ route('projects.create') }}" class="nav-link">Create Old Project</a>
+                <a href="{{ route('projects.create') }}" class="nav-link">Write Project</a>
                 </li>
                 <li class="nav-item">
                 <a href="{{ route('projects.index') }}" class="nav-link">View My Projects</a>
                 </li>
-                <li class="nav-item">
+                {{-- <li class="nav-item">
                 <a href="#" class="nav-link">Compose</a>
-                </li>
+                </li> --}}
             </ul>
             </div>
         </li>
