@@ -2,6 +2,7 @@
 
 namespace App\Models\OldProjects;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -76,6 +77,11 @@ class Project extends Model
         $sequenceNumberPadded = str_pad($sequenceNumber, 4, '0', STR_PAD_LEFT);
 
         return $initials . '-' . $sequenceNumberPadded;
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function budgets()

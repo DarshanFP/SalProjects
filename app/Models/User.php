@@ -100,29 +100,26 @@ class User extends Authenticatable
     {
         return $this->hasMany(User::class, 'parent_id');
     }
-
-    public function rqwdReports()
+    public function projects()
     {
-        return $this->hasMany(Reports\Quarterly\RQWDReport::class, 'user_id');
+        return $this->hasMany(\App\Models\OldProjects\Project::class, 'user_id');
     }
 
-    public function rqstReports()
+    /**
+     * Get the reports associated with the user.
+     */
+    public function reports()
     {
-        return $this->hasMany(Reports\Quarterly\RQSTReport::class, 'user_id');
+        return $this->hasMany(\App\Models\Reports\Monthly\DPReport::class, 'user_id');
     }
 
-    public function rqisReports()
+    /**
+     * Get the comments made by the user.
+     */
+    public function comments()
     {
-        return $this->hasMany(Reports\Quarterly\RQISReport::class, 'user_id');
+        return $this->hasMany(\App\Models\ReportComment::class, 'user_id');
     }
 
-    public function rqdpReports()
-    {
-        return $this->hasMany(Reports\Quarterly\RQDPReport::class, 'user_id');
-    }
 
-    public function rqdlReports()
-    {
-        return $this->hasMany(Reports\Quarterly\RQDLReport::class, 'user_id');
-    }
 }

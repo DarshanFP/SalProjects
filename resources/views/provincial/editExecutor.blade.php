@@ -27,8 +27,17 @@
                     <input type="text" class="form-control" id="phone" name="phone" value="{{ $executor->phone }}">
                 </div>
                 <div class="form-group">
+                    <label for="society_name">Society Name</label>
+                    <input type="text" class="form-control" id="society_name" name="society_name" value="{{ $executor->society_name }}" required>
+                </div>
+                <div class="form-group">
                     <label for="center">Center</label>
-                    <input type="text" class="form-control" id="center" name="center" value="{{ $executor->center }}">
+                    <select class="form-control" id="center" name="center" required>
+                        <option value="" disabled>Select Center</option>
+                        @foreach($centers as $center)
+                            <option value="{{ $center }}" {{ $executor->center == $center ? 'selected' : '' }}>{{ $center }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="address">Address</label>

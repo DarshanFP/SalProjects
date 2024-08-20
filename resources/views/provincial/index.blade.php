@@ -1,4 +1,3 @@
-<!-- resources/views/coordinator/index.blade.php -->
 @extends('provincial.dashboard')
 
 @section('content')
@@ -7,109 +6,81 @@
         <div class="col-md-12 col-xl-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="fp-text-center1">ALL my PROJECT REPORTS</h4>
+                    <h4 class="fp-text-center1">PROJECT REPORTS</h4>
                 </div>
                 <div class="card-body">
+                    <form method="GET" action="{{ route('provincial.dashboard') }}">
+                        <div class="mb-3 row">
+                            <div class="col-md-4">
+                                <select name="place" class="form-control">
+                                    <option value="">Filter by Place</option>
+                                    @foreach($places as $place)
+                                        <option value="{{ $place }}">{{ $place }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select name="user_id" class="form-control">
+                                    <option value="">Filter by Executor</option>
+                                    @foreach($users as $user)
+                                        <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select name="project_type" class="form-control">
+                                    <option value="">Filter by Project Type</option>
+                                    <option value="Development Project">Development Project</option>
+                                    <option value="Skill Training">Skill Training</option>
+                                    <option value="Institutional Support">Institutional Support</option>
+                                    <option value="Women in Distress">Women in Distress</option>
+                                    <option value="Development Livelihood">Development Livelihood</option>
+                                </select>
+                            </div>
+                            <div class="mt-3 col-md-12">
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                            </div>
+                        </div>
+                    </form>
                     <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>Provincial</th>
                                     <th>Executor</th>
-                                    <th>Project Title</th>
                                     <th>Place</th>
-                                    <th>Society Name</th>
-                                    <th>Reporting Period</th>
+                                    <th>Project Title</th>
+                                    <th>Total Amount</th>
+                                    <th>Total Expenses</th>
+                                    <th>Expenses This Month</th>
+                                    <th>Balance Amount</th>
                                     <th>Type</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($rqwdReports as $report)
-                                <tr>
-                                    <td>{{ $report->id }}</td>
-                                    <td>{{ $report->user->parent->name ?? 'N/A' }}</td>
-                                    <td>{{ $report->user->name }}</td>
-                                    <td>{{ $report->project_title }}</td>
-                                    <td>{{ $report->place }}</td>
-                                    <td>{{ $report->society_name }}</td>
-                                    <td>{{ $report->reporting_period }}</td>
-                                    <td>Women in Distress</td>
-                                    <td>
-                                        {{-- <a href="{{ route('coordinator.reports.show', ['type' => 'rqwd', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a> --}}
-                                        <a class="btn btn-primary btn-sm">View</a>
-
-                                    </td>
-                                </tr>
-                                @endforeach
-                                @foreach($rqstReports as $report)
-                                <tr>
-                                    <td>{{ $report->id }}</td>
-                                    <td>{{ $report->user->parent->name ?? 'N/A' }}</td>
-                                    <td>{{ $report->user->name }}</td>
-                                    <td>{{ $report->project_title }}</td>
-                                    <td>{{ $report->place }}</td>
-                                    <td>{{ $report->society_name }}</td>
-                                    <td>{{ $report->reporting_period }}</td>
-                                    <td>Skill Training</td>
-                                    <td>
-                                        {{-- <a href="{{ route('coordinator.reports.show', ['type' => 'rqst', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a> --}}
-                                        <a class="btn btn-primary btn-sm">View</a>
-
-                                    </td>
-                                </tr>
-                                @endforeach
-                                @foreach($rqisReports as $report)
-                                <tr>
-                                    <td>{{ $report->id }}</td>
-                                    <td>{{ $report->user->parent->name ?? 'N/A' }}</td>
-                                    <td>{{ $report->user->name }}</td>
-                                    <td>{{ $report->project_title }}</td>
-                                    <td>{{ $report->place }}</td>
-                                    <td>{{ $report->society_name }}</td>
-                                    <td>{{ $report->reporting_period }}</td>
-                                    <td>Institutional Support</td>
-                                    <td>
-                                        {{-- <a href="{{ route('coordinator.reports.show', ['type' => 'rqis', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a> --}}
-                                        <a class="btn btn-primary btn-sm">View</a>
-
-                                    </td>
-                                </tr>
-                                @endforeach
-                                @foreach($rqdpReports as $report)
-                                <tr>
-                                    <td>{{ $report->id }}</td>
-                                    <td>{{ $report->user->parent->name ?? 'N/A' }}</td>
-                                    <td>{{ $report->user->name }}</td>
-                                    <td>{{ $report->project_title }}</td>
-                                    <td>{{ $report->place }}</td>
-                                    <td>{{ $report->society_name }}</td>
-                                    <td>{{ $report->reporting_period }}</td>
-                                    <td>Development Project</td>
-                                    <td>
-                                        {{-- <a href="{{ route('coordinator.reports.show', ['type' => 'rqdp', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View</a> --}}
-                                        <a class="btn btn-primary btn-sm">View</a>
-
-                                    </td>
-                                </tr>
-                                @endforeach
-                                @foreach($rqdlReports as $report)
-                                <tr>
-                                    <td>{{ $report->id }}</td>
-                                    <td>{{ $report->user->parent->name ?? 'N/A' }}</td>
-                                    <td>{{ $report->user->name }}</td>
-                                    <td>{{ $report->project_title }}</td>
-                                    <td>{{ $report->place }}</td>
-                                    <td>{{ $report->society_name }}</td>
-                                    <td>{{ $report->reporting_period }}</td>
-                                    <td>Development Livelihood</td>
-                                    <td>
-                                        {{-- <a href="{{ route('coordinator.reports.show', ['type' => 'rqdl', 'id' => $report->id]) }}" class="btn btn-primary btn-sm">View Report</a> --}}
-                                        <a class="btn btn-primary btn-sm">View</a>
-
-                                    </td>
-                                </tr>
+                                @foreach($reports as $report)
+                                    @php
+                                        // Summing up the account details
+                                        $totalAmount = $report->accountDetails->sum('total_amount');
+                                        $totalExpenses = $report->accountDetails->sum('total_expenses');
+                                        $expensesThisMonth = $report->accountDetails->sum('expenses_this_month');
+                                        $balanceAmount = $report->accountDetails->sum('balance_amount');
+                                    @endphp
+                                    <tr>
+                                        <td>{{ $report->report_id }}</td>
+                                        <td>{{ $report->user->name }}</td>
+                                        <td>{{ $report->place }}</td>
+                                        <td>{{ $report->project_title }}</td>
+                                        <td>{{ number_format($totalAmount, 2) }}</td>
+                                        <td>{{ number_format($totalExpenses, 2) }}</td>
+                                        <td>{{ number_format($expensesThisMonth, 2) }}</td>
+                                        <td>{{ number_format($balanceAmount, 2) }}</td>
+                                        <td>{{ $report->project_type }}</td>
+                                        <td>
+                                            <a href="{{ route('monthly.report.show', $report->report_id) }}" class="btn btn-primary btn-sm">View</a>
+                                        </td>
+                                    </tr>
                                 @endforeach
                             </tbody>
                         </table>

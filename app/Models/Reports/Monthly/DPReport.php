@@ -2,6 +2,7 @@
 
 namespace App\Models\Reports\Monthly;
 
+use App\Models\ReportComment;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -83,5 +84,16 @@ class DPReport extends Model
     public function rqwd_inmate_profile()
     {
         return $this->hasMany(RQWDInmatesProfile::class, 'report_id', 'report_id');
+    }
+    public function comments()
+    {
+        return $this->hasMany(ReportComment::class, 'report_id', 'report_id');
+    }
+
+    public function generateCommentId()
+    {
+        $latestComment = $this->comments()->orderBy('created_at', 'desc')->first();
+        $nextNumber = $latestComment ? (int)substr($latestComment->R_comment_id, -3) + 1 : 1;
+        return $this->report_id . '.' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
     }
 }

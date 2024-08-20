@@ -2,63 +2,86 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Reports\Quarterly\RQWDReport;
-use App\Models\Reports\Quarterly\RQSTReport;
-use App\Models\Reports\Quarterly\RQISReport;
-use App\Models\Reports\Quarterly\RQDPReport;
-use App\Models\Reports\Quarterly\RQDLReport;
+use App\Models\OldProjects\Project;
+use App\Models\Reports\Monthly\DPReport;
+use App\Models\ReportComment;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+
 
 class CoordinatorController extends Controller
 {
-    public function CoordinatorDashboard()
+    public function CoordinatorDashboard(Request $request)
     {
-        $coordinator = auth()->user();
+        $coordinator = Auth::user();
 
-        // Get IDs of Provincials under the Coordinator
-        $provincialIds = User::where('parent_id', $coordinator->id)->pluck('id');
+        // Fetch all projects with the user's province relationship
+        $projectsQuery = Project::query()->with('user');
 
-        // Get IDs of Executors under those Provincials
-        $executorIds = User::whereIn('parent_id', $provincialIds)->pluck('id');
-
-        // Fetch reports created by these Executors with Provincial info
-        $rqwdReports = RQWDReport::with('user.parent')->whereIn('user_id', $executorIds)->get();
-        $rqstReports = RQSTReport::with('user.parent')->whereIn('user_id', $executorIds)->get();
-        $rqisReports = RQISReport::with('user.parent')->whereIn('user_id', $executorIds)->get();
-        $rqdpReports = RQDPReport::with('user.parent')->whereIn('user_id', $executorIds)->get();
-        $rqdlReports = RQDLReport::with('user.parent')->whereIn('user_id', $executorIds)->get();
-
-        return view('coordinator.index', compact('rqwdReports', 'rqstReports', 'rqisReports', 'rqdpReports', 'rqdlReports'));
-    }
-
-    public function showReport($type, $id)
-    {
-        switch ($type) {
-            case 'rqwd':
-                $report = RQWDReport::with('user.parent')->findOrFail($id);
-                break;
-            case 'rqst':
-                $report = RQSTReport::with('user.parent')->findOrFail($id);
-                break;
-            case 'rqis':
-                $report = RQISReport::with('user.parent')->findOrFail($id);
-                break;
-            case 'rqdp':
-                $report = RQDPReport::with('user.parent')->findOrFail($id);
-                break;
-            case 'rqdl':
-                $report = RQDLReport::with('user.parent')->findOrFail($id);
-                break;
-            default:
-                abort(404);
+        // Filtering logic
+        if ($request->filled('province')) {
+            $projectsQuery->whereHas('user', function($query) use ($request) {
+                $query->where('province', $request->province);
+            });
+        }
+        if ($request->filled('user_id')) {
+            $projectsQuery->where('user_id', $request->user_id);
+        }
+        if ($request->filled('project_type')) {
+            $projectsQuery->where('project_type', $request->project_type);
         }
 
-        return view('coordinator.show_report', compact('report'));
+        $projects = $projectsQuery->get();
+        $reports = DPReport::whereIn('project_id', $projects->pluck('project_id'))->get();
+
+        $provinces = User::distinct()->pluck('province');
+        $users = User::all();
+
+        return view('coordinator.index', compact('reports', 'coordinator', 'provinces', 'users'));
     }
 
-    //To manage Provincials
+    public function showReport($report_id)
+    {
+        $report = DPReport::with([
+            'user.parent',
+            'objectives.activities',
+            'accountDetails',
+            'photos',
+            'outlooks',
+            'annexures',
+            'rqis_age_profile',
+            'rqst_trainee_profile',
+            'rqwd_inmate_profile',
+            'comments.user' // Load comments with associated user
+        ])->findOrFail($report_id);
+
+        return view('coordinator.index', compact('report'));
+    }
+
+    public function storeComment(Request $request, $id)
+    {
+        $request->validate([
+            'comment' => 'required|string|max:1000',
+        ]);
+
+        $report = DPReport::findOrFail($id);
+
+        $commentId = $report->generateCommentId();
+
+        ReportComment::create([
+            'R_comment_id' => $commentId,
+            'report_id' => $report->report_id,
+            'user_id' => Auth::id(),
+            'comment' => $request->comment,
+        ]);
+
+        return redirect()->back()->with('success', 'Comment added successfully.');
+    }
+
+    // Other methods remain unchanged
+     //To manage Provincials
     // List all provincials
     public function createProvincial()
     {
@@ -76,7 +99,6 @@ class CoordinatorController extends Controller
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'role' => 'required|string|max:50',
-            'province' => 'required|string|max:255', // Add validation rule for province
             'status' => 'required|string|max:50',
         ]);
 
@@ -90,7 +112,6 @@ class CoordinatorController extends Controller
             'center' => $request->center,
             'address' => $request->address,
             'role' => 'provincial',
-            'province' => $request->province, // Ensure province is being set
             'status' => $request->status,
         ]);
 

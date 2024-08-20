@@ -88,6 +88,10 @@ Route::middleware(['auth', 'role:coordinator'])->group(function () {
     // Reports Routes for Coordinator
     Route::get('/coordinator/dashboard', [CoordinatorController::class, 'CoordinatorDashboard'])->name('coordinator.dashboard');
     Route::get('/coordinator/reports/{type}/{id}', [CoordinatorController::class, 'showReport'])->name('coordinator.reports.show');
+
+    // To view reports
+    Route::get('reports/monthly/show/{report_id}', [ReportController::class, 'show'])->name('monthly.report.show');
+
 });
 
 // Provincial routes
@@ -103,6 +107,10 @@ Route::middleware(['auth', 'role:provincial'])->group(function () {
     // Reports Routes for Provincial
     Route::get('/provincial/dashboard', [ProvincialController::class, 'ProvincialDashboard'])->name('provincial.dashboard');
     Route::get('/provincial/reports/{type}/{id}', [ProvincialController::class, 'showReport'])->name('provincial.reports.show');
+
+    // To view reports
+    Route::get('reports/monthly/show/{report_id}', [ReportController::class, 'show'])->name('monthly.report.show');
+
 });
 
 // // Executor routes
