@@ -54,19 +54,49 @@
             </form>
 
             <h4 class="mt-4 card-title">Reset Password</h4>
-            <form action="{{ route('provincial.resetExecutorPassword', $executor->id) }}" method="POST">
+            <form action="{{ route('provincial.resetExecutorPassword', $executor->id) }}" method="POST" id="resetPasswordForm">
                 @csrf
                 <div class="form-group">
                     <label for="password">New Password</label>
                     <input type="password" class="form-control" id="password" name="password" required>
+                    <small id="passwordHelp" class="form-text text-muted"></small>
                 </div>
                 <div class="form-group">
                     <label for="password_confirmation">Confirm New Password</label>
                     <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required>
+                    <small id="confirmPasswordHelp" class="form-text"></small>
                 </div>
                 <button type="submit" class="btn btn-warning">Reset Password</button>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('password_confirmation');
+    const passwordHelp = document.getElementById('passwordHelp');
+    const confirmPasswordHelp = document.getElementById('confirmPasswordHelp');
+
+    password.onkeyup = function () {
+        if (password.value.length < 8) {
+            passwordHelp.textContent = 'Password must be at least 8 characters long.';
+            passwordHelp.style.color = 'red';
+        } else {
+            passwordHelp.textContent = '';
+        }
+    };
+
+    confirmPassword.onkeyup = function () {
+        if (confirmPassword.value !== password.value) {
+            confirmPasswordHelp.textContent = 'Passwords do not match.';
+            confirmPasswordHelp.style.color = 'red';
+        } else {
+            confirmPasswordHelp.textContent = 'Passwords match.';
+            confirmPasswordHelp.style.color = 'green';
+        }
+    };
+});
+</script>
 @endsection

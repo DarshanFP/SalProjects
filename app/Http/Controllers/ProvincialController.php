@@ -5,6 +5,8 @@ use App\Models\Reports\Monthly\DPReport;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+
 
 class ProvincialController extends Controller
 {
@@ -96,40 +98,64 @@ class ProvincialController extends Controller
     }
 
     // Store Executor
+
     public function StoreExecutor(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:users',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'phone' => 'nullable|string|max:255',
-            'society_name' => 'required|string|max:255',
-            'center' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-        ]);
+        try {
+            // Log the incoming request data
+            Log::info('Attempting to store a new executor', ['request_data' => $request->all()]);
 
-        $provincial = auth()->user();
+            $validatedData = $request->validate([
+                'name' => 'required|string|max:255',
+                'username' => 'required|string|max:255|unique:users',
+                'email' => 'required|string|email|max:255|unique:users',
+                'password' => 'required|string|min:8|confirmed',
+                'phone' => 'nullable|string|max:255',
+                'society_name' => 'required|string|max:255',
+                'center' => 'nullable|string|max:255',
+                'address' => 'nullable|string',
+            ]);
 
-        $executor = User::create([
-            'name' => $request->name,
-            'username' => $request->username,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'phone' => $request->phone,
-            'society_name' => $request->society_name,
-            'province' => $provincial->province, // Assign the same province as the provincial
-            'center' => $request->center,
-            'address' => $request->address,
-            'role' => 'executor',
-            'status' => 'active',
-            'parent_id' => $provincial->id,
-        ]);
+            // Log post-validation data
+            Log::info('Validation successful', ['validated_data' => $validatedData]);
 
-        $executor->assignRole('executor');
+            $provincial = auth()->user();
+            // Log the details of the authenticated user
+            Log::info('Authenticated provincial details', ['provincial' => $provincial]);
 
-        return redirect()->route('provincial.createExecutor')->with('success', 'Executor created successfully.');
+            $executor = User::create([
+                'name' => $validatedData['name'],
+                'username' => $validatedData['username'],
+                'email' => $validatedData['email'],
+                'password' => Hash::make($validatedData['password']),
+                'phone' => $validatedData['phone'],
+                'society_name' => $validatedData['society_name'],
+                'province' => $provincial->province,
+                'center' => $validatedData['center'],
+                'address' => $validatedData['address'],
+                'role' => 'executor',
+                'status' => 'active',
+                'parent_id' => $provincial->id,
+            ]);
+
+            // Log the successful creation of the executor
+            if ($executor) {
+                Log::info('Executor created successfully', ['executor_id' => $executor->id]);
+                $executor->assignRole('executor');
+            } else {
+                // Log failure to create executor
+                Log::error('Failed to create executor');
+            }
+
+            return redirect()->route('provincial.createExecutor')->with('success', 'Executor created successfully.');
+        } catch (\Exception $e) {
+            // Log any exceptions that occur
+            Log::error('Error storing executor', ['error' => $e->getMessage()]);
+            return back()->withErrors('Failed to create executor: ' . $e->getMessage());
+        }
     }
+
+
 
     // List of Executors
     public function listExecutors()

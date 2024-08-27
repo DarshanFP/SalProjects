@@ -10,7 +10,7 @@
                     {{ session('success') }}
                 </div>
             @endif
-            <form action="{{ route('provincial.storeExecutor') }}" method="POST">
+            <form action="{{ route('provincial.storeExecutor') }}" method="POST" id="executorForm">
                 @csrf
                 <div class="form-group">
                     <label for="name">Name</label>
@@ -27,10 +27,14 @@
                 <div class="form-group">
                     <label for="password">Password</label>
                     <input type="password" class="form-control" id="password" name="password" required>
+                    <span toggle="#password" class="fa fa-fw fa-eye field-icon toggle-password"></span>
+                    <small id="passwordHelp" class="form-text text-muted"></small>
                 </div>
                 <div class="form-group">
                     <label for="password_confirmation">Confirm Password</label>
                     <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required>
+                    <span toggle="#password_confirmation" class="fa fa-fw fa-eye field-icon toggle-password"></span>
+                    <small id="confirmPasswordHelp" class="form-text"></small>
                 </div>
                 <div class="form-group">
                     <label for="phone">Phone</label>
@@ -58,4 +62,46 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('password_confirmation');
+    const passwordHelp = document.getElementById('passwordHelp');
+    const confirmPasswordHelp = document.getElementById('confirmPasswordHelp');
+    const togglePasswords = document.querySelectorAll('.toggle-password');
+
+    togglePasswords.forEach(toggle => {
+        toggle.onclick = function () {
+            const input = document.querySelector(toggle.getAttribute('toggle'));
+            if (input.type === 'password') {
+                input.type = 'text';
+                toggle.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                toggle.classList.remove('fa-eye-slash');
+            }
+        };
+    });
+
+    password.onkeyup = function () {
+        if (password.value.length < 8) {
+            passwordHelp.textContent = 'Password must be at least 8 characters long.';
+            passwordHelp.style.color = 'red';
+        } else {
+            passwordHelp.textContent = '';
+        }
+    };
+
+    confirmPassword.onkeyup = function () {
+        if (confirmPassword.value !== password.value) {
+            confirmPasswordHelp.textContent = 'Passwords do not match.';
+            confirmPasswordHelp.style.color = 'red';
+        } else {
+            confirmPasswordHelp.textContent = 'Passwords match.';
+            confirmPasswordHelp.style.color = 'green';
+        }
+    };
+});
+</script>
 @endsection
