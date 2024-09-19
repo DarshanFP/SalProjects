@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Exception;
 use Illuminate\Validation\ValidationException;
 
-class ReportController extends Controller
+class aReportController extends Controller
 {
     public function create($project_id)
     {

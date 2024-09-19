@@ -11,8 +11,8 @@
                 <!-- Basic Information Section -->
                 <div class="mb-3 card">
                     <div class="card-header">
-                        <h4 class="fp-text-center1">TRACKING - - PROJECT</h4>
-                        <h4 class="fp-text-center1">MONTHLY PROGRESS REPORT (common)</h4>
+                        <h4 class="fp-text-center1">TRACKING PROJECT</h4>
+                        <h4 class="fp-text-center1">MONTHLY PROGRESS REPORT (comm1on)</h4>
                     </div>
                     <div class="card-header">
                         <h4 class="fp-text-margin">Basic Information</h4>

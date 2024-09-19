@@ -42,23 +42,45 @@ class CoordinatorController extends Controller
         return view('coordinator.index', compact('reports', 'coordinator', 'provinces', 'users'));
     }
 
-    public function showReport($report_id)
-    {
-        $report = DPReport::with([
-            'user.parent',
-            'objectives.activities',
-            'accountDetails',
-            'photos',
-            'outlooks',
-            'annexures',
-            'rqis_age_profile',
-            'rqst_trainee_profile',
-            'rqwd_inmate_profile',
-            'comments.user' // Load comments with associated user
-        ])->findOrFail($report_id);
+    // public function showReport($report_id)
+    // {
+    //     $report = DPReport::with([
+    //         'user.parent',
+    //         'objectives.activities',
+    //         'accountDetails',
+    //         'photos',
+    //         'outlooks',
+    //         'annexures',
+    //         'rqis_age_profile',
+    //         'rqst_trainee_profile',
+    //         'rqwd_inmate_profile',
+    //         'comments.user' // Load comments with associated user
+    //     ])->findOrFail($report_id);
 
-        return view('coordinator.index', compact('report'));
-    }
+    //     return view('coordinator.index', compact('report'));
+    // }
+
+    public function showMonthlyReport($report_id)
+{
+    $report = DPReport::with([
+        'user.parent',
+        'objectives.activities',
+        'accountDetails',
+        'photos',
+        'outlooks',
+        'annexures',
+        'rqis_age_profile',
+        'rqst_trainee_profile',
+        'rqwd_inmate_profile',
+        'comments.user' // Load comments with associated user
+    ])->where('report_id', $report_id)->firstOrFail();
+
+    // Coordinator can view all reports, so no additional authorization needed here
+    // If you need to restrict access further, you can add authorization logic
+
+    return view('reports.monthly.show', compact('report'));
+}
+
 
     public function storeComment(Request $request, $id)
     {

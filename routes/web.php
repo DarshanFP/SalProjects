@@ -15,6 +15,7 @@ use App\Http\Controllers\ProvincialController;
 use App\Http\Controllers\Reports\Monthly\ExportReportController;
 use App\Http\Controllers\Reports\Monthly\LivelihoodAnnexureController;
 use App\Http\Controllers\Reports\Monthly\MonthlyDevelopmentProjectController;
+use App\Http\Controllers\Reports\Monthly\ReportAttachmentController;
 use App\Http\Controllers\Reports\Monthly\ReportController;
 use App\Http\Controllers\Reports\Quarterly\DevelopmentLivelihoodController;
 use App\Http\Controllers\Reports\Quarterly\DevelopmentProjectController;
@@ -90,7 +91,7 @@ Route::middleware(['auth', 'role:coordinator'])->group(function () {
     Route::get('/coordinator/reports/{type}/{id}', [CoordinatorController::class, 'showReport'])->name('coordinator.reports.show');
 
     // To view reports
-    Route::get('reports/monthly/show/{report_id}', [ReportController::class, 'show'])->name('monthly.report.show');
+    Route::get('/coordinator/reports/monthly/show/{report_id}', [CoordinatorController::class, 'showMonthlyReport'])->name('coordinator.monthly.report.show');
 
 });
 
@@ -109,9 +110,16 @@ Route::middleware(['auth', 'role:provincial'])->group(function () {
     Route::get('/provincial/reports/{type}/{id}', [ProvincialController::class, 'showReport'])->name('provincial.reports.show');
 
     // To view reports
-    Route::get('reports/monthly/show/{report_id}', [ReportController::class, 'show'])->name('monthly.report.show');
+    Route::get('/provincial/reports/monthly/show/{report_id}', [ProvincialController::class, 'showMonthlyReport'])->name('provincial.monthly.report.show');
+
+
+    //Report Attachment Routes
+    Route::get('reports/monthly/download/{id}', [ReportAttachmentController::class, 'downloadAttachment'])
+     ->name('monthly.report.downloadAttachment');
 
 });
+
+
 
 // // Executor routes
 // Route::middleware(['auth', 'role:executor'])->group(function () {

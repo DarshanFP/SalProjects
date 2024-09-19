@@ -280,24 +280,51 @@
                     @include('reports.monthly.partials.edit.dl_annexure_edit', ['annexures' => $annexures])
                 @endif
 
-                <div class="mb-3 card">
-                    <div class="card-header">
-                        <h4>5. Photos</h4>
-                    </div>
-                    <div class="card-body">
-                        <div id="photos-container">
-                            @foreach($report->photos as $index => $photo)
-                                <div class="mb-3 photo-group" data-index="{{ $index + 1 }}">
-                                    <label for="photo_{{ $index + 1 }}" class="form-label">Photo {{ $index + 1 }}</label>
-                                    <input type="file" name="photos[]" class="mb-2 form-control" accept="image/*" onchange="checkFileSize(this)" style="background-color: #202ba3;">
-                                    <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ old('photo_descriptions.' . $index, $photo->description) }}</textarea>
-                                    <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-                                </div>
-                            @endforeach
-                        </div>
-                        <button type="button" class="mt-3 btn btn-primary" onclick="addPhoto()">Add More Photo</button>
-                    </div>
+               <!-- Photos Section -->
+<div class="mb-3 card">
+    <div class="card-header">
+        <h4>5. Photos</h4>
+    </div>
+    <div class="card-body">
+        <div id="photos-container">
+            @foreach($report->photos as $index => $photo)
+                <div class="mb-3 photo-group" data-index="{{ $index + 1 }}">
+                    <label for="photo_{{ $index + 1 }}" class="form-label">Photo {{ $index + 1 }}</label>
+                    <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="checkPhotoFile(this)" style="background-color: #202ba3;">
+                    <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ old('photo_descriptions.' . $index, $photo->description) }}</textarea>
+                    <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
                 </div>
+            @endforeach
+        </div>
+        <button type="button" class="mt-3 btn btn-primary" onclick="addPhoto()">Add More Photo</button>
+    </div>
+</div>
+
+<!-- Attachments Section -->
+<div class="mb-3 card">
+    <div class="card-header">
+        <h4>Attachments</h4>
+    </div>
+    <div class="card-body">
+        <div id="attachments-container">
+            @foreach($report->attachments as $index => $attachment)
+                <div class="mb-3 attachment-group" data-index="{{ $index + 1 }}">
+                    <label for="attachment_{{ $index + 1 }}" class="form-label">Attachment {{ $index + 1 }}</label>
+                    <div class="mb-2">
+                        <a href="{{ route('monthly.report.downloadAttachment', $attachment->id) }}" target="_blank">{{ $attachment->file_name }}</a>
+                        <p>{{ $attachment->description }}</p>
+                    </div>
+                    <input type="file" name="attachments[]" class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx" onchange="checkAttachmentFile(this)" style="background-color: #202ba3;">
+                    <input type="text" name="attachment_names[]" class="mb-2 form-control" value="{{ old('attachment_names.' . $index, $attachment->file_name) }}" placeholder="Name of File Attached" required style="background-color: #202ba3;">
+                    <textarea name="attachment_descriptions[]" class="form-control" rows="3" placeholder="Describe the file" required style="background-color: #202ba3;">{{ old('attachment_descriptions.' . $index, $attachment->description) }}</textarea>
+                    <button type="button" class="mt-2 btn btn-danger" onclick="removeAttachment(this)">Remove</button>
+                </div>
+            @endforeach
+        </div>
+        <button type = "button" class="mt-3 btn btn-primary" onclick="addAttachment()">Add More Attachment</button>
+    </div>
+</div>
+
 
                 <button type="submit" class="btn btn-primary me-2">Update Report</button>
             </form>
@@ -624,53 +651,133 @@
 
         document.querySelector('[name="amount_in_hand"]').value = totalAmount.toFixed(2);
     }
+// Attachements and photos
+document.addEventListener('DOMContentLoaded', function() {
+    // Update button visibility based on current items
+    updateRemoveButtons();
+    updatePhotoLabels();
+    updateAttachmentLabels();
+});
 
-    function addPhoto() {
-        const photosContainer = document.getElementById('photos-container');
-        const currentPhotos = photosContainer.children.length;
+// Function to validate photo file type and size
+function checkPhotoFile(input) {
+    const allowedTypes = ['image/jpeg', 'image/png'];
+    const maxSize = 2 * 1024 * 1024; // 2MB limit
 
-        if (currentPhotos < 10) {
-            const index = currentPhotos + 1;
-            const photoTemplate = `
-                <div class="mb-3 photo-group" data-index="${index}">
-                    <label for="photo_${index}" class="form-label">Photo ${index}</label>
-                    <input type="file" name="photos[]" class="mb-2 form-control" accept="image/*" onchange="checkFileSize(this)" style="background-color: #202ba3;">
-                    <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
-                    <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-                </div>
-            `;
-            photosContainer.insertAdjacentHTML('beforeend', photoTemplate);
-            updatePhotoLabels();
-        } else {
-            alert('You can upload a maximum of 10 photos.');
+    let file = input.files[0];
+    if (file) {
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please upload only JPEG or PNG image.');
+            input.value = ''; // Reset the input
+            return;
+        }
+
+        if (file.size > maxSize) {
+            alert('Photo must be less than 2 MB.');
+            input.value = ''; // Reset the input
+            return;
         }
     }
+}
 
-    function removePhoto(button) {
-        const photoGroup = button.closest('.photo-group');
-        photoGroup.remove();
-        updatePhotoLabels();
-    }
+// Function to validate attachment file type and size
+function checkAttachmentFile(input) {
+    const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+    const maxSize = 10 * 1024 * 1024; // 10MB limit
 
-    function updatePhotoLabels() {
-        const photoGroups = document.querySelectorAll('.photo-group');
-        photoGroups.forEach((group, index) => {
-            const label = group.querySelector('label');
-            label.textContent = `Photo ${index + 1}`;
-        });
-    }
+    let file = input.files[0];
+    if (file) {
+        if (!allowedTypes.includes(file.type)) {
+            alert('Only PDF, DOC, DOCX, XLS, and XLSX files are allowed!');
+            input.value = ''; // Reset the input
+            return;
+        }
 
-    function checkFileSize(input) {
-        const file = input.files[0];
-        if (file && file.size > 3 * 1024 * 1024) { // 3 MB
-            alert('Each photo must be less than 3 MB.');
-            input.value = '';
+        if (file.size > maxSize) {
+            alert('Attachment must not exceed 10 MB.');
+            input.value = ''; // Reset the input
+            return;
         }
     }
+}
 
-    document.addEventListener('DOMContentLoaded', function() {
+// Add more photos dynamically
+function addPhoto() {
+    const photosContainer = document.getElementById('photos-container');
+    const currentPhotos = photosContainer.querySelectorAll('.photo-group').length;
+
+    if (currentPhotos < 10) {
+        const index = currentPhotos + 1;
+        const photoTemplate = `
+            <div class="mb-3 photo-group" data-index="${index}">
+                <label for="photo_${index}" class="form-label">Photo ${index}</label>
+                <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="checkPhotoFile(this)">
+                <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)"></textarea>
+                <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
+            </div>
+        `;
+        photosContainer.insertAdjacentHTML('beforeend', photoTemplate);
         updatePhotoLabels();
+    } else {
+        alert('You can upload a maximum of 10 photos.');
+    }
+}
+
+// Add more attachments dynamically
+function addAttachment() {
+    const attachmentsContainer = document.getElementById('attachments-container');
+    const currentAttachments = attachmentsContainer.querySelectorAll('.attachment-group').length;
+
+    if (currentAttachments < 10) {
+        const index = currentAttachments + 1;
+        const attachmentTemplate = `
+            <div class="mb-3 attachment-group" data-index="${index}">
+                <label for="attachment_${index}" class="form-label">Attachment ${index}</label>
+                <input type="file" name="attachments[]" class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx" onchange="checkAttachmentFile(this)" style="background-color: #202ba3;">
+                <input type="text" name="attachment_names[]" class="mb-2 form-control" placeholder="Name of File Attached" required style="background-color: #202ba3;">
+                <textarea name="attachment_descriptions[]" class="form-control" rows="3" placeholder="Describe the file" required style="background-color: #202ba3;"></textarea>
+                <button type="button" class="mt-2 btn btn-danger" onclick="removeAttachment(this)">Remove</button>
+            </div>
+        `;
+        attachmentsContainer.insertAdjacentHTML('beforeend', attachmentTemplate);
+        updateAttachmentLabels();
+    } else {
+        alert('You can add up to 10 attachments.');
+    }
+}
+
+// Utility functions to update UI elements
+function updatePhotoLabels() {
+    const photoGroups = document.querySelectorAll('.photo-group');
+    photoGroups.forEach((group, index) => {
+        group.querySelector('label').textContent = `Photo ${index + 1}`;
     });
+}
+
+function updateAttachmentLabels() {
+    const attachmentGroups = document.querySelectorAll('.attachment-group');
+    attachmentGroups.forEach((group, index) => {
+        group.querySelector('label').textContent = `Attachment ${index + 1}`;
+    });
+}
+
+function removePhoto(button) {
+    button.closest('.photo-group').remove();
+    updatePhotoLabels();
+}
+
+function removeAttachment(button) {
+    button.closest('.attachment-group').remove();
+    updateAttachmentLabels();
+}
+
+
 </script>
 
 <style>

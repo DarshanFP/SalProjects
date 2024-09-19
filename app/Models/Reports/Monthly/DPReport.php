@@ -90,6 +90,11 @@ class DPReport extends Model
         return $this->hasMany(ReportComment::class, 'report_id', 'report_id');
     }
 
+    public function attachments()
+    {
+        return $this->hasMany(ReportAttachment::class, 'report_id', 'report_id');
+    }
+
     public function generateCommentId()
     {
         $latestComment = $this->comments()->orderBy('created_at', 'desc')->first();

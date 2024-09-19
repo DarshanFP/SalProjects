@@ -182,6 +182,26 @@
             </div>
         </div>
     </div>
+    @if($report->attachments->isNotEmpty())
+    <div class="card">
+        <div class="card-header">
+            <h4>Attachments</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                @foreach($report->attachments as $attachment)
+                    <div class="mb-3 col-md-12">
+                        <a href="{{ route('monthly.report.downloadAttachment', $attachment->id) }}" target="_blank">
+                            {{ $attachment->file_name }}
+                        </a>
+                        <p>{{ $attachment->description }}</p>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+@endif
+
 
     <a href="{{ route('monthly.report.index') }}" class="btn btn-primary">Back to Reports</a>
     <a href="{{ route('monthly.report.edit', $report->report_id) }}" class="btn btn-warning ">Edit Report</a>

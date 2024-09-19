@@ -10,7 +10,7 @@
                 <div class="mb-3 card">
                     <div class="card-header">
                         <h4 class="fp-text-center1">TRACKING DEVELOPMENT PROJECT</h4>
-                        <h4 class="fp-text-center1">MONTHLY PROGRESS REPORT</h4>
+                        <h4 class="fp-text-center1">MONTHLY - PROGRESS REPORT</h4>
                     </div>
                     <div class="card-header">
                         <h4 class="fp-text-margin">Basic Information</h4>
@@ -601,52 +601,113 @@
         document.querySelector('[name="amount_in_hand"]').value = totalAmount.toFixed(2);
     }
 
+    // function addPhoto() {
+    //     const photosContainer = document.getElementById('photos-container');
+    //     const currentPhotos = photosContainer.children.length;
+
+    //     if (currentPhotos < 10) {
+    //         const index = currentPhotos + 1;
+    //         const photoTemplate = `
+    //             <div class="mb-3 photo-group" data-index="${index}">
+    //                 <label for="photo_${index}" class="form-label">Photo ${index}</label>
+    //                 <input type="file" name="photos[]" class="mb-2 form-control" accept="image/*" onchange="checkFileSize(this)">
+    //                 <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)"></textarea>
+    //                 <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
+    //             </div>
+    //         `;
+    //         photosContainer.insertAdjacentHTML('beforeend', photoTemplate);
+    //         updatePhotoLabels();
+    //     } else {
+    //         alert('You can upload a maximum of 10 photos.');
+    //     }
+    // }
+
+    // function removePhoto(button) {
+    //     const photoGroup = button.closest('.photo-group');
+    //     photoGroup.remove();
+    //     updatePhotoLabels();
+    // }
+
+    // function updatePhotoLabels() {
+    //     const photoGroups = document.querySelectorAll('.photo-group');
+    //     photoGroups.forEach((group, index) => {
+    //         const label = group.querySelector('label');
+    //         label.textContent = `Photo ${index + 1}`;
+    //     });
+    // }
+
+    // function checkFileSize(input) {
+    //     const file = input.files[0];
+    //     if (file && file.size > 3 * 1024 * 1024) { // 3 MB
+    //         alert('Each photo must be less than 3 MB.');
+    //         input.value = '';
+    //     }
+    // }
+
+    // document.addEventListener('DOMContentLoaded', function() {
+    //     updatePhotoLabels();
+    // });
+
     function addPhoto() {
-        const photosContainer = document.getElementById('photos-container');
-        const currentPhotos = photosContainer.children.length;
+    const photosContainer = document.getElementById('photos-container');
+    const currentPhotos = photosContainer.children.length;
 
-        if (currentPhotos < 10) {
-            const index = currentPhotos + 1;
-            const photoTemplate = `
-                <div class="mb-3 photo-group" data-index="${index}">
-                    <label for="photo_${index}" class="form-label">Photo ${index}</label>
-                    <input type="file" name="photos[]" class="mb-2 form-control" accept="image/*" onchange="checkFileSize(this)">
-                    <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)"></textarea>
-                    <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-                </div>
-            `;
-            photosContainer.insertAdjacentHTML('beforeend', photoTemplate);
-            updatePhotoLabels();
-        } else {
-            alert('You can upload a maximum of 10 photos.');
-        }
-    }
-
-    function removePhoto(button) {
-        const photoGroup = button.closest('.photo-group');
-        photoGroup.remove();
+    if (currentPhotos < 10) {
+        const index = currentPhotos + 1;
+        const photoTemplate = `
+            <div class="mb-3 photo-group" data-index="${index}">
+                <label for="photo_${index}" class="form-label">Photo ${index}</label>
+                <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="checkFile(this)">
+                <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)"></textarea>
+                <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
+            </div>
+        `;
+        photosContainer.insertAdjacentHTML('beforeend', photoTemplate);
         updatePhotoLabels();
+    } else {
+        alert('You can upload a maximum of 10 photos.');
     }
+}
 
-    function updatePhotoLabels() {
-        const photoGroups = document.querySelectorAll('.photo-group');
-        photoGroups.forEach((group, index) => {
-            const label = group.querySelector('label');
-            label.textContent = `Photo ${index + 1}`;
-        });
-    }
+function removePhoto(button) {
+    const photoGroup = button.closest('.photo-group');
+    photoGroup.remove();
+    updatePhotoLabels();
+}
 
-    function checkFileSize(input) {
-        const file = input.files[0];
-        if (file && file.size > 3 * 1024 * 1024) { // 3 MB
-            alert('Each photo must be less than 3 MB.');
-            input.value = '';
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        updatePhotoLabels();
+function updatePhotoLabels() {
+    const photoGroups = document.querySelectorAll('.photo-group');
+    photoGroups.forEach((group, index) => {
+        const label = group.querySelector('label');
+        label.textContent = `Photo ${index + 1}`;
     });
+}
+
+function checkFile(input) {
+    const allowedTypes = ['image/jpeg', 'image/png'];
+    const maxSize = 2 * 1024 * 1024; // 2MB
+
+    const file = input.files[0];
+
+    if (file) {
+        if (!allowedTypes.includes(file.type)) {
+            alert('Invalid file type. Please upload a JPEG or PNG image.');
+            input.value = ''; // Clear the file input
+            return;
+        }
+
+        if (file.size > maxSize) {
+            alert('Each photo must be less than 2 MB.');
+            input.value = ''; // Clear the file input
+            return;
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updatePhotoLabels();
+});
+
 </script>
 
 <style>
@@ -686,7 +747,7 @@
         margin-bottom: 15px;
     }
 
-    <style>
+    <>
     .readonly-input {
         background-color: #0D1427;
         color: #f4f0f0;
@@ -738,5 +799,5 @@
         margin-bottom: 15px;
     }
 </style>
-</style>
+
 @endsection

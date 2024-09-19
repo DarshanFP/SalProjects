@@ -11,7 +11,7 @@
                 <!-- Basic Information Section -->
                 <div class="mb-3 card">
                     <div class="card-header">
-                        <h4 class="fp-text-center1">TRACKING -@- PROJECT</h4>
+                        <h4 class="fp-text-center1">TRACKING -- PROJECT</h4>
                         <h4 class="fp-text-center1">MONTHLY PROGRESS REPORT (common)</h4>
                     </div>
                     <div class="card-header">
@@ -143,6 +143,7 @@
                     </div>
                     @endforeach
                 </div>
+
                 <button type="button" class="btn btn-primary" onclick="addOutlook()">Add More Outlook</button>
 
                 <!-- Statements of Account Section  -->
@@ -150,7 +151,7 @@
 
 
                 <!-- Photos Section -->
-                <div class="mb-3 card">
+                {{-- <div class="mb-3 card">
                     <div class="card-header">
                         <h4>5. Photos</h4>
                     </div>
@@ -167,7 +168,49 @@
                         </div>
                         <button type="button" class="mt-3 btn btn-primary" onclick="addPhoto()">Add More Photo</button>
                     </div>
-                </div>
+                </div> --}}
+                {{-- <div class="mb-3 card">
+                    <div class="card-header">
+                        <h4>5. Photos</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="photos-container">
+                            @foreach(old('photo_descriptions', ['']) as $index => $value)
+                            <div class="mb-3 photo-group" data-index="{{ $index }}">
+                                <label for="photo_{{ $index }}" class="form-label">Photo {{ $index + 1 }}</label>
+                                <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" style="background-color: #202ba3;">
+                                <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $value }}</textarea>
+                                <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
+                            </div>
+                            @endforeach
+                        </div>
+                        <button type="button" class="mt-3 btn btn-primary" onclick="addPhoto()">Add More Photo</button>
+                    </div>
+                </div> --}}
+                {{-- <div class="mb-3 card">
+                    <div class="card-header">
+                        <h4>5. Photos</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="photos-container">
+                            @foreach(old('photo_descriptions', ['']) as $index => $value)
+                            <div class="mb-3 photo-group" data-index="{{ $index }}">
+                                <label for="photo_{{ $index }}" class="form-label">Photo {{ $index + 1 }}</label>
+                                <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" style="background-color: #202ba3;">
+                                <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $value }}</textarea>
+                                <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
+                            </div>
+                            @endforeach
+                        </div>
+                        <button type="button" class="mt-3 btn btn-primary" onclick="addPhoto()">Add More Photo</button>
+                    </div>
+                </div> --}}
+
+                @include('reports.monthly.partials.photos')
+
+
+                @include('reports.monthly.partials.attachments')
+
                 <button type="submit" class="btn btn-primary me-2">Submit Report</button>
             </form>
         </div>
@@ -226,52 +269,215 @@
     });
 
     // Photo and Description Section
-    function addPhoto() {
-        const photosContainer = document.getElementById('photos-container');
-        const currentPhotos = photosContainer.children.length;
 
-        if (currentPhotos < 10) {
-            const index = currentPhotos;
-            const newPhotoHtml = `
-                <div class="mb-3 photo-group" data-index="${index}">
-                    <label for="photo_${index}" class="form-label">Photo ${index + 1}</label>
-                    <input type="file" name="photos[]" class="mb-2 form-control" accept="image/*" onchange="checkFileSize(this)" style="background-color: #202ba3;">
-                    <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
-                    <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-                </div>
-            `;
-            photosContainer.insertAdjacentHTML('beforeend', newPhotoHtml);
-            updatePhotoLabels();
-        } else {
-            alert('You can upload a maximum of 10 photos.');
+//     function addPhoto() {
+//     const photosContainer = document.getElementById('photos-container');
+//     const currentPhotos = photosContainer.children.length;
+
+//     if (currentPhotos < 10) {
+//         const index = currentPhotos;
+//         const newPhotoHtml = `
+//             <div class="mb-3 photo-group" data-index="${index}">
+//                 <label for="photo_${index}" class="form-label">Photo ${index + 1}</label>
+//                 <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" style="background-color: #202ba3;">
+//                 <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
+//                 <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
+//             </div>
+//         `;
+//         photosContainer.insertAdjacentHTML('beforeend', newPhotoHtml);
+//         updatePhotoLabels();
+//     } else {
+//         alert('You can upload a maximum of 10 photos.');
+//     }
+// }
+
+// function removePhoto(button) {
+//     const photoGroup = button.closest('.photo-group');
+//     photoGroup.remove();
+//     updatePhotoLabels();
+// }
+
+// function updatePhotoLabels() {
+//     const photoGroups = document.querySelectorAll('.photo-group');
+//     photoGroups.forEach((group, index) => {
+//         const label = group.querySelector('label');
+//         label.textContent = `Photo ${index + 1}`;
+//     });
+// }
+
+// function validateFileInput(input) {
+//     const allowedTypes = ['image/jpeg', 'image/png'];
+//     const maxSize = 5 * 1024 * 1024; // 5MB
+
+//     const file = input.files[0];
+
+//     if (file) {
+//         if (!allowedTypes.includes(file.type)) {
+//             alert('Invalid file type. Please upload a JPEG or PNG image.');
+//             input.value = ''; // Clear the file input
+//             return false;
+//         }
+
+//         if (file.size > maxSize) {
+//             alert('File size exceeds 5MB. Please upload a smaller image.');
+//             input.value = ''; // Clear the file input
+//             return false;
+//         }
+//     }
+
+//     return true;
+// }
+
+// document.addEventListener('DOMContentLoaded', function() {
+//     updatePhotoLabels();
+// });
+
+//PDF issue unsolved in below code
+
+// function addPhoto() {
+//     const photosContainer = document.getElementById('photos-container');
+//     const currentPhotos = photosContainer.children.length;
+
+//     if (currentPhotos < 10) {
+//         const index = currentPhotos;
+//         const newPhotoHtml = `
+//             <div class="mb-3 photo-group" data-index="${index}">
+//                 <label for="photo_${index}" class="form-label">Photo ${index + 1}</label>
+//                 <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" style="background-color: #202ba3;">
+//                 <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
+//                 <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
+//             </div>
+//         `;
+//         photosContainer.insertAdjacentHTML('beforeend', newPhotoHtml);
+//         updatePhotoLabels();
+//     } else {
+//         alert('You can upload a maximum of 10 photos.');
+//     }
+// }
+
+// function removePhoto(button) {
+//     const photoGroup = button.closest('.photo-group');
+//     photoGroup.remove();
+//     updatePhotoLabels();
+// }
+
+// function updatePhotoLabels() {
+//     const photoGroups = document.querySelectorAll('.photo-group');
+//     photoGroups.forEach((group, index) => {
+//         const label = group.querySelector('label');
+//         label.textContent = `Photo ${index + 1}`;
+//     });
+// }
+
+// function validateFileInput(input) {
+//     // Define allowed image types
+//     const allowedImageTypes = ['image/jpeg', 'image/png'];
+
+//     // Get the file from the input
+//     const file = input.files[0];
+
+//     if (file) {
+//         // Check if the file type is not allowed
+//         if (!allowedImageTypes.includes(file.type)) {
+//             // Specifically handle the case where the file is a PDF
+//             if (file.type === 'application/pdf') {
+//                 alert('PDF files are not allowed. Please upload a JPEG or PNG image.');
+//                 input.value = ''; // Clear the file input
+//                 return false;
+//             } else {
+//                 alert('Invalid file type. Please upload a JPEG or PNG image.');
+//                 input.value = ''; // Clear the file input
+//                 return false;
+//             }
+//         }
+
+//         // Define maximum file size (5MB)
+//         const maxSize = 5 * 1024 * 1024; // 5MB
+
+//         // Check if the file size exceeds the limit
+//         if (file.size > maxSize) {
+//             alert('File size exceeds 5MB. Please upload a smaller image.');
+//             input.value = ''; // Clear the file input
+//             return false;
+//         }
+//     }
+
+//     return true;
+// }
+
+// // Event listener to run validation on document load (if needed)
+// document.addEventListener('DOMContentLoaded', function() {
+//     updatePhotoLabels();
+// });function addPhoto() {
+
+
+// Function to validate file input
+function validateFileInput(input) {
+    const allowedTypes = ['image/jpeg', 'image/png'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    const file = input.files[0];
+
+    if (file) {
+        if (!allowedTypes.includes(file.type)) {
+            alert('Invalid file type. Please upload a JPEG or PNG image.');
+            input.value = ''; // Clear the file input
+            return false;
+        }
+
+        if (file.size > maxSize) {
+            alert('File size exceeds 5MB. Please upload a smaller image.');
+            input.value = ''; // Clear the file input
+            return false;
         }
     }
 
-    function removePhoto(button) {
-        const photoGroup = button.closest('.photo-group');
-        photoGroup.remove();
-        updatePhotoLabels();
-    }
+    return true;
+}
 
-    function updatePhotoLabels() {
-        const photoGroups = document.querySelectorAll('.photo-group');
-        photoGroups.forEach((group, index) => {
-            const label = group.querySelector('label');
-            label.textContent = `Photo ${index + 1}`;
-        });
-    }
+// Function to add a new photo input
+// function addPhoto() {
+//     const photosContainer = document.getElementById('photos-container');
+//     const currentPhotos = photosContainer.children.length;
 
-    function checkFileSize(input) {
-        const file = input.files[0];
-        if (file && file.size > 5 * 1024 * 1024) { // 5 MB
-            alert('Each photo must be less than 5 MB.');
-            input.value = '';
-        }
-    }
+//     if (currentPhotos < 10) {
+//         const index = currentPhotos;
+//         const newPhotoHtml = `
+//             <div class="mb-3 photo-group" data-index="${index}">
+//                 <label for="photo_${index}" class="form-label">Photo ${index + 1}</label>
+//                 <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" style="background-color: #202ba3;">
+//                 <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
+//                 <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
+//             </div>
+//         `;
+//         photosContainer.insertAdjacentHTML('beforeend', newPhotoHtml);
+//         updatePhotoLabels();
+//     } else {
+//         alert('You can upload a maximum of 10 photos.');
+//     }
+// }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        updatePhotoLabels();
-    });
+// // Function to remove a photo input
+// function removePhoto(button) {
+//     const photoGroup = button.closest('.photo-group');
+//     photoGroup.remove();
+//     updatePhotoLabels();
+// }
+
+// // Function to update photo labels
+// function updatePhotoLabels() {
+//     const photoGroups = document.querySelectorAll('.photo-group');
+//     photoGroups.forEach((group, index) => {
+//         const label = group.querySelector('label');
+//         label.textContent = `Photo ${index + 1}`;
+//     });
+// }
+
+document.addEventListener('DOMContentLoaded', function() {
+    updatePhotoLabels();
+});
+
+
 </script>
 
 <style>

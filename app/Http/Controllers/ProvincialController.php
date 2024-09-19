@@ -46,7 +46,24 @@ class ProvincialController extends Controller
         return view('provincial.index', compact('reports', 'places', 'users'));
     }
 
-    public function showReport($id)
+    // public function showReport($id)
+    // {
+    //     $report = DPReport::with([
+    //         'user.parent',
+    //         'objectives.activities',
+    //         'accountDetails',
+    //         'photos',
+    //         'outlooks',
+    //         'annexures',
+    //         'rqis_age_profile',
+    //         'rqst_trainee_profile',
+    //         'rqwd_inmate_profile',
+    //         'comments.user' // Load comments with associated user
+    //     ])->findOrFail($id);
+
+    //     return view('provincial.show_report', compact('report'));
+    // }
+    public function showMonthlyReport($report_id)
     {
         $report = DPReport::with([
             'user.parent',
@@ -58,10 +75,17 @@ class ProvincialController extends Controller
             'rqis_age_profile',
             'rqst_trainee_profile',
             'rqwd_inmate_profile',
-            'comments.user' // Load comments with associated user
-        ])->findOrFail($id);
+            'comments.user'
+        ])->where('report_id', $report_id)->firstOrFail();
 
-        return view('provincial.show_report', compact('report'));
+        $provincial = auth()->user();
+
+        // Authorization check: Ensure the report belongs to an executor under this provincial
+        if ($report->user->parent_id !== $provincial->id) {
+            abort(403, 'Unauthorized');
+        }
+
+        return view('reports.monthly.show', compact('report'));
     }
 
     // Show Create Executor form

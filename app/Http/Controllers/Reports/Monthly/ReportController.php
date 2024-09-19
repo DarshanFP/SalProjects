@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Reports\Monthly;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Reports\Monthly\ReportAttachmentController;
 use App\Models\Reports\Monthly\DPReport;
 use App\Models\Reports\Monthly\DPObjective;
 use App\Models\Reports\Monthly\DPActivity;
@@ -25,17 +26,23 @@ class ReportController extends Controller
     protected $institutionalGroupController;
     protected $residentialSkillTrainingController;
     protected $crisisInterventionCenterController;
+    protected $reportAttachmentController;
+
 
     public function __construct(
         LivelihoodAnnexureController $livelihoodAnnexureController,
         InstitutionalOngoingGroupController $institutionalGroupController,
         ResidentialSkillTrainingController $residentialSkillTrainingController,
-        CrisisInterventionCenterController $crisisInterventionCenterController
+        CrisisInterventionCenterController $crisisInterventionCenterController,
+        ReportAttachmentController $reportAttachmentController
+
     ) {
         $this->livelihoodAnnexureController = $livelihoodAnnexureController;
         $this->institutionalGroupController = $institutionalGroupController;
         $this->residentialSkillTrainingController = $residentialSkillTrainingController;
         $this->crisisInterventionCenterController = $crisisInterventionCenterController;
+        $this->reportAttachmentController = $reportAttachmentController;
+
     }
 
     public function create($project_id)
@@ -52,6 +59,9 @@ class ReportController extends Controller
                                 ->where('phase', $highestPhase)
                                 ->get();
         Log::info('Budgets retrieved for the highest phase', ['budgets' => $budgets]);
+
+        //ReportAttachment
+        $attachments = []; // Placeholder, add logic to fetch attachments if required
 
         $amountSanctioned = $project->amount_sanctioned ?? 0.00;
         $amountForwarded = $project->amount_forwarded ?? 0.00;
@@ -80,7 +90,7 @@ class ReportController extends Controller
 
         $user = Auth::user();
 
-        return view('reports.monthly.ReportAll', compact('project', 'user', 'amountSanctioned', 'amountForwarded', 'budgets', 'lastExpenses'));
+        return view('reports.monthly.ReportAll', compact('project', 'user', 'amountSanctioned', 'amountForwarded', 'budgets', 'lastExpenses', 'attachments'));
     }
 
     public function store(Request $request)
@@ -105,6 +115,9 @@ class ReportController extends Controller
             $this->handleOutlooks($request, $report_id);
             $this->handlePhotos($request, $report_id);
             $this->handleSpecificProjectData($request, $report_id);
+
+            // Handle attachments using ReportAttachmentController
+            $this->reportAttachmentController->store($request, $report);
 
             DB::commit();
             Log::info('Transaction committed and report created successfully.');
@@ -202,7 +215,7 @@ class ReportController extends Controller
             $objective_id_suffix = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
             $objective_id = "{$report_id}-{$objective_id_suffix}";
 
-            $objectiveData = [ 
+            $objectiveData = [
                 'objective_id' => $objective_id,
                 'report_id' => $report->report_id,
                 'objective' => $request->input("objective.$index"),
@@ -355,7 +368,7 @@ class ReportController extends Controller
     {
         Log::info('Entering show method', ['report_id' => $report_id]);
 
-        $report = DPReport::with(['objectives.activities', 'accountDetails', 'photos', 'outlooks'])
+        $report = DPReport::with(['objectives.activities', 'accountDetails', 'photos', 'outlooks', 'attachments'])
                           ->where('report_id', $report_id)
                           ->firstOrFail();
         Log::info('Report retrieved', ['report' => $report]);
@@ -364,6 +377,9 @@ class ReportController extends Controller
         $ageProfiles = [];
         $traineeProfiles = [];
         $inmateProfiles = [];
+         //ReportAttachment
+         $attachments = []; // Placeholder, add logic to fetch attachments if required
+
 
         $projectType = $report->project_type;
 
@@ -389,7 +405,7 @@ class ReportController extends Controller
     {
         Log::info('Entering edit method', ['report_id' => $report_id]);
 
-        $report = DPReport::with(['objectives.activities', 'accountDetails', 'photos', 'outlooks'])
+        $report = DPReport::with(['objectives.activities', 'accountDetails', 'photos', 'outlooks', 'attachments'])
                         ->where('report_id', $report_id)
                         ->firstOrFail();
         Log::info('Report retrieved for editing', ['report' => $report]);
@@ -401,6 +417,9 @@ class ReportController extends Controller
         $ageProfiles = [];
         $traineeProfiles = [];
         $inmateProfiles = [];
+         //ReportAttachment
+         $attachments = []; // Placeholder, add logic to fetch attachments if required
+
 
         $projectType = $report->project_type;
 
@@ -438,10 +457,10 @@ class ReportController extends Controller
             $this->updateReport($validatedData, $report);
 
             // Clear existing related data
-            $report->objectives()->delete();
-            $report->accountDetails()->delete();
-            $report->photos()->delete();
-            $report->outlooks()->delete();
+            // $report->objectives()->delete();
+            // $report->accountDetails()->delete();
+            // $report->photos()->delete();
+            // $report->outlooks()->delete();
 
             // Handle updated data
             $this->storeObjectivesAndActivities($request, $report_id, $report);
@@ -511,5 +530,16 @@ class ReportController extends Controller
         Log::info('Report reverted', ['report' => $report]);
 
         return redirect()->route('monthly.report.index')->with('success', 'Report reverted successfully.');
+    }
+
+    // public function downloadAttachment($id)
+    public function downloadAttachment($id)
+    {
+        return $this->reportAttachmentController->downloadAttachment($id);
+    }
+
+    public function updateAttachment(Request $request, $report_id)
+    {
+        return $this->reportAttachmentController->update($request, $report_id);
     }
 }
