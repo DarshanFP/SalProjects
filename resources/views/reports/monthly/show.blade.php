@@ -202,6 +202,9 @@
     </div>
 @endif
 
+@include('reports.monthly.partials.comments')
+
+
 
     <a href="{{ route('monthly.report.index') }}" class="btn btn-primary">Back to Reports</a>
     <a href="{{ route('monthly.report.edit', $report->report_id) }}" class="btn btn-warning ">Edit Report</a>

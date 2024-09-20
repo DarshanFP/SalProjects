@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\ReportComment;
 use App\Models\Reports\Monthly\DPReport;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -87,6 +88,35 @@ class ProvincialController extends Controller
 
         return view('reports.monthly.show', compact('report'));
     }
+
+    // Add Comment in reports
+        public function addComment(Request $request, $report_id)
+    {
+        $provincial = auth()->user();
+
+        $report = DPReport::where('report_id', $report_id)->firstOrFail();
+
+        // Authorization check
+        if ($report->user->parent_id !== $provincial->id) {
+            abort(403, 'Unauthorized');
+        }
+
+        $request->validate([
+            'comment' => 'required|string|max:1000',
+        ]);
+
+        $commentId = $report->generateCommentId();
+
+        ReportComment::create([
+            'R_comment_id' => $commentId,
+            'report_id' => $report->report_id,
+            'user_id' => $provincial->id,
+            'comment' => $request->comment,
+        ]);
+
+        return redirect()->back()->with('success', 'Comment added successfully.');
+    }
+
 
     // Show Create Executor form
     public function CreateExecutor()

@@ -92,6 +92,8 @@ Route::middleware(['auth', 'role:coordinator'])->group(function () {
 
     // To view reports
     Route::get('/coordinator/reports/monthly/show/{report_id}', [CoordinatorController::class, 'showMonthlyReport'])->name('coordinator.monthly.report.show');
+    // Comment Routes
+    Route::post('/coordinator/reports/monthly/{report_id}/add-comment', [CoordinatorController::class, 'addComment'])->name('coordinator.monthly.report.addComment');
 
 });
 
@@ -116,6 +118,10 @@ Route::middleware(['auth', 'role:provincial'])->group(function () {
     //Report Attachment Routes
     Route::get('reports/monthly/download/{id}', [ReportAttachmentController::class, 'downloadAttachment'])
      ->name('monthly.report.downloadAttachment');
+
+     //Comment Routes
+     Route::post('/provincial/reports/monthly/{report_id}/add-comment', [ProvincialController::class, 'addComment'])->name('provincial.monthly.report.addComment');
+
 
 });
 

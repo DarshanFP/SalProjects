@@ -81,6 +81,31 @@ class CoordinatorController extends Controller
     return view('reports.monthly.show', compact('report'));
 }
 
+// Add comment to a report
+    public function addComment(Request $request, $report_id)
+    {
+        $coordinator = auth()->user();
+
+        $report = DPReport::where('report_id', $report_id)->firstOrFail();
+
+        // Add any authorization checks if needed
+
+        $request->validate([
+            'comment' => 'required|string|max:1000',
+        ]);
+
+        $commentId = $report->generateCommentId();
+
+        ReportComment::create([
+            'R_comment_id' => $commentId,
+            'report_id' => $report->report_id,
+            'user_id' => $coordinator->id,
+            'comment' => $request->comment,
+        ]);
+
+        return redirect()->back()->with('success', 'Comment added successfully.');
+    }
+
 
     public function storeComment(Request $request, $id)
     {
