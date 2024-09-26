@@ -1,6 +1,8 @@
+<!-- resources/views/projects/partials/edit_timeframe.blade.php -->
 <div class="mt-4 card time-frame-card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h6>Time Frame for Activities</h6>
+        <button type="button" class="btn btn-primary btn-sm" onclick="addTimeFrameRow(this)">Add Row</button>
     </div>
     <div class="card-body">
         <table class="table table-bordered">
@@ -17,7 +19,7 @@
                 @foreach($objective->activities as $activityIndex => $activity)
                     <tr class="activity-timeframe-row">
                         <td class="activity-description-text">
-                            <textarea name="objectives[{{ $objectiveIndex }}][activities][{{ $activityIndex }}][timeframe][description]" class="form-control" rows="2">{{ $activity->activity }}</textarea>
+                            {{ $activity->activity }}
                         </td>
                         @for($month = 1; $month <= 12; $month++)
                             <td class="text-center">
@@ -30,6 +32,5 @@
                 @endforeach
             </tbody>
         </table>
-        <button type="button" class="btn btn-primary btn-sm" onclick="addTimeFrameRow(this, {{ $objectiveIndex }})">Add Row</button>
     </div>
 </div>

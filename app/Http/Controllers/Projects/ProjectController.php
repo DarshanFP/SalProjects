@@ -27,6 +27,12 @@ class ProjectController extends Controller
     {
         $projects = Project::all();
         $user = Auth::user();
+
+        // Fetch projects where the user is either the owner or the in-charge
+        $projects = Project::where('user_id', $user->id)
+                       ->orWhere('in_charge', $user->id)
+                       ->get();
+
         return view('projects.Oldprojects.index', compact('projects', 'user'));
     }
 

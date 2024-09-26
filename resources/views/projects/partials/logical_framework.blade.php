@@ -1,3 +1,4 @@
+<!-- resources/views/projects/partials/logical_framework.blade.php -->
 <div class="mb-4 card">
     <div class="card-header">
         <h4 class="mb-0">Solution Analysis: Logical Framework</h4>
@@ -29,7 +30,7 @@
                             <h6>Risks</h6>
                             <button type="button" class="btn btn-danger btn-sm" onclick="removeRisk(this)">Remove Risk</button>
                         </div>
-                        <textarea name="objectives[0][results][0][risks][0][risk]" class="mb-3 form-control risk-description" rows="2" placeholder="Enter Risk" style="background-color: #202ba3;"></textarea>
+                        <textarea name="objectives[0][risks][0][risk]" class="mb-3 form-control risk-description" rows="2" placeholder="Enter Risk" style="background-color: #202ba3;"></textarea>
                     </div>
                     <button type="button" class="mb-3 btn btn-primary" onclick="addRisk(this)">Add Risk</button>
                 </div>
@@ -101,7 +102,7 @@ function addObjective() {
     // Reset the Time Frame section
     const timeFrameCard = objectiveTemplate.querySelector('.time-frame-card tbody');
     timeFrameCard.querySelectorAll('.activity-timeframe-row:not(:first-child)').forEach(row => row.remove());
-    timeFrameCard.querySelectorAll('.activity-timeframe-row textarea').forEach(textarea => textarea.value = '');
+    timeFrameCard.querySelectorAll('.activity-timeframe-row .activity-description-text').forEach(span => span.innerText = '');
     timeFrameCard.querySelectorAll('.month-checkbox').forEach(checkbox => checkbox.checked = false);
 
     // Update the name attributes for the new objective
@@ -135,14 +136,14 @@ function addResult(button) {
     const resultTemplate = button.closest('.results-container').querySelector('.result-section').cloneNode(true);
     resultTemplate.querySelector('textarea.result-outcome').value = '';
     button.closest('.results-container').insertBefore(resultTemplate, button);
-    updateNameAttributes(button.closest('.objective-card'), objectiveCount - 1);
+    updateNameAttributes(button.closest('.objective-card'), getObjectiveIndex(button.closest('.objective-card')));
 }
 
 function removeResult(button) {
     const resultSection = button.closest('.result-section');
     if (resultSection.parentNode.querySelectorAll('.result-section').length > 1) {
         resultSection.remove();
-        updateNameAttributes(resultSection.closest('.objective-card'), objectiveCount - 1);
+        updateNameAttributes(resultSection.closest('.objective-card'), getObjectiveIndex(resultSection.closest('.objective-card')));
     }
 }
 
@@ -154,14 +155,14 @@ function addRisk(button) {
     // Append the new risk section before the "Add Risk" button
     risksContainer.insertBefore(riskTemplate, button);
 
-    updateNameAttributes(risksContainer.closest('.objective-card'), objectiveCount - 1);
+    updateNameAttributes(risksContainer.closest('.objective-card'), getObjectiveIndex(risksContainer.closest('.objective-card')));
 }
 
 function removeRisk(button) {
     const riskSection = button.closest('.risk-section');
     if (riskSection.parentNode.querySelectorAll('.risk-section').length > 1) {
         riskSection.remove();
-        updateNameAttributes(riskSection.closest('.objective-card'), objectiveCount - 1);
+        updateNameAttributes(riskSection.closest('.objective-card'), getObjectiveIndex(riskSection.closest('.objective-card')));
     }
 }
 
@@ -176,14 +177,16 @@ function addActivity(button) {
     const timeFrameCard = objectiveCard.querySelector('.time-frame-card tbody');
     const timeFrameRow = timeFrameCard.querySelector('.activity-timeframe-row').cloneNode(true);
     timeFrameRow.querySelector('.activity-description-text').innerText = '';
+    timeFrameRow.querySelectorAll('.month-checkbox').forEach(checkbox => checkbox.checked = false);
     timeFrameCard.appendChild(timeFrameRow);
 
+    // Update the activity description in the timeframe table when the activity description changes
     activityRow.querySelector('textarea.activity-description').addEventListener('input', function() {
         const index = Array.from(activitiesTable.querySelectorAll('.activity-row')).indexOf(activityRow);
         timeFrameCard.querySelectorAll('.activity-timeframe-row')[index].querySelector('.activity-description-text').innerText = this.value;
     });
 
-    updateNameAttributes(button.closest('.objective-card'), objectiveCount - 1);
+    updateNameAttributes(objectiveCard, getObjectiveIndex(objectiveCard));
 }
 
 function removeActivity(button) {
@@ -195,7 +198,12 @@ function removeActivity(button) {
     const timeframeRow = timeFrameCard.children[activityIndex];
     timeframeRow.remove();
 
-    updateNameAttributes(button.closest('.objective-card'), objectiveCount - 1);
+    updateNameAttributes(button.closest('.objective-card'), getObjectiveIndex(button.closest('.objective-card')));
+}
+
+function getObjectiveIndex(objectiveCard) {
+    const objectives = Array.from(document.querySelectorAll('.objective-card'));
+    return objectives.indexOf(objectiveCard);
 }
 
 function updateNameAttributes(objectiveCard, objectiveIndex) {
@@ -207,25 +215,30 @@ function updateNameAttributes(objectiveCard, objectiveIndex) {
         result.querySelector('textarea.result-outcome').name = `objectives[${objectiveIndex}][results][${resultIndex}][result]`;
     });
 
-    // Update the names for risks (directly under the objective)
-    const risks = objectiveCard.querySelectorAll('.risk-section textarea.risk-description');
-    risks.forEach((risk, riskIndex) => {
-        risk.name = `objectives[${objectiveIndex}][risks][${riskIndex}][risk]`;
+    // Update the names for risks
+    const risks = objectiveCard.querySelectorAll('.risks-container .risk-section');
+    risks.forEach((riskSection, riskIndex) => {
+        const riskTextarea = riskSection.querySelector('textarea.risk-description');
+        riskTextarea.name = `objectives[${objectiveIndex}][risks][${riskIndex}][risk]`;
     });
 
-    // Update the names for activities and timeframes
+    // Update the names for activities and their timeframes
     const activities = objectiveCard.querySelectorAll('.activities-table .activity-row');
-    activities.forEach((activity, activityIndex) => {
-        activity.querySelector('textarea.activity-description').name = `objectives[${objectiveIndex}][activities][${activityIndex}][activity]`;
-        activity.querySelector('textarea.activity-verification').name = `objectives[${objectiveIndex}][activities][${activityIndex}][verification]`;
+    activities.forEach((activityRow, activityIndex) => {
+        activityRow.querySelector('textarea.activity-description').name = `objectives[${objectiveIndex}][activities][${activityIndex}][activity]`;
+        activityRow.querySelector('textarea.activity-verification').name = `objectives[${objectiveIndex}][activities][${activityIndex}][verification]`;
 
-        const timeFrameRows = objectiveCard.querySelectorAll('.time-frame-card tbody .activity-timeframe-row');
-        timeFrameRows.forEach((timeFrameRow, timeFrameIndex) => {
-            timeFrameRow.querySelector('.activity-description-text').name = `objectives[${objectiveIndex}][activities][${timeFrameIndex}][timeframe][description]`;
+        // Update the timeframe for this activity
+        const timeFrameRow = objectiveCard.querySelectorAll('.time-frame-card tbody .activity-timeframe-row')[activityIndex];
+        if (timeFrameRow) {
+            // Update the activity description (if needed)
+            timeFrameRow.querySelector('.activity-description-text').innerText = activityRow.querySelector('textarea.activity-description').value;
+
+            // Update the names for the checkboxes
             timeFrameRow.querySelectorAll('.month-checkbox').forEach((checkbox, monthIndex) => {
-                checkbox.name = `objectives[${objectiveIndex}][activities][${timeFrameIndex}][timeframe][months][${monthIndex + 1}]`;
+                checkbox.name = `objectives[${objectiveIndex}][activities][${activityIndex}][timeframe][months][${monthIndex + 1}]`;
             });
-        });
+        }
     });
 }
 
@@ -249,19 +262,13 @@ function addTimeFrameRow(button) {
 
     tbody.appendChild(newRow);
 
-    updateNameAttributes(button.closest('.objective-card'), objectiveCount - 1);
+    updateNameAttributes(button.closest('.objective-card'), getObjectiveIndex(button.closest('.objective-card')));
 }
 
 function removeTimeFrameRow(button) {
     const row = button.closest('tr');
     row.remove();
-    updateNameAttributes(button.closest('.objective-card'), objectiveCount - 1);
+    updateNameAttributes(button.closest('.objective-card'), getObjectiveIndex(button.closest('.objective-card')));
 }
 
-
 </script>
-
-
-{{-- resources/views/projects/partials/scritp_logical.php --}}
-{{--
- --}}
