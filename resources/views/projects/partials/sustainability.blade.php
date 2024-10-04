@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/sustainability.blade.php --}}
 <div class="mb-4 card">
     <div class="card-header">
         <h4 class="mb-0">Project Sustainability, Monitoring and Methodologies</h4>

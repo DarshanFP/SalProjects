@@ -1,3 +1,4 @@
+<!-- app/Http/Controllers/Projects/AttachmentController.php -->
 <?php
 
 namespace App\Http\Controllers\Projects;
@@ -113,6 +114,7 @@ class AttachmentController extends Controller
 }
 
     // public function update(Request $request, $project_id)
+    // {
     // {
     //     Log::info('AttachmentController@update - Data received', ['data' => $request->all(), 'project_id' => $project_id]);
 

@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/scripts.blade.php --}}
 <script>
     function beforeSubmit() {
     const formData = new FormData(document.querySelector('form'));
