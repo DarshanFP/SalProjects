@@ -1,4 +1,3 @@
-<!-- app/Http/Controllers/Projects/SustainabilityController.php -->
 <?php
 
 namespace App\Http\Controllers\Projects;
