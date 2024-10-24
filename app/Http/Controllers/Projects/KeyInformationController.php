@@ -1,4 +1,3 @@
-<!-- app/Http/Controllers/Projects/KeyInformationController.php -->
 <?php
 
 namespace App\Http\Controllers\Projects;

@@ -8,9 +8,12 @@ use App\Http\Controllers\ExecutorController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Projects\AttachmentController;
 use App\Http\Controllers\Projects\BudgetController;
+use App\Http\Controllers\Projects\EduRUTAnnexedTargetGroupController;
+use App\Http\Controllers\Projects\EduRUTTargetGroupController;
 use App\Http\Controllers\Projects\ExportController;
 use App\Http\Controllers\Projects\OldDevelopmentProjectController;
 use App\Http\Controllers\Projects\ProjectController;
+use App\Http\Controllers\Projects\ProjectEduRUTBasicInfoController;
 use App\Http\Controllers\ProvincialController;
 use App\Http\Controllers\Reports\Monthly\ExportReportController;
 use App\Http\Controllers\Reports\Monthly\LivelihoodAnnexureController;
@@ -163,6 +166,14 @@ Route::middleware(['auth', 'role:executor'])->group(function () {
         Route::get('{project_id}/download-doc', [ExportController::class, 'downloadDoc'])->name('projects.downloadDoc');
         // Route::get('download/{id}', [ProjectController::class, 'downloadAttachment'])->name('download.attachment');
         Route::get('download/{id}', [AttachmentController::class, 'downloadAttachment'])->name('download.attachment');
+        //Education Rural Urban Tribal
+        Route::resource('projects/edurut/basic-info',ProjectEduRUTBasicInfoController::class);
+        //
+        Route::post('projects/eduRUT/target-group/excel-upload', [EduRUTTargetGroupController::class, 'uploadExcel']);
+        // routes to download template for target group and annexed target group
+        Route::post('/upload-target-group-excel', [EduRUTTargetGroupController::class, 'uploadExcel'])->name('targetGroup.upload');
+        Route::post('/upload-annexed-target-group-excel', [EduRUTAnnexedTargetGroupController::class, 'uploadExcel'])->name('annexedTargetGroup.upload');
+
 
 
     });

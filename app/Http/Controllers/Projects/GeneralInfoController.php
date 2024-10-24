@@ -1,4 +1,3 @@
-<!-- app/Http/Controllers/Projects/GeneralInfoController.php -->
 <?php
 
 namespace App\Http\Controllers\Projects;

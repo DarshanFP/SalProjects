@@ -1,4 +1,3 @@
-<!-- app/Http/Controllers/Projects/AttachmentController.php -->
 <?php
 
 namespace App\Http\Controllers\Projects;

@@ -1,0 +1,12 @@
+{{-- resources/views/projects/partials/LDP/intervention_logic.blade.php --}}
+<div class="mb-3 card">
+    <div class="card-header">
+        <h4>Intervention Logic</h4>
+        <p>Describe how the interventions of the project can alleviate the existing problems.</p>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <textarea name="intervention_logic" class="form-control" rows="5" style="background-color: #202ba3;" placeholder="Describe the interventions..."></textarea>
+        </div>
+    </div>
+</div>
