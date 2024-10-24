@@ -29,6 +29,7 @@
 
 <!-- JavaScript to add/remove rows dynamically -->
 <script>
+    (function(){
     let beneficiaryRowIndex = 1;
 
     function addBeneficiaryRow() {
@@ -57,4 +58,5 @@
         });
         beneficiaryRowIndex = rows.length;
     }
+})();
 </script>

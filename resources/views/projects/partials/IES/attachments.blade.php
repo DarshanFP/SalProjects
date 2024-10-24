@@ -55,6 +55,7 @@
 
 <!-- JavaScript to rename files based on project_id and label name -->
 <script>
+    (function(){
     function renameFile(input, label) {
         const projectId = document.querySelector('input[name="project_id"]').value;
         const file = input.files[0];
@@ -67,6 +68,7 @@
         dataTransfer.items.add(renamedFile);
         input.files = dataTransfer.files;
     }
+})();
 </script>
 
 <!-- Styles -->

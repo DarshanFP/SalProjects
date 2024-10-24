@@ -27,6 +27,7 @@
 </div>
 
 <script>
+    (function(){
     document.getElementById('add-member').addEventListener('click', function () {
         const newRow = `
             <tr>
@@ -44,4 +45,5 @@
             e.target.closest('tr').remove();
         }
     });
+})();
 </script>

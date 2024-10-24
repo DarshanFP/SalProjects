@@ -5,7 +5,7 @@
 <div class="page-content">
     <div class="row justify-content-center">
         <div class="col-md-12 col-xl-12">
-            <form action="{{ route('projects.store') }}" method="POST" enctype="multipart/form-data" >
+            <form action="{{ route('projects.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
 
                 <div class="mb-3 card">
@@ -26,37 +26,48 @@
                 @include('projects.partials.key_information')
 
                 <!-- Residential Skill Training Specific Partials (After Key Information Section) -->
-                <div id="rst-section" style="display:none;">
+                {{-- <div id="rst-section" style="display:none;">
                     @include('projects.partials.RST.institution_info')
                     @include('projects.partials.RST.target_group')
                     @include('projects.partials.RST.target_group_annexure')
                     @include('projects.partials.RST.geographical_area')
                     @include('projects.partials.budget') <!-- Reuse existing budget partial -->
                     <!-- Additional RST partials like attachments can go here if needed -->
-                </div>
+                </div> --}}
+
                 <!-- Individual - Ongoing Educational Support Partials -->
                 <div id="ies-sections" style="display:none;">
-                    @include('projects.partials.IES.personal_info')        <!-- Personal Information -->
-                    @include('projects.partials.IES.family_working_members') <!-- Family Working Members -->
-                    @include('projects.partials.IES.immediate_family_details') <!-- Immediate Family Details -->
-                    @include('projects.partials.IES.educational_background') <!-- Educational Background -->
-                    @include('projects.partials.IES.estimated_expenses') <!-- Estimated Expenses -->
-                    @include('projects.partials.IES.attachments') <!-- Attachments -->
+                    @include('projects.partials.IES.personal_info')           <!-- Personal Information -->
+                    @include('projects.partials.IES.family_working_members')  <!-- Family Working Members -->
+                    @include('projects.partials.IES.immediate_family_details')<!-- Immediate Family Details -->
+                    @include('projects.partials.IES.educational_background')  <!-- Educational Background -->
+                    @include('projects.partials.IES.estimated_expenses')      <!-- Estimated Expenses -->
+                    @include('projects.partials.IES.attachments')             <!-- Attachments -->
+                </div>
+
+                <!-- Individual - Initial Educational Support Partials -->
+                <div id="iies-sections" style="display:none;">
+                    @include('projects.partials.IES.personal_info')             <!-- Personal Information -->
+                    @include('projects.partials.IES.family_working_members')    <!-- Family Working Members -->
+                    @include('projects.partials.IES.immediate_family_details')  <!-- Immediate Family Details -->
+                    @include('projects.partials.IIES.education_background')     <!-- Educational Background -->
+                    @include('projects.partials.IIES.scope_financial_support')  <!-- Scope of Financial Support -->
+                    @include('projects.partials.IES.attachments')               <!-- Attachments -->
                 </div>
 
                 <!-- Individual - Livelihood Application Partials -->
                 <div id="ilp-sections" style="display:none;">
-                    @include('projects.partials.ILP.personal_info') <!-- Personal Information -->
-                    @include('projects.partials.ILP.revenue_goals') <!-- Revenue Goals -->
+                    @include('projects.partials.ILP.personal_info')     <!-- Personal Information -->
+                    @include('projects.partials.ILP.revenue_goals')     <!-- Revenue Goals -->
                     @include('projects.partials.ILP.strength_weakness') <!-- Strengths and Weaknesses -->
-                    @include('projects.partials.ILP.risk_analysis') <!-- Risk Analysis -->
-                    @include('projects.partials.ILP.attached_docs') <!-- Attached Documents -->
-                    @include('projects.partials.ILP.budget') <!-- Budget -->
+                    @include('projects.partials.ILP.risk_analysis')     <!-- Risk Analysis -->
+                    @include('projects.partials.ILP.attached_docs')     <!-- Attached Documents -->
+                    @include('projects.partials.ILP.budget')            <!-- Budget -->
                 </div>
 
                 <!-- Individual - Access to Health Specific Partials -->
                 <div id="iah-sections" style="display:none;">
-                    @include('projects.partials.IAH.personal_info')        <!-- Personal Information -->
+                    @include('projects.partials.IAH.personal_info')         <!-- Personal Information -->
                     @include('projects.partials.IAH.health_conditions')     <!-- Health Conditions -->
                     @include('projects.partials.IAH.earning_members')       <!-- Earning Members -->
                     @include('projects.partials.IAH.support_details')       <!-- Support Details -->
@@ -108,11 +119,9 @@
                     <!-- Target Group Partial for LDP -->
                     @include('projects.partials.LDP.target_group')
 
-
                     <!-- Intervention Logic Partial for LDP -->
                     @include('projects.partials.LDP.intervention_logic')
                 </div>
-
 
                 <!-- Default Partial Sections -->
                 <div id="default-sections">
@@ -142,7 +151,7 @@
 
 @include('projects.partials.scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
     const projectTypeDropdown = document.getElementById('project_type');
 
     // Get references to all section elements
@@ -154,12 +163,13 @@
     const rstSection = document.getElementById('rst-section');
     const igeSections = document.getElementById('ige-sections');
     const iesSections = document.getElementById('ies-sections');
+    const iiesSections = document.getElementById('iies-sections');
     const ilpSections = document.getElementById('ilp-sections');
     const defaultSections = document.getElementById('default-sections');
 
     // Create an array of all sections for easy management
     const allSections = [
-        iahSections, // Add IAH to the list of sections
+        iahSections,
         eduRUTSections,
         cicSection,
         cciSection,
@@ -167,6 +177,7 @@
         rstSection,
         igeSections,
         iesSections,
+        iiesSections,
         ilpSections
     ];
 
@@ -180,19 +191,28 @@
             }
         });
 
-        // Ensure default sections are always displayed (if needed)
-        if (defaultSections) {
-            defaultSections.style.display = 'block';
-        }
+        // Create an array of project types that should not display default sections
+        const projectTypesWithoutDefaultSections = [
+            'Individual - Ongoing Educational support',
+            'Individual - Livelihood Application',
+            'Individual - Access to Health',
+            'Individual - Initial - Educational support'
+        ];
 
         // Show only the relevant sections based on project type
         if (projectType === 'Individual - Access to Health') {
             iahSections.style.display = 'block'; // Show IAH sections
         } else if (projectType === 'Individual - Ongoing Educational support') {
             iesSections.style.display = 'block';
-        } else if (projectType === 'Residential Skill Training Proposal 2') {
+        } else if (projectType === 'Individual - Initial - Educational support') {
+            iiesSections.style.display = 'block';
+        } else if (projectType === 'Individual - Livelihood Application') {
+            ilpSections.style.display = 'block';
+        }
+        else if (projectType === 'Residential Skill Training Proposal 2') {
             rstSection.style.display = 'block';
-        } else if (projectType === 'Rural-Urban-Tribal') {
+        }
+        else if (projectType === 'Rural-Urban-Tribal') {
             eduRUTSections.style.display = 'block';
         } else if (projectType === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
             cicSection.style.display = 'block';
@@ -202,8 +222,19 @@
             ldpSection.style.display = 'block';
         } else if (projectType === 'Institutional Ongoing Group Educational proposal') {
             igeSections.style.display = 'block';
-        } else if (projectType === 'Individual - Livelihood Application') {
-            ilpSections.style.display = 'block';
+        }
+
+        // Show or hide default sections based on project type
+        if (projectTypesWithoutDefaultSections.includes(projectType)) {
+            // Hide default sections
+            if (defaultSections) {
+                defaultSections.style.display = 'none';
+            }
+        } else {
+            // Show default sections
+            if (defaultSections) {
+                defaultSections.style.display = 'block';
+            }
         }
     }
 
@@ -213,9 +244,7 @@
     // Event listener for dropdown change
     projectTypeDropdown.addEventListener('change', toggleSections);
 });
-
 </script>
-
 
 <style>
     /* Styling for input fields and tables */
@@ -249,180 +278,3 @@
     }
 </style>
 @endsection
-
-{{-- script befor ILP ADDED
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const projectTypeDropdown = document.getElementById('project_type');
-
-        // Get references to all section elements
-        const eduRUTSections = document.getElementById('edu-rut-sections');
-        const eduRUTAnnexedSection = document.getElementById('edu-rut-annexed-section');
-        const cicSection = document.getElementById('cic-section');
-        const cciSection = document.getElementById('cci-section');
-        const ldpSection = document.getElementById('ldp-section');
-        const rstSection = document.getElementById('rst-section');
-        const igeSections = document.getElementById('ige-sections');
-        const iesSections = document.getElementById('ies-sections');
-        const ilpSections = document.getElementById('ilp-sections'); // New ILP section
-
-        const defaultSections = document.getElementById('default-sections');
-
-        // Create an array of all sections for easy management
-        const allSections = [
-            eduRUTSections,
-            eduRUTAnnexedSection,
-            cicSection,
-            cciSection,
-            ldpSection,
-            rstSection,
-            igeSections,
-            iesSections,
-            ilpSections // Add ILP to the list of sections
-
-        ];
-
-        function toggleSections() {
-            const projectType = projectTypeDropdown.value;
-
-            // Hide all sections
-            allSections.forEach(section => {
-                if (section) {
-                    section.style.display = 'none';
-                }
-            });
-
-            // Ensure default sections are always displayed (if needed)
-            if (defaultSections) {
-                defaultSections.style.display = 'block';
-            }
-
-            // Show only the relevant sections based on project type
-            if (projectType === 'Individual - Ongoing Educational support') {
-                iesSections.style.display = 'block';
-            } else if (projectType === 'Residential Skill Training Proposal 2') {
-                rstSection.style.display = 'block';
-            } else if (projectType === 'Rural-Urban-Tribal') {
-                eduRUTSections.style.display = 'block';
-                eduRUTAnnexedSection.style.display = 'block';
-            } else if (projectType === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
-                cicSection.style.display = 'block';
-            } else if (projectType === 'CHILD CARE INSTITUTION') {
-                cciSection.style.display = 'block';
-            } else if (projectType === 'Livelihood Development Projects') {
-                ldpSection.style.display = 'block';
-            } else if (projectType === 'Institutional Ongoing Group Educational proposal') {
-                igeSections.style.display = 'block';
-            }
-            // If you have a default case or need to handle other project types, you can add more conditions
-        }
-
-        // Initial check when page loads
-        toggleSections();
-
-        // Event listener for dropdown change
-        projectTypeDropdown.addEventListener('change', toggleSections);
-    });
-</script>
- Script befor Individual Education added
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const projectTypeDropdown = document.getElementById('project_type');
-        const eduRUTSections = document.getElementById('edu-rut-sections');
-        const eduRUTAnnexedSection = document.getElementById('edu-rut-annexed-section');
-        const cicSection = document.getElementById('cic-section');
-        const cciSection = document.getElementById('cci-section'); // Added CCI section
-        const ldpSection = document.getElementById('ldp-section'); // Added LDP section
-        const rstSection = document.getElementById('rst-section'); // Residential Skill Training section
-        const igeSections = document.getElementById('ige-sections'); // IGE section
-        const iesSections = document.getElementById('ies-sections'); // IES section
-
-        function toggleSections() {
-            const projectType = projectTypeDropdown.value;
-
-            if (projectType === 'Individual - Ongoing Educational support') {
-                iesSections.style.display = 'block';
-            } else if (projectType === 'Residential Skill Training Proposal 2') {
-                rstSection.style.display = 'block';
-                eduRUTSections.style.display = 'none';
-                cicSection.style.display = 'none';
-                cciSection.style.display = 'none';
-            } else if (projectType === 'Rural-Urban-Tribal') {
-                eduRUTSections.style.display = 'block';
-                eduRUTAnnexedSection.style.display = 'block';
-                cicSection.style.display = 'none';
-                cciSection.style.display = 'none';
-            } else if (projectType === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
-                cicSection.style.display = 'block';
-                eduRUTSections.style.display = 'none';
-                eduRUTAnnexedSection.style.display = 'none';
-                cciSection.style.display = 'none';
-            } else if (projectType === 'CHILD CARE INSTITUTION') {
-                cciSection.style.display = 'block';
-                eduRUTSections.style.display = 'none';
-                eduRUTAnnexedSection.style.display = 'none';
-                cicSection.style.display = 'none';
-            } else if (projectType === 'Livelihood Development Projects') {
-                ldpSection.style.display = 'block';
-                eduRUTSections.style.display = 'none';
-                eduRUTAnnexedSection.style.display = 'none';
-                cicSection.style.display = 'none';
-                cciSection.style.display = 'none';
-            } else if (projectType === 'Institutional Ongoing Group Educational proposal') {
-                igeSections.style.display = 'block'; // Show IGE section
-                eduRUTSections.style.display = 'none';
-                eduRUTAnnexedSection.style.display = 'none';
-                cicSection.style.display = 'none';
-                cciSection.style.display = 'none'; // Hide other sections
-            } else {
-                // Hide all specific sections
-                eduRUTSections.style.display = 'none';
-                eduRUTAnnexedSection.style.display = 'none';
-                cicSection.style.display = 'none';
-                cciSection.style.display = 'none';
-            }
-        }
-
-        // Initial check when page loads
-        toggleSections();
-
-        // Event listener for dropdown change
-        projectTypeDropdown.addEventListener('change', toggleSections);
-    });
-</script> --}}
-
-{{-- <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const projectTypeDropdown = document.getElementById('project_type');
-        const eduRUTSections = document.getElementById('edu-rut-sections');
-        const eduRUTAnnexedSection = document.getElementById('edu-rut-annexed-section');
-        const cicSection = document.getElementById('cic-section');
-
-        function toggleSections() {
-            const projectType = projectTypeDropdown.value;
-
-            if (projectType === 'Rural-Urban-Tribal') {
-                eduRUTSections.style.display = 'block';
-                eduRUTAnnexedSection.style.display = 'block';
-                cicSection.style.display = 'none';
-            } else if (projectType === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
-                cicSection.style.display = 'block';
-                eduRUTSections.style.display = 'none';
-                eduRUTAnnexedSection.style.display = 'none';
-            } else {
-                // Hide both Edu-RUT and CIC sections if other project types
-                eduRUTSections.style.display = 'none';
-                eduRUTAnnexedSection.style.display = 'none';
-                cicSection.style.display = 'none';
-            }
-        }
-
-        // Initial check when page loads
-        toggleSections();
-
-        // Event listener for dropdown change
-        projectTypeDropdown.addEventListener('change', toggleSections);
-    });
-</script> --}}
-
-

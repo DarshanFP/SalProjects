@@ -50,6 +50,7 @@
 </div>
 
 <script>
+    (function(){
     document.addEventListener('DOMContentLoaded', function () {
         const budgetBody = document.getElementById('ilp-budget');
         const addBudgetItemBtn = document.getElementById('add-budget-item');
@@ -76,4 +77,5 @@
             }
         });
     });
+})();
 </script>

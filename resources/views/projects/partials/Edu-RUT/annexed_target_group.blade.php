@@ -31,6 +31,9 @@
 </div>
 
 <script>
+    (function() {
+
+
     // Add a row to the Annexed Target Group table
     document.getElementById('addAnnexedTargetGroupRow').addEventListener('click', function () {
         const table = document.getElementById('annexedTargetGroupTable');
@@ -54,6 +57,7 @@
             table.deleteRow(-1);
         }
     });
+})();
 </script>
 
 <!-- Below script has section for excel upload to populate table however is is not functional so far -->

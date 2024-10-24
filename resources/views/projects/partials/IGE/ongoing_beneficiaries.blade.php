@@ -35,6 +35,7 @@
 
 <!-- JavaScript to add/remove rows dynamically -->
 <script>
+    (function(){
     let ongoingBeneficiaryRowIndex = 1;
 
     function addOngoingBeneficiaryRow() {
@@ -66,4 +67,5 @@
         });
         ongoingBeneficiaryRowIndex = rows.length;
     }
+})();
 </script>

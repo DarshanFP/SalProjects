@@ -118,6 +118,7 @@
 </div>
 
 <script>
+    (function(){
     document.addEventListener('DOMContentLoaded', function () {
         let businessPlanIndex = 1, incomeIndex = 1, expenseIndex = 1;
 
@@ -181,4 +182,5 @@
             }
         });
     });
+})();
 </script>

@@ -31,6 +31,7 @@
 
 <!-- JavaScript to add/remove rows -->
 <script>
+    (function(){
     function addFamilyMemberRow() {
         const container = document.getElementById('family-working-members-rows');
         const rowCount = container.children.length;
@@ -61,6 +62,7 @@
             row.querySelector(`input[name^="monthly_income"]`).setAttribute('name', `monthly_income[${index}]`);
         });
     }
+})();
 </script>
 
 <!-- Styles -->

@@ -45,6 +45,7 @@
 </div>
 
 <script>
+    (function(){
     document.addEventListener('DOMContentLoaded', function() {
         // Scope the JavaScript to the specific container
         const budgetDetails = document.querySelector('.iah-budget-details');
@@ -116,4 +117,5 @@
         // Initial calculation when page loads
         calculateTotalExpenses();
     });
+})();
 </script>

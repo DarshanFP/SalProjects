@@ -31,6 +31,7 @@
 </div>
 
 <script>
+    (function(){
     let geoAreaRowIndex = 1;
 
     function addGeographicalAreaRow() {
@@ -59,4 +60,5 @@
             row.children[0].textContent = index + 1;
         });
     }
+})();
 </script>

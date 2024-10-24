@@ -46,6 +46,7 @@
     }
 </style>
 <script>
+    (function(){
     document.addEventListener('DOMContentLoaded', function () {
         let rowCount = 1; // Initial row count
 
@@ -96,4 +97,5 @@
             });
         }
     });
+})();
 </script>

@@ -30,6 +30,7 @@
 </div>
 
 <script>
+    (function(){
     document.addEventListener('DOMContentLoaded', function () {
         let strengthIndex = 1;
         let weaknessIndex = 1;
@@ -70,4 +71,5 @@
             }
         });
     });
+})();
 </script>

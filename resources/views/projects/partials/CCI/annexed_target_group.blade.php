@@ -50,6 +50,9 @@
 
 <!-- JavaScript to add/remove rows -->
 <script>
+    (function() {
+
+
     document.addEventListener('DOMContentLoaded', function() {
         let annexedRowIndex = 1;
 
@@ -105,4 +108,5 @@
         // Initial call to ensure remove button works for the first row
         addRemoveRowEventListeners();
     });
+})();
 </script>

@@ -35,6 +35,9 @@
 </div>
 
 <script>
+    (function() {
+
+
     let annexureRowIndex = 1;
 
     function addAnnexureRow() {
@@ -65,4 +68,5 @@
             row.children[0].textContent = index + 1;
         });
     }
+})();
 </script>

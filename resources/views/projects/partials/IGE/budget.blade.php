@@ -30,7 +30,7 @@
                         <td><input type="number" name="scholarship_eligibility[]" id="scholarship_eligibility-1" class="form-control" step="0.01" style="background-color: #202ba3;"></td>
                         <td><input type="number" name="family_contribution[]" id="family_contribution-1" class="form-control" step="0.01" style="background-color: #202ba3;"></td>
                         <td><input type="number" name="amount_requested[]" id="amount_requested-1" class="form-control" step="0.01" style="background-color: #202ba3;" readonly></td>
-                        <td><button type="button" class="btn btn-danger" onclick="removeBudgetRow(this)">Remove</button></td>
+                        <td><button type="button" class="btn btn-danger" onclick="removeIGEBudgetRow(this)">Remove</button></td>
                     </tr>
                 </tbody>
                 <tfoot>
@@ -47,16 +47,17 @@
                 </tfoot>
             </table>
         </div>
-        <button type="button" class="mt-3 btn btn-primary" onclick="addBudgetRow()">Add More</button>
+        <button type="button" class="mt-3 btn btn-primary" onclick="addIGEBudgetRow()">Add More</button>
     </div>
 </div>
 
 <!-- JavaScript to add/remove rows dynamically and calculate totals -->
 <script>
+    (function(){
     document.addEventListener('DOMContentLoaded', function () {
         let budgetRowIndex = 1;
 
-        function addBudgetRow() {
+        function addIGEBudgetRow() {
             budgetRowIndex++;
             const newRow = document.createElement('tr');
             newRow.id = `budget-row-${budgetRowIndex}`;
@@ -70,13 +71,13 @@
                 <td><input type="number" name="scholarship_eligibility[]" id="scholarship_eligibility-${budgetRowIndex}" class="form-control scholarship_eligibility" step="0.01" style="background-color: #202ba3;"></td>
                 <td><input type="number" name="family_contribution[]" id="family_contribution-${budgetRowIndex}" class="form-control family_contribution" step="0.01" style="background-color: #202ba3;"></td>
                 <td><input type="number" name="amount_requested[]" id="amount_requested-${budgetRowIndex}" class="form-control amount_requested" step="0.01" style="background-color: #202ba3;" readonly></td>
-                <td><button type="button" class="btn btn-danger" onclick="removeBudgetRow(this)">Remove</button></td>
+                <td><button type="button" class="btn btn-danger" onclick="removeIGEBudgetRow(this)">Remove</button></td>
             `;
             document.getElementById('IGE-budget-rows').appendChild(newRow);
             calculateTotals();
         }
 
-        function removeBudgetRow(button) {
+        function removeIGEBudgetRow(button) {
             const row = button.closest('tr');
             row.remove();
             updateBudgetRowNumbers();
@@ -103,10 +104,10 @@
         function calculateTotals() {
             let totalCollegeFees = 0;
             let totalHostelFees = 0;
-            let totalAmount = 0;
+            let totalIGEAmount = 0;
             let totalScholarshipEligibility = 0;
             let totalFamilyContribution = 0;
-            let totalAmountRequested = 0;
+            let totalIGEAmountRequested = 0;
 
             document.querySelectorAll('#IGE-budget-rows tr').forEach(row => {
                 const collegeFees = parseFloat(row.querySelector('input[name="college_fees[]"]').value) || 0;
@@ -121,25 +122,26 @@
 
                 totalCollegeFees += collegeFees;
                 totalHostelFees += hostelFees;
-                totalAmount += totalRowAmount;
+                totalIGEAmount += totalRowAmount;
                 totalScholarshipEligibility += scholarshipEligibility;
                 totalFamilyContribution += familyContribution;
-                totalAmountRequested += requestedAmount;
+                totalIGEAmountRequested += requestedAmount;
             });
 
             document.getElementById('total-college-fees').value = totalCollegeFees.toFixed(2);
             document.getElementById('total-hostel-fees').value = totalHostelFees.toFixed(2);
-            document.getElementById('total-amount').value = totalAmount.toFixed(2);
+            document.getElementById('total-amount').value = totalIGEAmount.toFixed(2);
             document.getElementById('total-scholarship-eligibility').value = totalScholarshipEligibility.toFixed(2);
             document.getElementById('total-family-contribution').value = totalFamilyContribution.toFixed(2);
-            document.getElementById('total-amount-requested').value = totalAmountRequested.toFixed(2);
+            document.getElementById('total-amount-requested').value = totalIGEAmountRequested.toFixed(2);
         }
 
         // Attach the input event listener to the table body to capture events from dynamically added rows
         document.getElementById('IGE-budget-rows').addEventListener('input', calculateTotals);
 
         // Expose functions to the global scope so they can be accessed from onclick attributes
-        window.addBudgetRow = addBudgetRow;
-        window.removeBudgetRow = removeBudgetRow;
+        window.addIGEBudgetRow = addIGEBudgetRow;
+        window.removeIGEBudgetRow = removeIGEBudgetRow;
     });
+})();
 </script>

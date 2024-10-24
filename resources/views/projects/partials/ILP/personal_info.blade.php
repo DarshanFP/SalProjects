@@ -140,6 +140,7 @@
 </div>
 
 <script>
+    (function(){
     document.addEventListener('DOMContentLoaded', function () {
         const maritalStatusField = document.querySelector('select[name="marital_status"]');
         const spouseNameContainer = document.getElementById('spouse_name_container');
@@ -162,4 +163,5 @@
             }
         });
     });
+})();
 </script>

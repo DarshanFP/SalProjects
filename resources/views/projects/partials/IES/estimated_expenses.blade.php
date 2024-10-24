@@ -54,6 +54,7 @@
 
 <!-- JavaScript to manage table rows and calculate totals -->
 <script>
+    (function(){
     function addExpenseRow() {
         const row = `
             <tr>
@@ -86,6 +87,7 @@
         const balanceRequested = totalExpenses - (scholarship + otherSources + contribution);
         document.querySelector('input[name="balance_requested"]').value = balanceRequested.toFixed(2);
     }
+})();
 </script>
 
 <!-- Styles -->

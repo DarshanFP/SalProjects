@@ -46,6 +46,7 @@
 </div>
 
 <script>
+    (function() {
     // Add a row to the Target Group table
     document.getElementById('addTargetGroupRow').addEventListener('click', function () {
         const table = document.getElementById('targetGroupTable');
@@ -80,5 +81,6 @@
             table.deleteRow(-1);
         }
     });
+})();
 </script>
 

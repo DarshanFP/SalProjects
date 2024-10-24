@@ -80,6 +80,9 @@
 
 <!-- JavaScript to add/remove rows -->
 <script>
+    (function() {
+   // Your script goes here
+
     function addAchievementRow(type) {
         const container = document.getElementById(type + '-achievements-rows');
         const rowCount = container.children.length;
@@ -106,6 +109,7 @@
             row.querySelector(`input[name^="${type}_achievements"]`).setAttribute('name', `${type}_achievements[${index}]`);
         });
     }
+})();
 </script>
 
 <!-- Styles for table and input fields -->
