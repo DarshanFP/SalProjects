@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/IES/personal_info.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Personal Information of the Beneficiary</h4>

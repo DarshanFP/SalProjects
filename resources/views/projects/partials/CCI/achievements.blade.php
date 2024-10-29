@@ -81,35 +81,36 @@
 <!-- JavaScript to add/remove rows -->
 <script>
     (function() {
-   // Your script goes here
+        function addAchievementRow(type) {
+            const container = document.getElementById(type + '-achievements-rows');
+            const rowCount = container.children.length;
+            const newRow = `
+                <tr>
+                    <td>${rowCount + 1}</td>
+                    <td><input type="text" name="${type}_achievements[${rowCount}]" class="form-control" style="background-color: #202ba3;"></td>
+                    <td><button type="button" class="btn btn-danger" onclick="removeAchievementRow(this, '${type}')">Remove</button></td>
+                </tr>
+            `;
+            container.insertAdjacentHTML('beforeend', newRow);
+        }
 
-    function addAchievementRow(type) {
-        const container = document.getElementById(type + '-achievements-rows');
-        const rowCount = container.children.length;
-        const newRow = `
-            <tr>
-                <td>${rowCount + 1}</td>
-                <td><input type="text" name="${type}_achievements[${rowCount}]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><button type="button" class="btn btn-danger" onclick="removeAchievementRow(this, '${type}')">Remove</button></td>
-            </tr>
-        `;
-        container.insertAdjacentHTML('beforeend', newRow);
-    }
+        function removeAchievementRow(button, type) {
+            const row = button.closest('tr');
+            row.remove();
+            updateAchievementRowNumbers(type);
+        }
 
-    function removeAchievementRow(button, type) {
-        const row = button.closest('tr');
-        row.remove();
-        updateAchievementRowNumbers(type);
-    }
+        function updateAchievementRowNumbers(type) {
+            const rows = document.querySelectorAll(`#${type}-achievements-rows tr`);
+            rows.forEach((row, index) => {
+                row.children[0].textContent = index + 1;
+                row.querySelector(`input[name^="${type}_achievements"]`).setAttribute('name', `${type}_achievements[${index}]`);
+            });
+        }
 
-    function updateAchievementRowNumbers(type) {
-        const rows = document.querySelectorAll(`#${type}-achievements-rows tr`);
-        rows.forEach((row, index) => {
-            row.children[0].textContent = index + 1;
-            row.querySelector(`input[name^="${type}_achievements"]`).setAttribute('name', `${type}_achievements[${index}]`);
-        });
-    }
-})();
+        window.addAchievementRow = addAchievementRow;
+        window.removeAchievementRow = removeAchievementRow;
+    })();
 </script>
 
 <!-- Styles for table and input fields -->

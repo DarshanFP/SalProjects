@@ -14,10 +14,10 @@
             <tbody id="iah-budget-list-unique">
                 <tr>
                     <td>
-                        <input type="text" name="particular[]" class="form-control" placeholder="Enter particular" required>
+                        <input type="text" name="particular[]" class="form-control" placeholder="Enter particular" >
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="amount[]" class="form-control amount-field" placeholder="Enter amount" required>
+                        <input type="number" step="0.01" name="amount[]" class="form-control amount-field" placeholder="Enter amount" >
                     </td>
                     <td>
                         <button type="button" class="btn btn-danger remove-budget-item">Remove</button>
@@ -80,10 +80,10 @@
             const newRow = `
                 <tr>
                     <td>
-                        <input type="text" name="particular[]" class="form-control" placeholder="Enter particular" required>
+                        <input type="text" name="particular[]" class="form-control" placeholder="Enter particular" >
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="amount[]" class="form-control amount-field" placeholder="Enter amount" required>
+                        <input type="number" step="0.01" name="amount[]" class="form-control amount-field" placeholder="Enter amount" >
                     </td>
                     <td>
                         <button type="button" class="btn btn-danger remove-budget-item">Remove</button>

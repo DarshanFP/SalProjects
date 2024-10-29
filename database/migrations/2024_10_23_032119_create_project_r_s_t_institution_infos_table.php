@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->id();
             $table->string('RST_institution_id')->unique();
             $table->string('project_id'); // Foreign Key to project
-            $table->year('year_setup');   // Year the training center was set up
+            $table->year('year_setup')->nullable();   // Year the training center was set up
             $table->integer('total_students_trained')->nullable();
             $table->integer('beneficiaries_last_year')->nullable();
             $table->text('training_outcome')->nullable();

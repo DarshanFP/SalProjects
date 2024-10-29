@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('CCI_age_profile_id')->unique();
             $table->string('project_id'); // Foreign key to project
-            $table->string('age_category'); // Age category (e.g., below 5, 6-10, etc.)
+            // $table->string(column: 'age_category')->nullable(); // Age category (e.g., below 5, 6-10, etc.)
 
             // Children below 5 years
             $table->integer('education_below_5_bridge_course_prev_year')->nullable();

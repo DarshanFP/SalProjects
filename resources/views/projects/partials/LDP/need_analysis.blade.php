@@ -7,7 +7,7 @@
     <div class="card-body">
         <div class="mb-3">
             <label for="need_analysis_file" class="form-label">Upload Need Analysis Document:</label>
-            <input type="file" name="need_analysis_file" class="form-control" accept=".pdf,.doc,.docx" required>
+            <input type="file" name="need_analysis_file" class="form-control" accept=".pdf,.doc,.docx">
         </div>
     </div>
 </div>

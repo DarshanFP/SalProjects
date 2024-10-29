@@ -11,7 +11,7 @@
 //             $table->id();
 //             $table->string('programme_expense_id')->unique();
 //             $table->string('project_id'); // Foreign Key to project
-//             $table->string('particular');
+//             $table->string('particular')->nullable();
 //             $table->decimal('year_1', 10, 2)->nullable();
 //             $table->decimal('year_2', 10, 2)->nullable();
 //             $table->decimal('year_3', 10, 2)->nullable();

@@ -11,7 +11,7 @@
                 </div>
                 <div class="mb-3">
                     <label for="phases[0][amount_sanctioned]" class="form-label">Amount Sanctioned in First Phase: Rs.</label>
-                    <input type="number" name="phases[0][amount_sanctioned]" class="form-control select-input" value="{{ old('phases.0.amount_sanctioned') }}" required>
+                    <input type="number" name="phases[0][amount_sanctioned]" class="form-control select-input" value="{{ old('phases.0.amount_sanctioned') }}">
                 </div>
                 <table class="table table-bordered">
                     <thead>

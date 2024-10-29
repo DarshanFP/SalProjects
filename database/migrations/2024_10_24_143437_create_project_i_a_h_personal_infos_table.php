@@ -10,16 +10,16 @@ return new class extends Migration {
         Schema::create('project_IAH_personal_info', function (Blueprint $table) {
             $table->id();
             $table->string('IAH_info_id')->unique();
-            $table->string('project_id');
-            $table->string('name');
-            $table->integer('age');
-            $table->enum('gender', ['Female', 'Male', 'Transgender']);
-            $table->date('dob');
-            $table->string('aadhar', 12);
-            $table->string('contact');
-            $table->text('address');
-            $table->string('email');
-            $table->string('guardian_name');
+            $table->string('project_id')->nullable();
+            $table->string('name')->nullable();
+            $table->integer('age')->nullable();
+            $table->enum('gender', ['Female', 'Male', 'Transgender'])->nullable();
+            $table->date('dob')->nullable();
+            $table->string('aadhar', 12)->nullable();
+            $table->string('contact')->nullable();
+            $table->text('address')->nullable();
+            $table->string('email')->nullable();
+            $table->string('guardian_name')->nullable();
             $table->integer('children')->nullable();
             $table->string('caste')->nullable();
             $table->string('religion')->nullable();

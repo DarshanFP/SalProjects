@@ -11,11 +11,11 @@ return new class extends Migration {
             $table->id();
             $table->string('IGE_ongoing_bnfcry_id')->unique();
             $table->string('project_id'); // Foreign key to Project
-            $table->string('beneficiary_name');
-            $table->string('caste');
-            $table->text('address')->nullable();
-            $table->string('current_group_year_of_study');
-            $table->text('performance_details')->nullable();
+            $table->string('obeneficiary_name')->nullable();
+            $table->string('ocaste')->nullable();
+            $table->text('oaddress')->nullable();
+            $table->string('ocurrent_group_year_of_study')->nullable();
+            $table->text('operformance_details')->nullable();
             $table->timestamps();
         });
     }

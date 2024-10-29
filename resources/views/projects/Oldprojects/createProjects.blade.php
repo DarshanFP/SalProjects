@@ -26,14 +26,14 @@
                 @include('projects.partials.key_information')
 
                 <!-- Residential Skill Training Specific Partials (After Key Information Section) -->
-                {{-- <div id="rst-section" style="display:none;">
+                 <div id="rst-section" style="display:none;">
                     @include('projects.partials.RST.institution_info')
                     @include('projects.partials.RST.target_group')
                     @include('projects.partials.RST.target_group_annexure')
                     @include('projects.partials.RST.geographical_area')
                     @include('projects.partials.budget') <!-- Reuse existing budget partial -->
                     <!-- Additional RST partials like attachments can go here if needed -->
-                </div> --}}
+                </div>
 
                 <!-- Individual - Ongoing Educational Support Partials -->
                 <div id="ies-sections" style="display:none;">

@@ -31,19 +31,19 @@
         <!-- Total Amount -->
         <div class="mt-4 mb-3">
             <label for="total_amount" class="form-label">Total amount:</label>
-            <input type="number" step="0.01" name="total_amount" class="form-control" placeholder="Enter total amount" style="background-color: #202ba3;" required>
+            <input type="number" step="0.01" name="total_amount" class="form-control" placeholder="Enter total amount" style="background-color: #202ba3;">
         </div>
 
         <!-- Beneficiary's Contribution -->
         <div class="mb-3">
             <label for="beneficiary_contribution" class="form-label">Beneficiary’s contribution:</label>
-            <input type="number" step="0.01" name="beneficiary_contribution" class="form-control" placeholder="Enter beneficiary's contribution" style="background-color: #202ba3;" required>
+            <input type="number" step="0.01" name="beneficiary_contribution" class="form-control" placeholder="Enter beneficiary's contribution" style="background-color: #202ba3;">
         </div>
 
         <!-- Amount Requested -->
         <div class="mb-3">
             <label for="amount_requested" class="form-label">Amount requested:</label>
-            <input type="number" step="0.01" name="amount_requested" class="form-control" placeholder="Enter amount requested" style="background-color: #202ba3;" required>
+            <input type="number" step="0.01" name="amount_requested" class="form-control" placeholder="Enter amount requested" style="background-color: #202ba3;">
         </div>
 
     </div>

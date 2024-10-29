@@ -7,15 +7,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ProjectCCIAgeProfile extends Model
+
 {
     use HasFactory;
 
     protected $table = 'project_CCI_age_profile';
+    // Specify primary key and its type
+    protected $primaryKey = 'CCI_age_profile_id';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'CCI_age_profile_id',
         'project_id',
-        'age_category',
+        // 'age_category',
         'education_below_5_bridge_course_prev_year',
         'education_below_5_bridge_course_current_year',
         'education_below_5_kindergarten_prev_year',
@@ -51,6 +56,7 @@ class ProjectCCIAgeProfile extends Model
         });
     }
 
+
     private function generateCCIAgeProfileId()
     {
         $latest = self::latest('id')->first();
@@ -58,6 +64,7 @@ class ProjectCCIAgeProfile extends Model
 
         return 'CCI-AP-' . str_pad($sequenceNumber, 4, '0', STR_PAD_LEFT);
     }
+
 
     public function project()
     {

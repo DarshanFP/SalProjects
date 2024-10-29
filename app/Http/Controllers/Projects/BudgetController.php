@@ -15,7 +15,7 @@ class BudgetController extends Controller
         Log::info('BudgetController@store - Data received from form', $request->all());
 
         $validated = $request->validate([
-            'phases' => 'required|array',
+            'phases' => 'array',
             'phases.*.amount_sanctioned' => 'nullable|numeric',
             'phases.*.budget' => 'nullable|array',
             'phases.*.budget.*.particular' => 'nullable|string|max:255',
@@ -66,7 +66,7 @@ class BudgetController extends Controller
     Log::info('BudgetController@update - Data received from form', $request->all());
 
     $validated = $request->validate([
-        'phases' => 'required|array',
+        'phases' => 'array',
         'phases.*.amount_sanctioned' => 'nullable|numeric',
         'phases.*.budget' => 'nullable|array',
         'phases.*.budget.*.particular' => 'nullable|string|max:255',

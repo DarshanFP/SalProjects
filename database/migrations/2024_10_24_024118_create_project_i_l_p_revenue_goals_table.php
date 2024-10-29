@@ -1,4 +1,4 @@
-<?php
+->nullable()<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -11,9 +11,9 @@ return new class extends Migration {
             $table->id();
             $table->string('ILP_revenue_id')->unique();
             $table->string('project_id'); // Foreign key to Project
-            $table->json('business_plan_items'); // Year-wise items
-            $table->decimal('annual_income', 12, 2);
-            $table->decimal('annual_expenses', 12, 2);
+            $table->json('business_plan_items')->nullable(); // Year-wise items
+            $table->decimal('annual_income', 12, 2)->nullable();
+            $table->decimal('annual_expenses', 12, 2)->nullable();
             $table->timestamps();
         });
     }

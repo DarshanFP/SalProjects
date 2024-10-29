@@ -1,4 +1,4 @@
-<?php
+->nullable()<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -11,10 +11,10 @@ return new class extends Migration {
             $table->id();
             $table->string('ILP_risk_id')->unique();
             $table->string('project_id'); // Foreign key to Project
-            $table->text('identified_risks');
-            $table->text('mitigation_measures');
-            $table->text('business_sustainability');
-            $table->text('expected_profits');
+            $table->text('identified_risks')->nullable();
+            $table->text('mitigation_measures')->nullable();
+            $table->text('business_sustainability')->nullable();
+            $table->text('expected_profits')->nullable();
             $table->timestamps();
         });
     }

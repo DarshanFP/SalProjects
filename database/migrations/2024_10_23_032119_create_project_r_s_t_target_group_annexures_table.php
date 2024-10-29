@@ -11,12 +11,12 @@ return new class extends Migration {
             $table->id();
             $table->string('target_group_anxr_id')->unique();
             $table->string('project_id'); // Foreign Key to project
-            $table->string('name');
-            $table->string('religion');
-            $table->string('caste');
-            $table->string('education_background');
-            $table->string('family_situation');
-            $table->text('paragraph');
+            $table->string('name')->nullable();
+            $table->string('religion')->nullable();
+            $table->string('caste')->nullable();
+            $table->string('education_background')->nullable();
+            $table->string('family_situation')->nullable();
+            $table->text('paragraph')->nullable();
             $table->timestamps();
         });
     }

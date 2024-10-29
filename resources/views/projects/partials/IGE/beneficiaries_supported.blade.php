@@ -1,6 +1,6 @@
 <div class="mb-3 card">
     <div class="card-header">
-        <h4>Number of Beneficiaries to be Supported this Year</h4>
+        <h4>N/umber of Beneficiaries to be Supported this Year</h4>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -13,50 +13,48 @@
                         <th>Action</th>
                     </tr>
                 </thead>
-                <tbody id="beneficiaries-supported-rows">
+                <tbody id="IGS-beneficiaries-supported-rows">
                     <tr>
                         <td>1</td>
                         <td><input type="text" name="class[]" class="form-control" style="background-color: #202ba3;"></td>
                         <td><input type="number" name="total_number[]" class="form-control" style="background-color: #202ba3;"></td>
-                        <td><button type="button" class="btn btn-danger" onclick="removeBeneficiaryRow(this)">Remove</button></td>
+                        <td><button type="button" class="btn btn-danger" onclick="IGSremoveBeneficiaryRow(this)">Remove</button></td>
                     </tr>
                 </tbody>
             </table>
         </div>
-        <button type="button" class="mt-3 btn btn-primary" onclick="addBeneficiaryRow()">Add More</button>
+        <button type="button" class="mt-3 btn btn-primary" onclick="IGSaddBeneficiaryRow()">Add More</button>
     </div>
 </div>
 
 <!-- JavaScript to add/remove rows dynamically -->
 <script>
-    (function(){
-    let beneficiaryRowIndex = 1;
+    let IGSbeneficiaryRowIndex = 1;
 
-    function addBeneficiaryRow() {
-        beneficiaryRowIndex++;
+    window.IGSaddBeneficiaryRow = function() {
+        IGSbeneficiaryRowIndex++;
         const newRow = `
             <tr>
-                <td>${beneficiaryRowIndex}</td>
+                <td>${IGSbeneficiaryRowIndex}</td>
                 <td><input type="text" name="class[]" class="form-control" style="background-color: #202ba3;"></td>
                 <td><input type="number" name="total_number[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><button type="button" class="btn btn-danger" onclick="removeBeneficiaryRow(this)">Remove</button></td>
+                <td><button type="button" class="btn btn-danger" onclick="IGSremoveBeneficiaryRow(this)">Remove</button></td>
             </tr>
         `;
-        document.getElementById('beneficiaries-supported-rows').insertAdjacentHTML('beforeend', newRow);
+        document.getElementById('IGS-beneficiaries-supported-rows').insertAdjacentHTML('beforeend', newRow);
     }
 
-    function removeBeneficiaryRow(button) {
+    window.IGSremoveBeneficiaryRow = function(button) {
         const row = button.closest('tr');
         row.remove();
-        updateBeneficiaryRowNumbers();
+        IGSupdateBeneficiaryRowNumbers();
     }
 
-    function updateBeneficiaryRowNumbers() {
-        const rows = document.querySelectorAll('#beneficiaries-supported-rows tr');
+    function IGSupdateBeneficiaryRowNumbers() {
+        const rows = document.querySelectorAll('#IGS-beneficiaries-supported-rows tr');
         rows.forEach((row, index) => {
             row.children[0].textContent = index + 1;
         });
-        beneficiaryRowIndex = rows.length;
+        IGSbeneficiaryRowIndex = rows.length;
     }
-})();
 </script>

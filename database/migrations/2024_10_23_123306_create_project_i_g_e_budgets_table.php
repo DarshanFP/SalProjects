@@ -11,8 +11,8 @@ return new class extends Migration {
             $table->id();
             $table->string('IGE_budget_id')->unique();
             $table->string('project_id'); // Foreign key to Project
-            $table->string('name');
-            $table->string('study_proposed');
+            $table->string('name')->nullable();
+            $table->string('study_proposed')->nullable();
             $table->decimal('college_fees', 10, 2)->nullable();
             $table->decimal('hostel_fees', 10, 2)->nullable();
             $table->decimal('total_amount', 10, 2)->nullable();

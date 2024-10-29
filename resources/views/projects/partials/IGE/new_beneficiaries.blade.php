@@ -16,7 +16,7 @@
                         <th>Action</th>
                     </tr>
                 </thead>
-                <tbody id="new-beneficiaries-rows">
+                <tbody id="IGS-new-beneficiaries-rows">
                     <tr>
                         <td>1</td>
                         <td><input type="text" name="beneficiary_name[]" class="form-control" style="background-color: #202ba3;"></td>
@@ -24,48 +24,46 @@
                         <td><textarea name="address[]" class="form-control" rows="2" style="background-color: #202ba3;"></textarea></td>
                         <td><input type="text" name="group_year_of_study[]" class="form-control" style="background-color: #202ba3;"></td>
                         <td><textarea name="family_background_need[]" class="form-control" rows="2" style="background-color: #202ba3;"></textarea></td>
-                        <td><button type="button" class="btn btn-danger" onclick="removeNewBeneficiaryRow(this)">Remove</button></td>
+                        <td><button type="button" class="btn btn-danger" onclick="IGSremoveNewBeneficiaryRow(this)">Remove</button></td>
                     </tr>
                 </tbody>
             </table>
         </div>
-        <button type="button" class="mt-3 btn btn-primary" onclick="addNewBeneficiaryRow()">Add More</button>
+        <button type="button" class="mt-3 btn btn-primary" onclick="IGSaddNewBeneficiaryRow()">Add More</button>
     </div>
 </div>
 
 <!-- JavaScript to add/remove rows dynamically -->
 <script>
-    (function(){
-    let newBeneficiaryRowIndex = 1;
+    let IGSnewBeneficiaryRowIndex = 1;
 
-    function addNewBeneficiaryRow() {
-        newBeneficiaryRowIndex++;
+    window.IGSaddNewBeneficiaryRow = function() {
+        IGSnewBeneficiaryRowIndex++;
         const newRow = `
             <tr>
-                <td>${newBeneficiaryRowIndex}</td>
+                <td>${IGSnewBeneficiaryRowIndex}</td>
                 <td><input type="text" name="beneficiary_name[]" class="form-control" style="background-color: #202ba3;"></td>
                 <td><input type="text" name="caste[]" class="form-control" style="background-color: #202ba3;"></td>
                 <td><textarea name="address[]" class="form-control" rows="2" style="background-color: #202ba3;"></textarea></td>
                 <td><input type="text" name="group_year_of_study[]" class="form-control" style="background-color: #202ba3;"></td>
                 <td><textarea name="family_background_need[]" class="form-control" rows="2" style="background-color: #202ba3;"></textarea></td>
-                <td><button type="button" class="btn btn-danger" onclick="removeNewBeneficiaryRow(this)">Remove</button></td>
+                <td><button type="button" class="btn btn-danger" onclick="IGSremoveNewBeneficiaryRow(this)">Remove</button></td>
             </tr>
         `;
-        document.getElementById('new-beneficiaries-rows').insertAdjacentHTML('beforeend', newRow);
+        document.getElementById('IGS-new-beneficiaries-rows').insertAdjacentHTML('beforeend', newRow);
     }
 
-    function removeNewBeneficiaryRow(button) {
+    window.IGSremoveNewBeneficiaryRow = function(button) {
         const row = button.closest('tr');
         row.remove();
-        updateNewBeneficiaryRowNumbers();
+        IGSupdateNewBeneficiaryRowNumbers();
     }
 
-    function updateNewBeneficiaryRowNumbers() {
-        const rows = document.querySelectorAll('#new-beneficiaries-rows tr');
+    function IGSupdateNewBeneficiaryRowNumbers() {
+        const rows = document.querySelectorAll('#IGS-new-beneficiaries-rows tr');
         rows.forEach((row, index) => {
             row.children[0].textContent = index + 1;
         });
-        newBeneficiaryRowIndex = rows.length;
+        IGSnewBeneficiaryRowIndex = rows.length;
     }
-})();
 </script>

@@ -11,8 +11,8 @@ return new class extends Migration {
             $table->id();
             $table->string('IAH_budget_id')->unique();
             $table->string('project_id');
-            $table->string('particular');
-            $table->decimal('amount', 10, 2);
+            $table->string('particular')->nullable();
+            $table->decimal('amount', 10, 2)->nullable();
             $table->decimal('total_expenses', 10, 2)->nullable();
             $table->decimal('family_contribution', 10, 2)->nullable();
             $table->decimal('amount_requested', 10, 2)->nullable();

@@ -6,14 +6,14 @@
     <div class="card-body">
         <div class="mb-3">
             <label for="illness" class="form-label">Nature of Illness:</label>
-            <input type="text" name="illness" class="form-control" placeholder="Enter nature of illness" required>
+            <input type="text" name="illness" class="form-control" placeholder="Enter nature of illness">
         </div>
 
         <div class="mb-3">
             <label for="treatment" class="form-label">Is the beneficiary undergoing medical treatment?</label>
             <div>
-                <input type="radio" name="treatment" value="1" required> Yes
-                <input type="radio" name="treatment" value="0" required> No
+                <input type="radio" name="treatment" value="1"> Yes
+                <input type="radio" name="treatment" value="0"> No
             </div>
         </div>
 
@@ -34,7 +34,7 @@
 
         <div class="mb-3">
             <label for="health_situation" class="form-label">Please mention clearly about the health situation of the beneficiary:</label>
-            <textarea name="health_situation" class="form-control" rows="3" placeholder="Provide details on the health situation" required></textarea>
+            <textarea name="health_situation" class="form-control" rows="3" placeholder="Provide details on the health situation"></textarea>
         </div>
 
         <div class="mb-3">

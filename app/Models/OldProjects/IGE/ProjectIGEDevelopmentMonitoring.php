@@ -26,14 +26,14 @@ class ProjectIGEDevelopmentMonitoring extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            $model->IGE_development_monitoring_id = $model->generateIGEDevelopmentMonitoringId();
+            $model->IGE_dvlpmnt_mntrng_id = $model->generateIGEDevelopmentMonitoringId();
         });
     }
 
     private function generateIGEDevelopmentMonitoringId()
     {
         $latest = self::latest('id')->first();
-        $sequenceNumber = $latest ? intval(substr($latest->IGE_development_monitoring_id, -4)) + 1 : 1;
+        $sequenceNumber = $latest ? intval(substr($latest->IGE_dvlpmnt_mntrng_id, -4)) + 1 : 1;
         return 'IGE-DEVM-' . str_pad($sequenceNumber, 4, '0', STR_PAD_LEFT);
     }
 

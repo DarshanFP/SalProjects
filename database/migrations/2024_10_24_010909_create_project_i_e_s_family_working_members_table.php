@@ -11,8 +11,8 @@ return new class extends Migration {
             $table->id();
             $table->string('IES_family_member_id')->unique();
             $table->string('project_id'); // Foreign key to Project
-            $table->string('member_name');
-            $table->string('work_nature');
+            $table->string('member_name')->nullable();
+            $table->string('work_nature')->nullable();
             $table->decimal('monthly_income', 10, 2)->nullable();
             $table->timestamps();
         });

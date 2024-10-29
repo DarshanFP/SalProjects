@@ -11,12 +11,12 @@ return new class extends Migration {
             $table->id();
             $table->string('IES_education_id')->unique();
             $table->string('project_id'); // Foreign key to Project
-            $table->string('previous_class');
+            $table->string('previous_class')->nullable();
             $table->decimal('amount_sanctioned', 10, 2)->nullable();
             $table->decimal('amount_utilized', 10, 2)->nullable();
             $table->decimal('scholarship_previous_year', 10, 2)->nullable();
             $table->text('academic_performance')->nullable();
-            $table->string('present_class');
+            $table->string('present_class')->nullable();
             $table->decimal('expected_scholarship', 10, 2)->nullable();
             $table->decimal('family_contribution', 10, 2)->nullable();
             $table->text('reason_no_support')->nullable();

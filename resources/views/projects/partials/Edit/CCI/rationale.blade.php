@@ -1,22 +1,19 @@
-<div class="form-group">
-    <label for="rationale" class="form-label"><strong>III. Rationale</strong></label>
-
-    <table class="table table-bordered">
-        <thead>
-            <tr style="background-color: #d3d3d3;">
-                <th>
-                    <span style="color: #202ba3;">
-                        Explain in brief, the services rendered and how this will contribute in achieving the goal.
-                    </span>
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>
-                    <textarea name="description" id="description" rows="4" class="form-control"></textarea>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+<div class="mb-3 card">
+    <div class="card-header">
+        <h4>Edit: Rationale</h4>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label for="description" class="form-label">Explain in brief, the services rendered and how this will contribute in achieving the goal.</label>
+            <textarea name="description" class="form-control select-input" rows="3" style="background-color: #202ba3;">{{ $rationale->description ?? '' }}</textarea>
+        </div>
+    </div>
 </div>
+
+<!-- Styles for textarea -->
+<style>
+    .form-control {
+        width: 100%;
+        box-sizing: border-box;
+    }
+</style>

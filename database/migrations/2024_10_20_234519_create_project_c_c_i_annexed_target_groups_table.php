@@ -12,11 +12,11 @@ return new class extends Migration
             $table->id();
             $table->string('CCI_target_group_id')->unique();
             $table->string('project_id');
-            $table->string('beneficiary_name');
-            $table->date('dob');
-            $table->date('date_of_joining');
-            $table->string('class_of_study');
-            $table->text('family_background_description');
+            $table->string('beneficiary_name')->nullable();
+            $table->date('dob')->nullable();
+            $table->date('date_of_joining')->nullable();
+            $table->string('class_of_study')->nullable();
+            $table->text('family_background_description')->nullable();
             $table->timestamps();
         });
     }

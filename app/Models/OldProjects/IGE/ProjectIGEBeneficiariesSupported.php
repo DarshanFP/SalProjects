@@ -24,14 +24,14 @@ class ProjectIGEBeneficiariesSupported extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            $model->IGE_beneficiaries_supported_id = $model->generateIGEBeneficiariesSupportedId();
+            $model->IGE_bnfcry_supprtd_id = $model->generateIGEBeneficiariesSupportedId();
         });
     }
 
     private function generateIGEBeneficiariesSupportedId()
     {
         $latest = self::latest('id')->first();
-        $sequenceNumber = $latest ? intval(substr($latest->IGE_beneficiaries_supported_id, -4)) + 1 : 1;
+        $sequenceNumber = $latest ? intval(substr($latest->IGE_bnfcry_supprtd_id, -4)) + 1 : 1;
         return 'IGE-BSUP-' . str_pad($sequenceNumber, 4, '0', STR_PAD_LEFT);
     }
 

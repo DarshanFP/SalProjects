@@ -11,12 +11,12 @@ return new class extends Migration {
             $table->id();
             $table->string('IAH_health_id')->unique();
             $table->string('project_id');
-            $table->string('illness');
-            $table->boolean('treatment');
+            $table->string('illness')->nullable();
+            $table->boolean('treatment')->nullable();
             $table->string('doctor')->nullable();
             $table->string('hospital')->nullable();
             $table->text('doctor_address')->nullable();
-            $table->text('health_situation');
+            $table->text('health_situation')->nullable();
             $table->text('family_situation')->nullable();
             $table->timestamps();
         });

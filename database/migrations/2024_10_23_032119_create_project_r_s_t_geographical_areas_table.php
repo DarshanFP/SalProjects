@@ -11,10 +11,10 @@ return new class extends Migration {
             $table->id();
             $table->string('geographical_area_id')->unique();
             $table->string('project_id'); // Foreign Key to project
-            $table->string('mandal');
-            $table->string('villages');
-            $table->string('town');
-            $table->integer('no_of_beneficiaries');
+            $table->string('mandal')->nullable();
+            $table->string('villages')->nullable();
+            $table->string('town')->nullable();
+            $table->integer('no_of_beneficiaries')->nullable();
             $table->timestamps();
         });
     }

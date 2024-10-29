@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('project_id'); // Foreign key to project
 
             // Store file path or name of the uploaded document
-            $table->string('document_path');
+            $table->string('document_path')->nullable();
 
             $table->timestamps();
         });

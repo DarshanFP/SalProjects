@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('project_id'); // Foreign key to project
 
             // Fields for intervention logic
-            $table->text('intervention_logic');
+            $table->text('intervention_logic')->nullable();
 
             $table->timestamps();
         });

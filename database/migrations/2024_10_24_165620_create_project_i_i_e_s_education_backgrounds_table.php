@@ -11,13 +11,13 @@ return new class extends Migration {
             $table->id();
             $table->string('IIES_education_id')->unique();
             $table->string('project_id'); // Foreign key to Project
-            $table->string('prev_education'); // Previous academic qualification
-            $table->string('prev_institution'); // Previous institution name
-            $table->string('prev_insti_address'); // Previous institution address
-            $table->decimal('prev_marks', 5, 2); // Marks percentage
-            $table->string('current_studies'); // Current studies
-            $table->string('curr_institution'); // Present institution name
-            $table->string('curr_insti_address'); // Present institution address
+            $table->string('prev_education')->nullable(); // Previous academic qualification
+            $table->string('prev_institution')->nullable(); // Previous institution name
+            $table->string('prev_insti_address')->nullable(); // Previous institution address
+            $table->decimal('prev_marks', 5, 2)->nullable(); // Marks percentage
+            $table->string('current_studies')->nullable(); // Current studies
+            $table->string('curr_institution')->nullable(); // Present institution name
+            $table->string('curr_insti_address')->nullable(); // Present institution address
             $table->text('aspiration')->nullable(); // Educational aspirations
             $table->text('long_term_effect')->nullable(); // Long-term effect of the support
             $table->timestamps();

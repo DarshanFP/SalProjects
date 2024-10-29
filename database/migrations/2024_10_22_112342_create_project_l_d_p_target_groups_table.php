@@ -14,9 +14,9 @@ return new class extends Migration
             $table->string('project_id'); // Foreign key to project
 
             // Fields for target group
-            $table->string('beneficiary_name');
-            $table->text('family_situation');
-            $table->text('nature_of_livelihood');
+            $table->string('beneficiary_name')->nullable();
+            $table->text('family_situation')->nullable();
+            $table->text('nature_of_livelihood')->nullable();
             $table->integer('amount_requested')->nullable(); // Using integer instead of decimal
 
             $table->timestamps();

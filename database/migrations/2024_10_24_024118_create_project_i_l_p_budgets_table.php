@@ -11,10 +11,10 @@ return new class extends Migration {
             $table->id();
             $table->string('ILP_budget_id')->unique();
             $table->string('project_id'); // Foreign key to Project
-            $table->text('budget_desc');
-            $table->decimal('cost', 12, 2);
-            $table->decimal('beneficiary_contribution', 12, 2);
-            $table->decimal('amount_requested', 12, 2);
+            $table->text('budget_desc')->nullable();
+            $table->decimal('cost', 12, 2)->nullable();
+            $table->decimal('beneficiary_contribution', 12, 2)->nullable();
+            $table->decimal('amount_requested', 12, 2)->nullable();
             $table->timestamps();
         });
     }

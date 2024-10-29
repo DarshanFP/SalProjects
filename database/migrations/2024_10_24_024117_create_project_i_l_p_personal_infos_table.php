@@ -11,26 +11,26 @@ return new class extends Migration {
             $table->id();
             $table->string('ILP_personal_id')->unique();
             $table->string('project_id'); // Foreign key to Project
-            $table->string('name');
-            $table->integer('age');
-            $table->string('gender');
-            $table->date('dob'); // Date of birth
+            $table->string('name')->nullable();
+            $table->integer('age')->nullable();
+            $table->string('gender')->nullable();
+            $table->date('dob')->nullable(); // Date of birth
             $table->string('email')->nullable();
-            $table->string('contact_no');
+            $table->string('contact_no')->nullable();
             $table->string('aadhar_id')->nullable();
-            $table->text('address');
-            $table->string('occupation');
-            $table->string('marital_status');
+            $table->text('address')->nullable();
+            $table->string('occupation')->nullable();
+            $table->string('marital_status')->nullable();
             $table->string('spouse_name')->nullable();
             $table->integer('children_no')->nullable();
             $table->text('children_edu')->nullable();
-            $table->string('religion');
-            $table->string('caste');
-            $table->text('family_situation');
+            $table->string('religion')->nullable();
+            $table->string('caste')->nullable();
+            $table->text('family_situation')->nullable();
             $table->boolean('small_business_status')->default(false);
             $table->text('small_business_details')->nullable();
-            $table->decimal('monthly_income', 10, 2);
-            $table->text('business_plan');
+            $table->decimal('monthly_income', 10, 2)->nullable();
+            $table->text('business_plan')->nullable();
             $table->timestamps();
         });
     }

@@ -11,8 +11,8 @@ return new class extends Migration {
             $table->id();
             $table->string('IGE_bnfcry_supprtd_id')->unique();
             $table->string('project_id'); // Foreign key to Project
-            $table->string('class'); // Class of Beneficiaries
-            $table->integer('total_number');
+            $table->string('class')->nullable(); // Class of Beneficiaries
+            $table->integer('total_number')->nullable();
             $table->timestamps();
         });
     }

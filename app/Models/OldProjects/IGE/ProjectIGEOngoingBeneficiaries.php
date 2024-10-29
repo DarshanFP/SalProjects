@@ -15,11 +15,11 @@ class ProjectIGEOngoingBeneficiaries extends Model
     protected $fillable = [
         'IGE_ongoing_bnfcry_id',
         'project_id',
-        'beneficiary_name',
-        'caste',
-        'address',
-        'current_group_year_of_study',
-        'performance_details'
+        'obeneficiary_name',
+        'ocaste',
+        'oaddress',
+        'ocurrent_group_year_of_study',
+        'operformance_details'
     ];
 
     protected static function boot()
@@ -27,14 +27,14 @@ class ProjectIGEOngoingBeneficiaries extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            $model->IGE_ongoing_beneficiaries_id = $model->generateIGEOngoingBeneficiariesId();
+            $model->IGE_ongoing_bnfcry_id = $model->generateIGEOngoingBeneficiariesId();
         });
     }
 
     private function generateIGEOngoingBeneficiariesId()
     {
         $latest = self::latest('id')->first();
-        $sequenceNumber = $latest ? intval(substr($latest->IGE_ongoing_beneficiaries_id, -4)) + 1 : 1;
+        $sequenceNumber = $latest ? intval(substr($latest->IGE_ongoing_bnfcry_id, -4)) + 1 : 1;
         return 'IGE-ONGB-' . str_pad($sequenceNumber, 4, '0', STR_PAD_LEFT);
     }
 

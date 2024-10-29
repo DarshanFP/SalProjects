@@ -11,9 +11,9 @@ return new class extends Migration {
             $table->id();
             $table->string('IAH_earning_id')->unique();
             $table->string('project_id');
-            $table->string('member_name');
-            $table->string('work_type');
-            $table->decimal('monthly_income', 10, 2);
+            $table->string('member_name')->nullable();
+            $table->string('work_type')->nullable();
+            $table->decimal('monthly_income', 10, 2)->nullable();
             $table->timestamps();
         });
     }

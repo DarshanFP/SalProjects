@@ -6,17 +6,17 @@
     <div class="card-body">
         <div class="mb-3">
             <label for="name" class="form-label">Name:</label>
-            <input type="text" name="name" class="form-control" placeholder="Enter beneficiary's name" required>
+            <input type="text" name="name" class="form-control" placeholder="Enter beneficiary's name">
         </div>
 
         <div class="mb-3">
             <label for="age" class="form-label">Age:</label>
-            <input type="number" name="age" class="form-control" placeholder="Enter beneficiary's age" required>
+            <input type="number" name="age" class="form-control" placeholder="Enter beneficiary's age">
         </div>
 
         <div class="mb-3">
             <label for="gender" class="form-label">Gender:</label>
-            <select name="gender" class="form-control" required>
+            <select name="gender" class="form-control">
                 <option value="" disabled selected>Select Gender</option>
                 <option value="Female">Female</option>
                 <option value="Male">Male</option>
@@ -26,32 +26,32 @@
 
         <div class="mb-3">
             <label for="dob" class="form-label">Date of Birth:</label>
-            <input type="date" name="dob" class="form-control" required>
+            <input type="date" name="dob" class="form-control">
         </div>
 
         <div class="mb-3">
             <label for="aadhar" class="form-label">Aadhar Number:</label>
-            <input type="text" name="aadhar" class="form-control" placeholder="Enter Aadhar number" maxlength="12" required>
+            <input type="text" name="aadhar" class="form-control" placeholder="Enter Aadhar number" maxlength="12">
         </div>
 
         <div class="mb-3">
             <label for="contact" class="form-label">Contact Number:</label>
-            <input type="text" name="contact" class="form-control" placeholder="Enter contact number" required>
+            <input type="text" name="contact" class="form-control" placeholder="Enter contact number">
         </div>
 
         <div class="mb-3">
             <label for="address" class="form-label">Full Address:</label>
-            <textarea name="address" class="form-control" rows="2" placeholder="Enter full address" required></textarea>
+            <textarea name="address" class="form-control" rows="2" placeholder="Enter full address"></textarea>
         </div>
 
         <div class="mb-3">
             <label for="email" class="form-label">E-mail:</label>
-            <input type="email" name="email" class="form-control" placeholder="Enter email address" required>
+            <input type="email" name="email" class="form-control" placeholder="Enter email address">
         </div>
 
         <div class="mb-3">
             <label for="guardian_name" class="form-label">Name of Father/Husband/Legal Guardian:</label>
-            <input type="text" name="guardian_name" class="form-control" placeholder="Enter guardian's name" required>
+            <input type="text" name="guardian_name" class="form-control" placeholder="Enter guardian's name">
         </div>
 
         <div class="mb-3">

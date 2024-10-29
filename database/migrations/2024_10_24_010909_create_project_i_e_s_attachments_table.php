@@ -11,14 +11,14 @@ return new class extends Migration {
             $table->id();
             $table->string('IES_attachment_id')->unique();
             $table->string('project_id'); // Foreign key to Project
-            $table->string('aadhar_card');
-            $table->string('fee_quotation');
-            $table->string('scholarship_proof');
+            $table->string('aadhar_card')->nullable();
+            $table->string('fee_quotation')->nullable();
+            $table->string('scholarship_proof')->nullable();
             $table->string('medical_confirmation')->nullable();
             $table->string('caste_certificate')->nullable();
             $table->string('self_declaration')->nullable();
             $table->string('death_certificate')->nullable();
-            $table->string('request_letter');
+            $table->string('request_letter')->nullable();
             $table->timestamps();
         });
     }

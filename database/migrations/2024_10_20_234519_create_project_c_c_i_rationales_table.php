@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('CCI_rationale_id')->unique();
             $table->string('project_id');
-            $table->text('description');
+            $table->text('description')->nullable();
             $table->timestamps();
         });
     }

@@ -11,6 +11,11 @@ class ProjectCCIEconomicBackground extends Model
     use HasFactory;
 
     protected $table = 'project_CCI_economic_background';
+    // Specify primary key and its type
+    protected $primaryKey = 'CCI_eco_bg_id';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
 
     protected $fillable = [
         'CCI_eco_bg_id',
@@ -28,17 +33,18 @@ class ProjectCCIEconomicBackground extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            $model->CCI_economic_background_id = $model->generateCCIEconomicBackgroundId();
+            $model->CCI_eco_bg_id = $model->generateCCIEconomicBackgroundId();
         });
     }
 
     private function generateCCIEconomicBackgroundId()
     {
         $latest = self::latest('id')->first();
-        $sequenceNumber = $latest ? intval(substr($latest->CCI_economic_background_id, -4)) + 1 : 1;
+        $sequenceNumber = $latest ? intval(substr($latest->CCI_eco_bg_id, -4)) + 1 : 1;
 
         return 'CCI-EB-' . str_pad($sequenceNumber, 4, '0', STR_PAD_LEFT);
     }
+
 
     // Relationship with the Project model
     public function project()

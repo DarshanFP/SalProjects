@@ -15,9 +15,9 @@
             </thead>
             <tbody id="earning-members-list">
                 <tr>
-                    <td><input type="text" name="member_name[]" class="form-control" placeholder="Enter family member's name" required></td>
-                    <td><input type="text" name="work_type[]" class="form-control" placeholder="Enter type/nature of work" required></td>
-                    <td><input type="number" step="0.01" name="monthly_income[]" class="form-control" placeholder="Enter monthly income" required></td>
+                    <td><input type="text" name="member_name[]" class="form-control" placeholder="Enter family member's name"></td>
+                    <td><input type="text" name="work_type[]" class="form-control" placeholder="Enter type/nature of work"></td>
+                    <td><input type="number" step="0.01" name="monthly_income[]" class="form-control" placeholder="Enter monthly income"></td>
                     <td><button type="button" class="btn btn-danger remove-member">Remove</button></td>
                 </tr>
             </tbody>
@@ -31,9 +31,9 @@
     document.getElementById('add-member').addEventListener('click', function () {
         const newRow = `
             <tr>
-                <td><input type="text" name="member_name[]" class="form-control" placeholder="Enter family member's name" required></td>
-                <td><input type="text" name="work_type[]" class="form-control" placeholder="Enter type/nature of work" required></td>
-                <td><input type="number" step="0.01" name="monthly_income[]" class="form-control" placeholder="Enter monthly income" required></td>
+                <td><input type="text" name="member_name[]" class="form-control" placeholder="Enter family member's name"></td>
+                <td><input type="text" name="work_type[]" class="form-control" placeholder="Enter type/nature of work"></td>
+                <td><input type="number" step="0.01" name="monthly_income[]" class="form-control" placeholder="Enter monthly income"></td>
                 <td><button type="button" class="btn btn-danger remove-member">Remove</button></td>
             </tr>
         `;

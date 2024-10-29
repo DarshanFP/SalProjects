@@ -42,7 +42,7 @@
     <div class="mb-3">
         <label for="in_charge" class="form-label">Project In-Charge</label>
         <div class="d-flex">
-            <select name="in_charge" id="in_charge" class="form-control select-input me-2" required  style="background-color: #202ba3;">
+            <select name="in_charge" id="in_charge" class="form-control select-input me-2"   style="background-color: #202ba3;">
                 <option value="" disabled selected>Select In-Charge</option>
                 @foreach($users as $potential_in_charge)
                     @if($potential_in_charge->province == $user->province)
@@ -59,11 +59,11 @@
     </div>
     <div class="mb-3">
         <label for="full_address" class="form-label">Full Address</label>
-        <textarea name="full_address" class="form-control select-input" rows="2" required style="background-color: #091122;">{{ old('full_address', $user->address) }}</textarea>
+        <textarea name="full_address" class="form-control select-input" rows="2"  style="background-color: #091122;">{{ old('full_address', $user->address) }}</textarea>
     </div>
     <div class="mb-3">
         <label for="overall_project_period" class="form-label">Overall Project Period</label>
-        <select name="overall_project_period" id="overall_project_period" class="form-control select-input" required  style="background-color: #202ba3;">
+        <select name="overall_project_period" id="overall_project_period" class="form-control select-input"  style="background-color: #202ba3;">
             <option value="" disabled selected>Select Period</option>
             <option value="1" {{ old('overall_project_period') == 1 ? 'selected' : '' }}>1 Year</option>
             <option value="2" {{ old('overall_project_period') == 2 ? 'selected' : '' }}>2 Years</option>
@@ -73,7 +73,7 @@
     </div>
     <div class="mb-3">
         <label for="current_phase" class="form-label">Current Phase</label>
-        <select name="current_phase" id="current_phase" class="form-control readonly-select" required  style="background-color: #202ba3;">
+        <select name="current_phase" id="current_phase" class="form-control readonly-select"  style="background-color: #202ba3;">
             <option value="" disabled selected>Select Phase</option>
             @for ($i = 1; $i <= old('overall_project_period', 4); $i++)
                 <option value="{{ $i }}" {{ old('current_phase') == $i ? 'selected' : '' }}>Phase {{ $i }}</option>
@@ -102,7 +102,7 @@
 
     <div class="mb-3">
         <label for="overall_project_budget" class="form-label">Overall Project Budget</label>
-        <input type="number" name="overall_project_budget" id="overall_project_budget" class="form-control select-input" value="{{ old('overall_project_budget') }}" required>
+        <input type="number" name="overall_project_budget" id="overall_project_budget" class="form-control select-input" value="{{ old('overall_project_budget') }}">
     </div>
     <div class="mb-3">
         @php

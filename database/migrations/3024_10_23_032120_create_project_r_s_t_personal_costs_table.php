@@ -11,9 +11,9 @@
 //             $table->id();
 //             $table->string('personal_cost_id')->unique();
 //             $table->string('project_id'); // Foreign Key to project
-//             $table->string('particular');
-//             $table->integer('nr_staff');
-//             $table->decimal('rate', 10, 2);
+//             $table->string('particular')->nullable();
+//             $table->integer('nr_staff')->nullable();
+//             $table->decimal('rate', 10, 2)->nullable();
 //             $table->decimal('year_1', 10, 2)->nullable();
 //             $table->decimal('year_2', 10, 2)->nullable();
 //             $table->decimal('year_3', 10, 2)->nullable();

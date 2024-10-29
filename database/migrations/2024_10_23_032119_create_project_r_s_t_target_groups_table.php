@@ -11,8 +11,8 @@ return new class extends Migration {
             $table->id();
             $table->string('RST_target_group_id')->unique();
             $table->string('project_id'); // Foreign Key to project
-            $table->integer('no_of_beneficiaries');
-            $table->text('beneficiaries_description_problems');
+            $table->integer('no_of_beneficiaries')->nullable();
+            $table->text('beneficiaries_description_problems')->nullable();
             $table->timestamps();
         });
     }
