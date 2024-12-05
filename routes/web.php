@@ -119,8 +119,8 @@ Route::middleware(['auth', 'role:provincial'])->group(function () {
 
 
     //Report Attachment Routes
-    Route::get('reports/monthly/download/{id}', [ReportAttachmentController::class, 'downloadAttachment'])
-     ->name('monthly.report.downloadAttachment');
+ //   Route::get('reports/monthly/download/{id}', [ReportAttachmentController::class, 'downloadAttachment'])
+ //    ->name('monthly.report.downloadAttachment');
 
      //Comment Routes
      Route::post('/provincial/reports/monthly/{report_id}/add-comment', [ProvincialController::class, 'addComment'])->name('provincial.monthly.report.addComment');
@@ -197,12 +197,17 @@ Route::prefix('reports/monthly')->group(function () {
     Route::put('livelihood-annexure/{report_id}', [LivelihoodAnnexureController::class, 'update'])->name('livelihood.annexure.update');
 
     //Report Attachment Routes
-    Route::get('reports/monthly/download/{id}', [ReportAttachmentController::class, 'downloadAttachment'])->name('monthly.report.downloadAttachment');
+ //   Route::get('reports/monthly/download/{id}', [ReportAttachmentController::class, 'downloadAttachment'])->name('monthly.report.downloadAttachment');
     Route::delete('/attachments/{id}', [ReportAttachmentController::class, 'remove'])->name('attachments.remove');
 
 
 
 });
+// Shared route for downloading attachments
+Route::middleware(['auth', 'role:executor,provincial'])->group(function () {
+    Route::get('reports/monthly/download/{id}', [ReportAttachmentController::class, 'downloadAttachment'])->name('monthly.report.downloadAttachment');
+});
+
 
     // Monthly Development Project Reporting Routes for Executor
     // Route::prefix('reports/monthly/developmentProject')->group(function () {
