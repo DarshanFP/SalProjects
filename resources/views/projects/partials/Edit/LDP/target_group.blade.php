@@ -1,6 +1,7 @@
+{{-- resources/views/projects/partials/Edit/LDP/target_group.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
-        <h4>Edit: Annexed Target Group: Livelihood Development Projects</h4>
+        <h4>Edit Annexed Target Group: Livelihood Development Projects</h4>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -15,17 +16,23 @@
                         <th>Action</th>
                     </tr>
                 </thead>
-                <tbody id="ldp-annexed-target-group-rows">
-                    @foreach ($targetGroups as $index => $targetGroup)
+                <tbody id="ldp-edit-target-group-rows">
+                    @if(!empty($LDPtargetGroups) && is_array($LDPtargetGroups))
+                        @foreach($LDPtargetGroups as $index => $targetGroup)
+                            <tr>
+                                <td style="text-align: center;">{{ $loop->iteration }}</td>
+                                <td><input type="text" name="L_beneficiary_name[]" class="form-control" value="{{ $targetGroup['L_beneficiary_name'] }}" placeholder="Enter name"></td>
+                                <td><textarea name="L_family_situation[]" class="form-control" rows="2" placeholder="Enter family situation">{{ $targetGroup['L_family_situation'] }}</textarea></td>
+                                <td><textarea name="L_nature_of_livelihood[]" class="form-control" rows="2" placeholder="Enter nature of livelihood">{{ $targetGroup['L_nature_of_livelihood'] }}</textarea></td>
+                                <td><input type="number" name="L_amount_requested[]" class="form-control" value="{{ $targetGroup['L_amount_requested'] }}" placeholder="Enter amount"></td>
+                                <td><button type="button" class="btn btn-danger ldp-remove-row-btn">Remove</button></td>
+                            </tr>
+                        @endforeach
+                    @else
                         <tr>
-                            <td style="text-align: center;">{{ $index + 1 }}</td>
-                            <td><input type="text" name="beneficiary_name_{{ $index + 1 }}" class="form-control" value="{{ $targetGroup->beneficiary_name }}" placeholder="Enter name"></td>
-                            <td><textarea name="family_situation_{{ $index + 1 }}" class="form-control" rows="2" placeholder="Enter family situation">{{ $targetGroup->family_situation }}</textarea></td>
-                            <td><textarea name="nature_of_livelihood_{{ $index + 1 }}" class="form-control" rows="2" placeholder="Enter nature of livelihood">{{ $targetGroup->nature_of_livelihood }}</textarea></td>
-                            <td><input type="number" name="amount_requested_{{ $index + 1 }}" class="form-control" value="{{ $targetGroup->amount_requested }}" placeholder="Enter amount"></td>
-                            <td><button type="button" class="btn btn-danger ldp-remove-row-btn">Remove</button></td>
+                            <td colspan="6">No target groups available.</td>
                         </tr>
-                    @endforeach
+                    @endif
                 </tbody>
             </table>
         </div>
@@ -36,7 +43,7 @@
 <script>
     (function(){
     document.addEventListener('DOMContentLoaded', function () {
-        let rowCount = {{ count($targetGroups) }}; // Initial row count
+        let rowCount = {{ count($LDPtargetGroups) }}; // Initialize row count from existing records
 
         // Function to add a new row
         document.getElementById('ldp-add-row-btn').addEventListener('click', function () {
@@ -46,14 +53,14 @@
 
             newRow.innerHTML = `
                 <td style="text-align: center;">${rowCount}</td>
-                <td><input type="text" name="beneficiary_name_${rowCount}" class="form-control" placeholder="Enter name"></td>
-                <td><textarea name="family_situation_${rowCount}" class="form-control" rows="2" placeholder="Enter family situation"></textarea></td>
-                <td><textarea name="nature_of_livelihood_${rowCount}" class="form-control" rows="2" placeholder="Enter nature of livelihood"></textarea></td>
-                <td><input type="number" name="amount_requested_${rowCount}" class="form-control" placeholder="Enter amount"></td>
+                <td><input type="text" name="L_beneficiary_name[]" class="form-control" placeholder="Enter name"></td>
+                <td><textarea name="L_family_situation[]" class="form-control" rows="2" placeholder="Enter family situation"></textarea></td>
+                <td><textarea name="L_nature_of_livelihood[]" class="form-control" rows="2" placeholder="Enter nature of livelihood"></textarea></td>
+                <td><input type="number" name="L_amount_requested[]" class="form-control" placeholder="Enter amount"></td>
                 <td><button type="button" class="btn btn-danger ldp-remove-row-btn">Remove</button></td>
             `;
 
-            document.getElementById('ldp-annexed-target-group-rows').appendChild(newRow);
+            document.getElementById('ldp-edit-target-group-rows').appendChild(newRow);
 
             // Attach event listener to the new remove button
             newRow.querySelector('.ldp-remove-row-btn').addEventListener('click', function () {
@@ -73,17 +80,27 @@
         // Function to update row numbers after adding/removing rows
         function updateRowNumbers() {
             rowCount = 0; // Reset row count
-            document.querySelectorAll('#ldp-annexed-target-group-rows tr').forEach((row, index) => {
+            document.querySelectorAll('#ldp-edit-target-group-rows tr').forEach((row, index) => {
                 rowCount = index + 1;
                 row.querySelector('td').textContent = rowCount;
-                // Update input and textarea names to maintain uniqueness
-                row.querySelectorAll('input, textarea').forEach(input => {
-                    const name = input.getAttribute('name');
-                    const newName = name.replace(/\d+$/, rowCount);
-                    input.setAttribute('name', newName);
-                });
+                // No need to update input names since they are arrays
             });
         }
     });
 })();
 </script>
+
+<!-- Styles to maintain consistency with the existing design -->
+<style>
+    .table td input,
+    .table td textarea {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .table th, .table td {
+        vertical-align: middle;
+        text-align: center;
+        padding: 0.5rem;
+    }
+</style>

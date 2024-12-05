@@ -1,17 +1,23 @@
-{{-- resources/views/projects/partials/LDP/need_analysis.blade.php --}}
+{{-- resources/views/projects/partials/Edit/LDP/need_analysis.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Edit: Need Analysis</h4>
-        <p>(Upload detailed information of Need Analysis pertaining specifically to this project)</p>
+        <p>(Upload updated information of Need Analysis or view the existing document)</p>
     </div>
-
     <div class="card-body">
+        @if(isset($needAnalysis) && $needAnalysis->document_path)
+            <div class="mb-3">
+                <p>Current Document: <a href="{{ Storage::url($needAnalysis->document_path) }}" target="_blank">View Document</a></p>
+            </div>
+        @else
+            <div class="mb-3">
+                <p>No document uploaded yet.</p>
+            </div>
+        @endif
+
         <div class="mb-3">
-            <label for="need_analysis_file" class="form-label">Upload Need Analysis Document:</label>
+            <label for="need_analysis_file" class="form-label">Upload New Need Analysis Document:</label>
             <input type="file" name="need_analysis_file" class="form-control" accept=".pdf,.doc,.docx">
-            @if($document_path)
-                <p>Current file: <a href="{{ asset('storage/' . $document_path) }}" target="_blank">View Document</a></p>
-            @endif
         </div>
     </div>
 </div>

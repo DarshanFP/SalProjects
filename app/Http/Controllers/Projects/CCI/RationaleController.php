@@ -39,13 +39,20 @@ class RationaleController extends Controller
         try {
             Log::info('Fetching CCI Rationale', ['project_id' => $projectId]);
 
-            $rationale = ProjectCCIRationale::where('project_id', $projectId)->firstOrFail();
-            return view('projects.partials.CCI.rationale_show', compact('rationale'));
+            // Fetch rationale or return null if not found
+            $rationale = ProjectCCIRationale::where('project_id', $projectId)->first();
+
+            if (!$rationale) {
+                Log::warning('No Rationale data found', ['project_id' => $projectId]);
+            }
+
+            return $rationale;
         } catch (\Exception $e) {
             Log::error('Error fetching CCI Rationale', ['error' => $e->getMessage()]);
             return redirect()->back()->with('error', 'Failed to fetch Rationale.');
         }
     }
+
 
     // Edit rationale for a project
     public function edit($projectId)

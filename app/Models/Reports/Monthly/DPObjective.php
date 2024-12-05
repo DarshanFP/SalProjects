@@ -14,9 +14,15 @@ class DPObjective extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
+    protected $casts = [
+        'expected_outcome' => 'array',
+        'changes' => 'boolean',
+    ];
+
     protected $fillable = [
         'objective_id',
         'report_id',
+        'project_objective_id',
         'objective',
         'expected_outcome',
         'not_happened',
@@ -26,7 +32,6 @@ class DPObjective extends Model
         'lessons_learnt',
         'todo_lessons_learnt',
     ];
-
     public function report()
     {
         return $this->belongsTo(DPReport::class, 'report_id', 'report_id');

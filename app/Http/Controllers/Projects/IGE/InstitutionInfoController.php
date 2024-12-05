@@ -18,7 +18,7 @@ class InstitutionInfoController extends Controller
             Log::info('Storing IGE Institution Information', ['project_id' => $projectId]);
 
             // Update or create the institution information entry
-            $institutionInfo = ProjectIGEInstitutionInfo::updateOrCreate(
+            $IGEinstitutionInfo = ProjectIGEInstitutionInfo::updateOrCreate(
                 ['project_id' => $projectId],
                 [
                     'institutional_type' => $request->input('institutional_type'),
@@ -44,13 +44,20 @@ class InstitutionInfoController extends Controller
         try {
             Log::info('Fetching IGE Institution Information', ['project_id' => $projectId]);
 
-            $institutionInfo = ProjectIGEInstitutionInfo::where('project_id', $projectId)->firstOrFail();
-            return view('projects.partials.IGE.institution_info_show', compact('institutionInfo'));
+            $IGEinstitutionInfo = ProjectIGEInstitutionInfo::where('project_id', $projectId)->first();
+
+            if (!$IGEinstitutionInfo) {
+                Log::warning('No Institution Information found', ['project_id' => $projectId]);
+                return null; // Return null if no data exists
+            }
+
+            return $IGEinstitutionInfo; // Return the model directly
         } catch (\Exception $e) {
             Log::error('Error fetching IGE Institution Information', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'Failed to fetch Institution Information.');
+            return null; // Return null on error to avoid breaking the main view
         }
     }
+
 
     // Edit institution information for a project
     public function edit($projectId)
@@ -58,8 +65,8 @@ class InstitutionInfoController extends Controller
         try {
             Log::info('Editing IGE Institution Information', ['project_id' => $projectId]);
 
-            $institutionInfo = ProjectIGEInstitutionInfo::where('project_id', $projectId)->firstOrFail();
-            return $institutionInfo;
+            $IGEinstitutionInfo = ProjectIGEInstitutionInfo::where('project_id', $projectId)->firstOrFail();
+            return $IGEinstitutionInfo;
         } catch (\Exception $e) {
             Log::error('Error editing IGE Institution Information', ['error' => $e->getMessage()]);
             return null;

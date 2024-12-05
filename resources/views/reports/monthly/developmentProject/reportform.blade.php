@@ -259,7 +259,7 @@
 
                 <div class="mb-3 card">
                     <div class="card-header">
-                        <h4>5. Photos</h4>
+                        <h4>5. 7 Photos</h4>
                     </div>
                     <div class="card-body">
                         <div id="photos-container">

@@ -17,14 +17,11 @@ class InterventionLogicController extends Controller
         try {
             Log::info('Storing LDP Intervention Logic', ['project_id' => $projectId]);
 
-            // Delete existing record if it exists
-            ProjectLDPInterventionLogic::where('project_id', $projectId)->delete();
-
-            // Create new intervention logic entry
-            ProjectLDPInterventionLogic::create([
-                'project_id' => $projectId,
-                'intervention_description' => $request->intervention_logic,
-            ]);
+            // Use create or update logic
+            ProjectLDPInterventionLogic::updateOrCreate(
+                ['project_id' => $projectId], // Search by project_id
+                ['intervention_description' => $request->intervention_description] // Update intervention description
+            );
 
             DB::commit();
             Log::info('LDP Intervention Logic saved successfully', ['project_id' => $projectId]);
@@ -43,10 +40,16 @@ class InterventionLogicController extends Controller
             Log::info('Fetching LDP Intervention Logic', ['project_id' => $projectId]);
 
             $interventionLogic = ProjectLDPInterventionLogic::where('project_id', $projectId)->first();
-            return response()->json($interventionLogic, 200);
+
+            if (!$interventionLogic) {
+                Log::warning('No Intervention Logic found', ['project_id' => $projectId]);
+                return null; // Return null if no record is found
+            }
+
+            return $interventionLogic; // Return the model directly
         } catch (\Exception $e) {
             Log::error('Error fetching LDP Intervention Logic', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch intervention logic.'], 500);
+            return null;
         }
     }
 
@@ -58,10 +61,33 @@ class InterventionLogicController extends Controller
 
             $interventionLogic = ProjectLDPInterventionLogic::where('project_id', $projectId)->first();
 
-            return view('projects.partials.Edit.LDP.intervention_logic', compact('interventionLogic'));
+            return $interventionLogic;
         } catch (\Exception $e) {
             Log::error('Error editing LDP Intervention Logic', ['error' => $e->getMessage()]);
             return null;
+        }
+    }
+
+    // Update intervention logic for a project
+    public function update(Request $request, $projectId)
+    {
+        DB::beginTransaction();
+        try {
+            Log::info('Updating LDP Intervention Logic', ['project_id' => $projectId]);
+
+            // Use updateOrCreate logic to either update or create a new record
+            ProjectLDPInterventionLogic::updateOrCreate(
+                ['project_id' => $projectId], // Search by project_id
+                ['intervention_description' => $request->intervention_description] // Update intervention description
+            );
+
+            DB::commit();
+            Log::info('LDP Intervention Logic updated successfully', ['project_id' => $projectId]);
+            return response()->json(['message' => 'Intervention logic updated successfully.'], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error updating LDP Intervention Logic', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to update intervention logic.'], 500);
         }
     }
 

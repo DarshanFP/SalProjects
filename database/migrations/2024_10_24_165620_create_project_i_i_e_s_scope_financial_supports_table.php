@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         Schema::create('project_IIES_scope_financial_support', function (Blueprint $table) {
             $table->id();
-            $table->string('IIES_financial_support_id')->unique();
+            $table->string('IIES_fin_sup_id')->unique();
             $table->string('project_id'); // Foreign key to Project
             $table->boolean('govt_eligible_scholarship')->default(false); // Government scholarship eligibility
             $table->decimal('scholarship_amt', 10, 2)->nullable(); // Expected amount of scholarship

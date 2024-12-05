@@ -1,3 +1,4 @@
+{{-- resources/views/reports/monthly/partials/comments.blade.php --}}
 <!-- Comments Section -->
 <div class="mb-3 card">
     <div class="card-header">

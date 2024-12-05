@@ -14,26 +14,26 @@
                         <th>Action</th>
                     </tr>
                 </thead>
-                <tbody id="family-working-members-rows">
+                <tbody id="IESfamily-working-members-rows">
                     <tr>
                         <td>1</td>
                         <td><input type="text" name="member_name[0]" class="form-control" style="background-color: #202ba3;"></td>
                         <td><input type="text" name="work_nature[0]" class="form-control" style="background-color: #202ba3;"></td>
                         <td><input type="number" name="monthly_income[0]" class="form-control" step="0.01" style="background-color: #202ba3;"></td>
-                        <td><button type="button" class="btn btn-danger" onclick="removeFamilyMemberRow(this)">Remove</button></td>
+                        <td><button type="button" class="btn btn-danger" onclick="IESremoveFamilyMemberRow(this)">Remove</button></td>
                     </tr>
                 </tbody>
             </table>
         </div>
-        <button type="button" class="mt-3 btn btn-primary" onclick="addFamilyMemberRow()">Add More Family Member</button>
+        <button type="button" class="mt-3 btn btn-primary" onclick="IESaddFamilyMemberRow()">Add More Family Member</button>
     </div>
 </div>
 
-<!-- JavaScript to add/remove rows -->
+<!-- JavaScript Functions -->
 <script>
-    (function(){
-    function addFamilyMemberRow() {
-        const container = document.getElementById('family-working-members-rows');
+    // Function to add a new family member row
+    function IESaddFamilyMemberRow() {
+        const container = document.getElementById('IESfamily-working-members-rows');
         const rowCount = container.children.length;
         const newRow = `
             <tr>
@@ -41,20 +41,22 @@
                 <td><input type="text" name="member_name[${rowCount}]" class="form-control" style="background-color: #202ba3;"></td>
                 <td><input type="text" name="work_nature[${rowCount}]" class="form-control" style="background-color: #202ba3;"></td>
                 <td><input type="number" name="monthly_income[${rowCount}]" class="form-control" step="0.01" style="background-color: #202ba3;"></td>
-                <td><button type="button" class="btn btn-danger" onclick="removeFamilyMemberRow(this)">Remove</button></td>
+                <td><button type="button" class="btn btn-danger" onclick="IESremoveFamilyMemberRow(this)">Remove</button></td>
             </tr>
         `;
         container.insertAdjacentHTML('beforeend', newRow);
     }
 
-    function removeFamilyMemberRow(button) {
+    // Function to remove a family member row
+    function IESremoveFamilyMemberRow(button) {
         const row = button.closest('tr');
         row.remove();
-        updateFamilyMemberRowNumbers();
+        IESupdateFamilyMemberRowNumbers();
     }
 
-    function updateFamilyMemberRowNumbers() {
-        const rows = document.querySelectorAll('#family-working-members-rows tr');
+    // Function to update row numbers and input names
+    function IESupdateFamilyMemberRowNumbers() {
+        const rows = document.querySelectorAll('#IESfamily-working-members-rows tr');
         rows.forEach((row, index) => {
             row.children[0].textContent = index + 1;
             row.querySelector(`input[name^="member_name"]`).setAttribute('name', `member_name[${index}]`);
@@ -62,7 +64,6 @@
             row.querySelector(`input[name^="monthly_income"]`).setAttribute('name', `monthly_income[${index}]`);
         });
     }
-})();
 </script>
 
 <!-- Styles -->
@@ -88,5 +89,15 @@
     input[type='number'] {
         -moz-appearance: textfield;
         appearance: textfield;
+    }
+
+    /* Add some spacing around the card */
+    .card {
+        margin: 20px 0;
+    }
+
+    .btn {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
     }
 </style>

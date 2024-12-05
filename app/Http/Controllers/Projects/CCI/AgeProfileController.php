@@ -69,17 +69,39 @@ class AgeProfileController extends Controller
 
     // Show Age Profile
     public function show($projectId)
-    {
-        try {
-            Log::info('Fetching CCI Age Profile', ['project_id' => $projectId]);
+{
+    try {
+        Log::info('Fetching CCI Age Profile', ['project_id' => $projectId]);
 
-            $ageProfile = ProjectCCIAgeProfile::where('project_id', $projectId)->firstOrFail();
-            return view('projects.partials.CCI.age_profile_show', compact('ageProfile'));
-        } catch (\Exception $e) {
-            Log::error('Error fetching CCI Age Profile', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'Failed to fetch Age Profile.');
+        // Fetch the age profile
+        $ageProfile = ProjectCCIAgeProfile::where('project_id', $projectId)->first();
+
+        if ($ageProfile) {
+            // Convert the model to an array for easy access
+            $ageProfile = $ageProfile->toArray();
+        } else {
+            Log::warning('No Age Profile found for project', ['project_id' => $projectId]);
+            // Provide a default structure to prevent Blade errors
+            $ageProfile = [
+                'education_below_5_bridge_course_prev_year' => null,
+                'education_below_5_bridge_course_current_year' => null,
+                'education_below_5_kindergarten_prev_year' => null,
+                'education_below_5_kindergarten_current_year' => null,
+                'education_below_5_other_specify' => null,
+                'education_below_5_other_prev_year' => null,
+                'education_below_5_other_current_year' => null,
+                // Repeat for other fields as necessary...
+            ];
         }
+
+        return $ageProfile;
+    } catch (\Exception $e) {
+        Log::error('Error fetching CCI Age Profile', ['project_id' => $projectId, 'error' => $e->getMessage()]);
+        return null;
     }
+}
+
+
 
     // Edit Age Profile
     public function edit($projectId)

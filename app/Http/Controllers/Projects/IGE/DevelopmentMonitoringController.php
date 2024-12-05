@@ -44,13 +44,20 @@ class DevelopmentMonitoringController extends Controller
         try {
             Log::info('Fetching IGE Development Monitoring', ['project_id' => $projectId]);
 
-            $developmentMonitoring = ProjectIGEDevelopmentMonitoring::where('project_id', $projectId)->firstOrFail();
-            return view('projects.partials.IGE.development_monitoring_show', compact('developmentMonitoring'));
+            $developmentMonitoring = ProjectIGEDevelopmentMonitoring::where('project_id', $projectId)->first();
+
+            if (!$developmentMonitoring) {
+                Log::warning('No Development Monitoring data found', ['project_id' => $projectId]);
+                return null; // Return null if no data is found
+            }
+
+            return $developmentMonitoring; // Return the development monitoring model
         } catch (\Exception $e) {
             Log::error('Error fetching IGE Development Monitoring', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'Failed to fetch Development Monitoring.');
+            return null;
         }
     }
+
 
     // Edit Development Monitoring for a project
     public function edit($projectId)

@@ -18,7 +18,7 @@ class LivelihoodAnnexureController extends Controller
      */
     public function handleLivelihoodAnnexure(Request $request, $report_id)
     {
-        Log::info('Handling Livelihood Annexure for report_id:', ['report_id' => $report_id]);
+        Log::info('Handling Livelihood n Annexure for report_id:', ['report_id' => $report_id]);
 
         $validatedData = $request->validate([
             'dla_beneficiary_name' => 'nullable|array',

@@ -49,6 +49,7 @@ use App\Models\OldProjects\ILP\ProjectILPBusinessStrengthWeakness;
 use App\Models\OldProjects\ILP\ProjectILPPersonalInfo;
 use App\Models\OldProjects\ILP\ProjectILPRevenueGoals;
 use App\Models\OldProjects\ILP\ProjectILPRiskAnalysis;
+use App\Models\OldProjects\RST\ProjectDPRSTBeneficiariesArea;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -258,6 +259,12 @@ class Project extends Model
     public function rstFinancialSummaries()
     {
         return $this->hasOne(ProjectRSTFinancialSummary::class, 'project_id', 'project_id');
+    }
+    // Relationship with ProjectDPRSTBeneficiariesArea model
+    //for Development Projects and Residential Skill Training Proposal
+    public function DPRSTBeneficiariesAreas()
+    {
+        return $this->hasMany(ProjectDPRSTBeneficiariesArea::class, 'project_id', 'project_id');
     }
     //Relationship for IOGEP projects
     public function igeInstitutionInfo()

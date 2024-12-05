@@ -13,21 +13,45 @@ class TargetGroupController extends Controller
     // Store or update target group
     public function store(Request $request, $projectId)
     {
+        Log::info('Storing Target Group for RST', [
+            'project_id' => $projectId,
+            'tg_no_of_beneficiaries' => $request->input('tg_no_of_beneficiaries'),
+            'beneficiaries_description_problems' => $request->input('beneficiaries_description_problems'),
+        ]);
+
+        // Validation
+        $request->validate([
+            'tg_no_of_beneficiaries' => 'nullable|integer',
+            'beneficiaries_description_problems' => 'nullable|string',
+        ]);
+
         DB::beginTransaction();
         try {
-            Log::info('Storing Target Group for RST', ['project_id' => $projectId]);
+            // Retrieve the value
+            $tg_no_of_beneficiaries = $request->input('tg_no_of_beneficiaries');
 
-            // Delete existing target group for the project and insert updated data
-            ProjectRSTTargetGroup::where('project_id', $projectId)->delete();
+            // Check if an entry already exists, if yes, then update, otherwise create
+            $targetGroup = ProjectRSTTargetGroup::where('project_id', $projectId)->first();
 
-            ProjectRSTTargetGroup::create([
-                'project_id' => $projectId,
-                'no_of_beneficiaries' => $request->no_of_beneficiaries,
-                'beneficiaries_description_problems' => $request->beneficiaries_description_problems,
-            ]);
+            if ($targetGroup) {
+                // If exists, update the target group
+                $targetGroup->update([
+                    'tg_no_of_beneficiaries' => $tg_no_of_beneficiaries,
+                    'beneficiaries_description_problems' => $request->input('beneficiaries_description_problems'),
+                ]);
+                Log::info('Target Group updated successfully for RST', ['project_id' => $projectId]);
+            } else {
+                // If not exists, create a new target group
+                ProjectRSTTargetGroup::create([
+                    'project_id' => $projectId,
+                    'tg_no_of_beneficiaries' => $tg_no_of_beneficiaries,
+                    'beneficiaries_description_problems' => $request->input('beneficiaries_description_problems'),
+                    'RST_target_group_id' => $this->generateTargetGroupId(),
+                ]);
+                Log::info('Target Group created successfully for RST', ['project_id' => $projectId]);
+            }
 
             DB::commit();
-            Log::info('Target Group saved successfully for RST', ['project_id' => $projectId]);
             return response()->json(['message' => 'Target Group saved successfully.'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -36,19 +60,42 @@ class TargetGroupController extends Controller
         }
     }
 
+    // Helper method to generate unique target group ID
+    private function generateTargetGroupId()
+    {
+        $latest = ProjectRSTTargetGroup::latest('id')->first();
+        $sequenceNumber = $latest ? intval(substr($latest->RST_target_group_id, -4)) + 1 : 1;
+
+        return 'RST-TG-' . str_pad($sequenceNumber, 4, '0', STR_PAD_LEFT);
+    }
+
+    // Update function - this calls the same store function
+    public function update(Request $request, $projectId)
+    {
+        return $this->store($request, $projectId);
+    }
+
     // Show target group for a project
     public function show($projectId)
     {
         try {
             Log::info('Fetching Target Group for RST', ['project_id' => $projectId]);
 
+            // Fetch the target group entry
             $targetGroup = ProjectRSTTargetGroup::where('project_id', $projectId)->first();
-            return response()->json($targetGroup, 200);
+
+            if (!$targetGroup) {
+                Log::warning('No Target Group data found for RST', ['project_id' => $projectId]);
+                return null; // Return null if no data is found
+            }
+
+            return $targetGroup; // Return the target group model
         } catch (\Exception $e) {
             Log::error('Error fetching Target Group for RST', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch Target Group.'], 500);
+            return null;
         }
     }
+
 
     // Edit target group for a project
     public function edit($projectId)
@@ -56,8 +103,8 @@ class TargetGroupController extends Controller
         try {
             Log::info('Editing Target Group for RST', ['project_id' => $projectId]);
 
-            $targetGroup = ProjectRSTTargetGroup::where('project_id', $projectId)->first();
-            return view('projects.partials.Edit.RST.target_group', compact('targetGroup'));
+            $RSTtargetGroup = ProjectRSTTargetGroup::where('project_id', $projectId)->first();
+            return $RSTtargetGroup;
         } catch (\Exception $e) {
             Log::error('Error editing Target Group for RST', ['error' => $e->getMessage()]);
             return null;

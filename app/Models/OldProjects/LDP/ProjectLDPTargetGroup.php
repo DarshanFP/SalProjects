@@ -15,10 +15,10 @@ class ProjectLDPTargetGroup extends Model
     protected $fillable = [
         'LDP_target_group_id',
         'project_id',
-        'beneficiary_name',
-        'family_situation',
-        'nature_of_livelihood',
-        'amount_requested',
+        'L_beneficiary_name',
+        'L_family_situation',
+        'L_nature_of_livelihood',
+        'L_amount_requested',
     ];
 
     protected static function boot()

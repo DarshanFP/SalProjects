@@ -46,13 +46,21 @@ class ProjectEduRUTBasicInfoController extends Controller
         try {
             Log::info('Fetching basic info', ['project_id' => $projectId]);
 
-            $basicInfo = ProjectEduRUTBasicInfo::where('project_id', $projectId)->firstOrFail();
-            return response()->json($basicInfo, 200);
+            // Fetch the basic info data
+            $basicInfo = ProjectEduRUTBasicInfo::where('project_id', $projectId)->first();
+
+            if (!$basicInfo) {
+                Log::warning('No Basic Info data found', ['project_id' => $projectId]);
+                return null; // Return null if no data is found
+            }
+
+            return $basicInfo; // Return the basic info model
         } catch (\Exception $e) {
             Log::error('Error fetching basic info', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch basic info.'], 500);
+            return null;
         }
     }
+
 
     // Edit basic info for a project
     public function edit($projectId)

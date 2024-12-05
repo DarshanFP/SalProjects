@@ -26,7 +26,7 @@ class IGEBeneficiariesSupportedController extends Controller
             // First, delete all existing beneficiaries for the project
             ProjectIGEBeneficiariesSupported::where('project_id', $projectId)->delete();
 
-            // Insert new beneficiaries
+            //  Insert new beneficiaries
             $classes = $request->input('class', []);
             $totalNumbers = $request->input('total_number', []);
 
@@ -58,12 +58,19 @@ class IGEBeneficiariesSupportedController extends Controller
             Log::info('Fetching IGE beneficiaries supported', ['project_id' => $projectId]);
 
             $beneficiaries = ProjectIGEBeneficiariesSupported::where('project_id', $projectId)->get();
-            return view('projects.partials.IGE.beneficiaries_supported_show', compact('beneficiaries'));
+
+            if ($beneficiaries->isEmpty()) {
+                Log::warning('No beneficiaries supported found for project', ['project_id' => $projectId]);
+                return null; // Return null if no data found
+            }
+
+            return $beneficiaries; // Return the collection of beneficiaries
         } catch (\Exception $e) {
             Log::error('Error fetching IGE beneficiaries supported', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'Failed to fetch IGE beneficiaries supported.');
+            return null; // Return null on error
         }
     }
+
 
     // Edit beneficiaries supported for a project
     public function edit($projectId)

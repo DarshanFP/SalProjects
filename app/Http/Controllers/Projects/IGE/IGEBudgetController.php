@@ -76,12 +76,19 @@ class IGEBudgetController extends Controller
             Log::info('Fetching IGE budget', ['project_id' => $projectId]);
 
             $budget = ProjectIGEBudget::where('project_id', $projectId)->get();
-            return view('projects.partials.IGE.budget_show', compact('budget'));
+
+            if ($budget->isEmpty()) {
+                Log::warning('No IGE budget data found', ['project_id' => $projectId]);
+                return collect(); // Return an empty collection if no data
+            }
+
+            return $budget; // Return the collection of budget records
         } catch (\Exception $e) {
             Log::error('Error fetching IGE budget', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'Failed to fetch IGE budget.');
+            return collect(); // Return an empty collection on error
         }
     }
+
 
     // Edit budget for a project
     public function edit($projectId)

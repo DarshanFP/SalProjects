@@ -43,17 +43,24 @@ class GeographicalAreaController extends Controller
 
     // Show geographical areas for a project
     public function show($projectId)
-    {
-        try {
-            Log::info('Fetching Geographical Areas for RST', ['project_id' => $projectId]);
+{
+    try {
+        Log::info('Fetching Geographical Areas for RST', ['project_id' => $projectId]);
 
-            $geographicalAreas = ProjectRSTGeographicalArea::where('project_id', $projectId)->get();
-            return response()->json($geographicalAreas, 200);
-        } catch (\Exception $e) {
-            Log::error('Error fetching Geographical Areas for RST', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch Geographical Areas.'], 500);
+        $geographicalAreas = ProjectRSTGeographicalArea::where('project_id', $projectId)->get();
+
+        if ($geographicalAreas->isEmpty()) {
+            Log::warning('No Geographical Areas found for RST', ['project_id' => $projectId]);
+            return collect(); // Return an empty collection if no data is found
         }
+
+        return $geographicalAreas; // Return the geographical area data
+    } catch (\Exception $e) {
+        Log::error('Error fetching Geographical Areas for RST', ['error' => $e->getMessage()]);
+        return null;
     }
+}
+
 
     // Edit geographical areas for a project
     public function edit($projectId)
@@ -62,12 +69,65 @@ class GeographicalAreaController extends Controller
             Log::info('Editing Geographical Areas for RST', ['project_id' => $projectId]);
 
             $geographicalAreas = ProjectRSTGeographicalArea::where('project_id', $projectId)->get();
-            return view('projects.partials.Edit.RST.geographical_area', compact('geographicalAreas'));
+            return $geographicalAreas;
         } catch (\Exception $e) {
             Log::error('Error editing Geographical Areas for RST', ['error' => $e->getMessage()]);
             return null;
         }
     }
+
+    public function update(Request $request, $projectId)
+{
+    DB::beginTransaction();
+    try {
+        Log::info('Updating Geographical Areas for RST', ['project_id' => $projectId]);
+
+        // Validate the request data
+        $validatedData = $request->validate([
+            'mandal' => 'required|array',
+            'mandal.*' => 'required|string|max:255',
+            'village' => 'required|array',
+            'village.*' => 'required|string|max:255',
+            'town' => 'required|array',
+            'town.*' => 'required|string|max:255',
+            'no_of_beneficiaries' => 'required|array',
+            'no_of_beneficiaries.*' => 'required|integer|min:0',
+        ]);
+
+        // Fetch existing geographical areas for the project
+        $existingAreas = ProjectRSTGeographicalArea::where('project_id', $projectId)->get();
+
+        // Update or insert new geographical area data
+        foreach ($request->mandal as $index => $mandal) {
+            $areaData = [
+                'project_id' => $projectId,
+                'mandal' => $mandal,
+                'villages' => $request->village[$index],
+                'town' => $request->town[$index],
+                'no_of_beneficiaries' => $request->no_of_beneficiaries[$index],
+            ];
+
+            // Check if a record exists for the mandal
+            $existingArea = $existingAreas->where('mandal', $mandal)->first();
+            if ($existingArea) {
+                // Update the existing record
+                $existingArea->update($areaData);
+            } else {
+                // Create a new record if it doesn't exist
+                ProjectRSTGeographicalArea::create($areaData);
+            }
+        }
+
+        DB::commit();
+        Log::info('Geographical Areas updated successfully for RST', ['project_id' => $projectId]);
+        return response()->json(['message' => 'Geographical Areas updated successfully.'], 200);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error updating Geographical Areas for RST', ['error' => $e->getMessage()]);
+        return response()->json(['error' => 'Failed to update Geographical Areas.'], 500);
+    }
+}
+
 
     // Delete geographical areas for a project
     public function destroy($projectId)

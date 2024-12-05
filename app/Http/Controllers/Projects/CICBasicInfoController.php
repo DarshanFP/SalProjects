@@ -46,13 +46,20 @@ class CICBasicInfoController extends Controller
         try {
             Log::info('Fetching CIC basic info', ['project_id' => $projectId]);
 
-            $basicInfo = ProjectCICBasicInfo::where('project_id', $projectId)->firstOrFail();
-            return response()->json($basicInfo, 200);
+            $basicInfo = ProjectCICBasicInfo::where('project_id', $projectId)->first();
+
+            if (!$basicInfo) {
+                Log::warning('No CIC basic info found', ['project_id' => $projectId]);
+                return null; // Return null if no data is found
+            }
+
+            return $basicInfo; // Return the basic info model
         } catch (\Exception $e) {
             Log::error('Error fetching CIC basic info', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch CIC basic info.'], 500);
+            return null;
         }
     }
+
 
     // Edit basic info for a project
     public function edit($projectId)

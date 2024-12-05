@@ -1,4 +1,3 @@
-{{-- resources/views/projects/Oldprojects/createProjects.blade.php --}}
 @extends('executor.dashboard')
 
 @section('content')
@@ -22,57 +21,62 @@
                     </div>
                 </div>
 
+                <!-- Conditionally Include Project Area for Specific Project Types -->
+                <div id="project-area-section" style="display:none;">
+                    @include('projects.partials.RST.beneficiaries_area')
+                </div>
+
                 <!-- Key Information Section -->
                 @include('projects.partials.key_information')
 
                 <!-- Residential Skill Training Specific Partials (After Key Information Section) -->
-                 <div id="rst-section" style="display:none;">
+                <div id="rst-section" style="display:none;">
                     @include('projects.partials.RST.institution_info')
+                    @include('projects.partials.RST.beneficiaries_area')
                     @include('projects.partials.RST.target_group')
                     @include('projects.partials.RST.target_group_annexure')
                     @include('projects.partials.RST.geographical_area')
-                    @include('projects.partials.budget') <!-- Reuse existing budget partial -->
-                    <!-- Additional RST partials like attachments can go here if needed -->
+                    {{-- @include('projects.partials.budget') --}}
                 </div>
 
                 <!-- Individual - Ongoing Educational Support Partials -->
                 <div id="ies-sections" style="display:none;">
-                    @include('projects.partials.IES.personal_info')           <!-- Personal Information -->
-                    @include('projects.partials.IES.family_working_members')  <!-- Family Working Members -->
-                    @include('projects.partials.IES.immediate_family_details')<!-- Immediate Family Details -->
-                    @include('projects.partials.IES.educational_background')  <!-- Educational Background -->
-                    @include('projects.partials.IES.estimated_expenses')      <!-- Estimated Expenses -->
-                    @include('projects.partials.IES.attachments')             <!-- Attachments -->
+                    @include('projects.partials.IES.personal_info')
+                    @include('projects.partials.IES.family_working_members')
+                    @include('projects.partials.IES.immediate_family_details')
+                    @include('projects.partials.IES.educational_background')
+                    @include('projects.partials.IES.estimated_expenses')
+                    @include('projects.partials.IES.attachments')
                 </div>
 
                 <!-- Individual - Initial Educational Support Partials -->
                 <div id="iies-sections" style="display:none;">
-                    @include('projects.partials.IES.personal_info')             <!-- Personal Information -->
-                    @include('projects.partials.IES.family_working_members')    <!-- Family Working Members -->
-                    @include('projects.partials.IES.immediate_family_details')  <!-- Immediate Family Details -->
-                    @include('projects.partials.IIES.education_background')     <!-- Educational Background -->
-                    @include('projects.partials.IIES.scope_financial_support')  <!-- Scope of Financial Support -->
-                    @include('projects.partials.IES.attachments')               <!-- Attachments -->
+                    @include('projects.partials.IES.personal_info')
+                    @include('projects.partials.IES.family_working_members')
+                    @include('projects.partials.IES.immediate_family_details')
+                    @include('projects.partials.IIES.education_background')
+                    @include('projects.partials.IIES.scope_financial_support')
+                    @include('projects.partials.IES.attachments')
                 </div>
 
                 <!-- Individual - Livelihood Application Partials -->
                 <div id="ilp-sections" style="display:none;">
-                    @include('projects.partials.ILP.personal_info')     <!-- Personal Information -->
-                    @include('projects.partials.ILP.revenue_goals')     <!-- Revenue Goals -->
-                    @include('projects.partials.ILP.strength_weakness') <!-- Strengths and Weaknesses -->
-                    @include('projects.partials.ILP.risk_analysis')     <!-- Risk Analysis -->
-                    @include('projects.partials.ILP.attached_docs')     <!-- Attached Documents -->
-                    @include('projects.partials.ILP.budget')            <!-- Budget -->
+                    @include('projects.partials.ILP.personal_info')
+                    @include('projects.partials.ILP.revenue_goals')
+                    @include('projects.partials.ILP.strength_weakness')
+                    @include('projects.partials.ILP.risk_analysis')
+                    @include('projects.partials.ILP.attached_docs')
+                    @include('projects.partials.ILP.budget')
                 </div>
 
                 <!-- Individual - Access to Health Specific Partials -->
                 <div id="iah-sections" style="display:none;">
-                    @include('projects.partials.IAH.personal_info')         <!-- Personal Information -->
-                    @include('projects.partials.IAH.health_conditions')     <!-- Health Conditions -->
-                    @include('projects.partials.IAH.earning_members')       <!-- Earning Members -->
-                    @include('projects.partials.IAH.support_details')       <!-- Support Details -->
-                    @include('projects.partials.IAH.budget_details')        <!-- Budget Details -->
-                    @include('projects.partials.IAH.documents')             <!-- Document Attachments -->
+                    @include('projects.partials.IAH.personal_info')
+                    @include('projects.partials.IAH.health_conditions')
+                    @include('projects.partials.IAH.earning_members')
+                    @include('projects.partials.IAH.support_details')
+                    @include('projects.partials.IAH.budget_details')
+                    @include('projects.partials.IAH.documents')
                 </div>
 
                 <!-- Institutional Ongoing Group Educational Specific Partials -->
@@ -104,37 +108,22 @@
 
                 <!-- Edu-Rural-Urban-Tribal Specific Partials (After Key Information Section) -->
                 <div id="edu-rut-sections" style="display:none;">
-                    <!-- Basic Information Partial for EduRUT -->
                     @include('projects.partials.Edu-RUT.basic_info')
-
-                    <!-- Target Group Partial for EduRUT -->
                     @include('projects.partials.Edu-RUT.target_group')
                 </div>
 
                 <!-- Livelihood Development Project Specific Partials -->
                 <div id="ldp-section" style="display:none;">
-                    <!-- Need Analysis Partial for LDP -->
                     @include('projects.partials.LDP.need_analysis')
-
-                    <!-- Target Group Partial for LDP -->
                     @include('projects.partials.LDP.target_group')
-
-                    <!-- Intervention Logic Partial for LDP -->
                     @include('projects.partials.LDP.intervention_logic')
                 </div>
 
                 <!-- Default Partial Sections -->
                 <div id="default-sections">
-                    <!-- Logical Framework Section -->
                     @include('projects.partials.logical_framework')
-
-                    <!-- Project Sustainability, Monitoring, and Evaluation Framework -->
                     @include('projects.partials.sustainability')
-
-                    <!-- Budget Section -->
                     @include('projects.partials.budget')
-
-                    <!-- Attachments Section -->
                     @include('projects.partials.attachments')
 
                     <!-- Annexed Target Group Partial for EduRUT (After Attachments Section) -->
@@ -150,13 +139,15 @@
 </div>
 
 @include('projects.partials.scripts')
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const projectTypeDropdown = document.getElementById('project_type');
 
     // Get references to all section elements
-    const iahSections = document.getElementById('iah-sections'); // IAH Specific Sections
+    const iahSections = document.getElementById('iah-sections');
     const eduRUTSections = document.getElementById('edu-rut-sections');
+    const eduRutAnnexedSection = document.getElementById('edu-rut-annexed-section'); 
     const cicSection = document.getElementById('cic-section');
     const cciSection = document.getElementById('cci-section');
     const ldpSection = document.getElementById('ldp-section');
@@ -166,6 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const iiesSections = document.getElementById('iies-sections');
     const ilpSections = document.getElementById('ilp-sections');
     const defaultSections = document.getElementById('default-sections');
+    const projectAreaSection = document.getElementById('project-area-section'); // Project Area Section
 
     // Create an array of all sections for easy management
     const allSections = [
@@ -178,7 +170,9 @@ document.addEventListener('DOMContentLoaded', function() {
         igeSections,
         iesSections,
         iiesSections,
-        ilpSections
+        ilpSections,
+        eduRutAnnexedSection,
+        projectAreaSection
     ];
 
     function toggleSections() {
@@ -199,42 +193,39 @@ document.addEventListener('DOMContentLoaded', function() {
             'Individual - Initial - Educational support'
         ];
 
-        // Show only the relevant sections based on project type
+        // Show relevant sections based on project type
         if (projectType === 'Individual - Access to Health') {
-            iahSections.style.display = 'block'; // Show IAH sections
+            iahSections.style.display = 'block';
         } else if (projectType === 'Individual - Ongoing Educational support') {
             iesSections.style.display = 'block';
         } else if (projectType === 'Individual - Initial - Educational support') {
             iiesSections.style.display = 'block';
         } else if (projectType === 'Individual - Livelihood Application') {
             ilpSections.style.display = 'block';
-        }
-        else if (projectType === 'Residential Skill Training Proposal 2') {
+        } else if (projectType === 'Residential Skill Training Proposal 2') {
             rstSection.style.display = 'block';
-        }
-        else if (projectType === 'Rural-Urban-Tribal') {
+            projectAreaSection.style.display = 'block';
+        } else if (projectType === 'Rural-Urban-Tribal') {
             eduRUTSections.style.display = 'block';
+            eduRutAnnexedSection.style.display = 'block';
+        } else if (projectType === 'Development Projects') {
+            ldpSection.style.display = 'block';
+            projectAreaSection.style.display = 'block';
         } else if (projectType === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
             cicSection.style.display = 'block';
         } else if (projectType === 'CHILD CARE INSTITUTION') {
             cciSection.style.display = 'block';
-        } else if (projectType === 'Livelihood Development Projects') {
-            ldpSection.style.display = 'block';
         } else if (projectType === 'Institutional Ongoing Group Educational proposal') {
             igeSections.style.display = 'block';
+        } else if (projectType === 'Livelihood Development Projects') {
+            ldpSection.style.display = 'block';
         }
 
         // Show or hide default sections based on project type
         if (projectTypesWithoutDefaultSections.includes(projectType)) {
-            // Hide default sections
-            if (defaultSections) {
-                defaultSections.style.display = 'none';
-            }
+            defaultSections.style.display = 'none';
         } else {
-            // Show default sections
-            if (defaultSections) {
-                defaultSections.style.display = 'block';
-            }
+            defaultSections.style.display = 'block';
         }
     }
 
@@ -247,7 +238,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-    /* Styling for input fields and tables */
     .readonly-input {
         background-color: #0D1427;
         color: #f4f0f0;

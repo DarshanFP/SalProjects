@@ -60,12 +60,19 @@ class NewBeneficiariesController extends Controller
             Log::info('Fetching IGE New Beneficiaries', ['project_id' => $projectId]);
 
             $newBeneficiaries = ProjectIGENewBeneficiaries::where('project_id', $projectId)->get();
-            return view('projects.partials.IGE.new_beneficiaries_show', compact('newBeneficiaries'));
+
+            if ($newBeneficiaries->isEmpty()) {
+                Log::warning('No New Beneficiaries data found', ['project_id' => $projectId]);
+                return collect(); // Return an empty collection if no data is found
+            }
+
+            return $newBeneficiaries; // Return the data as a collection
         } catch (\Exception $e) {
             Log::error('Error fetching IGE New Beneficiaries', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'Failed to fetch New Beneficiaries.');
+            return collect(); // Return an empty collection on error
         }
     }
+
 
     // Edit new beneficiaries for a project
     public function edit($projectId)

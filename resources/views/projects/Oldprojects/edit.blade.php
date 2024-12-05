@@ -41,16 +41,18 @@
                         <!-- Residential Skill Training Specific Partials -->
                         @if ($project->project_type === 'Residential Skill Training Proposal 2')
                             @include('projects.partials.Edit.RST.institution_info')
+                            @include('projects.partials.Edit.RST.beneficiaries_area')
                             @include('projects.partials.Edit.RST.target_group')
                             @include('projects.partials.Edit.RST.target_group_annexure')
                             @include('projects.partials.Edit.RST.geographical_area')
-                            @include('projects.partials.Edit.budget')
+                            {{-- @include('projects.partials.Edit.budget') --}}
                         @endif
 
                         <!-- Edu-Rural-Urban-Tribal Specific Partials -->
                         @if ($project->project_type === 'Rural-Urban-Tribal')
                             @include('projects.partials.Edit.Edu-RUT.basic_info')
                             @include('projects.partials.Edit.Edu-RUT.target_group')
+                            @include('projects.partials.Edit.Edu-RUT.annexed_target_group')
                         @endif
 
                         <!-- Individual - Ongoing Educational Support Partials -->
@@ -123,6 +125,13 @@
                             @include('projects.partials.Edit.attachement')
                         @endif
 
+                        <!-- Annexed Target Group Section for Rural-Urban-Tribal -->
+                        @if ($project->project_type === 'Rural-Urban-Tribal')
+                            <div id="edu-rut-annexed-section" style="display:none;">
+                                @include('projects.partials.Edit.Edu-RUT.annexed_target_group')
+                            </div>
+                        @endif
+
                         <button type="submit" class="btn btn-primary me-2">Update Project</button>
                     </form>
                 </div>
@@ -139,6 +148,7 @@
 
         const iahSections = document.getElementById('iah-sections');
         const eduRUTSections = document.getElementById('edu-rut-sections');
+        const eduRutAnnexedSection = document.getElementById('edu-rut-annexed-section');
         const cicSection = document.getElementById('cic-section');
         const cciSection = document.getElementById('cci-section');
         const ldpSection = document.getElementById('ldp-section');
@@ -159,6 +169,7 @@
             igeSections,
             iesSections,
             iiesSections,
+            eduRutAnnexedSection,
             ilpSections
         ];
 
@@ -183,6 +194,7 @@
                 rstSection.style.display = 'block';
             } else if (projectType === 'Rural-Urban-Tribal') {
                 eduRUTSections.style.display = 'block';
+                eduRutAnnexedSection.style.display = 'block'; // Ensure this line is included
             } else if (projectType === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
                 cicSection.style.display = 'block';
             } else if (projectType === 'CHILD CARE INSTITUTION') {

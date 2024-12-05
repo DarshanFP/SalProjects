@@ -38,4 +38,6 @@ class ProjectActivity extends Model
     {
         return $this->hasMany(ProjectTimeframe::class, 'activity_id', 'activity_id');
     }
+    
+
 }

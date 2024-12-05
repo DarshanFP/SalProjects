@@ -1,3 +1,4 @@
+{{-- resources/views/projects/Oldprojects/index.blade.php --}}
 @extends('executor.dashboard')
 
 @section('content')
@@ -9,7 +10,7 @@
                     <h4 class="fp-text-center1">My Projects</h4>
                 </div>
                 <div class="card-body">
-                    
+
                         <table class="table table-bordered table-responsive">
                             <thead>
                                 <tr>

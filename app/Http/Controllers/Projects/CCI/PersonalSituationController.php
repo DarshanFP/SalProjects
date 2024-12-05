@@ -49,17 +49,26 @@ class PersonalSituationController extends Controller
 
     // Show existing personal situation entry
     public function show($projectId)
-    {
-        try {
-            Log::info('Fetching CCI Personal Situation', ['project_id' => $projectId]);
+{
+    try {
+        Log::info('Fetching CCI Personal Situation', ['project_id' => $projectId]);
 
-            $personalSituation = ProjectCCIPersonalSituation::where('project_id', $projectId)->firstOrFail();
-            return view('projects.partials.CCI.personal_situation_show', compact('personalSituation'));
-        } catch (\Exception $e) {
-            Log::error('Error fetching CCI Personal Situation', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'Failed to fetch Personal Situation.');
+        // Fetch the personal situation entry
+        $personalSituation = ProjectCCIPersonalSituation::where('project_id', $projectId)->first();
+
+        if (!$personalSituation) {
+            Log::warning('No Personal Situation data found', ['project_id' => $projectId]);
+            return null; // Return null if no data found
         }
+
+        return $personalSituation; // Return the model directly
+    } catch (\Exception $e) {
+        Log::error('Error fetching CCI Personal Situation', ['error' => $e->getMessage()]);
+        return null;
     }
+}
+
+
 
     // Edit personal situation entry
     public function edit($projectId)

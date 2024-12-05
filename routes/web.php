@@ -196,6 +196,11 @@ Route::prefix('reports/monthly')->group(function () {
     Route::get('livelihood-annexure/{report_id}/edit', [LivelihoodAnnexureController::class, 'edit'])->name('livelihood.annexure.edit');
     Route::put('livelihood-annexure/{report_id}', [LivelihoodAnnexureController::class, 'update'])->name('livelihood.annexure.update');
 
+    //Report Attachment Routes
+    Route::get('reports/monthly/download/{id}', [ReportAttachmentController::class, 'downloadAttachment'])->name('monthly.report.downloadAttachment');
+    Route::delete('/attachments/{id}', [ReportAttachmentController::class, 'remove'])->name('attachments.remove');
+
+
 
 });
 

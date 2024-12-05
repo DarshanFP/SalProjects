@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Reports\Monthly;
 
 use App\Http\Controllers\Controller;
 use App\Models\OldProjects\Project;
+use App\Models\OldProjects\ProjectObjective;
 use App\Models\OldProjects\ProjectBudget;
 use App\Models\Reports\Monthly\DPReport;
 use App\Models\Reports\Monthly\DPObjective;

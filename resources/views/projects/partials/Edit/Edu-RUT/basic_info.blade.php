@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/Edit/Edu-RUT/basic_info.blade.php --}}
 <div class="mb-4 card">
     <div class="card-header">
         <h4 class="mb-0">Edit: Basic Information of Project’s Operational Area</h4>

@@ -26,6 +26,19 @@ use App\Http\Controllers\Projects\IGE\NewBeneficiariesController as IGENewBenefi
 use App\Http\Controllers\Projects\IGE\OngoingBeneficiariesController as IGEOngoingBeneficiariesController;
 use App\Http\Controllers\Projects\IGE\IGEBudgetController as IGEBudgetController;
 use App\Http\Controllers\Projects\IGE\DevelopmentMonitoringController as IGEDevelopmentMonitoringController;
+// LDP - Livelihood Development Project controllers
+use App\Http\Controllers\Projects\LDP\InterventionLogicController as LDPInterventionLogicController;
+use App\Http\Controllers\Projects\LDP\NeedAnalysisController as LDPNeedAnalysisController;
+use App\Http\Controllers\Projects\LDP\TargetGroupController as LDPTargetGroupController;
+// RST - Residential Skill Training controllers
+// RST Controllers
+use App\Http\Controllers\Projects\RST\BeneficiariesAreaController as RSTBeneficiariesAreaController;
+use App\Http\Controllers\Projects\RST\GeographicalAreaController as RSTGeographicalAreaController;
+use App\Http\Controllers\Projects\RST\InstitutionInfoController as RSTInstitutionInfoController;
+use App\Http\Controllers\Projects\RST\TargetGroupAnnexureController as RSTTargetGroupAnnexureController;
+use App\Http\Controllers\Projects\RST\TargetGroupController as RSTTargetGroupController;
+
+
 
 class ProjectController extends Controller
 {
@@ -53,6 +66,19 @@ class ProjectController extends Controller
     protected $igeOngoingBeneficiariesController;
     protected $igeBudgetController;
     protected $igeDevelopmentMonitoringController;
+    // LDP controllers
+    protected $ldpInterventionLogicController;
+    protected $ldpNeedAnalysisController;
+    protected $ldpTargetGroupController;
+    // RST controllers
+    // RST controllers
+    protected $rstBeneficiariesAreaController;
+    protected $rstGeographicalAreaController;
+    protected $rstInstitutionInfoController;
+    protected $rstTargetGroupAnnexureController;
+    protected $rstTargetGroupController;
+
+
 
 
     public function __construct(
@@ -79,7 +105,17 @@ class ProjectController extends Controller
         IGENewBeneficiariesController $igeNewBeneficiariesController,
         IGEOngoingBeneficiariesController $igeOngoingBeneficiariesController,
         IGEBudgetController $igeBudgetController,
-        IGEDevelopmentMonitoringController $igeDevelopmentMonitoringController
+        IGEDevelopmentMonitoringController $igeDevelopmentMonitoringController,
+        // LDP controllers
+        LDPInterventionLogicController $ldpInterventionLogicController,
+        LDPNeedAnalysisController $ldpNeedAnalysisController,
+        LDPTargetGroupController $ldpTargetGroupController,
+        // RST controllers
+        RSTBeneficiariesAreaController $rstBeneficiariesAreaController,
+        RSTGeographicalAreaController $rstGeographicalAreaController,
+        RSTInstitutionInfoController $rstInstitutionInfoController,
+        RSTTargetGroupAnnexureController $rstTargetGroupAnnexureController,
+        RSTTargetGroupController $rstTargetGroupController
 
     ) {
         $this->logicalFrameworkController = $logicalFrameworkController;
@@ -106,6 +142,16 @@ class ProjectController extends Controller
         $this->igeOngoingBeneficiariesController = $igeOngoingBeneficiariesController;
         $this->igeBudgetController = $igeBudgetController;
         $this->igeDevelopmentMonitoringController = $igeDevelopmentMonitoringController;
+        // LDP controllers
+        $this->ldpInterventionLogicController = $ldpInterventionLogicController;
+        $this->ldpNeedAnalysisController = $ldpNeedAnalysisController;
+        $this->ldpTargetGroupController = $ldpTargetGroupController;
+        // RST controllers
+        $this->rstBeneficiariesAreaController = $rstBeneficiariesAreaController;
+        $this->rstGeographicalAreaController = $rstGeographicalAreaController;
+        $this->rstInstitutionInfoController = $rstInstitutionInfoController;
+        $this->rstTargetGroupAnnexureController = $rstTargetGroupAnnexureController;
+        $this->rstTargetGroupController = $rstTargetGroupController;
 
 
     }
@@ -180,6 +226,28 @@ class ProjectController extends Controller
             $this->igeBudgetController->store($request, $project->project_id);
             $this->igeDevelopmentMonitoringController->store($request, $project->project_id);
         }
+        // LDP project type
+        elseif ($request->project_type == 'Livelihood Development Projects') {
+            $this->ldpInterventionLogicController->store($request, $project->project_id);
+            $this->ldpNeedAnalysisController->store($request, $project->project_id);
+            $this->ldpTargetGroupController->store($request, $project->project_id);
+        }
+        // RST project type
+        elseif ($request->project_type === 'Residential Skill Training Proposal 2') {  // Replace with actual type
+            Log::info('Calling rstBeneficiariesAreaController@store');
+            $this->rstBeneficiariesAreaController->store($request, $project->project_id);
+            Log::info('Calling rstGeographicalAreaController@store');
+            $this->rstGeographicalAreaController->store($request, $project->project_id);
+            Log::info('Calling rstInstitutionInfoController@store');
+            $this->rstInstitutionInfoController->store($request, $project->project_id);
+            Log::info('Calling rstTargetGroupAnnexureController@store');
+            $this->rstTargetGroupAnnexureController->store($request, $project->project_id);
+            Log::info('Calling rstTargetGroupController@store');
+            $this->rstTargetGroupController->store($request, $project->project_id);
+
+            Log::info('All RST controllers called successfully');
+
+        }
 
 
         DB::commit();
@@ -196,64 +264,82 @@ class ProjectController extends Controller
     public function show($project_id)
     {
         $project = Project::where('project_id', $project_id)
-                        ->with('budgets', 'attachments', 'objectives', 'sustainabilities')
-                        ->firstOrFail();
+            ->with('budgets', 'attachments', 'objectives', 'sustainabilities')
+            ->firstOrFail();
 
         $user = Auth::user();
 
-        // Initialize variables to null
-        $basicInfo = null;
-        $targetGroups = null;
-        $annexedTargetGroups = null;
-        //Initialize variables for CIC
-        // $cicBasicInfo = null;
-        // Initialize variables for CCI
-        $achievements = null;
-        $ageProfile = null;
-        $annexedTargetGroup = null;
-        $economicBackground = null;
-        $personalSituation = null;
-        $presentSituation = null;
-        $rationale = null;
-        $statistics = null;
+        // Initialize variables for each project type as needed
+        $data = [
+            'project' => $project,
+            'user' => $user,
+            'basicInfo' => null,
+            'targetGroups' => null,
+            'annexedTargetGroups' => null,
+            'achievements' => null,
+            'ageProfile' => null,
+            'annexedTargetGroup' => null,
+            'economicBackground' => null,
+            'personalSituation' => null,
+            'presentSituation' => null,
+            'rationale' => null,
+            'statistics' => null,
+            'interventionLogic' => null,
+            'needAnalysis' => null,
+            'LDPtargetGroups' => null, // Renamed for LDP
+            'IGEInstitutionInfo' => null, // Renamed for IGE
+            'beneficiariesSupported' => null,
+            'newBeneficiaries' => null,
+            'ongoingBeneficiaries' => null,
+            'budget' => null,
+            'developmentMonitoring' => null,
+            'RSTBeneficiariesArea' => null, // Renamed for RST
+            'RSTGeographicalArea' => null, // Renamed for RST
+            'RSTInstitutionInfo' => null, // Renamed for RST
+            'RSTTargetGroupAnnexure' => null, // Renamed for RST
+            'RSTTargetGroup' => null, // Renamed for RST
+        ];
 
-        // Fetch EduRUT related data if the project type is Rural-Urban-Tribal
+        // Handle project-specific data
         if ($project->project_type == 'Rural-Urban-Tribal') {
-            $basicInfo = $this->eduRUTBasicInfoController->show($project_id)->getData();
-            $targetGroups = $this->eduRUTTargetGroupController->show($project_id)->getData();
-            $annexedTargetGroups = $this->eduRUTAnnexedTargetGroupController->show($project_id)->getData();
-        }
-        elseif ($project->project_type == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
-            $project->load(relations: 'cicBasicInfo');
-        }
-        elseif ($project->project_type === 'CHILD CARE INSTITUTION') {
-            // CCI Project type logic
-            $achievements = $this->cciAchievementsController->show($project->project_id);
-            $ageProfile = $this->cciAgeProfileController->show($project->project_id);
-            $annexedTargetGroup = $this->cciAnnexedTargetGroupController->show($project->project_id);
-            $economicBackground = $this->cciEconomicBackgroundController->show($project->project_id);
-            $personalSituation = $this->cciPersonalSituationController->show($project->project_id);
-            $presentSituation = $this->cciPresentSituationController->show($project->project_id);
-            $rationale = $this->cciRationaleController->show($project->project_id);
-            $statistics = $this->cciStatisticsController->show($project->project_id);
+            $data['basicInfo'] = $this->eduRUTBasicInfoController->show($project_id);
+            $data['RUTtargetGroups'] = $this->eduRUTTargetGroupController->show($project_id);
+            $data['annexedTargetGroups'] = $this->eduRUTAnnexedTargetGroupController->show($project_id);
+        } elseif ($project->project_type == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
+            $data['basicInfo'] = $this->cicBasicInfoController->show($project->project_id);
+        } elseif ($project->project_type === 'CHILD CARE INSTITUTION') {
+            $data['achievements'] = $this->cciAchievementsController->show($project->project_id);
+            $data['ageProfile'] = $this->cciAgeProfileController->show($project->project_id);
+            $data['annexedTargetGroup'] = $this->cciAnnexedTargetGroupController->show($project->project_id);
+
+            $data['economicBackground'] = $this->cciEconomicBackgroundController->show($project->project_id);
+            $data['personalSituation'] = $this->cciPersonalSituationController->show($project->project_id);
+            $data['presentSituation'] = $this->cciPresentSituationController->show($project->project_id);
+            $data['rationale'] = $this->cciRationaleController->show($project->project_id);
+            $data['statistics'] = $this->cciStatisticsController->show($project->project_id);
+        } elseif ($project->project_type === 'Institutional Ongoing Group Educational proposal') {
+            $data['IGEInstitutionInfo'] = $this->igeInstitutionInfoController->show($project->project_id);
+            $data['beneficiariesSupported'] = $this->igeBeneficiariesSupportedController->show($project->project_id);
+            $data['newBeneficiaries'] = $this->igeNewBeneficiariesController->show($project->project_id);
+            $data['ongoingBeneficiaries'] = $this->igeOngoingBeneficiariesController->show($project->project_id);
+            $data['IGEbudget'] = $this->igeBudgetController->show($project->project_id);
+            $data['developmentMonitoring'] = $this->igeDevelopmentMonitoringController->show($project->project_id);
+        } elseif ($project->project_type == 'Livelihood Development Projects') {
+            $data['interventionLogic'] = $this->ldpInterventionLogicController->show($project_id);
+            $data['needAnalysis'] = $this->ldpNeedAnalysisController->show($project_id);
+            $data['LDPtargetGroups'] = $this->ldpTargetGroupController->show($project_id);
+        } elseif ($project->project_type === 'Residential Skill Training Proposal 2') {
+            $data['RSTBeneficiariesArea'] = $this->rstBeneficiariesAreaController->show($project->project_id);
+            $data['RSTGeographicalArea'] = $this->rstGeographicalAreaController->show($project->project_id);
+            $data['RSTInstitutionInfo'] = $this->rstInstitutionInfoController->show($project->project_id);
+            $data['RSTTargetGroupAnnexure'] = $this->rstTargetGroupAnnexureController->show($project->project_id);
+            $data['RSTTargetGroup'] = $this->rstTargetGroupController->show($project->project_id);
         }
 
-        return view('projects.Oldprojects.show', compact('project', 'user',
-        'basicInfo',
-        'targetGroups',
-        'annexedTargetGroups',
-        // 'cicBasicInfo',
-        // CCI
-        'achievements',
-            'ageProfile',
-            'annexedTargetGroup',
-            'economicBackground',
-            'personalSituation',
-            'presentSituation',
-            'rationale',
-            'statistics'
-        ));
+        // Pass data to the view
+        return view('projects.Oldprojects.show', $data);
     }
+
 
 
     public function edit($project_id)
@@ -286,12 +372,23 @@ class ProjectController extends Controller
             $rationale = null;
             $statistics = null;
             // Initialize variables for IGE
-            $institutionInfo = null;
-            $beneficiariesSupported = null;
+            $IGEinstitutionInfo = null; //Added IGE
+            $beneficiariesSupported = collect();
             $newBeneficiaries = null;
             $ongoingBeneficiaries = null;
             $budget = null;
             $developmentMonitoring = null;
+            // Initialize variables for LDP
+            $interventionLogic = null;
+            $needAnalysis = null;
+            $LDPtargetGroups = null;
+            // Initialize variables for RST
+            $beneficiariesArea = null;
+            $geographicalArea = null;
+            $RSTinstitutionInfo = null; //Added RST
+            $RSTtargetGroupAnnexure = null; //Added RST
+            $RSTtargetGroup = null; //Added RST
+
 
             // Handle specific project types
             if ($project->project_type == 'Rural-Urban-Tribal') {
@@ -311,13 +408,29 @@ class ProjectController extends Controller
                 $rationale = $this->cciRationaleController->edit($project->project_id);
                 $statistics = $this->cciStatisticsController->edit($project->project_id);
             } elseif ($project->project_type === 'Institutional Ongoing Group Educational proposal') {
-                $institutionInfo = $this->igeInstitutionInfoController->edit($project->project_id);
+                $IGEinstitutionInfo = $this->igeInstitutionInfoController->edit($project->project_id);
                 $beneficiariesSupported = $this->igeBeneficiariesSupportedController->edit($project->project_id);
                 // $newBeneficiaries = $this->igeNewBeneficiariesController->edit($project->project_id);
                 $newBeneficiaries = $this->igeNewBeneficiariesController->edit($project->project_id);
                 $ongoingBeneficiaries = $this->igeOngoingBeneficiariesController->edit($project->project_id);
                 $budget = $this->igeBudgetController->edit($project->project_id);
                 $developmentMonitoring = $this->igeDevelopmentMonitoringController->edit($project->project_id);
+            }
+            // LDP project type
+            elseif ($project->project_type == 'Livelihood Development Projects') {
+                $interventionLogic = $this->ldpInterventionLogicController->edit($project_id);
+                // $needAnalysis = $this->ldpNeedAnalysisController->edit($project_id);
+                $needAnalysis = $this->ldpNeedAnalysisController->edit($project_id);
+
+                $LDPtargetGroups = $this->ldpTargetGroupController->edit($project_id);
+            }
+            // RST project type
+            elseif ($project->project_type === 'Residential Skill Training Proposal 2') {  // Replace with actual type
+                $beneficiariesArea = $this->rstBeneficiariesAreaController->edit($project->project_id);
+                $geographicalArea = $this->rstGeographicalAreaController->edit($project->project_id);
+                $RSTinstitutionInfo = $this->rstInstitutionInfoController->edit($project->project_id);
+                $RSTtargetGroupAnnexure = $this->rstTargetGroupAnnexureController->edit($project->project_id);
+                $RSTtargetGroup = $this->rstTargetGroupController->edit($project->project_id);
             }
 
 
@@ -329,8 +442,14 @@ class ProjectController extends Controller
                 'achievements', 'ageProfile', 'targetGroup', 'economicBackground',
                 'personalSituation', 'presentSituation', 'rationale', 'statistics',
                  // IGE variables
-                'institutionInfo', 'beneficiariesSupported', 'newBeneficiaries',
-                'ongoingBeneficiaries', 'budget', 'developmentMonitoring'
+                'IGEinstitutionInfo', 'beneficiariesSupported', 'newBeneficiaries',
+                'ongoingBeneficiaries', 'budget', 'developmentMonitoring',
+                // LDP variables
+                'interventionLogic', 'needAnalysis', 'LDPtargetGroups',
+                // RST variables
+                'beneficiariesArea', 'geographicalArea', 'RSTinstitutionInfo',
+                'RSTtargetGroupAnnexure', 'RSTtargetGroup'
+
             ));
         } catch (\Exception $e) {
             Log::error('ProjectController@edit - Error retrieving project data', ['error' => $e->getMessage()]);
@@ -387,7 +506,20 @@ public function update(Request $request, $project_id)
             $this->igeBudgetController->update($request, $project->project_id);
             $this->igeDevelopmentMonitoringController->update($request, $project->project_id);
         }
-
+        // LDP project type
+        elseif ($project->project_type == 'Livelihood Development Projects') {
+            $this->ldpInterventionLogicController->update($request, $project->project_id);
+            $this->ldpNeedAnalysisController->update($request, $project->project_id);
+            $this->ldpTargetGroupController->update($request, $project->project_id);
+        }
+        // RST project type
+        elseif ($project->project_type === 'Residential Skill Training Proposal 2') {  // Replace with actual type
+            $this->rstBeneficiariesAreaController->update($request, $project->project_id);
+            $this->rstGeographicalAreaController->update($request, $project->project_id);
+            $this->rstInstitutionInfoController->update($request, $project->project_id);
+            $this->rstTargetGroupAnnexureController->update($request, $project->project_id);
+            $this->rstTargetGroupController->update($request, $project->project_id);
+        }
 
         DB::commit();
         return redirect()->route('projects.index')->with('success', 'Project updated successfully.');
@@ -415,9 +547,47 @@ public function update(Request $request, $project_id)
                 $this->eduRUTTargetGroupController->destroy($project_id);
                 $this->eduRUTAnnexedTargetGroupController->destroy($project_id);
             }
+            // Check for CCI project type
             elseif ($project->project_type == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
                 $this->cicBasicInfoController->destroy($project_id);
             }
+            // Check for CCI project type
+            elseif ($project->project_type === 'CHILD CARE INSTITUTION') {
+                // CCI Project type logic
+                $this->cciAchievementsController->destroy($project_id);
+                $this->cciAgeProfileController->destroy($project_id);
+                $this->cciAnnexedTargetGroupController->destroy($project_id);
+                $this->cciEconomicBackgroundController->destroy($project_id);
+                $this->cciPersonalSituationController->destroy($project_id);
+                $this->cciPresentSituationController->destroy($project_id);
+                $this->cciRationaleController->destroy($project_id);
+                $this->cciStatisticsController->destroy($project_id);
+            }
+            //IGE project type
+            elseif ($project->project_type === 'Institutional Ongoing Group Educational proposal') {
+                // Call the destroy methods from IGE controllers
+                $this->igeInstitutionInfoController->destroy($project_id);
+                $this->igeBeneficiariesSupportedController->destroy($project_id);
+                $this->igeNewBeneficiariesController->destroy($project_id);
+                $this->igeOngoingBeneficiariesController->destroy($project_id);
+                $this->igeBudgetController->destroy($project_id);
+                $this->igeDevelopmentMonitoringController->destroy($project_id);
+            }
+            // LDP project type
+            elseif ($project->project_type == 'Livelihood Development Projects') {
+                $this->ldpInterventionLogicController->destroy($project_id);
+                $this->ldpNeedAnalysisController->destroy($project_id);
+                $this->ldpTargetGroupController->destroy($project_id);
+            }
+            // RST project type
+            elseif ($project->project_type === 'Residential Skill Training Proposal 2') {  // Replace with actual type
+                $this->rstBeneficiariesAreaController->destroy($project_id);
+                $this->rstGeographicalAreaController->destroy($project_id);
+                $this->rstInstitutionInfoController->destroy($project_id);
+                $this->rstTargetGroupAnnexureController->destroy($project_id);
+                $this->rstTargetGroupController->destroy($project_id);
+            }
+
 
             $project->delete();
 

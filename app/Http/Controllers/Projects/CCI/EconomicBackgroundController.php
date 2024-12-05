@@ -68,18 +68,26 @@ public function update(Request $request, $projectId)
 
     // Show existing economic background entry
     public function show($projectId)
-    {
-        try {
-            Log::info('Fetching CCI Economic Background', ['project_id' => $projectId]);
+{
+    try {
+        Log::info('Fetching CCI Economic Background', ['project_id' => $projectId]);
 
-            // Fetch the economic background entry
-            $economicBackground = ProjectCCIEconomicBackground::where('project_id', $projectId)->firstOrFail();
-            return view('projects.partials.CCI.economic_background_show', compact('economicBackground'));
-        } catch (\Exception $e) {
-            Log::error('Error fetching CCI Economic Background', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'Failed to fetch Economic Background.');
+        // Fetch the economic background entry
+        $economicBackground = ProjectCCIEconomicBackground::where('project_id', $projectId)->first();
+        
+        if (!$economicBackground) {
+            Log::warning('No Economic Background data found', ['project_id' => $projectId]);
+            return null; // Return null if no data is found
         }
+
+        return $economicBackground; // Return the economic background model
+    } catch (\Exception $e) {
+        Log::error('Error fetching CCI Economic Background', ['error' => $e->getMessage()]);
+        return null;
     }
+}
+
+
 
     // Edit economic background entry
     public function edit($projectId)

@@ -2,6 +2,7 @@
 
 namespace App\Models\OldProjects;
 
+use App\Models\Reports\Monthly\DPActivity;
 use Illuminate\Database\Eloquent\Model;
 
 class ProjectTimeframe extends Model
@@ -33,4 +34,9 @@ class ProjectTimeframe extends Model
     {
         return $this->belongsTo(ProjectActivity::class, 'activity_id', 'activity_id');
     }
+    public function DPactivity()
+    {
+        return $this->belongsTo(DPActivity::class, 'activity_id', 'project_activity_id');
+    }
+
 }

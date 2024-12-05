@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 class CrisisInterventionCenterController extends Controller
 {
     /**
-     * Handle storing or updating Crisis Intervention Center data.
+     * Handle storing or updating Crisis Intervention Center data .
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  int  $report_id

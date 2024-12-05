@@ -37,17 +37,30 @@ class AchievementsController extends Controller
 
     // Show achievements for a project
     public function show($projectId)
-    {
-        try {
-            Log::info('Fetching CCI Achievements', ['project_id' => $projectId]);
+{
+    try {
+        Log::info('Fetching CCI Achievements', ['project_id' => $projectId]);
 
-            $achievements = ProjectCCIAchievements::where('project_id', $projectId)->firstOrFail();
-            return response()->json($achievements, 200);
-        } catch (\Exception $e) {
-            Log::error('Error fetching CCI Achievements', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch achievements.'], 500);
-        }
+        // Fetch the record with any necessary relationships
+        $achievements = ProjectCCIAchievements::where('project_id', $projectId)->firstOrFail();
+
+        // Decode JSON fields
+        $achievements->academic_achievements = json_decode($achievements->academic_achievements, true);
+        $achievements->sport_achievements = json_decode($achievements->sport_achievements, true);
+        $achievements->other_achievements = json_decode($achievements->other_achievements, true);
+
+        Log::info('Successfully fetched CCI Achievements', ['data' => $achievements]);
+
+        // Return a structured response for consistency
+        return $achievements;
+    } catch (\Exception $e) {
+        // Handle exception
+        return null;
     }
+}
+
+
+
 
     // Edit achievements for a project
     public function edit($projectId)

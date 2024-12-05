@@ -39,17 +39,24 @@ class EduRUTAnnexedTargetGroupController extends Controller
 
     // Show annexed target group data for a project
     public function show($projectId)
-    {
-        try {
-            Log::info('Fetching annexed target group data', ['project_id' => $projectId]);
+{
+    try {
+        Log::info('Fetching annexed target group data', ['project_id' => $projectId]);
 
-            $annexedTargetGroups = ProjectEduRUTAnnexedTargetGroup::where('project_id', $projectId)->get();
-            return response()->json($annexedTargetGroups, 200);
-        } catch (\Exception $e) {
-            Log::error('Error fetching annexed target group data', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch annexed target group data.'], 500);
+        // Fetch the annexed target group data
+        $annexedTargetGroups = ProjectEduRUTAnnexedTargetGroup::where('project_id', $projectId)->get();
+
+        if ($annexedTargetGroups->isEmpty()) {
+            Log::warning('No annexed target group data found', ['project_id' => $projectId]);
         }
+
+        return $annexedTargetGroups; // Return the collection of target groups
+    } catch (\Exception $e) {
+        Log::error('Error fetching annexed target group data', ['error' => $e->getMessage()]);
+        return collect(); // Return an empty collection in case of failure
     }
+}
+
 
     // Edit annexed target group data for a project
     public function edit($projectId)

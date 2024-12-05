@@ -28,7 +28,7 @@
                                 <tr>
                                     <td>{{ $report->project_id }}</td>
                                     <td>{{ $report->report_id }}</td>
-                                    <td>{{ $report->month }}</td>
+                                    <td>{{ $report->report_month_year }}</td>
                                     <td>{{ $report->project_title }}</td>
                                     <td>
                                         <a href="{{ route('monthly.report.edit', $report->report_id) }}" class="btn btn-warning btn-sm">Edit</a>

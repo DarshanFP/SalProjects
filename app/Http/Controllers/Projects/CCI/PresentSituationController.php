@@ -41,13 +41,22 @@ class PresentSituationController extends Controller
         try {
             Log::info('Fetching CCI Present Situation', ['project_id' => $projectId]);
 
-            $presentSituation = ProjectCCIPresentSituation::where('project_id', $projectId)->firstOrFail();
-            return view('projects.partials.CCI.present_situation_show', compact('presentSituation'));
+            // Fetch the present situation data or return an empty array if not found
+            $presentSituation = ProjectCCIPresentSituation::where('project_id', $projectId)->first();
+
+            if (!$presentSituation) {
+                Log::warning('No Present Situation data found', ['project_id' => $projectId]);
+            }
+
+            return $presentSituation; // Return the present situation model
         } catch (\Exception $e) {
             Log::error('Error fetching CCI Present Situation', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'Failed to fetch Present Situation.');
+            return null;
         }
+
     }
+
+
 
     // Edit present situation for a project
     public function edit($projectId)

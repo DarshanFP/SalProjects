@@ -52,13 +52,20 @@ class StatisticsController extends Controller
         try {
             Log::info('Fetching CCI Statistics', ['project_id' => $projectId]);
 
-            $statistics = ProjectCCIStatistics::where('project_id', $projectId)->firstOrFail();
-            return view('projects.partials.CCI.statistics_show', compact('statistics'));
+            // Fetch statistics or return null if not found
+            $statistics = ProjectCCIStatistics::where('project_id', $projectId)->first();
+
+            if (!$statistics) {
+                Log::warning('No Statistics data found', ['project_id' => $projectId]);
+            }
+
+            return $statistics;
         } catch (\Exception $e) {
             Log::error('Error fetching CCI Statistics', ['error' => $e->getMessage()]);
             return redirect()->back()->with('error', 'Failed to fetch Statistics.');
         }
     }
+
 
     // Edit statistics for a project
     public function edit($projectId)

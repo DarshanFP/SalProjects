@@ -64,17 +64,18 @@ class EduRUTTargetGroupController extends Controller
 
     // Show target group data for a project
     public function show($projectId)
-    {
-        try {
-            Log::info('Fetching target group data', ['project_id' => $projectId]);
+{
+    try {
+        Log::info('Fetching target group data', ['project_id' => $projectId]);
 
-            $targetGroups = ProjectEduRUTTargetGroup::where('project_id', $projectId)->get();
-            return response()->json($targetGroups, 200);
-        } catch (\Exception $e) {
-            Log::error('Error fetching target group data', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch target group data.'], 500);
-        }
+        $RUTtargetGroups = ProjectEduRUTTargetGroup::where('project_id', $projectId)->get();
+        return $RUTtargetGroups; // Return the collection directly
+    } catch (\Exception $e) {
+        Log::error('Error fetching target group data', ['error' => $e->getMessage()]);
+        return collect(); // Return an empty collection on error
     }
+}
+
 
     // Edit target group data for a project
     public function edit($projectId)

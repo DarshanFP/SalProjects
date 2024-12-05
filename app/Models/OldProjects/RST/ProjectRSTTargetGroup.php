@@ -15,7 +15,7 @@ class ProjectRSTTargetGroup extends Model
     protected $fillable = [
         'RST_target_group_id',
         'project_id',
-        'no_of_beneficiaries',
+        'tg_no_of_beneficiaries',
         'beneficiaries_description_problems'
     ];
 

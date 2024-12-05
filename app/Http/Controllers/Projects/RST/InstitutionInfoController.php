@@ -40,17 +40,25 @@ class InstitutionInfoController extends Controller
 
     // Show institution info for a project
     public function show($projectId)
-    {
-        try {
-            Log::info('Fetching Institution Info for RST', ['project_id' => $projectId]);
+{
+    try {
+        Log::info('Fetching Institution Info for RST', ['project_id' => $projectId]);
 
-            $institutionInfo = ProjectRSTInstitutionInfo::where('project_id', $projectId)->firstOrFail();
-            return response()->json($institutionInfo, 200);
-        } catch (\Exception $e) {
-            Log::error('Error fetching Institution Info for RST', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch Institution Info.'], 500);
+        // Fetch the institution info or return null if not found
+        $institutionInfo = ProjectRSTInstitutionInfo::where('project_id', $projectId)->first();
+
+        if (!$institutionInfo) {
+            Log::warning('No Institution Info found for RST', ['project_id' => $projectId]);
+            return null; // Return null if no data is found
         }
+
+        return $institutionInfo; // Return the institution info model
+    } catch (\Exception $e) {
+        Log::error('Error fetching Institution Info for RST', ['error' => $e->getMessage()]);
+        return null;
     }
+}
+
 
     // Edit institution info for a project
     public function edit($projectId)
@@ -59,12 +67,45 @@ class InstitutionInfoController extends Controller
             Log::info('Editing Institution Info for RST', ['project_id' => $projectId]);
 
             $institutionInfo = ProjectRSTInstitutionInfo::where('project_id', $projectId)->firstOrFail();
-            return view('projects.partials.Edit.RST.institution_info', compact('institutionInfo'));
+            return $institutionInfo;
         } catch (\Exception $e) {
             Log::error('Error editing Institution Info for RST', ['error' => $e->getMessage()]);
             return null;
         }
     }
+
+    // Update institution info for a project
+public function update(Request $request, $projectId)
+{
+    DB::beginTransaction();
+    try {
+        Log::info('Updating Institution Info for RST', ['project_id' => $projectId]);
+
+        // Check if the institution info exists for the given project ID
+        $institutionInfo = ProjectRSTInstitutionInfo::where('project_id', $projectId)->first();
+        if (!$institutionInfo) {
+            Log::warning('No Institution Info found to update for RST', ['project_id' => $projectId]);
+            return response()->json(['error' => 'Institution Info not found.'], 404);
+        }
+
+        // Update the institution info
+        $institutionInfo->update([
+            'year_setup' => $request->year_setup,
+            'total_students_trained' => $request->total_students_trained,
+            'beneficiaries_last_year' => $request->beneficiaries_last_year,
+            'training_outcome' => $request->training_outcome,
+        ]);
+
+        DB::commit();
+        Log::info('Institution Info updated successfully for RST', ['project_id' => $projectId]);
+        return response()->json(['message' => 'Institution Info updated successfully.'], 200);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error updating Institution Info for RST', ['error' => $e->getMessage()]);
+        return response()->json(['error' => 'Failed to update Institution Info.'], 500);
+    }
+}
+
 
     // Delete institution info for a project
     public function destroy($projectId)

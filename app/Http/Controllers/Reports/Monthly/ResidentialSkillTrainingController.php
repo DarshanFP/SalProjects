@@ -79,6 +79,8 @@ class ResidentialSkillTrainingController extends Controller
      */
     public function getTraineeProfiles($report_id)
     {
+
         return RQSTTraineeProfile::where('report_id', $report_id)->get();
+
     }
 }

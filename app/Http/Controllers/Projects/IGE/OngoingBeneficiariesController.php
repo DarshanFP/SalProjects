@@ -68,12 +68,18 @@ class OngoingBeneficiariesController extends Controller
             Log::info('Fetching IGE Ongoing Beneficiaries', ['project_id' => $projectId]);
 
             $ongoingBeneficiaries = ProjectIGEOngoingBeneficiaries::where('project_id', $projectId)->get();
-            return view('projects.partials.IGE.ongoing_beneficiaries_show', compact('ongoingBeneficiaries'));
+
+            if (!$ongoingBeneficiaries instanceof \Illuminate\Database\Eloquent\Collection) {
+                $ongoingBeneficiaries = collect();
+            }
+
+            return $ongoingBeneficiaries;
         } catch (\Exception $e) {
             Log::error('Error fetching IGE Ongoing Beneficiaries', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'Failed to fetch Ongoing Beneficiaries.');
+            return collect(); // Return an empty collection on error
         }
     }
+
 
     // Edit ongoing beneficiaries for a project
     public function edit($projectId)

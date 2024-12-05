@@ -14,44 +14,53 @@
                         <th>Action</th>
                     </tr>
                 </thead>
-                <tbody id="geographical-area-rows">
-                    @foreach ($geographicalAreas as $index => $area)
+                <tbody id="RST-geographical-area-rows">
+                    @if(isset($geographicalArea) && count($geographicalArea) > 0)
+                        @foreach($geographicalArea as $index => $area)
+                            <tr>
+                                <td><input type="text" name="mandal[]" value="{{ $area->mandal }}" class="form-control" style="background-color: #202ba3;"></td>
+                                <td><input type="text" name="village[]" value="{{ $area->villages }}" class="form-control" style="background-color: #202ba3;"></td>
+                                <td><input type="text" name="town[]" value="{{ $area->town }}" class="form-control" style="background-color: #202ba3;"></td>
+                                <td><input type="number" name="no_of_beneficiaries[]" value="{{ $area->no_of_beneficiaries }}" class="form-control" style="background-color: #202ba3;"></td>
+                                <td><button type="button" class="btn btn-danger" onclick="removeRSTGeographicalAreaRow(this)">Remove</button></td>
+                            </tr>
+                        @endforeach
+                    @else
+                        <!-- If no data exists, show a default empty row -->
                         <tr>
-                            <td><input type="text" name="mandal[]" class="form-control" value="{{ $area->mandal }}" style="background-color: #202ba3;"></td>
-                            <td><input type="text" name="village[]" class="form-control" value="{{ $area->villages }}" style="background-color: #202ba3;"></td>
-                            <td><input type="text" name="town[]" class="form-control" value="{{ $area->town }}" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="no_of_beneficiaries[]" class="form-control" value="{{ $area->no_of_beneficiaries }}" style="background-color: #202ba3;"></td>
-                            <td><button type="button" class="btn btn-danger" onclick="removeGeographicalAreaRow(this)">Remove</button></td>
+                            <td><input type="text" name="mandal[]" class="form-control" style="background-color: #202ba3;"></td>
+                            <td><input type="text" name="village[]" class="form-control" style="background-color: #202ba3;"></td>
+                            <td><input type="text" name="town[]" class="form-control" style="background-color: #202ba3;"></td>
+                            <td><input type="number" name="no_of_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
+                            <td><button type="button" class="btn btn-danger" onclick="removeRSTGeographicalAreaRow(this)">Remove</button></td>
                         </tr>
-                    @endforeach
+                    @endif
                 </tbody>
             </table>
         </div>
-        <button type="button" class="mt-3 btn btn-primary" onclick="addGeographicalAreaRow()">Add More</button>
+        <button type="button" class="mt-3 btn btn-primary" onclick="addRSTGeographicalAreaRow()">Add More</button>
     </div>
 </div>
 
 <script>
-    (function(){
-    let geoAreaRowIndex = {{ count($geographicalAreas) }}; // Initial row count
+    let RSTGeoAreaRowIndex = {{ isset($geographicalArea) ? count($geographicalArea) : 1 }};
 
-    function addGeographicalAreaRow() {
-        geoAreaRowIndex++;
+    function addRSTGeographicalAreaRow() {
+        RSTGeoAreaRowIndex++;
         const newRow = `
             <tr>
                 <td><input type="text" name="mandal[]" class="form-control" style="background-color: #202ba3;"></td>
                 <td><input type="text" name="village[]" class="form-control" style="background-color: #202ba3;"></td>
                 <td><input type="text" name="town[]" class="form-control" style="background-color: #202ba3;"></td>
                 <td><input type="number" name="no_of_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><button type="button" class="btn btn-danger" onclick="removeGeographicalAreaRow(this)">Remove</button></td>
+                <td><button type="button" class="btn btn-danger" onclick="removeRSTGeographicalAreaRow(this)">Remove</button></td>
             </tr>
         `;
-        document.getElementById('geographical-area-rows').insertAdjacentHTML('beforeend', newRow);
+        document.getElementById('RST-geographical-area-rows').insertAdjacentHTML('beforeend', newRow);
     }
 
-    function removeGeographicalAreaRow(button) {
+    function removeRSTGeographicalAreaRow(button) {
         const row = button.closest('tr');
         row.remove();
     }
-})();
 </script>

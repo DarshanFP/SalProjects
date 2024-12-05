@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/_timeframe.blade.php --}}
 <div class="mt-4 card time-frame-card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h6>Time Frame for Activities</h6>

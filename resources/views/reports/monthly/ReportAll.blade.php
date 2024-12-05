@@ -1,3 +1,4 @@
+{{-- resources/views/reports/monthly/ReportAll.blade.php --}}
 @extends('executor.dashboard')
 
 @section('content')
@@ -12,7 +13,7 @@
                 <div class="mb-3 card">
                     <div class="card-header">
                         <h4 class="fp-text-center1">TRACKING -- PROJECT</h4>
-                        <h4 class="fp-text-center1">MONTHLY PROGRESS REPORT (common)</h4>
+                        <h4 class="fp-text-center1">MONTHLY PROGRESS REPORT</h4>
                     </div>
                     <div class="card-header">
                         <h4 class="fp-text-margin">Basic Information</h4>
@@ -73,22 +74,22 @@
                                  <!-- Include specific project type partials -->
 
                 @if($project->project_type === 'Livelihood Development Projects')
-                    @include('reports.monthly.partials.LivelihoodAnnexure', ['report' => $project])
+                    @include('reports.monthly.partials.create.LivelihoodAnnexure', ['report' => $project])
 
                 @elseif($project->project_type === 'Institutional Ongoing Group Educational proposal')
-                    @include('reports.monthly.partials.institutional_ongoing_group', ['report' => $project])
+                    @include('reports.monthly.partials.create.institutional_ongoing_group', ['report' => $project])
 
                 @elseif($project->project_type === 'Residential Skill Training Proposal 2')
-                    @include('reports.monthly.partials.residential_skill_training', ['report' => $project])
+                    @include('reports.monthly.partials.create.residential_skill_training', ['report' => $project])
 
                 @elseif($project->project_type === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER')
-                    @include('reports.monthly.partials.crisis_intervention_center', ['report' => $project])
+                    @include('reports.monthly.partials.create.crisis_intervention_center', ['report' => $project])
 
 
 
 {{--
                 @elseif($project->project_type === 'CHILD CARE INSTITUTION')
-                    @include('reports.monthly.partials.child_care_institution', ['report' => $project])
+                    @include('reports.monthly.partials.create.child_care_institution', ['report' => $project])
 
                 @elseif($project->project_type === 'Rural-Urban-Tribal')
                     @include('reports.monthly.partials.rural_urban_tribal', ['report' => $project])
@@ -120,7 +121,7 @@
 
 
                 <!-- Include Objectives Section Partial -->
-                @include('reports.monthly.partials.objectives')
+                @include('reports.monthly.partials.create.objectives')
 
                 <!-- Outlook Section -->
                 <div id="outlook-container">
@@ -147,7 +148,7 @@
                 <button type="button" class="btn btn-primary" onclick="addOutlook()">Add More Outlook</button>
 
                 <!-- Statements of Account Section  -->
-                @include('reports.monthly.partials.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                @include('reports.monthly.partials.create.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
 
 
                 <!-- Photos Section -->
@@ -206,10 +207,10 @@
                     </div>
                 </div> --}}
 
-                @include('reports.monthly.partials.photos')
+                @include('reports.monthly.partials.create.photos')
 
 
-                @include('reports.monthly.partials.attachments')
+                @include('reports.monthly.partials.create.attachments')
 
                 <button type="submit" class="btn btn-primary me-2">Submit Report</button>
             </form>

@@ -1,7 +1,7 @@
 <!-- resources/views/projects/partials/budget.blade.php -->
 <div class="mb-3 card">
     <div class="card-header">
-        <h4>2. Budget</h4>
+        <h4>Budget</h4>
     </div>
     <div class="card-body">
         <div id="phases-container">

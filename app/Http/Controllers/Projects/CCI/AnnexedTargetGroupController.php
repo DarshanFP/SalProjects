@@ -81,18 +81,29 @@ class AnnexedTargetGroupController extends Controller
 
 
     // Show existing annexed target group data
-    public function show($projectId)
-    {
-        try {
-            Log::info('Fetching CCI Annexed Target Group data', ['project_id' => $projectId]);
+    // Updated show method in AnnexedTargetGroupController
+public function show($projectId)
+{
+    try {
+        Log::info('Fetching CCI Annexed Target Group data', ['project_id' => $projectId]);
 
-            $targetGroup = ProjectCCIAnnexedTargetGroup::where('project_id', $projectId)->get();
-            return view('projects.partials.CCI.annexed_target_group_show', compact('targetGroup'));
-        } catch (\Exception $e) {
-            Log::error('Error fetching CCI Annexed Target Group data', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'Failed to fetch Annexed Target Group data.');
-        }
+        // Fetch target group data for the project
+        $annexedTargetGroup = ProjectCCIAnnexedTargetGroup::where('project_id', $projectId)->get();
+
+        // Log the fetched data
+        Log::info('Fetched target group data:', ['data' => $annexedTargetGroup]);
+
+        // Return the fetched data (not a view)
+        return $annexedTargetGroup;
+    } catch (\Exception $e) {
+        Log::error('Error fetching CCI Annexed Target Group data', ['error' => $e->getMessage()]);
+        return null;
     }
+}
+
+
+
+
 
     // Edit annexed target group
     public function edit($projectId)
@@ -100,7 +111,7 @@ class AnnexedTargetGroupController extends Controller
         try {
             Log::info('Editing CCI Annexed Target Group', ['project_id' => $projectId]);
 
-            $targetGroup = ProjectCCIAnnexedTargetGroup::where('project_id', $projectId)->get();
+            $targetGroup = ProjectCCIAnnexedTargetGroup::where('project_id', $projectId)->get() ?? [];
             return $targetGroup;
         } catch (\Exception $e) {
             Log::error('Error editing CCI Annexed Target Group', ['error' => $e->getMessage()]);

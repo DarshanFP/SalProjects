@@ -15,12 +15,12 @@ class ProjectRSTTargetGroupAnnexure extends Model
     protected $fillable = [
         'target_group_anxr_id',
         'project_id',
-        'name',
-        'religion',
-        'caste',
-        'education_background',
-        'family_situation',
-        'paragraph'
+        'rst_name',
+        'rst_religion',
+        'rst_caste',
+        'rst_education_background',
+        'rst_family_situation',
+        'rst_paragraph'
     ];
 
     // Generate unique ID

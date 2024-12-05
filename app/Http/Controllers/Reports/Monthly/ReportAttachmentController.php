@@ -32,6 +32,7 @@ class ReportAttachmentController extends Controller
 
         $publicUrl = Storage::url($path);
 
+
         $attachment = new ReportAttachment([
             'report_id' => $report->report_id,
             'file_name' => $filename,
@@ -110,5 +111,28 @@ class ReportAttachmentController extends Controller
         Log::info('ReportAttachmentController@update - New attachment added and database updated', ['file_name' => $filename, 'report_id' => $report->report_id]);
         return $attachment;
     }
+
+    public function remove($id)
+{
+    try {
+        $attachment = ReportAttachment::findOrFail($id);
+        $filePath = $attachment->file_path;
+
+        // Delete the file from storage
+        if (Storage::exists($filePath)) {
+            Storage::delete($filePath);
+        }
+
+        // Delete the record from the database
+        $attachment->delete();
+
+        Log::info('Attachment removed successfully', ['attachment_id' => $id]);
+        return response()->json(['success' => true, 'message' => 'Attachment removed successfully']);
+    } catch (\Exception $e) {
+        Log::error('Failed to remove attachment', ['error' => $e->getMessage()]);
+        return response()->json(['success' => false, 'message' => 'Failed to remove the attachment'], 500);
+    }
+}
+
 }
 
