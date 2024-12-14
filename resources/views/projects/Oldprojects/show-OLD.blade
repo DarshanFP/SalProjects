@@ -1,374 +1,196 @@
-@extends('executor.dashboard')
+{{-- resources/views/projects/Oldprojects/show.blade.php --}}
+{{-- @extends('executor.dashboard') --}}
+
+@php
+    $userRole = Auth::user()->role ?? 'executor'; // Default to executor if not set
+    $layout = match ($userRole) {
+        'provincial' => 'provincial.dashboard',
+        'coordinator' => 'coordinator.dashboard',
+        default => 'executor.dashboard', // fallback to executor if role not matched
+    };
+@endphp
+
+@extends($layout)
 
 @section('content')
 <div class="container">
     <h1 class="mb-4">Project Details</h1>
 
     <!-- General Information Section -->
-    <div class="mb-3 card">
+    <div id="general-info-section" class="mb-3 card">
         <div class="card-header">
             <h4>General Information</h4>
         </div>
         <div class="card-body">
-            <div class="info-grid">
-                <div class="info-label"><strong>Project ID:</strong></div>
-                <div class="info-value">{{ $project->project_id }}</div>
-                <div class="info-label"><strong>Project Title:</strong></div>
-                <div class="info-value">{{ $project->project_title }}</div>
-                <div class="info-label"><strong>Project Type:</strong></div>
-                <div class="info-value">{{ $project->project_type }}</div>
-                <div class="info-label"><strong>Society Name:</strong></div>
-                <div class="info-value">{{ $project->society_name }}</div>
-                <div class="info-label"><strong>President Name:</strong></div>
-                <div class="info-value">{{ $project->president_name }}</div>
-                <div class="info-label"><strong>In Charge Name:</strong></div>
-                <div class="info-value">{{ $project->in_charge_name }}</div>
-                <div class="info-label"><strong>In Charge Phone:</strong></div>
-                <div class="info-value">{{ $project->in_charge_mobile }}</div>
-                <div class="info-label"><strong>In Charge Email:</strong></div>
-                <div class="info-value">{{ $project->in_charge_email }}</div>
-                <div class="info-label"><strong>Executor Name:</strong></div>
-                <div class="info-value">{{ $project->executor_name }}</div>
-                <div class="info-label"><strong>Executor Phone:</strong></div>
-                <div class="info-value">{{ $project->executor_mobile }}</div>
-                <div class="info-label"><strong>Executor Email:</strong></div>
-                <div class="info-value">{{ $project->executor_email }}</div>
-                <div class="info-label"><strong>Full Address:</strong></div>
-                <div class="info-value">{{ $project->full_address }}</div>
-                <div class="info-label"><strong>Overall Project Period:</strong></div>
-                <div class="info-value">{{ $project->overall_project_period }} years</div>
-                <div class="info-label"><strong>Commencement Month & Year:</strong></div>
-                <div class="info-value">{{ \Carbon\Carbon::parse($project->commencement_month_year)->format('F Y') }}</div>
-                <div class="info-label"><strong>Overall Project Budget:</strong></div>
-                <div class="info-value">Rs. {{ number_format($project->overall_project_budget, 2) }}</div>
-                <div class="info-label"><strong>Amount Forwarded:</strong></div>
-                <div class="info-value">Rs. {{ number_format($project->amount_forwarded, 2) }}</div>
-                <div class="info-label"><strong>Amount Sanctioned:</strong></div>
-                <div class="info-value">Rs. {{ number_format($project->amount_sanctioned, 2) }}</div>
-                <div class="info-label"><strong>Opening Balance:</strong></div>
-                <div class="info-value">Rs. {{ number_format($project->opening_balance, 2) }}</div>
-                <div class="info-label"><strong>Coordinator India Name:</strong></div>
-                <div class="info-value">{{ $project->coordinator_india_name }}</div>
-                <div class="info-label"><strong>Coordinator India Phone:</strong></div>
-                <div class="info-value">{{ $project->coordinator_india_phone }}</div>
-                <div class="info-label"><strong>Coordinator India Email:</strong></div>
-                <div class="info-value">{{ $project->coordinator_india_email }}</div>
-                <div class="info-label"><strong>Coordinator Luzern Name:</strong></div>
-                <div class="info-value">{{ $project->coordinator_luzern_name }}</div>
-                <div class="info-label"><strong>Coordinator Luzern Phone:</strong></div>
-                <div class="info-value">{{ $project->coordinator_luzern_phone }}</div>
-                <div class="info-label"><strong>Coordinator Luzern Email:</strong></div>
-                <div class="info-value">{{ $project->coordinator_luzern_email }}</div>
-                <div class="info-label"><strong>Status:</strong></div>
-                <div class="info-value">{{ ucfirst($project->status) }}</div>
-            </div>
+            @include('projects.partials.show.general_info')
         </div>
     </div>
 
     <!-- Key Information Section -->
-    <div class="mb-3 card">
+    <div id="key-info-section" class="mb-3 card">
         <div class="card-header">
             <h4>Key Information</h4>
         </div>
         <div class="card-body">
-            <p><strong>Goal of the Project:</strong></p>
-            <p>{{ $project->goal }}</p>
+            @include('projects.partials.show.key_information')
         </div>
     </div>
 
-<!-- Logical Framework Section -->
-<div class="mb-3 card">
-    <div class="card-header">
-        <h4>Logical Framework</h4>
+    <!-- CCI Specific Partials -->
+    @if ($project->project_type === 'CHILD CARE INSTITUTION')
+        @include('projects.partials.show.CCI.rationale')
+        @include('projects.partials.show.CCI.statistics')
+        @include('projects.partials.show.CCI.annexed_target_group')
+        @include('projects.partials.show.CCI.age_profile')
+        @include('projects.partials.show.CCI.personal_situation')
+        @include('projects.partials.show.CCI.economic_background')
+        @include('projects.partials.show.CCI.achievements')
+        @include('projects.partials.show.CCI.present_situation')
+    @endif
+
+    <!-- Residential Skill Training Specific Partials -->
+    @if ($project->project_type === 'Residential Skill Training Proposal 2')
+        @include('projects.partials.show.RST.institution_info')
+        @include('projects.partials.show.RST.beneficiaries_area')
+        @include('projects.partials.show.RST.target_group')
+        @include('projects.partials.show.RST.target_group_annexure')
+        @include('projects.partials.show.RST.geographical_area')
+    @endif
+
+    <!-- Edu-Rural-Urban-Tribal Specific Partials -->
+    @if ($project->project_type === 'Rural-Urban-Tribal')
+        @include('projects.partials.show.Edu-RUT.basic_info')
+        @include('projects.partials.show.Edu-RUT.target_group')
+        @include('projects.partials.show.Edu-RUT.annexed_target_group')
+    @endif
+
+    <!-- Individual - Ongoing Educational Support Partials -->
+    @if ($project->project_type === 'Individual - Ongoing Educational support')
+        @include('projects.partials.show.IES.personal_info')
+        @include('projects.partials.show.IES.family_working_members')
+        @include('projects.partials.show.IES.immediate_family_details')
+        @include('projects.partials.show.IES.educational_background')
+        @include('projects.partials.show.IES.estimated_expenses')
+        @include('projects.partials.show.IES.attachments')
+    @endif
+
+    <!-- Individual - Initial Educational Support Partials -->
+    @if ($project->project_type === 'Individual - Initial - Educational support')
+        @include('projects.partials.show.IES.personal_info')
+        @include('projects.partials.show.IES.family_working_members')
+        @include('projects.partials.show.IES.immediate_family_details')
+        @include('projects.partials.show.IIES.education_background')
+        @include('projects.partials.show.IIES.scope_financial_support')
+        @include('projects.partials.show.IES.attachments')
+    @endif
+
+    <!-- Individual - Livelihood Application Partials -->
+    @if ($project->project_type === 'Individual - Livelihood Application')
+        @include('projects.partials.show.ILP.personal_info')
+        @include('projects.partials.show.ILP.revenue_goals')
+        @include('projects.partials.show.ILP.strength_weakness')
+        @include('projects.partials.show.ILP.risk_analysis')
+        @include('projects.partials.show.ILP.attached_docs')
+        @include('projects.partials.show.ILP.budget')
+    @endif
+
+    <!-- Individual - Access to Health Specific Partials -->
+    @if ($project->project_type === 'Individual - Access to Health')
+        @include('projects.partials.show.IAH.personal_info')
+        @include('projects.partials.show.IAH.health_conditions')
+        @include('projects.partials.show.IAH.earning_members')
+        @include('projects.partials.show.IAH.support_details')
+        @include('projects.partials.show.IAH.budget_details')
+        @include('projects.partials.show.IAH.documents')
+    @endif
+
+    <!-- Institutional Ongoing Group Educational Specific Partials -->
+    @if ($project->project_type === 'Institutional Ongoing Group Educational proposal')
+        @include('projects.partials.show.IGE.institution_info')
+        @include('projects.partials.show.IGE.beneficiaries_supported')
+        @include('projects.partials.show.IGE.ongoing_beneficiaries')
+        @include('projects.partials.show.IGE.new_beneficiaries')
+        @include('projects.partials.show.IGE.budget')
+        @include('projects.partials.show.IGE.development_monitoring')
+    @endif
+
+    <!-- Livelihood Development Project Specific Partials -->
+    @if ($project->project_type === 'Livelihood Development Projects')
+        @include('projects.partials.show.LDP.need_analysis')
+        @include('projects.partials.show.LDP.target_group')
+        @include('projects.partials.show.LDP.intervention_logic')
+    @endif
+
+    <!-- CIC Specific Partial -->
+    @if ($project->project_type === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER')
+        @include('projects.partials.show.CIC.basic_info')
+    @endif
+
+    <!-- Default Partial Sections (These should be included for all project types except certain individual types) -->
+    @if (!in_array($project->project_type, ['Individual - Ongoing Educational support', 'Individual - Livelihood Application', 'Individual - Access to Health', 'Individual - Initial - Educational support']))
+        @include('projects.partials.show.logical_framework')
+        @include('projects.partials.show.sustainability')
+        @include('projects.partials.show.budget')
+        @include('projects.partials.show.attachments')
+    @endif
+    <!-- Annexed Target Group Partial for EduRUT (After Attachments Section) -->
+    <div id="edu-rut-annexed-section" style="display:none;">
+        @include('projects.partials.Edu-RUT.annexed_target_group')
     </div>
-    <div class="card-body">
-        @foreach($project->objectives as $objective)
-        <div class="p-3 mb-4 border rounded objective-card">
-            <h5 class="mb-3">Objective: {{ $objective->objective }}</h5>
+    <!-- Comments Section -->
+    <div>
+        @include('projects.partials.ProjectComments', ['project' => $project])
 
-            <div class="mb-4 results-container">
-                <h6 class="mb-3">Results / Outcomes</h6>
-                @foreach($objective->results as $result)
-                <div class="p-2 mb-3 border rounded result-section">
-                    <p>{{ $result->result }}</p>
-                </div>
-                @endforeach
-            </div>
-
-            <!-- Risks Section -->
-            <div class="mb-4 risks-container">
-                <h6 class="mb-3">Risks</h6>
-                @if($objective->risks->isNotEmpty())
-                    <div class="p-2 mb-3 border rounded">
-                        @foreach($objective->risks as $risk)
-                            <p>{{ $risk->risk }}</p>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
-
-
-            <!-- Activities and Means of Verification -->
-            <div class="mb-4 activities-container">
-                <h6 class="mb-3">Activities and Means of Verification</h6>
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th scope="col" style="width: 40%;">Activities</th>
-                            <th scope="col">Means of Verification</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($objective->activities as $activity)
-                        <tr>
-                            <td>{{ $activity->activity }}</td>
-                            <td>{{ $activity->verification }}</td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Time Frame Section -->
-            <div class="time-frame-container">
-                <h6 class="mb-3">Time Frame for Activities</h6>
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th scope="col" style="width: 40%;">Activities</th>
-                            @foreach(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as $monthAbbreviation)
-                            <th scope="col">{{ $monthAbbreviation }}</th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($objective->activities as $activity)
-                        <tr class="activity-timeframe-row">
-                            <td>{{ $activity->activity }}</td>
-                            @foreach(range(1, 12) as $month)
-                            <td>
-                                @php
-                                $isChecked = $activity->timeframes->contains(function($timeframe) use ($month) {
-                                    return $timeframe->month == $month && $timeframe->is_active == 1;
-                                });
-                                @endphp
-                                <input type="checkbox" class="custom-checkbox" {{ $isChecked ? 'checked' : '' }} >
-                            </td>
-                            @endforeach
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        @endforeach
     </div>
-</div>
-
-<!-- Sustainability Section -->
-<!-- Sustainability Section -->
-<div class="mb-4 card">
-    <div class="card-header">
-        <h4 class="mb-0">Project Sustainability, Monitoring and Methodologies</h4>
-    </div>
-    <div class="card-body">
-        @forelse($project->sustainabilities as $sustainability)
-            <!-- Resilience Section -->
-            <div class="mb-3">
-                <h5>Explain the Sustainability of the Project:</h5>
-                <p>{{ $sustainability->sustainability ?? 'N/A' }}</p>
-            </div>
-
-            <!-- Monitoring Process Section -->
-            <div class="mb-3">
-                <h5>Explain the Monitoring Process of the Project:</h5>
-                <p>{{ $sustainability->monitoring_process ?? 'N/A' }}</p>
-            </div>
-
-            <!-- Reporting Methodology Section -->
-            <div class="mb-3">
-                <h5>Explain the Methodology of Reporting:</h5>
-                <p>{{ $sustainability->reporting_methodology ?? 'N/A' }}</p>
-            </div>
-
-            <!-- Evaluation Methodology Section -->
-            <div class="mb-3">
-                <h5>Explain the Methodology of Evaluation:</h5>
-                <p>{{ $sustainability->evaluation_methodology ?? 'N/A' }}</p>
-            </div>
-        @empty
-            <p>No sustainability information available for this project.</p>
-        @endforelse
-    </div>
-</div>
-
-
-
-
-    <!-- Budget Section -->
-    <div class="mb-3 card">
-        <div class="card-header">
-            <h4>Budget</h4>
-        </div>
-        <div class="card-body">
-            @php
-                $groupedBudgets = $project->budgets->groupBy('phase');
-            @endphp
-
-            @foreach($groupedBudgets as $phase => $budgets)
-                <div class="mb-3 phase-card">
-                    <div class="card-header">
-                        <h5>Phase {{ $phase }}</h5>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Amount Sanctioned in Phase {{ $phase }}: Rs.</label>
-                        <p>{{ number_format($budgets->sum('this_phase'), 2) }}</p>
-                    </div>
-                    <table class="table table-bordered table-custom">
-                        <thead>
-                            <tr>
-                                <th style="width: 40%;">Particular</th>
-                                <th style="width: 10%;">Costs</th>
-                                <th style="width: 10%;">Rate Multiplier</th>
-                                <th style="width: 10%;">Rate Duration</th>
-                                <th style="width: 10%;">Rate Increase (next phase)</th>
-                                <th style="width: 10%;">This Phase (Auto)</th>
-                                <th style="width: 10%;">Next Phase (Auto)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($budgets as $budget)
-                                <tr>
-                                    <td>{{ $budget->particular }}</td>
-                                    <td>{{ number_format($budget->rate_quantity, 2) }}</td>
-                                    <td>{{ number_format($budget->rate_multiplier, 2) }}</td>
-                                    <td>{{ number_format($budget->rate_duration, 2) }}</td>
-                                    <td>{{ number_format($budget->rate_increase, 2) }}</td>
-                                    <td>{{ number_format($budget->this_phase, 2) }}</td>
-                                    <td>{{ number_format($budget->next_phase, 2) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <th>Total</th>
-                                <th>{{ number_format($budgets->sum('rate_quantity'), 2) }}</th>
-                                <th>{{ number_format($budgets->sum('rate_multiplier'), 2) }}</th>
-                                <th>{{ number_format($budgets->sum('rate_duration'), 2) }}</th>
-                                <th>{{ number_format($budgets->sum('rate_increase'), 2) }}</th>
-                                <th>{{ number_format($budgets->sum('this_phase'), 2) }}</th>
-                                <th>{{ number_format($budgets->sum('next_phase'), 2) }}</th>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            @endforeach
-        </div>
-    </div>
-
-    <!-- Attachments Section -->
-    <div class="mb-3 card">
-        <div class="card-header">
-            <h4>Attachments</h4>
-        </div>
-        <div class="card-body">
-            @foreach($project->attachments as $attachment)
-                <div class="attachment-grid">
-                    <div class="attachment-label"><strong>Attachment:</strong></div>
-                    <div class="attachment-value"><a href="{{ route('download.attachment', $attachment->id) }}">{{ $attachment->file_name }}</a></div>
-                    <div class="attachment-label"><strong>Description:</strong></div>
-                    <div class="attachment-value">{{ $attachment->description }}</div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-
+    <!-- Action Buttons -->
     <a href="{{ route('projects.index') }}" class="btn btn-primary">Back to Projects</a>
     <a href="{{ route('projects.downloadPdf', $project->project_id) }}" class="btn btn-secondary">Download PDF</a>
     <a href="{{ route('projects.downloadDoc', $project->project_id) }}" class="btn btn-secondary">Download Word</a>
+
+    <!-- Status Action Buttons -->
+    <div>
+        {{-- @include('projects.partials.actions', ['project' => $project]) --}}
+    </div>
+
 </div>
 
-<style>
-    .info-grid {
-        display: grid;
-        grid-template-columns: 200px 1fr;
-        grid-gap: 10px;
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const projectType = "{{ $project->project_type }}";
+
+        const allSections = [
+            'general-info-section',
+            'key-info-section',
+            'logical-framework-section',
+            'sustainability-section',
+            'budget-section',
+            'attachments-section',
+        ];
+
+        function toggleSections() {
+            // This script is minimal since sections are conditionally rendered above.
+        }
+
+        toggleSections();
+    });
+</script>
+
+{{-- <style>
+    /* General Styling */
+    .card {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        background-color: #f9f9f9;
     }
 
-    .info-label {
+    .card-header {
+        background-color: #202ba3;
+        color: white;
+        padding: 15px;
+        font-size: 18px;
         font-weight: bold;
     }
-
-    .info-value {
-        word-wrap: break-word;
-        margin-left: 20px;
-    }
-
-    .table th, .table td {
-        vertical-align: middle;
-        text-align: center;
-        padding: 0;
-    }
-
-    .table th {
-        white-space: normal;
-    }
-
-    .table td input {
-        width: 100%;
-        box-sizing: border-box;
-        -moz-appearance: textfield;
-        padding: 0.375rem 0.75rem;
-    }
-
-    .table td input::-webkit-outer-spin-button,
-    .table td input::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-
-    .table-container {
-        overflow-x: auto;
-    }
-
-    .fp-text-center1 {
-        text-align: center;
-        margin-bottom: 15px;
-    }
-
-    .fp-text-margin {
-        margin-bottom: 15px;
-    }
-
-    .phase-card {
-        margin-bottom: 1.5rem;
-    }
-
-    .card-header h4, .card-header h5 {
-        margin-bottom: 0;
-    }
-
-    .table-custom {
-        border: 1pt solid grey;
-    }
-
-    .table-custom th, .table-custom td {
-        border: 1pt solid grey;
-    }
-
-    .attachment-grid {
-        display: grid;
-        grid-template-columns: 200px 1fr;
-        grid-gap: 10px;
-        margin-bottom: 15px;
-    }
-
-    .attachment-label {
-        font-weight: bold;
-    }
-    /* ligical framework and timeframe... */
-
-
 
     .info-grid {
         display: grid;
@@ -382,73 +204,21 @@
 
     .info-value {
         word-wrap: break-word;
-        margin-left: 20px;
     }
 
-    .table th, .table td {
-        vertical-align: middle;
-        text-align: center;
-        padding: 0;
+    .btn {
+        margin-right: 10px;
     }
 
-    .table th {
-        white-space: normal;
+    .btn-secondary {
+        background-color: #6c757d;
+        border: none;
+        color: white;
     }
 
-    .table td input {
-        width: 100%;
-        box-sizing: border-box;
-        -moz-appearance: textfield;
-        padding: 0.375rem 0.75rem;
+    .btn-primary {
+        background-color: #202ba3;
+        border: none;
     }
-
-    .table td input::-webkit-outer-spin-button,
-    .table td input::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-
-    .table-container {
-        overflow-x: auto;
-    }
-
-    .fp-text-center1 {
-        text-align: center;
-        margin-bottom: 15px;
-    }
-
-    .fp-text-margin {
-        margin-bottom: 15px;
-    }
-
-    .phase-card {
-        margin-bottom: 1.5rem;
-    }
-
-    .card-header h4, .card-header h5 {
-        margin-bottom: 0;
-    }
-
-    .table-custom {
-        border: 1pt solid grey;
-    }
-
-    .table-custom th, .table-custom td {
-        border: 1pt solid grey;
-    }
-
-    .attachment-grid {
-        display: grid;
-        grid-template-columns: 200px 1fr;
-        grid-gap: 10px;
-        margin-bottom: 15px;
-    }
-
-    .attachment-label {
-        font-weight: bold;
-    }
-
-
-</style>
-
+</style> --}}
 @endsection

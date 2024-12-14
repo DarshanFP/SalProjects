@@ -48,18 +48,7 @@ class ReportController extends Controller
 
     public function create($project_id)
     {
-        // Log::info('Entering create method', ['project_id' => $project_id]);
 
-        // $project = Project::where('project_id', $project_id)->firstOrFail();
-        // Log::info('Project retrieved successfully', ['project' => $project]);
-
-        // $highestPhase = ProjectBudget::where('project_id', $project->project_id)->max('phase');
-        // Log::info('Retrieved highest phase for the project', ['highestPhase' => $highestPhase]);
-
-        // $budgets = ProjectBudget::where('project_id', $project->project_id)
-        //                         ->where('phase', $highestPhase)
-        //                         ->get();
-        // Log::info('Budgets retrieved for the highest phase', ['budgets' => $budgets]);
 
         Log::info('Entering create method', ['project_id' => $project_id]);
 
@@ -775,16 +764,31 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
 {
     Log::info('Entering show method', ['report_id' => $report_id]);
 
+    $user = Auth::user();
     $report = DPReport::with([
         'objectives.activities.timeframes',
         'accountDetails',
         'photos',
         'outlooks',
         'attachments'
-    ])
-    ->where('report_id', $report_id)
-    ->firstOrFail();
-    Log::info('Report retrieved', ['report' => $report]);
+    // ])
+    // ->where('report_id', $report_id)
+    // ->firstOrFail();
+    // Log::info('Report data retrieved', ['report' => $report]);
+    ])->where('report_id', $report_id);
+
+    // Apply role-based filters
+    if ($user->role === 'provincial') {
+        // Filter reports to those whose user (executor) has parent_id = this provincial user's id
+        $report->whereHas('user', function ($query) use ($user) {
+            $query->where('parent_id', $user->id);
+        });
+    } elseif ($user->role === 'executor') {
+        // Filter reports to those created by this executor
+        $report->where('user_id', $user->id);
+    }
+    $report = $report->firstOrFail();
+    Log::info('Report retrieved successfully', ['report' => $report]);
 
     // Decode expected_outcome for objectives
     foreach ($report->objectives as $objective) {

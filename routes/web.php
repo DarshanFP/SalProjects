@@ -89,8 +89,28 @@ Route::middleware(['auth', 'role:coordinator'])->group(function () {
     Route::post('/coordinator/provincial/{id}/update', [CoordinatorController::class, 'updateProvincial'])->name('coordinator.updateProvincial');
     Route::post('/coordinator/provincial/{id}/reset-password', [CoordinatorController::class, 'resetProvincialPassword'])->name('coordinator.resetProvincialPassword');
 
-    // Reports Routes for Coordinator
+    //  Routes for Coordinator Dashboard
     Route::get('/coordinator/dashboard', [CoordinatorController::class, 'CoordinatorDashboard'])->name('coordinator.dashboard');
+    // Project List
+    Route::get('/coordinator/projects-list', [CoordinatorController::class, 'ProjectList'])->name('coordinator.projects.list');
+    // Routes for executors filtered by that province to show in projects list
+    Route::get('/coordinator/executors-by-province', [CoordinatorController::class, 'getExecutorsByProvince'])->name('coordinator.executors.byProvince');
+
+    // Add this route for coordinator to show a project
+    Route::get('/coordinator/projects/show/{project_id}', [CoordinatorController::class, 'showProject'])->name('coordinator.projects.show');
+    // routes for Project Comments
+    Route::post('/coordinator/projects/{project_id}/add-comment', [CoordinatorController::class, 'addProjectComment'])->name('coordinator.projects.addComment');
+    Route::get('/coordinator/projects/comment/{id}/edit', [CoordinatorController::class, 'editProjectComment'])->name('coordinator.projects.editComment');
+    Route::post('/coordinator/projects/comment/{id}/update', [CoordinatorController::class, 'updateProjectComment'])->name('coordinator.projects.updateComment');
+    // project status actions routes
+        Route::post('/projects/{project_id}/revert-to-provincial', [CoordinatorController::class, 'revertToProvincial'])->name('projects.revertToProvincial');
+    Route::post('/projects/{project_id}/approve', [CoordinatorController::class, 'approveProject'])->name('projects.approve');
+    Route::post('/projects/{project_id}/reject', [CoordinatorController::class, 'rejectProject'])->name('projects.reject');
+
+    // reports list
+    Route::get('/coordinator/report-list', [CoordinatorController::class, 'ReportList'])->name('coordinator.report.list');
+
+
     Route::get('/coordinator/reports/{type}/{id}', [CoordinatorController::class, 'showReport'])->name('coordinator.reports.show');
 
     // To view reports
@@ -110,8 +130,24 @@ Route::middleware(['auth', 'role:provincial'])->group(function () {
     Route::post('/provincial/executor/{id}/update', [ProvincialController::class, 'updateExecutor'])->name('provincial.updateExecutor');
     Route::post('/provincial/executor/{id}/reset-password', [ProvincialController::class, 'resetExecutorPassword'])->name('provincial.resetExecutorPassword');
 
-    // Reports Routes for Provincial
+    // Routes for Provincial Dashboard
     Route::get('/provincial/dashboard', [ProvincialController::class, 'ProvincialDashboard'])->name('provincial.dashboard');
+    // Projects list
+    Route::get('/provincial/projects-list', [ProvincialController::class, 'ProjectList'])->name('provincial.projects.list');
+    // Add this route to allow provincial to view a project
+    Route::get('/provincial/projects/show/{project_id}', [ProvincialController::class, 'showProject'])->name('provincial.projects.show');
+    // routes for Project Comments
+    Route::post('/provincial/projects/{project_id}/add-comment', [ProvincialController::class, 'addProjectComment'])->name('provincial.projects.addComment');
+    Route::get('/provincial/projects/comment/{id}/edit', [ProvincialController::class, 'editProjectComment'])->name('provincial.projects.editComment');
+    Route::post('/provincial/projects/comment/{id}/update', [ProvincialController::class, 'updateProjectComment'])->name('provincial.projects.updateComment');
+    // project status actions routes
+    Route::post('/projects/{project_id}/revert-to-executor', [ProvincialController::class, 'revertToExecutor'])->name('projects.revertToExecutor');
+    Route::post('/projects/{project_id}/forward-to-coordinator', [ProvincialController::class, 'forwardToCoordinator'])->name('projects.forwardToCoordinator');
+
+
+    // Route for report list
+    Route::get('/provincial/report-list', [ProvincialController::class, 'ReportList'])->name('provincial.report.list');
+
     Route::get('/provincial/reports/{type}/{id}', [ProvincialController::class, 'showReport'])->name('provincial.reports.show');
 
     // To view reports
@@ -173,6 +209,8 @@ Route::middleware(['auth', 'role:executor'])->group(function () {
         // routes to download template for target group and annexed target group
         Route::post('/upload-target-group-excel', [EduRUTTargetGroupController::class, 'uploadExcel'])->name('targetGroup.upload');
         Route::post('/upload-annexed-target-group-excel', [EduRUTAnnexedTargetGroupController::class, 'uploadExcel'])->name('annexedTargetGroup.upload');
+        // project status actions routes
+        Route::post('/projects/{project_id}/submit-to-provincial', [ProjectController::class, 'submitToProvincial'])->name('projects.submitToProvincial');
 
 
 
@@ -183,7 +221,8 @@ Route::prefix('reports/monthly')->group(function () {
     Route::get('create/{project_id}', [ReportController::class, 'create'])->name('monthly.report.create');
     Route::post('store', [ReportController::class, 'store'])->name('monthly.report.store');
     Route::get('index', [ReportController::class, 'index'])->name('monthly.report.index');
-    Route::get('show/{report_id}', [ReportController::class, 'show'])->name('monthly.report.show');
+    //kept it in shared area for all users
+  //  Route::get('show/{report_id}', [ReportController::class, 'show'])->name('monthly.report.show');
     Route::get('edit/{report_id}', [ReportController::class, 'edit'])->name('monthly.report.edit');
     Route::put('update/{report_id}', [ReportController::class, 'update'])->name('monthly.report.update');
     Route::get('review/{report_id}', [ReportController::class, 'review'])->name('monthly.report.review');
@@ -203,9 +242,22 @@ Route::prefix('reports/monthly')->group(function () {
 
 
 });
-// Shared route for downloading attachments
-Route::middleware(['auth', 'role:executor,provincial'])->group(function () {
+// Shared route for Executor, Provincial and Coordinator
+
+// for Projects 9122024
+Route::middleware(['auth', 'role:executor,provincial,coordinator'])->group(function () {
+    Route::get('/projects-list', [ProjectController::class, 'listProjects'])->name('projects.list');
+});
+
+
+
+
+// for Reports
+Route::middleware(['auth', 'role:executor,provincial,coordinator'])->group(function () {
+    //Download Monthly Reports
     Route::get('reports/monthly/download/{id}', [ReportAttachmentController::class, 'downloadAttachment'])->name('monthly.report.downloadAttachment');
+    //View Montly Reports
+    Route::get('show/{report_id}', [ReportController::class, 'show'])->name('monthly.report.show');
 });
 
 

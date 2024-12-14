@@ -1,5 +1,15 @@
 {{-- resources/views/reports/monthly/show.blade.php --}}
-@extends('executor.dashboard')
+{{-- @extends('executor.dashboard') --}}
+@php
+    $userRole = Auth::user()->role ?? 'executor'; // Default to executor if not set
+    $layout = match ($userRole) {
+        'provincial' => 'provincial.dashboard',
+        'coordinator' => 'coordinator.dashboard',
+        default => 'executor.dashboard', // fallback to executor if role not matched
+    };
+@endphp
+
+@extends($layout)
 
 @section('content')
 <div class="page-content">
@@ -98,6 +108,13 @@
             Download PDF
         </a>
     </div>
+</div>
+@include('reports.monthly.partials.comments')
+
+
+
+    <a href="{{ route('monthly.report.index') }}" class="btn btn-primary">Back to Reports</a>
+
 </div>
 @endsection
 

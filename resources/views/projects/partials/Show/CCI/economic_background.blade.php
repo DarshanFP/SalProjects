@@ -1,44 +1,33 @@
-{{-- resources/views/projects/partials/Show/CCI/economic_background.blade.php --}}
+
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Economic Background of Parents</h4>
     </div>
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th style="text-align: left;">Description</th>
-                        <th>Number</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="text-align: left;">Agricultural Labour</td>
-                        <td>{{ $economicBackground->agricultural_labour_number ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align: left;">Marginal farmers (less than two and half acres)</td>
-                        <td>{{ $economicBackground->marginal_farmers_number ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align: left;">Parents in self-employment</td>
-                        <td>{{ $economicBackground->self_employed_parents_number ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align: left;">Parents working in informal sector</td>
-                        <td>{{ $economicBackground->informal_sector_parents_number ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align: left;">Any other</td>
-                        <td>{{ $economicBackground->any_other_number ?? 'N/A' }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="mt-3">
-            <h5>General Remarks</h5>
-            <p>{{ $economicBackground->general_remarks ?? 'No remarks provided.' }}</p>
+        <div class="info-grid">
+            <!-- Agricultural Labour -->
+            <div class="info-label">Agricultural Labour:</div>
+            <div class="info-value">{{ $economicBackground->agricultural_labour_number ?? 'N/A' }}</div>
+
+            <!-- Marginal Farmers -->
+            <div class="info-label">Marginal Farmers (less than two and half acres):</div>
+            <div class="info-value">{{ $economicBackground->marginal_farmers_number ?? 'N/A' }}</div>
+
+            <!-- Parents in Self-Employment -->
+            <div class="info-label">Parents in Self-Employment:</div>
+            <div class="info-value">{{ $economicBackground->self_employed_parents_number ?? 'N/A' }}</div>
+
+            <!-- Parents Working in Informal Sector -->
+            <div class="info-label">Parents Working in Informal Sector:</div>
+            <div class="info-value">{{ $economicBackground->informal_sector_parents_number ?? 'N/A' }}</div>
+
+            <!-- Any Other -->
+            <div class="info-label">Any Other:</div>
+            <div class="info-value">{{ $economicBackground->any_other_number ?? 'N/A' }}</div>
+
+            <!-- General Remarks -->
+            <div class="info-label">General Remarks:</div>
+            <div class="info-value">{{ $economicBackground->general_remarks ?? 'No remarks provided.' }}</div>
         </div>
     </div>
 </div>

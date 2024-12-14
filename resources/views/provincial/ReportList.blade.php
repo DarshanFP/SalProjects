@@ -1,4 +1,5 @@
-@extends('coordinator.dashboard')
+{{-- resources/views/provincial/ReportList.blade.php --}}
+@extends('provincial.dashboard')
 
 @section('content')
 <div class="page-content">
@@ -6,20 +7,20 @@
         <div class="col-md-12 col-xl-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="fp-text-center1">ALL PROJECT REPORTS</h4>
+                    <h4 class="fp-text-center1">PROJECT REPORTS List</h4>
                 </div>
                 <div class="card-body">
-                    <form method="GET" action="{{ route('coordinator.dashboard') }}">
+                    <form method="GET" action="{{ route('provincial.report.list') }}">
                         <div class="mb-3 row">
-                            <div class="col-md-3">
-                                <select name="province" class="form-control">
-                                    <option value="">Filter by Province</option>
-                                    @foreach($provinces as $province)
-                                        <option value="{{ $province }}">{{ $province }}</option>
+                            <div class="col-md-4">
+                                <select name="place" class="form-control">
+                                    <option value="">Filter by Place</option>
+                                    @foreach($places as $place)
+                                        <option value="{{ $place }}">{{ $place }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <select name="user_id" class="form-control">
                                     <option value="">Filter by Executor</option>
                                     @foreach($users as $user)
@@ -45,7 +46,9 @@
                                     <option value="Individual - Initial - Educational support">Individual - Initial - Educational support - Project Application</option>
                                 </select>
                             </div>
-                            <div class="col-md-3">
+
+
+                            <div class="mt-3 col-md-12">
                                 <button type="submit" class="btn btn-primary">Filter</button>
                             </div>
                         </div>
@@ -56,7 +59,7 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Executor</th>
-                                    <th>Province</th>
+                                    <th>Place</th>
                                     <th>Project Title</th>
                                     <th>Total Amount</th>
                                     <th>Total Expenses</th>
@@ -78,7 +81,7 @@
                                     <tr>
                                         <td>{{ $report->report_id }}</td>
                                         <td>{{ $report->user->name }}</td>
-                                        <td>{{ $report->user->province }}</td>
+                                        <td>{{ $report->place }}</td>
                                         <td>{{ $report->project_title }}</td>
                                         <td>{{ number_format($totalAmount, 2) }}</td>
                                         <td>{{ number_format($totalExpenses, 2) }}</td>
@@ -86,7 +89,9 @@
                                         <td>{{ number_format($balanceAmount, 2) }}</td>
                                         <td>{{ $report->project_type }}</td>
                                         <td>
-                                            <a href="{{ route('coordinator.monthly.report.show', $report->report_id) }}" class="btn btn-primary btn-sm">View</a>
+                                            <a href="{{ route('provincial.monthly.report.show', $report->report_id) }}" class="btn btn-primary btn-sm">View</a>
+
+                                            {{-- <a href="{{ route('monthly.report.show', $report->report_id) }}" class="btn btn-primary btn-sm">View</a> --}}
                                         </td>
                                     </tr>
                                 @endforeach

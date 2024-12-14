@@ -12,6 +12,8 @@
     </div>
     <div class="sidebar-body">
         <ul class="nav">
+
+            <!-- Main Section -->
             <li class="nav-item nav-category">Main</li>
             <li class="nav-item">
                 <a href="{{ route('provincial.dashboard') }}" class="nav-link">
@@ -19,6 +21,8 @@
                     <span class="link-title">Dashboard - Provincial</span>
                 </a>
             </li>
+
+            <!-- Web Apps Section -->
             <li class="nav-item nav-category">web apps</li>
             <li class="nav-item">
                 <a class="nav-link" data-bs-toggle="collapse" href="#emails" role="button" aria-expanded="false" aria-controls="emails">
@@ -72,14 +76,15 @@
             <li class="nav-item">
                 <a class="nav-link" data-bs-toggle="collapse" href="#quarterlyReports" role="button" aria-expanded="false" aria-controls="quarterlyReports">
                     <i class="link-icon" data-feather="file-text"></i>
-                    <span class="link-title">Quarterly Reports</span>
+                    <span class="link-title">Reports</span>
                     <i class="link-arrow" data-feather="chevron-down"></i>
                 </a>
                 <div class="collapse" id="quarterlyReports">
                     <ul class="nav sub-menu">
                         <li class="nav-item">
-                            <a href="#" class="nav-link">All Project Reports</a>
+                            <a href="{{ route('provincial.report.list') }}" class="nav-link">Monthly Project Reports</a>
                         </li>
+                        {{-- Uncomment or add more reports as needed
                         <li class="nav-item">
                             <a href="#" class="nav-link">Development Livelihood</a>
                         </li>
@@ -92,6 +97,7 @@
                         <li class="nav-item">
                             <a href="#" class="nav-link">Skill Training</a>
                         </li>
+                        --}}
                     </ul>
                 </div>
             </li>
@@ -102,8 +108,8 @@
                     <span class="link-title">Biannual Reports</span>
                     <i class="link-arrow" data-feather="chevron-down"></i>
                 </a>
-                <!-- Uncomment and add routes if needed -->
-                <!-- <div class="collapse" id="biannualReports">
+                <!-- Uncomment and add routes if needed
+                <div class="collapse" id="biannualReports">
                     <ul class="nav sub-menu">
                         <li class="nav-item">
                             <a href="#" class="nav-link">Report 1</a>
@@ -112,7 +118,8 @@
                             <a href="#" class="nav-link">Report 2</a>
                         </li>
                     </ul>
-                </div> -->
+                </div>
+                -->
             </li>
 
             <li class="nav-item">
@@ -121,8 +128,8 @@
                     <span class="link-title">Annual Reports</span>
                     <i class="link-arrow" data-feather="chevron-down"></i>
                 </a>
-                <!-- Uncomment and add routes if needed -->
-                <!-- <div class="collapse" id="annualReports">
+                <!-- Uncomment and add routes if needed
+                <div class="collapse" id="annualReports">
                     <ul class="nav sub-menu">
                         <li class="nav-item">
                             <a href="#" class="nav-link">Report 1</a>
@@ -131,30 +138,37 @@
                             <a href="#" class="nav-link">Report 2</a>
                         </li>
                     </ul>
-                </div> -->
+                </div>
+                -->
             </li>
 
+            <!-- Project Application Section -->
             <li class="nav-item nav-category">Project Application</li>
-            <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="collapse" href="#individualProjects" role="button" aria-expanded="false" aria-controls="individualProjects">
-                    <i class="link-icon" data-feather="user"></i>
-                    <span class="link-title">Individual</span>
-                    <i class="link-arrow" data-feather="chevron-down"></i>
+            {{-- <li class="nav-item">
+                <!-- Existing All Projects List for everyone -->
+                <a href="{{ route('projects.list') }}" class="nav-link">
+                    <i class="link-icon" data-feather="folder"></i>
+                    <span class="link-title">All Projects List</span>
                 </a>
-                <div class="collapse" id="individualProjects">
-                    <ul class="nav sub-menu">
-                        <li class="nav-item">
-                            <a href="#" class="nav-link">Health</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="#" class="nav-link">Education</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="#" class="nav-link">Social</a>
-                        </li>
-                    </ul>
-                </div>
+            </li> --}}
+            <li class="nav-item nav-category">Projects</li>
+            <li class="nav-item">
+                <a href="{{ route('provincial.projects.list') }}" class="nav-link">
+                    <i class="link-icon" data-feather="folder"></i>
+                    <span class="link-title">All Projects</span>
+                </a>
             </li>
+
+            {{-- remobed for above code
+            <li class="nav-item">
+                <!-- Provincial specific all projects link -->
+                <a href="{{ route('provincial.projects.list') }}" class="nav-link">
+                    <i class="link-icon" data-feather="folder-plus"></i>
+                    <span class="link-title">All Project Applications</span>
+                </a>
+            </li> --}}
+
+            {{-- If needed, you can have collapsible menus for other project categories --}}
             <li class="nav-item">
                 <a class="nav-link" data-bs-toggle="collapse" href="#groupProjects" role="button" aria-expanded="false" aria-controls="groupProjects">
                     <i class="link-icon" data-feather="users"></i>
@@ -176,6 +190,7 @@
                 </div>
             </li>
 
+            <!-- Docs Section -->
             <li class="nav-item nav-category">Docs</li>
             <li class="nav-item">
                 <a href="#" target="_blank" class="nav-link">

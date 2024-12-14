@@ -2,28 +2,30 @@
 
 namespace App\Models;
 
-use App\Models\Reports\Monthly\DPReport;
+use App\Models\OldProjects\Project;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ReportComment extends Model
+class ProjectComment extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'R_comment_id';
+    protected $table = 'project_comments';
+
+    protected $primaryKey = 'project_comment_id';
     public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
-        'R_comment_id',
-        'report_id',
+        'project_comment_id',
+        'project_id',
         'user_id',
         'comment',
     ];
 
-    public function report()
+    public function project()
     {
-        return $this->belongsTo(DPReport::class, 'report_id', 'report_id');
+        return $this->belongsTo(Project::class, 'project_id', 'project_id');
     }
 
     public function user()

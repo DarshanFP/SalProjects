@@ -50,6 +50,7 @@ use App\Models\OldProjects\ILP\ProjectILPPersonalInfo;
 use App\Models\OldProjects\ILP\ProjectILPRevenueGoals;
 use App\Models\OldProjects\ILP\ProjectILPRiskAnalysis;
 use App\Models\OldProjects\RST\ProjectDPRSTBeneficiariesArea;
+use App\Models\ProjectComment;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -90,6 +91,16 @@ class Project extends Model
         'goal',
         'status'
     ];
+// In your Project model or a helper:
+public static $statusLabels = [
+    'draft' => 'Draft (Executor still working)',
+    'submitted_to_provincial' => 'Executor submitted to Provincial',
+    'reverted_by_provincial' => 'Returned by Provincial for changes',
+    'forwarded_to_coordinator' => 'Provincial sent to Coordinator',
+    'reverted_by_coordinator' => 'Coordinator sent back for changes',
+    'approved_by_coordinator' => 'Approved by Coordinator',
+    'rejected_by_coordinator' => 'Rejected by Coordinator',
+];
 
     protected static function boot()
     {
@@ -375,6 +386,17 @@ class Project extends Model
     public function scopeFinancialSupport()
     {
         return $this->hasOne(ProjectIIESScopeFinancialSupport::class, 'project_id', 'project_id');
+    }
+    public function comments()
+    {
+        return $this->hasMany(ProjectComment::class, 'project_id', 'project_id');
+    }
+
+    public function generateProjectCommentId()
+    {
+        $latestComment = $this->comments()->orderBy('created_at', 'desc')->first();
+        $nextNumber = $latestComment ? (int)substr($latestComment->project_comment_id, -3) + 1 : 1;
+        return $this->project_id . '.' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
     }
 
 }

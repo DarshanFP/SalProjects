@@ -1,4 +1,4 @@
-<!-- resources/views/projects/partials/general_info.blade.php -->
+<!-- resources/views/projects/partials/general_info.blade.php  -->
 <div class="card-body">
     <div class="mb-3">
         <label for="project_type" class="form-label">Project Type</label>

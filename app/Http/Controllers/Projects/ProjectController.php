@@ -10,7 +10,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-// Aliases for CCI Controllers with prefix 'CCI'
+// Aliases for CCI Controllers with prefix 'CCI' -
 use App\Http\Controllers\Projects\CCI\AchievementsController as CCIAchievementsController;
 use App\Http\Controllers\Projects\CCI\AgeProfileController as CCIAgeProfileController;
 use App\Http\Controllers\Projects\CCI\AnnexedTargetGroupController as CCIAnnexedTargetGroupController;
@@ -599,5 +599,58 @@ public function update(Request $request, $project_id)
             return redirect()->back()->withErrors(['error' => 'There was an error deleting the project. Please try again.']);
         }
     }
+
+    // 9122024
+    public function listProjects(Request $request)
+{
+    $user = Auth::user();
+    $query = Project::query()->with('user');
+
+    // If Provincial: show only projects whose user's parent_id = provincial->id
+    if ($user->role === 'provincial') {
+        $query->whereHas('user', function($q) use ($user) {
+            $q->where('parent_id', $user->id);
+        });
+    }
+
+    // If Coordinator: show all except the individual project types
+    if ($user->role === 'coordinator') {
+        $excludedTypes = [
+            'Individual - Ongoing Educational support',
+            'Individual - Livelihood Application',
+            'Individual - Access to Health',
+            'Individual - Initial - Educational support'
+        ];
+        $query->whereNotIn('project_type', $excludedTypes);
+    }
+
+    // Apply filters if provided (e.g., project_type)
+    if ($request->filled('project_type')) {
+        $query->where('project_type', $request->project_type);
+    }
+
+    // You can add more filters here as needed
+
+    $projects = $query->get();
+
+    return view('projects.Coord-Prov-ProjectList', compact('projects'));
+}
+// Status
+// public function submitToProvincial($project_id)
+// {
+//     $project = Project::where('project_id', $project_id)->firstOrFail();
+//     $user = Auth::user();
+
+//     // Check if user is executor and status is draft or reverted_by_provincial
+//     if($user->role !== 'executor' || !in_array($project->status, ['draft','reverted_by_provincial'])) {
+//         abort(403, 'Unauthorized action.');
+//     }
+
+//     $project->status = 'submitted_to_provincial';
+//     $project->save();
+
+//     return redirect()->back()->with('success', 'Project submitted to Provincial successfully.');
+// }
+
 
 }

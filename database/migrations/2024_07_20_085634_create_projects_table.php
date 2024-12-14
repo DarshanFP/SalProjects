@@ -40,7 +40,7 @@ class CreateProjectsTable extends Migration
             $table->string('coordinator_luzern_name')->nullable();
             $table->string('coordinator_luzern_phone')->nullable();
             $table->string('coordinator_luzern_email')->nullable();
-            $table->string('status')->default('underwriting'); // Added the status column
+            $table->string('status')->default(value: 'underwriting'); // Added the status column
             $table->text('goal');
 
             $table->timestamps();

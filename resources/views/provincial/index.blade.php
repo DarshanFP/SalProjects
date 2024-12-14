@@ -1,7 +1,7 @@
 @extends('provincial.dashboard')
 
 @section('content')
-<div class="page-content">
+{{-- <div class="page-content">
     <div class="row justify-content-center">
         <div class="col-md-12 col-xl-12">
             <div class="card">
@@ -27,16 +27,26 @@
                                     @endforeach
                                 </select>
                             </div>
+
                             <div class="col-md-4">
                                 <select name="project_type" class="form-control">
                                     <option value="">Filter by Project Type</option>
-                                    <option value="Development Project">Development Project</option>
-                                    <option value="Skill Training">Skill Training</option>
-                                    <option value="Institutional Support">Institutional Support</option>
-                                    <option value="Women in Distress">Women in Distress</option>
-                                    <option value="Development Livelihood">Development Livelihood</option>
+                                    <option value="CHILD CARE INSTITUTION">CHILD CARE INSTITUTION - Welfare home for children - Ongoing</option>
+                                    <option value="Development Projects">Development Projects - Application</option>
+                                    <option value="Rural-Urban-Tribal">Education Rural-Urban-Tribal</option>
+                                    <option value="Institutional Ongoing Group Educational proposal">Institutional Ongoing Group Educational proposal</option>
+                                    <option value="Livelihood Development Projects">Livelihood Development Projects</option>
+                                    <option value="PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER">PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER - Application</option>
+                                    <option value="NEXT PHASE - DEVELOPMENT PROPOSAL">NEXT PHASE - DEVELOPMENT PROPOSAL</option>
+                                    <option value="Residential Skill Training Proposal 2">Residential Skill Training Proposal 2</option>
+                                    <option value="Individual - Ongoing Educational support">Individual - Ongoing Educational support - Project Application</option>
+                                    <option value="Individual - Livelihood Application">Individual - Livelihood Application</option>
+                                    <option value="Individual - Access to Health">Individual - Access to Health - Project Application</option>
+                                    <option value="Individual - Initial - Educational support">Individual - Initial - Educational support - Project Application</option>
                                 </select>
                             </div>
+
+
                             <div class="mt-3 col-md-12">
                                 <button type="submit" class="btn btn-primary">Filter</button>
                             </div>
@@ -80,7 +90,6 @@
                                         <td>
                                             <a href="{{ route('provincial.monthly.report.show', $report->report_id) }}" class="btn btn-primary btn-sm">View</a>
 
-                                            {{-- <a href="{{ route('monthly.report.show', $report->report_id) }}" class="btn btn-primary btn-sm">View</a> --}}
                                         </td>
                                     </tr>
                                 @endforeach
@@ -91,5 +100,7 @@
             </div>
         </div>
     </div>
-</div>
+</div> --}}
+
+Provincial Dashboard
 @endsection

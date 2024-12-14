@@ -1,4 +1,16 @@
-@extends('executor.dashboard')
+{{-- resources/views/projects/Oldprojects/show.blade.php --}}
+{{-- @extends('executor.dashboard') --}}
+
+@php
+    $userRole = Auth::user()->role ?? 'executor'; // Default to executor if not set
+    $layout = match ($userRole) {
+        'provincial' => 'provincial.dashboard',
+        'coordinator' => 'coordinator.dashboard',
+        default => 'executor.dashboard', // fallback to executor if role not matched
+    };
+@endphp
+
+@extends($layout)
 
 @section('content')
 <div class="container">
@@ -121,15 +133,26 @@
         @include('projects.partials.show.budget')
         @include('projects.partials.show.attachments')
     @endif
+
     <!-- Annexed Target Group Partial for EduRUT (After Attachments Section) -->
     <div id="edu-rut-annexed-section" style="display:none;">
         @include('projects.partials.Edu-RUT.annexed_target_group')
+    </div>
+
+    <!-- Comments Section -->
+    <div>
+        @include('projects.partials.ProjectComments', ['project' => $project])
     </div>
 
     <!-- Action Buttons -->
     <a href="{{ route('projects.index') }}" class="btn btn-primary">Back to Projects</a>
     <a href="{{ route('projects.downloadPdf', $project->project_id) }}" class="btn btn-secondary">Download PDF</a>
     <a href="{{ route('projects.downloadDoc', $project->project_id) }}" class="btn btn-secondary">Download Word</a>
+
+    <!-- Status Action Buttons -->
+    <div>
+        {{-- @include('projects.partials.actions', ['project' => $project]) --}}
+    </div>
 </div>
 
 <script>
@@ -153,50 +176,21 @@
     });
 </script>
 
-{{-- <style>
-    /* General Styling */
-    .card {
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        margin-bottom: 20px;
-        background-color: #f9f9f9;
-    }
-
-    .card-header {
-        background-color: #202ba3;
-        color: white;
-        padding: 15px;
-        font-size: 18px;
-        font-weight: bold;
-    }
-
+<style>
     .info-grid {
         display: grid;
-        grid-template-columns: 200px 1fr;
-        grid-gap: 10px;
+        grid-template-columns: 1fr 1fr; /* Equal columns */
+        grid-gap: 20px; /* Increased spacing between rows */
     }
 
     .info-label {
         font-weight: bold;
+        margin-right: 10px; /* Optional spacing after labels */
     }
 
     .info-value {
         word-wrap: break-word;
+        padding-left: 10px; /* Optional padding before values */
     }
-
-    .btn {
-        margin-right: 10px;
-    }
-
-    .btn-secondary {
-        background-color: #6c757d;
-        border: none;
-        color: white;
-    }
-
-    .btn-primary {
-        background-color: #202ba3;
-        border: none;
-    }
-</style> --}}
+</style>
 @endsection

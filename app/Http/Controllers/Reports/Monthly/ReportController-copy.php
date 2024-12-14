@@ -701,75 +701,176 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
         return view('reports.monthly.index', compact('reports'));
     }
 
+    // public function show($report_id)
+    // {
+    //     Log::info('Entering show method', ['report_id' => $report_id]);
+
+    //     $report = DPReport::with(['objectives.activities', 'accountDetails', 'photos', 'outlooks', 'attachments'])
+    //                       ->where('report_id', $report_id)
+    //                       ->firstOrFail();
+    //     Log::info('Report retrieved', ['report' => $report]);
+
+    //     $annexures = [];
+    //     $ageProfiles = [];
+    //     $traineeProfiles = [];
+    //     $inmateProfiles = [];
+    //      //ReportAttachment
+    //      $attachments = []; // Placeholder, add logic to fetch attachments if required
+
+
+    //     $projectType = $report->project_type;
+
+    //     switch ($projectType) {
+    //         case 'Livelihood Development Projects':
+    //             $annexures = $this->livelihoodAnnexureController->getAnnexures($report_id);
+    //             break;
+    //         case 'Institutional Ongoing Group Educational proposal':
+    //             $ageProfiles = $this->institutionalGroupController->getAgeProfiles($report_id);
+    //             break;
+    //         case 'Residential Skill Training Proposal 2':
+    //              $traineeProfiles = $this->residentialSkillTrainingController->getTraineeProfiles($report_id);
+    //             // Populate the $report->education array for the view
+    //                 $education = [];
+    //                 foreach ($traineeProfiles as $profile) {
+    //                     $category = $profile->education_category;
+    //                     $number = $profile->number;
+
+    //                     switch ($category) {
+    //                         case 'Below 9th standard':
+    //                             $education['below_9'] = $number;
+    //                             break;
+    //                         case '10th class failed':
+    //                             $education['class_10_fail'] = $number;
+    //                             break;
+    //                         case '10th class passed':
+    //                             $education['class_10_pass'] = $number;
+    //                             break;
+    //                         case 'Intermediate':
+    //                             $education['intermediate'] = $number;
+    //                             break;
+    //                         case 'Intermediate and above':
+    //                             $education['above_intermediate'] = $number;
+    //                             break;
+    //                         case 'Total':
+    //                             $education['total'] = $number;
+    //                             break;
+    //                         default:
+    //                             // For 'Other' category
+    //                             $education['other'] = $category; // The category name is the 'other' text
+    //                             $education['other_count'] = $number;
+    //                             break;
+    //                     }
+    //                 }
+    //                 $report->education = $education;
+    //             break;
+    //         case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
+    //             $inmateProfiles = $this->crisisInterventionCenterController->getInmateProfiles($report_id);
+    //             break;
+    //     }
+
+    //     return view('reports.monthly.show', compact('report', 'annexures', 'ageProfiles', 'traineeProfiles', 'inmateProfiles'));
+    // }
+
     public function show($report_id)
-    {
-        Log::info('Entering show method', ['report_id' => $report_id]);
+{
+    Log::info('Entering show method', ['report_id' => $report_id]);
 
-        $report = DPReport::with(['objectives.activities', 'accountDetails', 'photos', 'outlooks', 'attachments'])
-                          ->where('report_id', $report_id)
-                          ->firstOrFail();
-        Log::info('Report retrieved', ['report' => $report]);
+    $report = DPReport::with([
+        'objectives.activities.timeframes',
+        'accountDetails',
+        'photos',
+        'outlooks',
+        'attachments'
+    ])
+    ->where('report_id', $report_id)
+    ->firstOrFail();
+    Log::info('Report retrieved', ['report' => $report]);
 
-        $annexures = [];
-        $ageProfiles = [];
-        $traineeProfiles = [];
-        $inmateProfiles = [];
-         //ReportAttachment
-         $attachments = []; // Placeholder, add logic to fetch attachments if required
-
-
-        $projectType = $report->project_type;
-
-        switch ($projectType) {
-            case 'Livelihood Development Projects':
-                $annexures = $this->livelihoodAnnexureController->getAnnexures($report_id);
-                break;
-            case 'Institutional Ongoing Group Educational proposal':
-                $ageProfiles = $this->institutionalGroupController->getAgeProfiles($report_id);
-                break;
-            case 'Residential Skill Training Proposal 2':
-                 $traineeProfiles = $this->residentialSkillTrainingController->getTraineeProfiles($report_id);
-                // Populate the $report->education array for the view
-                    $education = [];
-                    foreach ($traineeProfiles as $profile) {
-                        $category = $profile->education_category;
-                        $number = $profile->number;
-
-                        switch ($category) {
-                            case 'Below 9th standard':
-                                $education['below_9'] = $number;
-                                break;
-                            case '10th class failed':
-                                $education['class_10_fail'] = $number;
-                                break;
-                            case '10th class passed':
-                                $education['class_10_pass'] = $number;
-                                break;
-                            case 'Intermediate':
-                                $education['intermediate'] = $number;
-                                break;
-                            case 'Intermediate and above':
-                                $education['above_intermediate'] = $number;
-                                break;
-                            case 'Total':
-                                $education['total'] = $number;
-                                break;
-                            default:
-                                // For 'Other' category
-                                $education['other'] = $category; // The category name is the 'other' text
-                                $education['other_count'] = $number;
-                                break;
-                        }
-                    }
-                    $report->education = $education;
-                break;
-            case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
-                $inmateProfiles = $this->crisisInterventionCenterController->getInmateProfiles($report_id);
-                break;
-        }
-
-        return view('reports.monthly.show', compact('report', 'annexures', 'ageProfiles', 'traineeProfiles', 'inmateProfiles'));
+    // Decode expected_outcome for objectives
+    foreach ($report->objectives as $objective) {
+        $objective->expected_outcome = json_decode($objective->expected_outcome, true) ?? [];
     }
+
+    // Group photos by description
+    $groupedPhotos = $report->photos->groupBy('description');
+
+    // Retrieve associated project
+    $project = Project::where('project_id', $report->project_id)->firstOrFail();
+    Log::info('Project retrieved successfully', ['project_id' => $project->project_id]);
+
+    // Retrieve highest phase budgets
+    $highestPhase = ProjectBudget::where('project_id', $project->project_id)->max('phase');
+    $budgets = ProjectBudget::where('project_id', $project->project_id)
+                            ->where('phase', $highestPhase)
+                            ->get();
+
+    // Prepare additional data based on project type
+    $annexures = [];
+    $ageProfiles = [];
+    $traineeProfiles = [];
+    $inmateProfiles = [];
+    switch ($report->project_type) {
+        case 'Livelihood Development Projects':
+            $annexures = $this->livelihoodAnnexureController->getAnnexures($report_id);
+            break;
+        case 'Institutional Ongoing Group Educational proposal':
+            $ageProfiles = $this->institutionalGroupController->getAgeProfiles($report_id);
+            break;
+        case 'Residential Skill Training Proposal 2':
+            $traineeProfiles = $this->residentialSkillTrainingController->getTraineeProfiles($report_id);
+            // Arrange them in array
+            if ($report->project_type === 'Residential Skill Training Proposal 2') {
+                $education = [];
+                foreach ($traineeProfiles as $profile) {
+                    $category = $profile->education_category;
+                    $number = $profile->number;
+
+                    switch ($category) {
+                        case 'Below 9th standard':
+                            $education['below_9'] = $number;
+                            break;
+                        case '10th class failed':
+                            $education['class_10_fail'] = $number;
+                            break;
+                        case '10th class passed':
+                            $education['class_10_pass'] = $number;
+                            break;
+                        case 'Intermediate':
+                            $education['intermediate'] = $number;
+                            break;
+                        case 'Intermediate and above':
+                            $education['above_intermediate'] = $number;
+                            break;
+                        case 'Total':
+                            $education['total'] = $number;
+                            break;
+                        default:
+                            // For 'Other' category
+                            $education['other'] = $category; // The category name is the 'other' text
+                            $education['other_count'] = $number;
+                            break;
+                    }
+                }
+                $report->education = $education;
+            }
+            break;
+        case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
+            $inmateProfiles = $this->crisisInterventionCenterController->getInmateProfiles($report_id);
+            break;
+    }
+
+    // Pass data to the view
+    return view('reports.monthly.show', compact(
+        'report',
+        'groupedPhotos',
+        'project',
+        'budgets',
+        'annexures',
+        'ageProfiles',
+        'traineeProfiles',
+        'inmateProfiles'
+    ));
+}
 
     public function edit($report_id)
     {
@@ -858,51 +959,7 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             case 'Institutional Ongoing Group Educational proposal':
                 $ageProfiles = $this->institutionalGroupController->getAgeProfiles($report_id);
                 Log::info('Age profiles retrieved for Institutional Group Projects', ['ageProfiles' => $ageProfiles]);
-
-                /// Process the age profiles into the structure expected by the view
-                $ageProfile = [];
-                $totals = [];
-
-                // Define mapping from age group names to keys used in the blade view
-                $ageGroupKeys = [
-                    'Children below 5 years' => 'below_5',
-                    'Children between 6 to 10 years' => '6_10',
-                    'Children between 11 to 15 years' => '11_15',
-                    '16 and above' => '16_above',
-                ];
-
-                // Initialize totals
-                foreach ($ageProfiles as $profile) {
-                    $ageGroup = $profile->age_group;
-                    $education = $profile->education;
-                    $upToPreviousYear = $profile->up_to_previous_year;
-                    $presentAcademicYear = $profile->present_academic_year;
-
-                    if ($ageGroup === 'All Categories' && $education === 'Grand Total') {
-                        // Store grand totals
-                        $totals['grand']['up_to_previous'] = $upToPreviousYear;
-                        $totals['grand']['present_academic'] = $presentAcademicYear;
-                    } elseif (isset($ageGroupKeys[$ageGroup])) {
-                        $ageGroupKey = $ageGroupKeys[$ageGroup];
-
-                        if ($education === 'Total') {
-                            // Store totals for this age group
-                            $totals[$ageGroupKey]['up_to_previous'] = $upToPreviousYear;
-                            $totals[$ageGroupKey]['present_academic'] = $presentAcademicYear;
-                        } else {
-                            // Store the data in ageProfile
-                            if (!isset($ageProfile[$ageGroupKey])) {
-                                $ageProfile[$ageGroupKey] = [];
-                            }
-
-                            $ageProfile[$ageGroupKey][] = [
-                                'education' => $education,
-                                'up_to_previous_year' => $upToPreviousYear,
-                                'present_academic_year' => $presentAcademicYear,
-                            ];
-                        }
-                    }
-                }
+                // Group and structure age profiles
 
                 break;
             case 'Residential Skill Training Proposal 2':
@@ -969,8 +1026,6 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             'ageProfiles',
             'traineeProfiles',
             'inmateProfiles',
-            'ageProfile',   // Include ageProfile
-            'totals',       // Include totals
             'months'
         ));
     }

@@ -1,6 +1,10 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Projects\ProjectController;
+use App\Http\Controllers\Reports\Monthly\ReportController;
+use App\Models\OldProjects\Project;
+use App\Models\ProjectComment;
 use App\Models\ReportComment;
 use App\Models\Reports\Monthly\DPReport;
 use App\Models\User;
@@ -40,44 +44,107 @@ class ProvincialController extends Controller
 
         $reports = $reportsQuery->get();
 
-        // Fetch unique places and users for filters
+        // Fetch unique places and users for filters resources/views/projects/Coord-Prov-ProjectList.blade.php
         $places = DPReport::distinct()->pluck('place');
         $users = User::where('parent_id', $provincial->id)->get();
 
         return view('provincial.index', compact('reports', 'places', 'users'));
     }
+    public function ReportList(Request $request)
+{
+    $provincial = auth()->user();
 
-    // public function showReport($id)
-    // {
-    //     $report = DPReport::with([
-    //         'user.parent',
-    //         'objectives.activities',
-    //         'accountDetails',
-    //         'photos',
-    //         'outlooks',
-    //         'annexures',
-    //         'rqis_age_profile',
-    //         'rqst_trainee_profile',
-    //         'rqwd_inmate_profile',
-    //         'comments.user' // Load comments with associated user
-    //     ])->findOrFail($id);
+    // Fetch reports for executors under this provincial
+    $reportsQuery = DPReport::whereHas('user', function ($query) use ($provincial) {
+        $query->where('parent_id', $provincial->id);
+    });
 
-    //     return view('provincial.show_report', compact('report'));
-    // }
+    // Apply any filters as needed
+    if ($request->filled('place')) {
+        $reportsQuery->where('place', $request->place);
+    }
+    if ($request->filled('user_id')) {
+        $reportsQuery->where('user_id', $request->user_id);
+    }
+    if ($request->filled('project_type')) {
+        $reportsQuery->where('project_type', $request->project_type);
+    }
+
+    $reports = $reportsQuery->get();
+
+    // Fetch unique places and users for filters
+    $places = DPReport::distinct()->pluck('place');
+    $users = User::where('parent_id', $provincial->id)->get();
+
+    return view('provincial.ReportList', compact('reports', 'places', 'users'));
+}
+
+public function ProjectList(Request $request)
+{
+    $provincial = auth()->user();
+
+    // Fetch all projects where the project's user is a child of the provincial
+    $projectsQuery = \App\Models\OldProjects\Project::whereHas('user', function($query) use ($provincial) {
+        $query->where('parent_id', $provincial->id);
+    });
+
+    // Apply optional filters if you want:
+    if ($request->filled('project_type')) {
+        $projectsQuery->where('project_type', $request->project_type);
+    }
+
+    if ($request->filled('user_id')) {
+        $projectsQuery->where('user_id', $request->user_id);
+    }
+
+    $projects = $projectsQuery->get();
+
+    // Fetch distinct executors under this provincial for filtering
+    $users = \App\Models\User::where('parent_id', $provincial->id)->get();
+
+    // Distinct project types (if needed)
+    $projectTypes = \App\Models\OldProjects\Project::distinct()->pluck('project_type');
+
+    return view('provincial.ProjectList', compact('projects', 'users', 'projectTypes'));
+}
+public function showProject($project_id)
+{
+    $provincial = auth()->user();
+
+    // Fetch the project and ensure it exists
+    $project = Project::where('project_id', $project_id)
+        ->with('user')
+        ->firstOrFail();
+
+    // Authorization check: the project's user must be a child (executor) of the current provincial
+    if ($project->user->parent_id !== $provincial->id) {
+        abort(403, 'Unauthorized');
+    }
+
+    // If passed the authorization, call ProjectController@show
+    return app(ProjectController::class)->show($project_id);
+}
+
+
+
+
     public function showMonthlyReport($report_id)
     {
         $report = DPReport::with([
             'user.parent',
-            'objectives.activities',
-            'accountDetails',
-            'photos',
-            'outlooks',
-            'annexures',
-            'rqis_age_profile',
-            'rqst_trainee_profile',
-            'rqwd_inmate_profile',
+            // 'objectives.activities',
+            // 'accountDetails',
+            // 'photos',
+            // 'outlooks',
+            // 'annexures',
+            // 'rqis_age_profile',
+            // 'rqst_trainee_profile',
+            // 'rqwd_inmate_profile',
             'comments.user'
         ])->where('report_id', $report_id)->firstOrFail();
+        // // Retrieve associated project
+        // $project = Project::where('project_id', $report->project_id)->firstOrFail();
+
 
         $provincial = auth()->user();
 
@@ -86,7 +153,9 @@ class ProvincialController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        return view('reports.monthly.show', compact('report'));
+        // return view('reports.monthly.show', compact('report', 'project'));
+        return app(ReportController::class)->show($report_id);
+
     }
 
     // Add Comment in reports
@@ -300,4 +369,93 @@ class ProvincialController extends Controller
 
         return redirect()->route('provincial.executors')->with('success', 'Executor password reset successfully.');
     }
+    public function addProjectComment(Request $request, $project_id)
+    {
+        $provincial = auth()->user();
+
+        $project = Project::where('project_id', $project_id)->firstOrFail();
+        // Check authorization if needed (provincial should have access)
+        // If they have access, proceed
+
+        $request->validate([
+            'comment' => 'required|string|max:1000',
+        ]);
+
+        $commentId = $project->generateProjectCommentId();
+
+        \App\Models\ProjectComment::create([
+            'project_comment_id' => $commentId,
+            'project_id' => $project->project_id,
+            'user_id' => $provincial->id,
+            'comment' => $request->comment,
+        ]);
+
+        return redirect()->back()->with('success', 'Comment added successfully.');
+    }
+
+    public function editProjectComment($id)
+    {
+        $comment = ProjectComment::findOrFail($id);
+        $user = auth()->user();
+
+        // Ensure the user owns this comment
+        if ($comment->user_id !== $user->id) {
+            abort(403, 'Unauthorized');
+        }
+
+        return view('projects.comments.edit', compact('comment'));
+    }
+
+    public function updateProjectComment(Request $request, $id)
+    {
+        $comment = ProjectComment::findOrFail($id);
+        $user = auth()->user();
+
+        if ($comment->user_id !== $user->id) {
+            abort(403, 'Unauthorized');
+        }
+
+        $request->validate([
+            'comment' => 'required|string|max:1000',
+        ]);
+
+        $comment->update([
+            'comment' => $request->comment,
+        ]);
+
+        return redirect()->back()->with('success', 'Comment updated successfully.');
+    }
+    // Status
+//     public function revertToExecutor($project_id)
+// {
+//     $project = Project::where('project_id', $project_id)->firstOrFail();
+//     $provincial = auth()->user();
+
+//     // Check if user is provincial and can revert
+//     if($provincial->role !== 'provincial' || !in_array($project->status, ['submitted_to_provincial','reverted_by_coordinator'])) {
+//         abort(403, 'Unauthorized action.');
+//     }
+
+//     $project->status = 'reverted_by_provincial';
+//     $project->save();
+
+//     return redirect()->back()->with('success', 'Project reverted to Executor.');
+// }
+
+// public function forwardToCoordinator($project_id)
+// {
+//     $project = Project::where('project_id', $project_id)->firstOrFail();
+//     $provincial = auth()->user();
+
+//     if($provincial->role !== 'provincial' || !in_array($project->status, ['submitted_to_provincial','reverted_by_coordinator'])) {
+//         abort(403, 'Unauthorized action.');
+//     }
+
+//     $project->status = 'forwarded_to_coordinator';
+//     $project->save();
+
+//     return redirect()->back()->with('success', 'Project forwarded to Coordinator.');
+// }
+
+
 }

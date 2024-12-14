@@ -1,4 +1,5 @@
-<div class="mb-3 card">
+{{-- resources/views/projects/partials/Show/CCI/achievements.blade.php --}}
+{{-- <div class="mb-3 card">
     <div class="card-header">
         <h4>Achievements</h4>
     </div>
@@ -45,49 +46,71 @@
             </ul>
         </div>
     </div>
+</div> --}}
+
+{{-- resources/views/projects/partials/Show/CCI/achievements.blade.php --}}
+<div class="mb-3 card">
+    <div class="card-header">
+        <h4>Achievements</h4>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <!-- Academic Achievements -->
+            <div class="info-label">Academic Achievements:</div>
+            <div class="info-value">
+                @if(!empty($achievements->academic_achievements))
+                    <ul class="achievement-list">
+                        @foreach($achievements->academic_achievements as $achievement)
+                            <li>{{ $achievement }}</li>
+                        @endforeach
+                    </ul>
+                @else
+                    <span class="no-data">No academic achievements recorded.</span>
+                @endif
+            </div>
+
+            <!-- Sports Achievements -->
+            <div class="info-label">Sports Achievements:</div>
+            <div class="info-value">
+                @if(!empty($achievements->sport_achievements))
+                    <ul class="achievement-list">
+                        @foreach($achievements->sport_achievements as $achievement)
+                            <li>{{ $achievement }}</li>
+                        @endforeach
+                    </ul>
+                @else
+                    <span class="no-data">No sports achievements recorded.</span>
+                @endif
+            </div>
+
+            <!-- Other Achievements -->
+            <div class="info-label">Other Achievements:</div>
+            <div class="info-value">
+                @if(!empty($achievements->other_achievements))
+                    <ul class="achievement-list">
+                        @foreach($achievements->other_achievements as $achievement)
+                            <li>{{ $achievement }}</li>
+                        @endforeach
+                    </ul>
+                @else
+                    <span class="no-data">No other achievements recorded.</span>
+                @endif
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- Updated CSS -->
-{{-- <style>
-    /* Card Styles */
-    .card {
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        margin-bottom: 20px;
-        background-color: #f9f9f9;
-    }
-
-    .card-header {
-        background-color: #202ba3;
-        color: white;
-        padding: 10px 15px;
-        border-bottom: 1px solid #ddd;
-    }
-
-    .card-header h4, .card-header h5 {
-        margin: 0;
-        font-size: 18px;
-    }
-
-    /* Achievement List Styles */
-    .achievement-heading {
-        font-weight: bold;
-        color: #202ba3;
-        margin-bottom: 10px;
-    }
-
+<style>
     .achievement-list {
-        list-style: disc;
-        margin-left: 20px;
-        color: #333;
+        padding-left: 20px;
+        margin: 0;
     }
 
     .achievement-list li {
         margin-bottom: 5px;
     }
 
-    .achievement-list .no-data {
-        color: #999;
-        font-style: italic;
+    .no-data {
+        color: #6c757d;
     }
-</style> --}}
+</style>
