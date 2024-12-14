@@ -151,7 +151,7 @@
 
     <!-- Status Action Buttons -->
     <div>
-        {{-- @include('projects.partials.actions', ['project' => $project]) --}}
+        @include('projects.partials.actions', ['project' => $project])
     </div>
 </div>
 

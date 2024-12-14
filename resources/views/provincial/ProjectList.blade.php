@@ -1,3 +1,4 @@
+{{-- resources/views/provincial/ProjectList.blade.php --}}
 @extends('provincial.dashboard')
 
 @section('content')

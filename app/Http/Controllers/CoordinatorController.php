@@ -466,49 +466,49 @@ public function showProject($project_id)
         return redirect()->back()->with('success', 'Comment updated successfully.');
     }
 // // Status
-// public function revertToProvincial($project_id)
-// {
-//     $project = Project::where('project_id', $project_id)->firstOrFail();
-//     $coordinator = auth()->user();
+public function revertToProvincial($project_id)
+{
+    $project = Project::where('project_id', $project_id)->firstOrFail();
+    $coordinator = auth()->user();
 
-//     if($coordinator->role !== 'coordinator' || $project->status !== 'forwarded_to_coordinator') {
-//         abort(403, 'Unauthorized action.');
-//     }
+    if($coordinator->role !== 'coordinator' || $project->status !== 'forwarded_to_coordinator') {
+        abort(403, 'Unauthorized action.');
+    }
 
-//     $project->status = 'reverted_by_coordinator';
-//     $project->save();
+    $project->status = 'reverted_by_coordinator';
+    $project->save();
 
-//     return redirect()->back()->with('success', 'Project reverted to Provincial.');
-// }
+    return redirect()->back()->with('success', 'Project reverted to Provincial.');
+}
 
-// public function approveProject($project_id)
-// {
-//     $project = Project::where('project_id', $project_id)->firstOrFail();
-//     $coordinator = auth()->user();
+public function approveProject($project_id)
+{
+    $project = Project::where('project_id', $project_id)->firstOrFail();
+    $coordinator = auth()->user();
 
-//     if($coordinator->role !== 'coordinator' || $project->status !== 'forwarded_to_coordinator') {
-//         abort(403, 'Unauthorized action.');
-//     }
+    if($coordinator->role !== 'coordinator' || $project->status !== 'forwarded_to_coordinator') {
+        abort(403, 'Unauthorized action.');
+    }
 
-//     $project->status = 'approved_by_coordinator';
-//     $project->save();
+    $project->status = 'approved_by_coordinator';
+    $project->save();
 
-//     return redirect()->back()->with('success', 'Project approved successfully.');
-// }
+    return redirect()->back()->with('success', 'Project approved successfully.');
+}
 
-// public function rejectProject($project_id)
-// {
-//     $project = Project::where('project_id', $project_id)->firstOrFail();
-//     $coordinator = auth()->user();
+public function rejectProject($project_id)
+{
+    $project = Project::where('project_id', $project_id)->firstOrFail();
+    $coordinator = auth()->user();
 
-//     if($coordinator->role !== 'coordinator' || $project->status !== 'forwarded_to_coordinator') {
-//         abort(403, 'Unauthorized action.');
-//     }
+    if($coordinator->role !== 'coordinator' || $project->status !== 'forwarded_to_coordinator') {
+        abort(403, 'Unauthorized action.');
+    }
 
-//     $project->status = 'rejected_by_coordinator';
-//     $project->save();
+    $project->status = 'rejected_by_coordinator';
+    $project->save();
 
-//     return redirect()->back()->with('success', 'Project rejected successfully.');
-// }
+    return redirect()->back()->with('success', 'Project rejected successfully.');
+}
 
 }

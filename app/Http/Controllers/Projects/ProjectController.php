@@ -636,21 +636,21 @@ public function update(Request $request, $project_id)
     return view('projects.Coord-Prov-ProjectList', compact('projects'));
 }
 // Status
-// public function submitToProvincial($project_id)
-// {
-//     $project = Project::where('project_id', $project_id)->firstOrFail();
-//     $user = Auth::user();
+public function submitToProvincial($project_id)
+{
+    $project = Project::where('project_id', $project_id)->firstOrFail();
+    $user = Auth::user();
 
-//     // Check if user is executor and status is draft or reverted_by_provincial
-//     if($user->role !== 'executor' || !in_array($project->status, ['draft','reverted_by_provincial'])) {
-//         abort(403, 'Unauthorized action.');
-//     }
+    // Check if user is executor and status is draft or reverted_by_provincial
+    if($user->role !== 'executor' || !in_array($project->status, ['draft','reverted_by_provincial'])) {
+        abort(403, 'Unauthorized action.');
+    }
 
-//     $project->status = 'submitted_to_provincial';
-//     $project->save();
+    $project->status = 'submitted_to_provincial';
+    $project->save();
 
-//     return redirect()->back()->with('success', 'Project submitted to Provincial successfully.');
-// }
+    return redirect()->back()->with('success', 'Project submitted to Provincial successfully.');
+}
 
 
 }

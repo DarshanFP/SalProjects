@@ -7,7 +7,7 @@
         <div class="col-md-12 col-xl-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="fp-text-center1">My bhb Projects</h4>
+                    <h4 class="fp-text-center1">My Projects</h4>
                 </div>
                 <div class="card-body">
                     <style>
@@ -73,7 +73,7 @@
                                     </td>
                                     <td>
                                         <a href="{{ route('projects.show', $project->project_id) }}" class="btn btn-info">View</a>
-                                        @if($project->status == 'draft' || $project->status == 'reverted')
+                                        @if($project->status == 'draft' || $project->status == 'reverted_by_provincial' || $project->status == 'reverted_by_coordinator')
                                             <a href="{{ route('projects.edit', $project->project_id) }}" class="btn btn-primary">Edit</a>
                                         @endif
                                         <a href="{{ route('monthly.report.create', ['project_id' => $project->project_id]) }}" class="btn btn-success">Write Report</a>

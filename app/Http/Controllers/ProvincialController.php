@@ -426,36 +426,36 @@ public function showProject($project_id)
         return redirect()->back()->with('success', 'Comment updated successfully.');
     }
     // Status
-//     public function revertToExecutor($project_id)
-// {
-//     $project = Project::where('project_id', $project_id)->firstOrFail();
-//     $provincial = auth()->user();
+    public function revertToExecutor($project_id)
+{
+    $project = Project::where('project_id', $project_id)->firstOrFail();
+    $provincial = auth()->user();
 
-//     // Check if user is provincial and can revert
-//     if($provincial->role !== 'provincial' || !in_array($project->status, ['submitted_to_provincial','reverted_by_coordinator'])) {
-//         abort(403, 'Unauthorized action.');
-//     }
+    // Check if user is provincial and can revert
+    if($provincial->role !== 'provincial' || !in_array($project->status, ['submitted_to_provincial','reverted_by_coordinator'])) {
+        abort(403, 'Unauthorized action.');
+    }
 
-//     $project->status = 'reverted_by_provincial';
-//     $project->save();
+    $project->status = 'reverted_by_provincial';
+    $project->save();
 
-//     return redirect()->back()->with('success', 'Project reverted to Executor.');
-// }
+    return redirect()->back()->with('success', 'Project reverted to Executor.');
+}
 
-// public function forwardToCoordinator($project_id)
-// {
-//     $project = Project::where('project_id', $project_id)->firstOrFail();
-//     $provincial = auth()->user();
+public function forwardToCoordinator($project_id)
+{
+    $project = Project::where('project_id', $project_id)->firstOrFail();
+    $provincial = auth()->user();
 
-//     if($provincial->role !== 'provincial' || !in_array($project->status, ['submitted_to_provincial','reverted_by_coordinator'])) {
-//         abort(403, 'Unauthorized action.');
-//     }
+    if($provincial->role !== 'provincial' || !in_array($project->status, ['submitted_to_provincial','reverted_by_coordinator'])) {
+        abort(403, 'Unauthorized action.');
+    }
 
-//     $project->status = 'forwarded_to_coordinator';
-//     $project->save();
+    $project->status = 'forwarded_to_coordinator';
+    $project->save();
 
-//     return redirect()->back()->with('success', 'Project forwarded to Coordinator.');
-// }
+    return redirect()->back()->with('success', 'Project forwarded to Coordinator.');
+}
 
 
 }
