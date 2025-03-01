@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/Show/IGE/ongoing_beneficiaries.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Ongoing Beneficiaries</h4>

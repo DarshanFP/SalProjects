@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Projects\IES;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\OldProjects\IES\ProjectIESEducationBackground;
+use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
@@ -50,16 +51,17 @@ class IESEducationBackgroundController extends Controller
     // Edit educational background for a project
     public function edit($projectId)
     {
+        
         try {
-            Log::info('Editing IES educational background', ['project_id' => $projectId]);
+            Log::info('Fetching project with IES educational background', ['project_id' => $projectId]);
 
-            $educationBackground = ProjectIESEducationBackground::where('project_id', $projectId)->firstOrFail();
+            // Fetch the project with the related IES educational background
+            $project = Project::with('iesEducationBackground')->where('project_id', $projectId)->firstOrFail();
 
-            // Return the data directly
-            return $educationBackground;
+            return $project; // Ensure the correct view path
         } catch (\Exception $e) {
-            Log::error('Error editing IES educational background', ['error' => $e->getMessage()]);
-            return null;
+            Log::error('Error fetching project for edit in Education Background Controller', ['error' => $e->getMessage()]);
+            return redirect()->back()->with('error', 'Failed to fetch project details.');
         }
     }
 

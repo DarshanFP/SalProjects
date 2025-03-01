@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/Show/LDP/target_group.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Annexed Target Group: Livelihood Development Projects</h4>

@@ -45,31 +45,112 @@ class EducationBackgroundController extends Controller
 
     // Show education background for a project
     public function show($projectId)
-    {
-        try {
-            Log::info('Fetching IIES Educational Background', ['project_id' => $projectId]);
+{
+    try { 
+        Log::info('Fetching IIES Educational Background from database', ['project_id' => $projectId]);
 
-            $educationBackground = ProjectIIESEducationBackground::where('project_id', $projectId)->first();
-            return response()->json($educationBackground, 200);
-        } catch (\Exception $e) {
-            Log::error('Error fetching IIES Educational Background', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch Educational Background.'], 500);
+        // Retrieve education background or return an empty object
+        $IIESEducationBackground = ProjectIIESEducationBackground::where('project_id', $projectId)->first();
+
+        if ($IIESEducationBackground) {
+            Log::info('IIES Educational Background retrieved successfully', ['data' => $IIESEducationBackground]);
+        } else {
+            Log::warning('IIES Educational Background not found, returning empty object', ['project_id' => $projectId]);
+            $IIESEducationBackground = new ProjectIIESEducationBackground();
         }
+
+        return $IIESEducationBackground;
+    } catch (\Exception $e) {
+        Log::error('Error fetching IIES Educational Background', ['error' => $e->getMessage()]);
+        return new ProjectIIESEducationBackground(); // Return empty object on failure
     }
+}
+
 
     // Edit education background for a project
-    public function edit($projectId)
-    {
-        try {
-            Log::info('Editing IIES Educational Background', ['project_id' => $projectId]);
+//     public function edit($projectId)
+// {
+//     try {
+//         Log::info('Editing IIES Educational Background', ['project_id' => $projectId]);
 
-            $educationBackground = ProjectIIESEducationBackground::where('project_id', $projectId)->first();
-            return view('projects.partials.Edit.IIES.education_background', compact('educationBackground'));
-        } catch (\Exception $e) {
-            Log::error('Error editing IIES Educational Background', ['error' => $e->getMessage()]);
-            return null;
+//         // Fetch project with education background
+//         $educationBackground = ProjectIIESEducationBackground::where('project_id', $projectId)->first();
+
+//         if (!$educationBackground) {
+//             Log::warning('No educational background found for project', ['project_id' => $projectId]);
+//             return response()->json(['error' => 'No educational background found.'], 404);
+//         }
+
+//         return view('projects.partials.Edit.IIES.education_background', compact('educationBackground'));
+//     } catch (\Exception $e) {
+//         Log::error('Error editing IIES Educational Background', ['error' => $e->getMessage()]);
+//         return response()->json(['error' => 'Failed to fetch education background.'], 500);
+//     }
+// }
+
+public function edit($projectId)
+{
+    try {
+        Log::info('🔍 Fetching IIES Educational Background', ['project_id' => $projectId]);
+
+        // Fetch project education background OR return an empty model
+        $IIESEducationBackground = ProjectIIESEducationBackground::where('project_id', $projectId)->first();
+
+        if (!$IIESEducationBackground) {
+            Log::warning('⚠️ No IIES Educational Background Found, returning empty object', ['project_id' => $projectId]);
+            $IIESEducationBackground = new ProjectIIESEducationBackground();
         }
+
+        return $IIESEducationBackground;
+    } catch (\Exception $e) {
+        Log::error('❌ Error fetching IIES Educational Background', ['error' => $e->getMessage()]);
+        return new ProjectIIESEducationBackground(); // Return empty object on failure
     }
+}
+
+
+// Update education background for a project
+public function update(Request $request, $projectId)
+{
+    DB::beginTransaction();
+
+    try {
+        Log::info('Updating IIES Educational Background', ['project_id' => $projectId]);
+
+        // Validate input data
+        $validatedData = $request->validate([
+            'prev_education'     => 'nullable|string|max:255',
+            'prev_institution'   => 'nullable|string|max:255',
+            'prev_insti_address' => 'nullable|string|max:500',
+            'prev_marks'         => 'nullable|numeric|min:0|max:100',
+            'current_studies'    => 'nullable|string|max:255',
+            'curr_institution'   => 'nullable|string|max:255',
+            'curr_insti_address' => 'nullable|string|max:500',
+            'aspiration'         => 'nullable|string|max:500',
+            'long_term_effect'   => 'nullable|string|max:500',
+        ]);
+
+        // Find existing record
+        $educationBackground = ProjectIIESEducationBackground::where('project_id', $projectId)->first();
+
+        if (!$educationBackground) {
+            throw new \Exception('Educational background record not found for update.');
+        }
+
+        // Update record
+        $educationBackground->update($validatedData);
+
+        DB::commit();
+        Log::info('IIES Educational Background updated successfully', ['project_id' => $projectId]);
+
+        return response()->json(['message' => 'Educational Background updated successfully.'], 200);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error updating IIES Educational Background', ['error' => $e->getMessage()]);
+        return response()->json(['error' => 'Failed to update Educational Background.'], 500);
+    }
+}
+
 
     // Delete education background for a project
     public function destroy($projectId)

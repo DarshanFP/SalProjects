@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/Show/IGE/budget.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Budget for Current Year</h4>

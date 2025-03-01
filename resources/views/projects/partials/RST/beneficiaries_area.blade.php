@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/RST/beneficiaries_area.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Project Area</h4>

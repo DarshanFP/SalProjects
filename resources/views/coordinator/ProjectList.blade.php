@@ -45,6 +45,15 @@
                             </div>
 
                             <div class="col-md-3">
+                                <select name="status" class="form-control">
+                                    <option value="">Filter by Status</option>
+                                    @foreach(\App\Models\OldProjects\Project::$statusLabels as $key => $label)
+                                        <option value="{{ $key }}" {{ request('status') == $key ? 'selected' : '' }}>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
                                 <button type="submit" class="btn btn-primary">Filter</button>
                             </div>
                         </div>

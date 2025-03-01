@@ -5,13 +5,15 @@ namespace App\Http\Controllers\Projects\IES;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\OldProjects\IES\ProjectIESFamilyWorkingMembers;
+use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
 class IESFamilyWorkingMembersController extends Controller
 {
     // Store or update family working members for a project
-    public function store(Request $request, $projectId)
+    // was workinung for IED
+  /*  public function store(Request $request, $projectId)
     {
         DB::beginTransaction();
         try {
@@ -44,7 +46,60 @@ class IESFamilyWorkingMembersController extends Controller
             Log::error('Error saving IES family working members', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to save IES family working members.'], 500);
         }
+    }*/
+    //Updared for both IES and IIES
+    public function store(Request $request, $projectId)
+{
+    DB::beginTransaction();
+
+    try {
+        // 1) Log the attempt
+        Log::info('Storing family working members', ['project_id' => $projectId]);
+
+        // 2) (Optional) Fetch the Project to confirm project type, etc.
+        //    This also ensures the project actually exists.
+        $project = Project::where('project_id', $projectId)->firstOrFail();
+        Log::info('Detected project type: ' . $project->project_type);
+
+        // 3) Delete existing family working members to allow "fresh" save
+        ProjectIESFamilyWorkingMembers::where('project_id', $projectId)->delete();
+
+        // 4) Retrieve arrays from the request
+        $memberNames    = $request->input('member_name', []);
+        $workNatures    = $request->input('work_nature', []);
+        $monthlyIncomes = $request->input('monthly_income', []);
+
+        // 5) Loop and create new records
+        for ($i = 0; $i < count($memberNames); $i++) {
+            $memberName   = $memberNames[$i];
+            $workNature   = $workNatures[$i] ?? '';
+            $monthlyIncome = $monthlyIncomes[$i] ?? '';
+
+            if (!empty($memberName) && !empty($workNature) && !empty($monthlyIncome)) {
+                ProjectIESFamilyWorkingMembers::create([
+                    'project_id'     => $projectId,
+                    'member_name'    => $memberName,
+                    'work_nature'    => $workNature,
+                    'monthly_income' => $monthlyIncome,
+                ]);
+            }
+        }
+
+        // 6) Commit & log success
+        DB::commit();
+        Log::info('Family working members saved successfully', ['project_id' => $projectId]);
+
+        return response()->json(['message' => 'Family working members saved successfully.'], 200);
+
+    } catch (\Exception $e) {
+        // 7) Roll back & log error
+        DB::rollBack();
+        Log::error('Error saving family working members', ['error' => $e->getMessage()]);
+
+        return response()->json(['error' => 'Failed to save family working members.'], 500);
     }
+}
+
 
     // Show family working members for a project
     public function show($projectId)

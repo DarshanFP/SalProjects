@@ -211,6 +211,8 @@ Route::middleware(['auth', 'role:executor'])->group(function () {
         Route::post('/upload-annexed-target-group-excel', [EduRUTAnnexedTargetGroupController::class, 'uploadExcel'])->name('annexedTargetGroup.upload');
         // project status actions routes
         Route::post('/projects/{project_id}/submit-to-provincial', [ProjectController::class, 'submitToProvincial'])->name('projects.submitToProvincial');
+// NEXT Phase Development Proposal get data for general info
+Route::get('/projects/{id}/details', [ProjectController::class, 'getProjectDetails']);
 
 
 

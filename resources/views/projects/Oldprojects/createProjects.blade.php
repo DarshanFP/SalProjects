@@ -1,9 +1,11 @@
+{{-- resources/views/projects/Oldprojects/createProjects.blade.php --}}
 @extends('executor.dashboard')
 
 @section('content')
 <div class="page-content">
     <div class="row justify-content-center">
         <div class="col-md-12 col-xl-12">
+
             <form action="{{ route('projects.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
 
@@ -31,18 +33,17 @@
 
                 <!-- Residential Skill Training Specific Partials (After Key Information Section) -->
                 <div id="rst-section" style="display:none;">
-                    @include('projects.partials.RST.institution_info')
                     @include('projects.partials.RST.beneficiaries_area')
+                    @include('projects.partials.RST.institution_info')
                     @include('projects.partials.RST.target_group')
                     @include('projects.partials.RST.target_group_annexure')
                     @include('projects.partials.RST.geographical_area')
-                    {{-- @include('projects.partials.budget') --}}
                 </div>
 
-                <!-- Individual - Ongoing Educational Support Partials -->
+                <!-- Individual - Ongoing Educational Support Partials  -->
                 <div id="ies-sections" style="display:none;">
                     @include('projects.partials.IES.personal_info')
-                    @include('projects.partials.IES.family_working_members')
+                    @include('projects.partials.IES.family_working_members', ['prefix' => 'ies'])
                     @include('projects.partials.IES.immediate_family_details')
                     @include('projects.partials.IES.educational_background')
                     @include('projects.partials.IES.estimated_expenses')
@@ -51,12 +52,13 @@
 
                 <!-- Individual - Initial Educational Support Partials -->
                 <div id="iies-sections" style="display:none;">
-                    @include('projects.partials.IES.personal_info')
-                    @include('projects.partials.IES.family_working_members')
-                    @include('projects.partials.IES.immediate_family_details')
+                    @include('projects.partials.IIES.personal_info')
+                    @include('projects.partials.IIES.family_working_members', ['prefix' => 'iies'])
+                    @include('projects.partials.IIES.immediate_family_details')
                     @include('projects.partials.IIES.education_background')
                     @include('projects.partials.IIES.scope_financial_support')
-                    @include('projects.partials.IES.attachments')
+                    @include('projects.partials.IIES.estimated_expenses')
+                    @include('projects.partials.IIES.attachments')
                 </div>
 
                 <!-- Individual - Livelihood Application Partials -->
@@ -115,7 +117,6 @@
                 <!-- Livelihood Development Project Specific Partials -->
                 <div id="ldp-section" style="display:none;">
                     @include('projects.partials.LDP.need_analysis')
-                    @include('projects.partials.LDP.target_group')
                     @include('projects.partials.LDP.intervention_logic')
                 </div>
 
@@ -132,7 +133,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary me-2">Submit Application</button>
+                <button type="submit" class="btn btn-primary me-2">Save Project Application</button>
             </form>
         </div>
     </div>
@@ -147,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Get references to all section elements
     const iahSections = document.getElementById('iah-sections');
     const eduRUTSections = document.getElementById('edu-rut-sections');
-    const eduRutAnnexedSection = document.getElementById('edu-rut-annexed-section'); 
+    const eduRutAnnexedSection = document.getElementById('edu-rut-annexed-section');
     const cicSection = document.getElementById('cic-section');
     const cciSection = document.getElementById('cci-section');
     const ldpSection = document.getElementById('ldp-section');
@@ -157,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const iiesSections = document.getElementById('iies-sections');
     const ilpSections = document.getElementById('ilp-sections');
     const defaultSections = document.getElementById('default-sections');
-    const projectAreaSection = document.getElementById('project-area-section'); // Project Area Section
+    const projectAreaSection = document.getElementById('project-area-section'); // RST project area partial
 
     // Create an array of all sections for easy management
     const allSections = [
@@ -175,17 +176,88 @@ document.addEventListener('DOMContentLoaded', function() {
         projectAreaSection
     ];
 
-    function toggleSections() {
-        const projectType = projectTypeDropdown.value;
+    // 1) Utility function to disable inputs in a section
+    function disableInputsIn(section) {
+        if (!section) return;
+        const fields = section.querySelectorAll('input, textarea, select, button');
+        fields.forEach(field => field.disabled = true);
+    }
 
-        // Hide all sections
+    // 2) Utility function to enable inputs in a section
+    function enableInputsIn(section) {
+        if (!section) return;
+        const fields = section.querySelectorAll('input, textarea, select, button');
+        fields.forEach(field => field.disabled = false);
+    }
+
+    // 3) Hide all sections & disable inputs
+    function hideAndDisableAll() {
         allSections.forEach(section => {
             if (section) {
                 section.style.display = 'none';
+                disableInputsIn(section);
             }
         });
+    }
 
-        // Create an array of project types that should not display default sections
+    // 4) Show relevant sections based on project type & enable inputs
+    function toggleSections() {
+        hideAndDisableAll(); // Hide & disable everything first
+        const projectType = projectTypeDropdown.value;
+
+        // Show relevant
+        if (projectType === 'Individual - Access to Health') {
+            iahSections.style.display = 'block';
+            enableInputsIn(iahSections);
+
+        } else if (projectType === 'Individual - Ongoing Educational support') {
+            iesSections.style.display = 'block';
+            enableInputsIn(iesSections);
+
+        } else if (projectType === 'Individual - Initial - Educational support') {
+            iiesSections.style.display = 'block';
+            enableInputsIn(iiesSections);
+
+        } else if (projectType === 'Individual - Livelihood Application') {
+            ilpSections.style.display = 'block';
+            enableInputsIn(ilpSections);
+
+        } else if (projectType === 'Residential Skill Training Proposal 2') {
+            rstSection.style.display = 'block';
+            enableInputsIn(rstSection);
+            projectAreaSection.style.display = 'block';
+            enableInputsIn(projectAreaSection);
+
+        } else if (projectType === 'Rural-Urban-Tribal') {
+            eduRUTSections.style.display = 'block';
+            enableInputsIn(eduRUTSections);
+            eduRutAnnexedSection.style.display = 'block';
+            enableInputsIn(eduRutAnnexedSection);
+
+        } else if (projectType === 'Development Projects') {
+            ldpSection.style.display = 'block';
+            enableInputsIn(ldpSection);
+            projectAreaSection.style.display = 'block';
+            enableInputsIn(projectAreaSection);
+
+        } else if (projectType === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
+            cicSection.style.display = 'block';
+            enableInputsIn(cicSection);
+
+        } else if (projectType === 'CHILD CARE INSTITUTION') {
+            cciSection.style.display = 'block';
+            enableInputsIn(cciSection);
+
+        } else if (projectType === 'Institutional Ongoing Group Educational proposal') {
+            igeSections.style.display = 'block';
+            enableInputsIn(igeSections);
+
+        } else if (projectType === 'Livelihood Development Projects') {
+            ldpSection.style.display = 'block';
+            enableInputsIn(ldpSection);
+        }
+
+        // 5) Hide or show default sections
         const projectTypesWithoutDefaultSections = [
             'Individual - Ongoing Educational support',
             'Individual - Livelihood Application',
@@ -193,47 +265,31 @@ document.addEventListener('DOMContentLoaded', function() {
             'Individual - Initial - Educational support'
         ];
 
-        // Show relevant sections based on project type
-        if (projectType === 'Individual - Access to Health') {
-            iahSections.style.display = 'block';
-        } else if (projectType === 'Individual - Ongoing Educational support') {
-            iesSections.style.display = 'block';
-        } else if (projectType === 'Individual - Initial - Educational support') {
-            iiesSections.style.display = 'block';
-        } else if (projectType === 'Individual - Livelihood Application') {
-            ilpSections.style.display = 'block';
-        } else if (projectType === 'Residential Skill Training Proposal 2') {
-            rstSection.style.display = 'block';
-            projectAreaSection.style.display = 'block';
-        } else if (projectType === 'Rural-Urban-Tribal') {
-            eduRUTSections.style.display = 'block';
-            eduRutAnnexedSection.style.display = 'block';
-        } else if (projectType === 'Development Projects') {
-            ldpSection.style.display = 'block';
-            projectAreaSection.style.display = 'block';
-        } else if (projectType === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
-            cicSection.style.display = 'block';
-        } else if (projectType === 'CHILD CARE INSTITUTION') {
-            cciSection.style.display = 'block';
-        } else if (projectType === 'Institutional Ongoing Group Educational proposal') {
-            igeSections.style.display = 'block';
-        } else if (projectType === 'Livelihood Development Projects') {
-            ldpSection.style.display = 'block';
-        }
-
-        // Show or hide default sections based on project type
         if (projectTypesWithoutDefaultSections.includes(projectType)) {
             defaultSections.style.display = 'none';
+            disableInputsIn(defaultSections);
         } else {
             defaultSections.style.display = 'block';
+            enableInputsIn(defaultSections);
         }
     }
 
-    // Initial check when page loads
+    // 6) Initial check when page loads
     toggleSections();
 
-    // Event listener for dropdown change
+    // 7) Event listener for dropdown change
     projectTypeDropdown.addEventListener('change', toggleSections);
+
+    // 8) On form submit, ensure only visible sections remain enabled
+    const theForm = document.querySelector('form');
+    theForm.addEventListener('submit', function() {
+        // We already disable hidden sections in toggleSections, but let's ensure again
+        hideAndDisableAll();
+
+        // Enable only the currently visible sections
+        toggleSections();
+        // Now the form will only submit data from enabled (visible) sections
+    });
 });
 </script>
 

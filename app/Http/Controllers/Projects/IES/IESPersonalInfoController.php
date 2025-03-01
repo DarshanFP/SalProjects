@@ -10,82 +10,165 @@ use Illuminate\Support\Facades\DB;
 
 class IESPersonalInfoController extends Controller
 {
-    // Store personal information for a project
+    /**
+     * Store personal info for a project.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $projectId
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function store(Request $request, $projectId)
     {
         DB::beginTransaction();
-        try {
-            Log::info('Storing IES personal information', ['project_id' => $projectId]);
 
-            // Find or create a new personal info record
-            $personalInfo = ProjectIESPersonalInfo::where('project_id', $projectId)->first() ?: new ProjectIESPersonalInfo();
+        try {
+            Log::info('Starting IES Personal Info storage', ['project_id' => $projectId]);
+
+            // Log the incoming request data
+            Log::info('Request Data Received', $request->all());
+
+            // Find an existing record or create a new one
+            $personalInfo = ProjectIESPersonalInfo::where('project_id', $projectId)->first()
+                ?: new ProjectIESPersonalInfo();
+
             $personalInfo->project_id = $projectId;
-            $personalInfo->fill($request->all());
+
+            // Use request data while ensuring null values for empty fields
+            $fields = [
+                'bname', 'age', 'gender', 'dob', 'email', 'contact', 'aadhar',
+                'full_address', 'father_name', 'mother_name', 'mother_tongue',
+                'current_studies', 'bcaste', 'father_occupation', 'father_income',
+                'mother_occupation', 'mother_income'
+            ];
+
+            foreach ($fields as $field) {
+                $value = $request->input($field, null);
+                $personalInfo->$field = $value;
+                Log::info("Field: $field, Value: $value"); // Log each field's value
+            }
+
+            // Save the data
             $personalInfo->save();
 
+            Log::info('IES Personal Info saved successfully', [
+                'project_id' => $projectId,
+                'personal_info_id' => $personalInfo->IES_personal_id
+            ]);
+
             DB::commit();
-            Log::info('IES personal information saved successfully', ['project_id' => $projectId]);
-            return response()->json(['message' => 'IES personal information saved successfully.'], 200);
+
+            return response()->json(['message' => 'IES Personal Info saved successfully.'], 200);
+
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error saving IES personal information', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to save IES personal information.'], 500);
+
+            // Log detailed error information
+            Log::error('Error saving IES Personal Info', [
+                'project_id' => $projectId,
+                'error_message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json(['error' => 'Failed to save IES Personal Info.'], 500);
         }
     }
 
-    // Show personal information for a project
+
+    /**
+     * Show personal info for a project.
+     *
+     * @param  int  $projectId
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function show($projectId)
     {
         try {
-            Log::info('Fetching IES personal information', ['project_id' => $projectId]);
+            Log::info('Fetching IES Personal Info', ['project_id' => $projectId]);
 
             $personalInfo = ProjectIESPersonalInfo::where('project_id', $projectId)->firstOrFail();
+
+            // Return as JSON or you can return a view if that's your workflow
             return response()->json($personalInfo, 200);
+
         } catch (\Exception $e) {
-            Log::error('Error fetching IES personal information', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch IES personal information.'], 500);
+            Log::error('Error fetching IES Personal Info', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json(['error' => 'Failed to fetch IES Personal Info.'], 500);
         }
     }
 
-    // Edit personal information for a project
+    /**
+     * Edit personal info for a project.
+     *
+     * @param  int  $projectId
+     * @return \App\Models\OldProjects\IES\ProjectIESPersonalInfo|null
+     */
     public function edit($projectId)
     {
         try {
-            Log::info('Editing IES personal information', ['project_id' => $projectId]);
+            Log::info('Editing IES Personal Info', ['project_id' => $projectId]);
 
             $personalInfo = ProjectIESPersonalInfo::where('project_id', $projectId)->firstOrFail();
 
-            // Return the data directly
+            // Return the raw model data if you load it via AJAX or pass it to a view as needed
             return $personalInfo;
+
         } catch (\Exception $e) {
-            Log::error('Error editing IES personal information', ['error' => $e->getMessage()]);
+            Log::error('Error editing IES Personal Info', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage()
+            ]);
+
+            // Return null or handle the exception as your UI requires
             return null;
         }
     }
 
-    // Update personal information for a project
+    /**
+     * Update personal info for a project.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $projectId
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function update(Request $request, $projectId)
     {
-        return $this->store($request, $projectId); // Reuse the store logic for update
+        // Here we reuse the store logic for update, to avoid duplicating code.
+        return $this->store($request, $projectId);
     }
 
-    // Delete personal information for a project
+    /**
+     * Delete personal info for a project.
+     *
+     * @param  int  $projectId
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function destroy($projectId)
     {
         DB::beginTransaction();
+
         try {
-            Log::info('Deleting IES personal information', ['project_id' => $projectId]);
+            Log::info('Deleting IES Personal Info', ['project_id' => $projectId]);
 
             $personalInfo = ProjectIESPersonalInfo::where('project_id', $projectId)->firstOrFail();
             $personalInfo->delete();
 
             DB::commit();
-            Log::info('IES personal information deleted successfully', ['project_id' => $projectId]);
-            return response()->json(['message' => 'IES personal information deleted successfully.'], 200);
+            Log::info('IES Personal Info deleted successfully', ['project_id' => $projectId]);
+
+            return response()->json(['message' => 'IES Personal Info deleted successfully.'], 200);
+
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error deleting IES personal information', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to delete IES personal information.'], 500);
+            Log::error('Error deleting IES Personal Info', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json(['error' => 'Failed to delete IES Personal Info.'], 500);
         }
     }
 }

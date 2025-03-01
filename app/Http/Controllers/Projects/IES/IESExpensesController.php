@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Projects\IES;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\OldProjects\IES\ProjectIESExpenses;
+use App\Models\OldProjects\IES\ProjectIESExpenseDetail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
@@ -17,38 +18,35 @@ class IESExpensesController extends Controller
         try {
             Log::info('Storing IES estimated expenses', ['project_id' => $projectId]);
 
-            // First, delete all existing expenses for the project
-            ProjectIESExpenses::where('project_id', $projectId)->delete();
+            // Delete all existing expenses for the project
+            $existingExpenses = ProjectIESExpenses::where('project_id', $projectId)->first();
+            if ($existingExpenses) {
+                $existingExpenses->expenseDetails()->delete();
+                $existingExpenses->delete();
+            }
 
-            // Insert new expenses
+            // Create new ProjectIESExpenses
+            $projectExpenses = new ProjectIESExpenses();
+            $projectExpenses->project_id = $projectId;
+            $projectExpenses->total_expenses = $request->input('total_expenses');
+            $projectExpenses->expected_scholarship_govt = $request->input('expected_scholarship_govt');
+            $projectExpenses->support_other_sources = $request->input('support_other_sources');
+            $projectExpenses->beneficiary_contribution = $request->input('beneficiary_contribution');
+            $projectExpenses->balance_requested = $request->input('balance_requested');
+            $projectExpenses->save();
+
+            // Store each particular and amount as a detail
             $particulars = $request->input('particulars', []);
             $amounts = $request->input('amounts', []);
-            $totalExpenses = $request->input('total_expenses');
-            $expectedScholarshipGovt = $request->input('expected_scholarship_govt');
-            $supportOtherSources = $request->input('support_other_sources');
-            $beneficiaryContribution = $request->input('beneficiary_contribution');
-            $balanceRequested = $request->input('balance_requested');
 
-            // Store each particular and amount
             for ($i = 0; $i < count($particulars); $i++) {
                 if (!empty($particulars[$i]) && !empty($amounts[$i])) {
-                    ProjectIESExpenses::create([
-                        'project_id' => $projectId,
+                    $projectExpenses->expenseDetails()->create([
                         'particular' => $particulars[$i],
                         'amount' => $amounts[$i],
                     ]);
                 }
             }
-
-            // Store the totals and contributions
-            $projectExpenses = new ProjectIESExpenses();
-            $projectExpenses->project_id = $projectId;
-            $projectExpenses->total_expenses = $totalExpenses;
-            $projectExpenses->expected_scholarship_govt = $expectedScholarshipGovt;
-            $projectExpenses->support_other_sources = $supportOtherSources;
-            $projectExpenses->beneficiary_contribution = $beneficiaryContribution;
-            $projectExpenses->balance_requested = $balanceRequested;
-            $projectExpenses->save();
 
             DB::commit();
             Log::info('IES estimated expenses saved successfully', ['project_id' => $projectId]);
@@ -62,31 +60,40 @@ class IESExpensesController extends Controller
 
     // Show estimated expenses for a project
     public function show($projectId)
-    {
-        try {
-            Log::info('Fetching IES estimated expenses', ['project_id' => $projectId]);
+{
+    try {
+        Log::info('Fetching IES estimated expenses', ['project_id' => $projectId]);
 
-            $expenses = ProjectIESExpenses::where('project_id', $projectId)->get();
-            return response()->json($expenses, 200);
-        } catch (\Exception $e) {
-            Log::error('Error fetching IES estimated expenses', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch IES estimated expenses.'], 500);
+        // Retrieve the expenses with expenseDetails
+        $expenses = ProjectIESExpenses::with('expenseDetails')->where('project_id', $projectId)->first();
+
+        if (!$expenses) {
+            return null; // If no expenses found, return null so Blade can handle it gracefully
         }
-    }
 
-    // Edit estimated expenses for a project
+        return $expenses; // Return as an object (not JSON) for use in Blade view
+    } catch (\Exception $e) {
+        Log::error('Error fetching IES estimated expenses', ['error' => $e->getMessage()]);
+        return null; // Return null to avoid breaking the Blade view
+    }
+}
+
+
     public function edit($projectId)
     {
         try {
-            Log::info('Editing IES estimated expenses', ['project_id' => $projectId]);
+            // Fetch the IES Expenses along with the related expense details
+            $iesExpenses = ProjectIESExpenses::with('expenseDetails')
+                ->where('project_id', $projectId)
+                ->first();
 
-            $expenses = ProjectIESExpenses::where('project_id', $projectId)->get();
+            Log::info('IESExpenses Controller - Fetched IES Expenses for editing in ', ['IESExpenses' => $iesExpenses]);
 
-            // Return the data directly
-            return $expenses;
+            return $iesExpenses;
+
         } catch (\Exception $e) {
-            Log::error('Error editing IES estimated expenses', ['error' => $e->getMessage()]);
-            return null;
+            Log::error('Error fetching IES estimated expenses', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to fetch IES estimated expenses.'], 500);
         }
     }
 
@@ -103,7 +110,11 @@ class IESExpensesController extends Controller
         try {
             Log::info('Deleting IES estimated expenses', ['project_id' => $projectId]);
 
-            ProjectIESExpenses::where('project_id', $projectId)->delete();
+            $existingExpenses = ProjectIESExpenses::where('project_id', $projectId)->first();
+            if ($existingExpenses) {
+                $existingExpenses->expenseDetails()->delete();
+                $existingExpenses->delete();
+            }
 
             DB::commit();
             Log::info('IES estimated expenses deleted successfully', ['project_id' => $projectId]);

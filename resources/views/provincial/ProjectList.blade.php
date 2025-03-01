@@ -1,4 +1,4 @@
-{{-- resources/views/provincial/ProjectList.blade.php --}}
+{{-- resources/views/provincial/ProjectList.blade.php  --}}
 @extends('provincial.dashboard')
 
 @section('content')
@@ -12,7 +12,7 @@
                 <div class="card-body">
                     <form method="GET" action="{{ route('provincial.projects.list') }}">
                         <div class="mb-3 row">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <select name="project_type" class="form-control">
                                     <option value="">Filter by Project Type</option>
                                     @foreach($projectTypes as $type)
@@ -20,11 +20,19 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <select name="user_id" class="form-control">
                                     <option value="">Filter by Executor</option>
                                     @foreach($users as $user)
                                         <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select name="status" class="form-control">
+                                    <option value="">Filter by Status</option>
+                                    @foreach(\App\Models\OldProjects\Project::$statusLabels as $key => $label)
+                                        <option value="{{ $key }}" {{ request('status') == $key ? 'selected' : '' }}>{{ $label }}</option>
                                     @endforeach
                                 </select>
                             </div>

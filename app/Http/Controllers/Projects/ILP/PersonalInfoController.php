@@ -69,20 +69,34 @@ class PersonalInfoController extends Controller
         }
     }
 
-    // Edit personal information for a project
+
     public function edit($projectId)
     {
         try {
             Log::info('Editing ILP Personal Information', ['project_id' => $projectId]);
 
+            // Fetch the personal info for the given project
             $personalInfo = ProjectILPPersonalInfo::where('project_id', $projectId)->first();
 
-            return view('projects.partials.Edit.ILP.personal_info', compact('personalInfo'));
+            // Log the fetched data
+            if ($personalInfo) {
+                Log::info('Fetched Personal Information for Edit - PersonalInfoController - ', ['personal_info' => $personalInfo->toArray()]);
+            } else {
+                Log::warning('No Personal Information found for Edit', ['project_id' => $projectId]);
+            }
+
+            // Return raw model data
+            return $personalInfo;
         } catch (\Exception $e) {
             Log::error('Error editing ILP Personal Information', ['error' => $e->getMessage()]);
-            return null;
+            return null; // Return null if an error occurs
         }
     }
+    public function update(Request $request, $projectId)
+    {
+        return $this->store($request, $projectId);
+    }
+//
 
     // Delete personal information for a project
     public function destroy($projectId)

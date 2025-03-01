@@ -19,14 +19,39 @@
             <option value="Individual - Initial - Educational support" {{ old('project_type') == 'Individual - Initial - Educational support' ? 'selected' : '' }}>Individual - Initial - Educational support - Project Application</option>
         </select>
     </div>
+{{-- next pahse  --}}
+<div id="predecessor-project-section" style="display: none;">
+    <div class="mb-3">
+        <label for="predecessor_project" class="form-label">Select Predecessor Project</label>
+        <select name="predecessor_project" id="predecessor_project" class="form-control select-input">
+            <option value="" disabled selected>Select Predecessor Project</option>
+            @foreach($developmentProjects as $project)
+                <option value="{{ $project->project_id }}">{{ $project->project_title }}</option>
+            @endforeach
+        </select>
+    </div>
+</div>
+
+
+
     <div class="mb-3">
         <label for="project_title" class="form-label">Project Title</label>
         <input type="text" name="project_title" class="form-control select-input" value="{{ old('project_title') }}" required  style="background-color: #202ba3;">
     </div>
     <div class="mb-3">
         <label for="society_name" class="form-label">Name of the Society / Trust</label>
-        <input type="text" name="society_name" class="form-control readonly-input" value="{{ $user->society_name }}" readonly>
+        <select name="society_name" id="society_name" class="form-select" required>
+            <option value="" disabled selected>Select Society / Trust</option>
+            <option value="ST. ANN'S EDUCATIONAL SOCIETY" {{ $user->society_name == "ST. ANN'S EDUCATIONAL SOCIETY" ? 'selected' : '' }}>ST. ANN'S EDUCATIONAL SOCIETY</option>
+            <option value="SARVAJANA SNEHA CHARITABLE TRUST" {{ $user->society_name == "SARVAJANA SNEHA CHARITABLE TRUST" ? 'selected' : '' }}>SARVAJANA SNEHA CHARITABLE TRUST</option>
+            <option value="WILHELM MEYERS DEVELOPMENTAL SOCIETY" {{ $user->society_name == "WILHELM MEYERS DEVELOPMENTAL SOCIETY" ? 'selected' : '' }}>WILHELM MEYERS DEVELOPMENTAL SOCIETY</option>
+            <option value="ST. ANNS'S SOCIETY, VISAKHAPATNAM" {{ $user->society_name == "ST. ANNS'S SOCIETY, VISAKHAPATNAM" ? 'selected' : '' }}>ST. ANNS'S SOCIETY, VISAKHAPATNAM</option>
+            <option value="ST.ANN'S SOCIETY, SOUTHERN REGION" {{ $user->society_name == "ST.ANN'S SOCIETY, SOUTHERN REGION" ? 'selected' : '' }}>ST.ANN'S SOCIETY, SOUTHERN REGION</option>
+        </select>
     </div>
+
+
+
     <div class="mb-3">
         <label for="president_name" class="form-label">President / Chair Person</label>
         <input type="text" name="president_name" class="form-control readonly-input" value="{{ $user->parent->name }}" readonly>
@@ -142,7 +167,7 @@
     </div>
 </div>
 
-<script>
+{{-- <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Update the current phase options based on the selected overall project period
     document.getElementById('overall_project_period').addEventListener('change', function() {
@@ -165,4 +190,148 @@ document.addEventListener('DOMContentLoaded', function() {
     // Example: You can add more event listeners here to handle other dynamic interactions
 
 });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const projectTypeDropdown = document.getElementById('project_type');
+    const predecessorProjectSection = document.getElementById('predecessor-project-section');
+    const phaseSelect = document.getElementById('current_phase');
+    const overallProjectPeriodDropdown = document.getElementById('overall_project_period');
+
+    // Function to toggle predecessor project dropdown visibility
+    function togglePredecessorProjectSection() {
+        const selectedType = projectTypeDropdown.value;
+
+        if (selectedType === 'Development Projects' || selectedType === 'NEXT PHASE - DEVELOPMENT PROPOSAL') {
+            predecessorProjectSection.style.display = 'block';
+        } else {
+            predecessorProjectSection.style.display = 'none';
+        }
+    }
+
+    // Function to update the phase options based on overall project period
+    function updatePhaseOptions() {
+        const projectPeriod = parseInt(overallProjectPeriodDropdown.value);
+
+        // Clear previous options
+        phaseSelect.innerHTML = '<option value="" disabled selected>Select Phase</option>';
+
+        // Add new options based on the selected value
+        for (let i = 1; i <= projectPeriod; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.text = `Phase ${i}`;
+            phaseSelect.appendChild(option);
+        }
+    }
+
+    // Event listener for project type dropdown
+    projectTypeDropdown.addEventListener('change', togglePredecessorProjectSection);
+
+    // Event listener for overall project period dropdown
+    overallProjectPeriodDropdown.addEventListener('change', updatePhaseOptions);
+
+    // Initialize the state on page load
+    togglePredecessorProjectSection();
+});
+
+</script> --}}
+
+<script>
+
+    document.addEventListener('DOMContentLoaded', function () {
+    const overallProjectPeriod = document.getElementById('overall_project_period');
+    const currentPhase = document.getElementById('current_phase');
+    const projectTypeDropdown = document.getElementById('project_type');
+    const predecessorProjectDropdown = document.getElementById('predecessor_project');
+    const predecessorProjectSection = document.getElementById('predecessor-project-section');
+
+    // Update the current phase options dynamically
+    overallProjectPeriod.addEventListener('change', function () {
+        const projectPeriod = parseInt(this.value) || 0;
+        currentPhase.innerHTML = '<option value="" disabled selected>Select Phase</option>';
+        for (let i = 1; i <= projectPeriod; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `Phase ${i}`;
+            currentPhase.appendChild(option);
+        }
+    });
+
+    // Toggle Predecessor Project section based on project type
+    projectTypeDropdown.addEventListener('change', function () {
+        const projectType = this.value;
+        predecessorProjectSection.style.display =
+            // (projectType === 'NEXT PHASE - DEVELOPMENT PROPOSAL' || projectType === 'Development Projects')
+            (projectType === 'NEXT PHASE - DEVELOPMENT PROPOSAL' )
+            ? 'block'
+            : 'none';
+    });
+
+    // Populate fields based on selected predecessor project
+    predecessorProjectDropdown.addEventListener('change', function () {
+        const selectedProjectId = this.value;
+
+        if (selectedProjectId) {
+            fetch(`/projects/${selectedProjectId}/details`)
+                .then((response) => response.json())
+                .then((data) => {
+                    // Populate fields
+                    document.getElementById('project_title').value = data.project_title || '';
+                    document.getElementById('society_name').value = data.society_name || '';
+                    document.getElementById('president_name').value = data.president_name || '';
+                    document.getElementById('applicant_name').value = data.applicant_name || '';
+                    document.getElementById('applicant_mobile').value = data.applicant_mobile || '';
+                    document.getElementById('applicant_email').value = data.applicant_email || '';
+                    document.getElementById('in_charge').value = data.in_charge || '';
+                    document.getElementById('full_address').value = data.full_address || '';
+                    document.getElementById('overall_project_period').value = data.overall_project_period || '';
+                    document.getElementById('current_phase').value = data.current_phase || '';
+                    document.getElementById('commencement_month').value = data.commencement_month || '';
+                    document.getElementById('commencement_year').value = data.commencement_year || '';
+                    document.getElementById('overall_project_budget').value = data.overall_project_budget || '';
+                })
+                .catch((error) => {
+                    console.error('Error fetching predecessor project data:', error);
+                    alert('Failed to fetch project details. Please try again.');
+                });
+        }
+    });
+
+    // Initialize visibility on page load
+    if (
+         projectTypeDropdown.value === 'NEXT PHASE - DEVELOPMENT PROPOSAL'
+        // projectTypeDropdown.value === 'NEXT PHASE - DEVELOPMENT PROPOSAL' ||
+        // projectTypeDropdown.value === 'Development Projects'
+    ) {
+        predecessorProjectSection.style.display = 'block';
+    } else {
+        predecessorProjectSection.style.display = 'none';
+    }
+});
+// toggle trust or society
+// document.addEventListener('DOMContentLoaded', function () {
+//     const toggleSocietySelectBtn = document.getElementById('toggleSocietySelect');
+//     const societyNameInput = document.getElementById('society_name');
+//     const societyNameSelect = document.getElementById('society_name_select');
+
+//     // Toggle between input and dropdown
+//     toggleSocietySelectBtn.addEventListener('click', function () {
+//         if (societyNameSelect.style.display === 'none') {
+//             societyNameSelect.style.display = 'block';
+//             societyNameInput.readOnly = true;
+//         } else {
+//             societyNameSelect.style.display = 'none';
+//             societyNameInput.readOnly = false;
+//             societyNameInput.value = societyNameSelect.value;
+//         }
+//     });
+
+//     // Update the input when a new society is selected
+//     societyNameSelect.addEventListener('change', function () {
+//         societyNameInput.value = this.value;
+//     });
+// });
+
+
 </script>

@@ -53,16 +53,74 @@ class RiskAnalysisController extends Controller
     }
 
     // Edit risk analysis for a project
+    // Edit risk analysis for a project and return raw model data
     public function edit($projectId)
     {
         try {
             Log::info('Editing ILP Risk Analysis', ['project_id' => $projectId]);
 
+            // Fetch the risk analysis for the given project ID
             $riskAnalysis = ProjectILPRiskAnalysis::where('project_id', $projectId)->first();
-            return view('projects.partials.Edit.ILP.risk_analysis', compact('riskAnalysis'));
+
+            // Log the fetched data
+            if ($riskAnalysis) {
+                Log::info('Fetched Risk Analysis for Edit', ['risk_analysis' => $riskAnalysis->toArray()]);
+            } else {
+                Log::warning('No Risk Analysis found for Edit', ['project_id' => $projectId]);
+            }
+
+            // Return the raw model data
+            return $riskAnalysis;
         } catch (\Exception $e) {
-            Log::error('Error editing ILP Risk Analysis', ['error' => $e->getMessage()]);
-            return null;
+            Log::error('Error editing ILP Risk Analysis', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null; // Return null in case of an error
+        }
+    }
+
+    // Update risk analysis for a project
+    public function update(Request $request, $projectId)
+    {
+        DB::beginTransaction();
+
+        try {
+            Log::info('Updating ILP Risk Analysis', ['project_id' => $projectId]);
+
+            // Validate request
+            $validatedData = $request->validate([
+                'identified_risks' => 'nullable|string|max:1000',
+                'mitigation_measures' => 'nullable|string|max:1000',
+                'business_sustainability' => 'nullable|string|max:1000',
+                'expected_profits' => 'nullable|string|max:1000',
+            ]);
+
+            // Update or create risk analysis
+            $riskAnalysis = ProjectILPRiskAnalysis::updateOrCreate(
+                ['project_id' => $projectId],
+                [
+                    'identified_risks' => $validatedData['identified_risks'],
+                    'mitigation_measures' => $validatedData['mitigation_measures'],
+                    'business_sustainability' => $validatedData['business_sustainability'],
+                    'expected_profits' => $validatedData['expected_profits'],
+                ]
+            );
+
+            DB::commit();
+            Log::info('ILP Risk Analysis updated successfully', ['project_id' => $projectId]);
+
+            return response()->json([
+                'message' => 'Risk analysis updated successfully.',
+                'data' => $riskAnalysis
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error updating ILP Risk Analysis', ['error' => $e->getMessage()]);
+
+            return response()->json(['error' => 'Failed to update Risk Analysis.'], 500);
         }
     }
 

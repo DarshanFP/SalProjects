@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/Show/IGE/new_beneficiaries.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>New Beneficiaries</h4>

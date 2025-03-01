@@ -39,7 +39,7 @@
             </div>
             <div class="form-group">
                 <label>Any other:</label>
-                <input type="text" name="other_family_details" class="form-control" value="{{ old('other_family_details', $familyDetails->other_family_details) }}" style="background-color: #202ba3;">
+                <input type="text" name="family_details_others" class="form-control" value="{{ old('family_details_others', $familyDetails->family_details_others) }}" style="background-color: #202ba3;">
             </div>
         </div>
 

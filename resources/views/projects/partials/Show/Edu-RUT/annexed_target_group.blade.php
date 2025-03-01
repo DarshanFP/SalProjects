@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/Show/Edu-RUT/annexed_target_group.blade.php --}}
 <div class="mb-4 card">
     <div class="card-header">
         <h4 class="mb-0">Annexed Target Group</h4>

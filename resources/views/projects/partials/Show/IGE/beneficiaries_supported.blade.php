@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/Show/IGE/beneficiaries_supported.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Number of Beneficiaries Supported this Year</h4>

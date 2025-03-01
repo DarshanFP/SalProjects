@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/Show/logical_framework.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Logical Framework</h4>

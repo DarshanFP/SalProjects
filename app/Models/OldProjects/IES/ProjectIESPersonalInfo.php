@@ -15,7 +15,7 @@ class ProjectIESPersonalInfo extends Model
     protected $fillable = [
         'IES_personal_id',
         'project_id',
-        'name',
+        'bname',
         'age',
         'gender',
         'dob',
@@ -27,7 +27,7 @@ class ProjectIESPersonalInfo extends Model
         'mother_name',
         'mother_tongue',
         'current_studies',
-        'caste',
+        'bcaste',
         'father_occupation',
         'father_income',
         'mother_occupation',

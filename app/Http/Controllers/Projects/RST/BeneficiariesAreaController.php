@@ -73,7 +73,54 @@ class BeneficiariesAreaController extends Controller
         return null;
     }
 }
-public function update(Request $request, $projectId)
+// public function update(Request $request, $projectId)
+// {
+//     DB::beginTransaction();
+//     try {
+//         Log::info('Updating Beneficiaries Area for DPRST', ['project_id' => $projectId]);
+
+//         // Validate the incoming data
+//         $validatedData = $request->validate([
+//             'project_area' => 'required|array',
+//             'category_beneficiary' => 'array',
+//             'direct_beneficiaries' => 'array',
+//             'indirect_beneficiaries' => 'array',
+//         ]);
+
+//         // Check if the project exists
+//         $existingAreas = ProjectDPRSTBeneficiariesArea::where('project_id', $projectId)->get();
+//         if ($existingAreas->isEmpty()) {
+//             Log::warning('No existing Beneficiaries Area data found to update', ['project_id' => $projectId]);
+//             return response()->json(['error' => 'No existing data found to update.'], 404);
+//         }
+
+//         // Delete existing beneficiaries area entries
+//         ProjectDPRSTBeneficiariesArea::where('project_id', $projectId)->delete();
+
+//         // Create new entries based on the updated data
+//         foreach ($request->project_area as $index => $projectArea) {
+//             ProjectDPRSTBeneficiariesArea::create([
+//                 'project_id' => $projectId,
+//                 'project_area' => $projectArea,
+//                 'category_beneficiary' => $request->category_beneficiary[$index] ?? null,
+//                 'direct_beneficiaries' => $request->direct_beneficiaries[$index] ?? null,
+//                 'indirect_beneficiaries' => $request->indirect_beneficiaries[$index] ?? null,
+//             ]);
+//         }
+
+//         DB::commit();
+//         Log::info('Beneficiaries Area updated successfully for DPRST', ['project_id' => $projectId]);
+//         return response()->json(['message' => 'Beneficiaries Area updated successfully.'], 200);
+//     } catch (\Exception $e) {
+//         DB::rollBack();
+//         Log::error('Error updating Beneficiaries Area for DPRST', ['error' => $e->getMessage()]);
+//         return response()->json(['error' => 'Failed to update Beneficiaries Area.'], 500);
+//     }
+// }
+
+    // Delete beneficiaries area for a project
+
+    public function update(Request $request, $projectId)
 {
     DB::beginTransaction();
     try {
@@ -87,17 +134,19 @@ public function update(Request $request, $projectId)
             'indirect_beneficiaries' => 'array',
         ]);
 
-        // Check if the project exists
+        // Check if there are existing records
         $existingAreas = ProjectDPRSTBeneficiariesArea::where('project_id', $projectId)->get();
+
         if ($existingAreas->isEmpty()) {
-            Log::warning('No existing Beneficiaries Area data found to update', ['project_id' => $projectId]);
-            return response()->json(['error' => 'No existing data found to update.'], 404);
+            Log::info('No existing Beneficiaries Area data found, creating new entries', ['project_id' => $projectId]);
+        } else {
+            Log::info('Existing Beneficiaries Area data found, updating entries', ['project_id' => $projectId]);
+
+            // Delete existing beneficiaries area entries to handle the update
+            ProjectDPRSTBeneficiariesArea::where('project_id', $projectId)->delete();
         }
 
-        // Delete existing beneficiaries area entries
-        ProjectDPRSTBeneficiariesArea::where('project_id', $projectId)->delete();
-
-        // Create new entries based on the updated data
+        // Create new entries based on the provided data
         foreach ($request->project_area as $index => $projectArea) {
             ProjectDPRSTBeneficiariesArea::create([
                 'project_id' => $projectId,
@@ -109,16 +158,14 @@ public function update(Request $request, $projectId)
         }
 
         DB::commit();
-        Log::info('Beneficiaries Area updated successfully for DPRST', ['project_id' => $projectId]);
-        return response()->json(['message' => 'Beneficiaries Area updated successfully.'], 200);
+        Log::info('Beneficiaries Area successfully updated or created for DPRST', ['project_id' => $projectId]);
+        return response()->json(['message' => 'Beneficiaries Area updated or created successfully.'], 200);
     } catch (\Exception $e) {
         DB::rollBack();
-        Log::error('Error updating Beneficiaries Area for DPRST', ['error' => $e->getMessage()]);
-        return response()->json(['error' => 'Failed to update Beneficiaries Area.'], 500);
+        Log::error('Error updating or creating Beneficiaries Area for DPRST', ['error' => $e->getMessage()]);
+        return response()->json(['error' => 'Failed to update or create Beneficiaries Area.'], 500);
     }
 }
-
-    // Delete beneficiaries area for a project
     public function destroy($projectId)
     {
         DB::beginTransaction();

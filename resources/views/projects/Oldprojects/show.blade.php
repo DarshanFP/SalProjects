@@ -1,6 +1,4 @@
 {{-- resources/views/projects/Oldprojects/show.blade.php --}}
-{{-- @extends('executor.dashboard') --}}
-
 @php
     $userRole = Auth::user()->role ?? 'executor'; // Default to executor if not set
     $layout = match ($userRole) {
@@ -9,6 +7,10 @@
         default => 'executor.dashboard', // fallback to executor if role not matched
     };
 @endphp
+@php
+    \Illuminate\Support\Facades\Log::info('Blade Template - IIES Education Background:', ['data' => $IIESEducationBackground ?? 'Not Set']);
+@endphp
+
 
 @extends($layout)
 
@@ -36,6 +38,11 @@
         </div>
     </div>
 
+    <!-- RST Beneficiaries Area for Development Projects -->
+    @if ($project->project_type === 'Development Projects')
+        @include('projects.partials.show.RST.beneficiaries_area')
+    @endif
+
     <!-- CCI Specific Partials -->
     @if ($project->project_type === 'CHILD CARE INSTITUTION')
         @include('projects.partials.show.CCI.rationale')
@@ -50,8 +57,8 @@
 
     <!-- Residential Skill Training Specific Partials -->
     @if ($project->project_type === 'Residential Skill Training Proposal 2')
-        @include('projects.partials.show.RST.institution_info')
         @include('projects.partials.show.RST.beneficiaries_area')
+        @include('projects.partials.show.RST.institution_info')
         @include('projects.partials.show.RST.target_group')
         @include('projects.partials.show.RST.target_group_annexure')
         @include('projects.partials.show.RST.geographical_area')
@@ -76,13 +83,25 @@
 
     <!-- Individual - Initial Educational Support Partials -->
     @if ($project->project_type === 'Individual - Initial - Educational support')
-        @include('projects.partials.show.IES.personal_info')
-        @include('projects.partials.show.IES.family_working_members')
-        @include('projects.partials.show.IES.immediate_family_details')
-        @include('projects.partials.show.IIES.education_background')
+
+        @include('projects.partials.show.IIES.personal_info')
+        @include('projects.partials.show.IIES.family_working_members')
+        @include('projects.partials.show.IIES.immediate_family_details')
+        {{-- @include('projects.partials.show.IIES.education_background') --}}
+        {{-- @include('projects.partials.show.IIES.education_background', ['project' => $project]) --}}
+
+        @include('projects.partials.show.IIES.attachments', [
+            'IIESAttachments' => $data['IIESAttachments']
+        ])
+
         @include('projects.partials.show.IIES.scope_financial_support')
-        @include('projects.partials.show.IES.attachments')
-    @endif
+        @include('projects.partials.show.IIES.estimated_expenses')
+        @include('projects.partials.show.IIES.attachments')
+        {{-- @include('projects.partials.show.IIES.attachments', ['IIESAttachments' => $IIESAttachments]) --}}
+
+        @endif
+
+
 
     <!-- Individual - Livelihood Application Partials -->
     @if ($project->project_type === 'Individual - Livelihood Application')
@@ -117,7 +136,6 @@
     <!-- Livelihood Development Project Specific Partials -->
     @if ($project->project_type === 'Livelihood Development Projects')
         @include('projects.partials.show.LDP.need_analysis')
-        @include('projects.partials.show.LDP.target_group')
         @include('projects.partials.show.LDP.intervention_logic')
     @endif
 
@@ -133,11 +151,6 @@
         @include('projects.partials.show.budget')
         @include('projects.partials.show.attachments')
     @endif
-
-    <!-- Annexed Target Group Partial for EduRUT (After Attachments Section) -->
-    <div id="edu-rut-annexed-section" style="display:none;">
-        @include('projects.partials.Edu-RUT.annexed_target_group')
-    </div>
 
     <!-- Comments Section -->
     <div>

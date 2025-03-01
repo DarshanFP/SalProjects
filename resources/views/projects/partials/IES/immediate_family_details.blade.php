@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/IES/immediate_family_details.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Details about Immediate Family Members</h4>
@@ -28,7 +29,7 @@
             </div>
             <div class="form-group">
                 <label>Any other:</label>
-                <input type="text" name="other_family_details" class="form-control" style="background-color: #202ba3;">
+                <input type="text" name="family_details_others" class="form-control" style="background-color: #202ba3;">
             </div>
         </div>
 

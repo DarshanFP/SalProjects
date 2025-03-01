@@ -10,7 +10,7 @@ class ProjectIESExpenses extends Model
 {
     use HasFactory;
 
-    protected $table = 'project_IES_estimated_expenses';
+    protected $table = 'project_IES_expenses';
 
     protected $fillable = [
         'IES_expense_id',
@@ -41,4 +41,12 @@ class ProjectIESExpenses extends Model
     {
         return $this->belongsTo(Project::class, 'project_id', 'project_id');
     }
+
+    public function expenseDetails()
+{
+    return $this->hasMany(ProjectIESExpenseDetail::class, 'IES_expense_id', 'IES_expense_id');
+}
+
+
+
 }

@@ -1,4 +1,3 @@
-{{-- resources/views/projects/partials/EDIT/IAH/earning_members.blade.php --}}
 {{-- resources/views/projects/partials/Edit/IAH/earning_members.blade.php --}}
 <div class="mb-4 card">
     <div class="card-header">

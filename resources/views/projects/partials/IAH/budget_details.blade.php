@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/IAH/budget_details.blade.php --}}
 <div class="mb-4 card iah-budget-details">
     <div class="card-header">
         <h4 class="mb-0">Estimated Cost of Treatment – Budget Details</h4>
@@ -73,6 +74,12 @@
             const familyContribution = parseFloat(familyContributionInput.value) || 0;
             const totalAmountRequested = totalExpenses - familyContribution;
             totalAmountRequestedInput.value = totalAmountRequested.toFixed(2);
+
+             // Also update overall_project_budget
+            const overallBudget = document.getElementById('overall_project_budget');
+            if (overallBudget) {
+                overallBudget.value = totalAmountRequested.toFixed(2);
+            }
         }
 
         // Add event listener for "Add More" button within the scoped container

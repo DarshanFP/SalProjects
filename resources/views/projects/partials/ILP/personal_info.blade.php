@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/ILP/personal_info.blade.php --}}
 <div class="mb-4 card">
     <div class="card-header">
         <h4 class="mb-0">Personal Information of the Beneficiary</h4>

@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/IES/educational_background.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Educational Background / Present Education (support requested)</h4>

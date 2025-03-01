@@ -1,4 +1,3 @@
-{{-- resources/views/projects/partials/Edit/ILP/budget.blade.php --}}
 <div class="mb-4 card">
     <div class="card-header">
         <h4 class="mb-0">Edit Budget</h4>
@@ -14,13 +13,13 @@
                 </tr>
             </thead>
             <tbody id="ilp-budget">
-                @foreach ($budgets as $index => $budget)
+                @foreach ($budgets ?? [] as $index => $budget)
                 <tr>
                     <td>
-                        <input type="text" name="budget_desc[{{ $index }}]" class="form-control" value="{{ $budget->budget_desc }}" placeholder="Enter description" style="background-color: #202ba3;">
+                        <input type="text" name="budget_desc[{{ $index }}]" class="form-control" value="{{ $budget->budget_desc ?? '' }}" placeholder="Enter description" style="background-color: #202ba3;">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="cost[{{ $index }}]" class="form-control" value="{{ $budget->cost }}" placeholder="Enter cost" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="cost[{{ $index }}]" class="form-control budget-cost" value="{{ $budget->cost ?? '' }}" placeholder="Enter cost" style="background-color: #202ba3;">
                     </td>
                 </tr>
                 @endforeach
@@ -34,59 +33,99 @@
         <!-- Total Amount -->
         <div class="mt-4 mb-3">
             <label for="total_amount" class="form-label">Total amount:</label>
-            <input type="number" step="0.01" name="total_amount" class="form-control" value="{{ $total_amount }}" placeholder="Enter total amount" style="background-color: #202ba3;">
+            <input type="number" step="0.01" id="total_amount" name="total_amount" class="form-control" readonly style="background-color: #0c1427;" value="{{ $total_amount ?? '' }}">
         </div>
 
         <!-- Beneficiary's Contribution -->
         <div class="mb-3">
             <label for="beneficiary_contribution" class="form-label">Beneficiary’s contribution:</label>
-            <input type="number" step="0.01" name="beneficiary_contribution" class="form-control" value="{{ $beneficiary_contribution }}" placeholder="Enter beneficiary's contribution" style="background-color: #202ba3;">
+            <input type="number" step="0.01" id="beneficiary_contribution" name="beneficiary_contribution" class="form-control" value="{{ $beneficiary_contribution ?? '' }}" placeholder="Enter beneficiary's contribution" style="background-color: #202ba3;">
         </div>
 
         <!-- Amount Requested -->
         <div class="mb-3">
             <label for="amount_requested" class="form-label">Amount requested:</label>
-            <input type="number" step="0.01" name="amount_requested" class="form-control" value="{{ $amount_requested }}" placeholder="Enter amount requested" style="background-color: #202ba3;">
+            <input type="number" step="0.01" id="amount_requested" name="amount_requested" class="form-control" readonly style="background-color: #0c1427;" value="{{ $amount_requested ?? '' }}">
         </div>
 
+        <!-- Estimated Annual Income -->
+        {{-- <div class="mb-3">
+            <label for="estimated_annual_income" class="form-label">Estimated Annual Income:</label>
+            <input type="number" step="0.01" id="estimated_annual_income" name="estimated_annual_income" class="form-control" value="{{ $estimated_annual_income ?? '' }}" placeholder="Enter estimated annual income" style="background-color: #202ba3;">
+        </div>
+
+        <!-- Estimated Annual Expenses -->
+        <div class="mb-3">
+            <label for="estimated_annual_expenses" class="form-label">Estimated Annual Expenses:</label>
+            <input type="number" step="0.01" id="estimated_annual_expenses" name="estimated_annual_expenses" class="form-control" value="{{ $estimated_annual_expenses ?? '' }}" placeholder="Enter estimated annual expenses" style="background-color: #202ba3;">
+        </div> --}}
     </div>
 </div>
-
 <script>
     (function(){
-    document.addEventListener('DOMContentLoaded', function () {
-        const budgetBody = document.getElementById('ilp-budget');
-        const addBudgetItemBtn = document.getElementById('add-budget-item');
-        const removeBudgetItemBtn = document.getElementById('remove-budget-item');
-        let itemIndex = {{ count($budgets) }};
+        document.addEventListener('DOMContentLoaded', function () {
+            const budgetBody = document.getElementById('ilp-budget');
+            const addBudgetItemBtn = document.getElementById('add-budget-item');
+            const removeBudgetItemBtn = document.getElementById('remove-budget-item');
+            const totalAmountField = document.getElementById('total_amount');
+            const beneficiaryContributionField = document.getElementById('beneficiary_contribution');
+            const amountRequestedField = document.getElementById('amount_requested');
+            const overallBudgetField = document.getElementById('overall_project_budget');
 
-        addBudgetItemBtn.addEventListener('click', function () {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>
-                    <input type="text" name="budget_desc[${itemIndex}]" class="form-control" placeholder="Enter description" style="background-color: #202ba3;">
-                </td>
-                <td>
-                    <input type="number" step="0.01" name="cost[${itemIndex}]" class="form-control" placeholder="Enter cost" style="background-color: #202ba3;">
-                </td>
-            `;
-            budgetBody.appendChild(row);
-            itemIndex++;
-        });
+            let itemIndex = {{ count($budgets ?? []) }};
 
-        removeBudgetItemBtn.addEventListener('click', function () {
-            if (budgetBody.children.length > 1) {
-                budgetBody.removeChild(budgetBody.lastElementChild);
+            function calculateTotalCost() {
+                let total = 0;
+                document.querySelectorAll('.budget-cost').forEach(field => {
+                    total += parseFloat(field.value) || 0;
+                });
+                totalAmountField.value = total.toFixed(2);
+                calculateAmountRequested();
             }
-        });
-    });
-})();
-</script>
 
-<!-- Styles -->
-<style>
-    .form-control {
-        background-color: #202ba3;
-        color: white;
-    }
-</style>
+            function calculateAmountRequested() {
+                const totalAmount = parseFloat(totalAmountField.value) || 0;
+                const beneficiaryContribution = parseFloat(beneficiaryContributionField.value) || 0;
+                const amountRequested = totalAmount - beneficiaryContribution;
+
+                amountRequestedField.value = amountRequested.toFixed(2);
+
+                // **Directly reflect Amount Requested in Overall Project Budget**
+                if (overallBudgetField) {
+                    overallBudgetField.value = amountRequested.toFixed(2);
+                }
+            }
+
+            addBudgetItemBtn.addEventListener('click', function () {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <input type="text" name="budget_desc[${itemIndex}]" class="form-control" placeholder="Enter description" style="background-color: #202ba3;">
+                    </td>
+                    <td>
+                        <input type="number" step="0.01" name="cost[${itemIndex}]" class="form-control budget-cost" placeholder="Enter cost" style="background-color: #202ba3;">
+                    </td>
+                `;
+                budgetBody.appendChild(row);
+                itemIndex++;
+            });
+
+            removeBudgetItemBtn.addEventListener('click', function () {
+                if (budgetBody.children.length > 1) {
+                    budgetBody.removeChild(budgetBody.lastElementChild);
+                    calculateTotalCost();
+                }
+            });
+
+            budgetBody.addEventListener('input', function (e) {
+                if (e.target.classList.contains('budget-cost')) {
+                    calculateTotalCost();
+                }
+            });
+
+            beneficiaryContributionField.addEventListener('input', calculateAmountRequested);
+
+            calculateTotalCost();
+        });
+    })();
+</script>

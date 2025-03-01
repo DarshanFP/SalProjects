@@ -1,4 +1,4 @@
-
+{{-- resources/views/projects/partials/Show/CCI/economic_background.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Economic Background of Parents</h4>

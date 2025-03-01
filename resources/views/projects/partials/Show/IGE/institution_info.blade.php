@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/Show/IGE/institution_info.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Institution Information</h4>

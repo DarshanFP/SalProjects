@@ -41,13 +41,20 @@ use App\Models\OldProjects\IGE\ProjectIGEOngoingBeneficiaries;
 use App\Models\OldProjects\IGE\ProjectIGENewBeneficiaries;
 use App\Models\OldProjects\IGE\ProjectIGEBudget;
 use App\Models\OldProjects\IGE\ProjectIGEDevelopmentMonitoring;
+use App\Models\OldProjects\IIES\ProjectIIESAttachments;
 use App\Models\OldProjects\IIES\ProjectIIESEducationBackground;
+use App\Models\OldProjects\IIES\ProjectIIESExpenses;
+use App\Models\OldProjects\IIES\ProjectIIESFamilyWorkingMembers;
+use App\Models\OldProjects\IIES\ProjectIIESImmediateFamilyDetails;
+use App\Models\OldProjects\IIES\ProjectIIESPersonalInfo;
 use App\Models\OldProjects\IIES\ProjectIIESScopeFinancialSupport;
 use App\Models\OldProjects\ILP\ProjectILPAttachedDocuments;
 use App\Models\OldProjects\ILP\ProjectILPBudget;
 use App\Models\OldProjects\ILP\ProjectILPBusinessStrengthWeakness;
 use App\Models\OldProjects\ILP\ProjectILPPersonalInfo;
-use App\Models\OldProjects\ILP\ProjectILPRevenueGoals;
+use App\Models\OldProjects\ILP\ProjectILPRevenueExpense;
+use App\Models\OldProjects\ILP\ProjectILPRevenueIncome;
+use App\Models\OldProjects\ILP\ProjectILPRevenuePlanItem;
 use App\Models\OldProjects\ILP\ProjectILPRiskAnalysis;
 use App\Models\OldProjects\RST\ProjectDPRSTBeneficiariesArea;
 use App\Models\ProjectComment;
@@ -89,7 +96,8 @@ class Project extends Model
         'coordinator_luzern_phone',
         'coordinator_luzern_email',
         'goal',
-        'status'
+        'status',
+        'predecessor_project_id'
     ];
 // In your Project model or a helper:
 public static $statusLabels = [
@@ -309,17 +317,17 @@ public static $statusLabels = [
     }
     public function iesImmediateFamilyDetails()
     {
-        return $this->hasMany(ProjectIESImmediateFamilyDetails::class, 'project_id', 'project_id');
+        return $this->hasOne(ProjectIESImmediateFamilyDetails::class, 'project_id', 'project_id');
     }
     public function iesFamilyWorkingMembers()
     {
         return $this->hasMany(ProjectIESFamilyWorkingMembers::class, 'project_id', 'project_id');
     }
-    public function iesExpenses()
+    public function iesExpenses() //iesExpenses
     {
         return $this->hasMany(ProjectIESExpenses::class, 'project_id', 'project_id');
     }
-    public function iesEductionBackground()
+    public function iesEducationBackground()
     {
         return $this->hasOne(ProjectIESEducationBackground::class, 'project_id', 'project_id');
     }
@@ -332,10 +340,25 @@ public static $statusLabels = [
     {
         return $this->hasOne(ProjectILPPersonalInfo::class, 'project_id', 'project_id');
     }
-    public function ilpRevenueGoals()
+    // public function ilpRevenueGoals()
+    // {
+    //     return $this->hasMany(ProjectILPRevenueGoals::class, 'project_id', 'project_id');
+    // }
+        public function revenuePlanItems()
     {
-        return $this->hasMany(ProjectILPRevenueGoals::class, 'project_id', 'project_id');
+        return $this->hasMany(ProjectILPRevenuePlanItem::class, 'project_id', 'project_id');
     }
+
+    public function revenueIncomes()
+    {
+        return $this->hasMany(ProjectILPRevenueIncome::class, 'project_id', 'project_id');
+    }
+
+    public function revenueExpenses()
+    {
+        return $this->hasMany(ProjectILPRevenueExpense::class, 'project_id', 'project_id');
+    }
+
     public function ilpRiskAnalysis()
     {
         return $this->hasOne(ProjectILPRiskAnalysis::class, 'project_id', 'project_id');
@@ -361,15 +384,20 @@ public static $statusLabels = [
     {
         return $this->hasMany(ProjectIAHBudgetDetails::class, 'project_id', 'project_id');
     }
+    // public function iahDocuments()
+    // {
+    //     return $this->hasMany(ProjectIAHDocuments::class, 'project_id', 'project_id');
+    // }
     public function iahDocuments()
-    {
-        return $this->hasMany(ProjectIAHDocuments::class, 'project_id', 'project_id');
-    }
+{
+    return $this->hasMany(ProjectIAHDocuments::class, 'project_id', 'project_id');
+}
+
     public function iahEarningMembers()
     {
         return $this->hasMany(ProjectIAHEarningMembers::class, 'project_id', 'project_id');
     }
-    public function iahHealthConditon()
+    public function iahHealthCondition()
     {
         return $this->hasOne(ProjectIAHHealthCondition::class, 'project_id', 'project_id');
     }
@@ -379,14 +407,40 @@ public static $statusLabels = [
     }
     //    //Relationship for IIES projects - Initial
 
-    public function educationBackground()
-    {
-        return $this->hasOne(ProjectIIESEducationBackground::class, 'project_id', 'project_id');
-    }
-    public function scopeFinancialSupport()
+    // public function educationBackground()
+    // {
+    //     return $this->hasOne(ProjectIIESEducationBackground::class, 'project_id', 'project_id');
+    // }
+    public function iiesEducationBackground()
+{
+    return $this->hasOne(ProjectIIESEducationBackground::class, 'project_id', 'project_id');
+}
+
+    public function iiesFinancialSupport()
     {
         return $this->hasOne(ProjectIIESScopeFinancialSupport::class, 'project_id', 'project_id');
     }
+    public function iiesAttachments()
+    {
+        return $this->hasMany(ProjectIIESAttachments::class, 'project_id', 'project_id');
+    }
+    public function iiesImmediateFamilyDetails()
+    {
+        return $this->hasOne(ProjectIIESImmediateFamilyDetails::class, 'project_id', 'project_id');
+    }
+    public function iiesPersonalInfo()
+    {
+        return $this->hasOne(ProjectIIESPersonalInfo::class, 'project_id', 'project_id');
+    }
+    public function iiesFamilyWorkingMembers()
+    {
+        return $this->hasMany(ProjectIIESFamilyWorkingMembers::class, 'project_id', 'project_id');
+    }
+    public function iiesExpenses()
+    {
+        return $this->hasOne(ProjectIIESExpenses::class, 'project_id', 'project_id');
+    }
+    // comments relationship
     public function comments()
     {
         return $this->hasMany(ProjectComment::class, 'project_id', 'project_id');
@@ -398,5 +452,16 @@ public static $statusLabels = [
         $nextNumber = $latestComment ? (int)substr($latestComment->project_comment_id, -3) + 1 : 1;
         return $this->project_id . '.' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
     }
+// Next Phase - Debelopment Proposal
+
+public function predecessor()
+{
+    return $this->belongsTo(Project::class, 'predecessor_project_id', 'project_id');
+}
+
+public function successors()
+{
+    return $this->hasMany(Project::class, 'predecessor_project_id', 'project_id');
+}
 
 }

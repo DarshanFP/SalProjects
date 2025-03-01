@@ -96,6 +96,9 @@ public function ProjectList(Request $request)
     if ($request->filled('user_id')) {
         $projectsQuery->where('user_id', $request->user_id);
     }
+    if ($request->filled('status')) {
+        $projectsQuery->where('status', $request->status);
+    }
 
     $projects = $projectsQuery->get();
 

@@ -5,102 +5,158 @@ namespace App\Http\Controllers\Projects\IES;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\OldProjects\IES\ProjectIESAttachments;
+use Exception;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 
 class IESAttachmentsController extends Controller
 {
-    // Store or update attachments for a project
+    // 🟢 STORE ATTACHMENTS
     public function store(Request $request, $projectId)
     {
         DB::beginTransaction();
+
         try {
             Log::info('Storing IES attachments', ['project_id' => $projectId]);
 
-            // Find or create a new attachments record
-            $attachments = ProjectIESAttachments::where('project_id', $projectId)->first() ?: new ProjectIESAttachments();
-            $attachments->project_id = $projectId;
+            $validatedData = $request->validate([
+                'aadhar_card' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'fee_quotation' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'scholarship_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'medical_confirmation' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'caste_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'self_declaration' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'death_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'request_letter' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            ]);
 
-            // Handle each file upload
-            foreach (['aadhar_card', 'fee_quotation', 'scholarship_proof', 'medical_confirmation', 'caste_certificate', 'self_declaration', 'death_certificate', 'request_letter'] as $fileField) {
-                if ($request->hasFile($fileField)) {
-                    // Store the file and save the file path
-                    $filePath = $request->file($fileField)->storeAs('project_attachments/' . $projectId, $request->file($fileField)->getClientOriginalName());
-                    $attachments->{$fileField} = $filePath;
-                }
-            }
-
-            $attachments->save();
+            ProjectIESAttachments::handleAttachments($request, $projectId);
 
             DB::commit();
-            Log::info('IES attachments saved successfully', ['project_id' => $projectId]);
             return response()->json(['message' => 'IES attachments saved successfully.'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error saving IES attachments', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to save IES attachments.'], 500);
+            return response()->json(['error' => 'Failed to save attachments.'], 500);
         }
     }
 
-    // Show attachments for a project
+    // 🟠 SHOW ATTACHMENTS
     public function show($projectId)
-    {
-        try {
-            Log::info('Fetching IES attachments', ['project_id' => $projectId]);
+{
+    try {
+        Log::info('Fetching IES attachments', ['project_id' => $projectId]);
 
-            $attachments = ProjectIESAttachments::where('project_id', $projectId)->firstOrFail();
-            return response()->json($attachments, 200);
-        } catch (\Exception $e) {
-            Log::error('Error fetching IES attachments', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch IES attachments.'], 500);
+        // Retrieve the attachment details
+        $attachments = ProjectIESAttachments::where('project_id', $projectId)->first();
+
+        if (!$attachments) {
+            return null; // If no attachments are found, return null so Blade can handle it properly
         }
-    }
 
-    // Edit attachments for a project
+        return $attachments; // Return as an object for use in the Blade view
+    } catch (\Exception $e) {
+        Log::error('Error fetching IES attachments', ['error' => $e->getMessage()]);
+        return null; // Return null to prevent errors in the Blade template
+    }
+}
+
+
+    // 🟡 EDIT ATTACHMENTS 
     public function edit($projectId)
     {
         try {
-            Log::info('Editing IES attachments', ['project_id' => $projectId]);
-
             $attachments = ProjectIESAttachments::where('project_id', $projectId)->firstOrFail();
 
-            // Return the data directly
+            // Log the retrieved data
+            Log::info('Fetched IES attachments for editing', [
+                'project_id' => $projectId,
+                'attachments' => $attachments
+            ]);
+
+            // ✅ Return the raw Eloquent object
             return $attachments;
+
         } catch (\Exception $e) {
-            Log::error('Error editing IES attachments', ['error' => $e->getMessage()]);
+            Log::error('Error fetching IES attachments for editing', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage()
+            ]);
+
+            // If you really want to handle the exception, you could
+            // return null or throw to the ProjectController
             return null;
         }
     }
 
-    // Update attachments for a project
     public function update(Request $request, $projectId)
-    {
-        return $this->store($request, $projectId); // Reuse the store logic for update
-    }
-
-    // Delete attachments for a project
-    public function destroy($projectId)
     {
         DB::beginTransaction();
         try {
-            Log::info('Deleting IES attachments', ['project_id' => $projectId]);
+            Log::info('Starting update process for IES Attachments', [
+                'project_id' => $projectId,
+                'request_data' => $request->all()
+            ]);
 
+            // Validate request inputs
+            $validatedData = $request->validate([
+                'aadhar_card' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'fee_quotation' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'scholarship_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'medical_confirmation' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'caste_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'self_declaration' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'death_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'request_letter' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            ]);
+
+            Log::info('Validation passed for IES Attachments update', [
+                'project_id' => $projectId,
+                'validated_data' => $validatedData
+            ]);
+
+            // Handle file uploads and database updates
+            ProjectIESAttachments::handleAttachments($request, $projectId);
+
+            DB::commit();
+
+            Log::info('IES Attachments updated successfully', [
+                'project_id' => $projectId
+            ]);
+            Log::info('Files received for update:', $request->all());
+
+
+            return response()->json(['message' => 'IES Attachments updated successfully.'], 200);
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            Log::error('Error updating IES Attachments', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json(['error' => 'Failed to update IES Attachments.'], 500);
+        }
+    }
+
+
+
+    // 🔵 DESTROY ATTACHMENTS
+    public function destroy($projectId)
+    {
+        DB::beginTransaction();
+
+        try {
             $attachments = ProjectIESAttachments::where('project_id', $projectId)->firstOrFail();
-            foreach (['aadhar_card', 'fee_quotation', 'scholarship_proof', 'medical_confirmation', 'caste_certificate', 'self_declaration', 'death_certificate', 'request_letter'] as $fileField) {
-                if (Storage::exists($attachments->{$fileField})) {
-                    Storage::delete($attachments->{$fileField});
-                }
-            }
+            \Storage::deleteDirectory("project_attachments/IES/{$projectId}");
             $attachments->delete();
 
             DB::commit();
-            Log::info('IES attachments deleted successfully', ['project_id' => $projectId]);
             return response()->json(['message' => 'IES attachments deleted successfully.'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error deleting IES attachments', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to delete IES attachments.'], 500);
+            return response()->json(['error' => 'Failed to delete attachments.'], 500);
         }
     }
 }

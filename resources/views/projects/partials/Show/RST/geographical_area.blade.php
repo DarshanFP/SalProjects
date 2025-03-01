@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/Show/RST/geographical_area.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Geographical Area of Beneficiaries</h4>

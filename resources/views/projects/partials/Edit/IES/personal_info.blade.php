@@ -4,20 +4,14 @@
         <h4>Edit: Personal Information of the Beneficiary</h4>
     </div>
     <div class="card-body">
-        @if($project->iesPersonalInfo)
-            @php
-                $personalInfo = $project->iesPersonalInfo;
-            @endphp
-        @else
-            @php
-                $personalInfo = new \App\Models\OldProjects\IES\ProjectIESPersonalInfo();
-            @endphp
-        @endif
+        @php
+            $personalInfo = $project->iesPersonalInfo ?? new \App\Models\OldProjects\IES\ProjectIESPersonalInfo();
+        @endphp
 
         <!-- Personal Information Fields -->
         <div class="form-group">
             <label>Name:</label>
-            <input type="text" name="name" class="form-control" value="{{ old('name', $personalInfo->name) }}">
+            <input type="text" name="bname" class="form-control" value="{{ old('bname', $personalInfo->bname) }}">
         </div>
 
         <div class="form-group">
@@ -27,7 +21,12 @@
 
         <div class="form-group">
             <label>Gender:</label>
-            <input type="text" name="gender" class="form-control" value="{{ old('gender', $personalInfo->gender) }}">
+            <select name="gender" class="form-control">
+                <option value="" disabled>Select Gender</option>
+                <option value="male" {{ old('gender', $personalInfo->gender) == 'male' ? 'selected' : '' }}>Male</option>
+                <option value="female" {{ old('gender', $personalInfo->gender) == 'female' ? 'selected' : '' }}>Female</option>
+                <option value="other" {{ old('gender', $personalInfo->gender) == 'other' ? 'selected' : '' }}>Other</option>
+            </select>
         </div>
 
         <div class="form-group">
@@ -77,7 +76,7 @@
 
         <div class="form-group">
             <label>Caste:</label>
-            <input type="text" name="caste" class="form-control" value="{{ old('caste', $personalInfo->caste) }}">
+            <input type="text" name="bcaste" class="form-control" value="{{ old('bcaste', $personalInfo->bcaste) }}">
         </div>
     </div>
 

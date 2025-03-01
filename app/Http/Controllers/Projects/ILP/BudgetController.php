@@ -61,16 +61,52 @@ class BudgetController extends Controller
             Log::info('Editing ILP Budget', ['project_id' => $projectId]);
 
             $budgets = ProjectILPBudget::where('project_id', $projectId)->get();
+
             $total_amount = $budgets->sum('cost');
             $beneficiary_contribution = $budgets->first()->beneficiary_contribution ?? 0;
             $amount_requested = $budgets->first()->amount_requested ?? 0;
 
-            return view('projects.partials.Edit.ILP.budget', compact('budgets', 'total_amount', 'beneficiary_contribution', 'amount_requested'));
+            return [
+                'budgets' => $budgets,
+                'total_amount' => $total_amount,
+                'beneficiary_contribution' => $beneficiary_contribution,
+                'amount_requested' => $amount_requested,
+            ];
         } catch (\Exception $e) {
             Log::error('Error editing ILP Budget', ['error' => $e->getMessage()]);
             return null;
         }
     }
+    public function update(Request $request, $projectId)
+    {
+        DB::beginTransaction();
+        try {
+            Log::info('Updating ILP Budget', ['project_id' => $projectId]);
+
+            // Delete existing budget records for the project
+            ProjectILPBudget::where('project_id', $projectId)->delete();
+
+            // Insert new budget data from request
+            foreach ($request->budget_desc as $index => $description) {
+                ProjectILPBudget::create([
+                    'project_id' => $projectId,
+                    'budget_desc' => $description,
+                    'cost' => $request->cost[$index] ?? 0,
+                    'beneficiary_contribution' => $request->beneficiary_contribution ?? 0,
+                    'amount_requested' => $request->amount_requested ?? 0,
+                ]);
+            }
+
+            DB::commit();
+            Log::info('ILP Budget updated successfully', ['project_id' => $projectId]);
+            return response()->json(['message' => 'Budget updated successfully.'], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error updating ILP Budget', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to update budget.'], 500);
+        }
+    }
+
 
     // Delete budget for a project
     public function destroy($projectId)

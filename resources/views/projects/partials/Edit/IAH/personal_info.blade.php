@@ -1,18 +1,13 @@
 {{-- resources/views/projects/partials/Edit/IAH/personal_info.blade.php --}}
+
 <div class="mb-4 card">
     <div class="card-header">
         <h4 class="mb-0">Edit: Personal Information of the Beneficiary</h4>
     </div>
     <div class="card-body">
-        @if($project->iahPersonalInfo)
-            @php
-                $personalInfo = $project->iahPersonalInfo;
-            @endphp
-        @else
-            @php
-                $personalInfo = new \App\Models\OldProjects\IAH\ProjectIAHPersonalInfo();
-            @endphp
-        @endif
+        @php
+            $personalInfo = $project->iahPersonalInfo ?? new \App\Models\OldProjects\IAH\ProjectIAHPersonalInfo();
+        @endphp
 
         <!-- Name -->
         <div class="mb-3">

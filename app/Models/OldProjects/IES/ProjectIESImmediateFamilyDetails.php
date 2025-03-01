@@ -20,6 +20,7 @@ class ProjectIESImmediateFamilyDetails extends Model
         'grandmother_support',
         'grandfather_support',
         'father_deserted',
+        'family_details_others',
         'father_sick',
         'father_hiv_aids',
         'father_disabled',

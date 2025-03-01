@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/IES/estimated_expenses.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Estimated Expenses (give full details)</h4>
@@ -89,6 +90,12 @@
         const contribution = parseFloat(document.querySelector('input[name="beneficiary_contribution"]').value) || 0;
         const balanceRequested = totalExpenses - (scholarship + otherSources + contribution);
         document.querySelector('input[name="balance_requested"]').value = balanceRequested.toFixed(2);
+
+        // ALSO update the #overall_project_budget if it exists
+        const overallBudget = document.getElementById('overall_project_budget');
+        if (overallBudget) {
+            overallBudget.value = balanceRequested.toFixed(2);
+        }
     }
 </script>
 

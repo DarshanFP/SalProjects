@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/Show/CCI/annexed_target_group.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Annexed Target Group (CCI)</h4>
@@ -15,7 +16,7 @@
                         <th>Family Background</th>
                     </tr>
                 </thead>
-                
+
                 <tbody>
                     @if (isset($annexedTargetGroup) && $annexedTargetGroup->isNotEmpty())
                         @foreach ($annexedTargetGroup as $index => $group)

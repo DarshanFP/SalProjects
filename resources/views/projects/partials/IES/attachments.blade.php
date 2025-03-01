@@ -1,4 +1,5 @@
-<div class="mb-3 card">
+{{-- resources/views/projects/partials/IES/attachments.blade.php --}}
+{{-- <div class="mb-3 card">
     <div class="card-header">
         <h4>Please Attach the Following Documents</h4>
     </div>
@@ -64,20 +65,52 @@
 <!-- JavaScript to rename files based on project_id and label name -->
 <script>
     (function() {
-    function IESrenameFile(input, shortName) {
+        function IESrenameFile(input, shortName) {
         const projectId = document.querySelector('input[name="project_id"]').value;
         const file = input.files[0];
+        if (!file) return;
+
         const extension = file.name.split('.').pop();
         const newFileName = `${projectId}_${shortName}.${extension}`;
 
-        // This sets the new file name for server-side processing.
         const dataTransfer = new DataTransfer();
-        const renamedFile = new File([file], newFileName, {type: file.type});
+        const renamedFile = new File([file], newFileName, { type: file.type });
         dataTransfer.items.add(renamedFile);
         input.files = dataTransfer.files;
     }
+
     })();
-</script>
+</script> --}}
+<div class="mb-3 card">
+    <div class="card-header">
+        <h4>Please Attach the Following Documents</h4>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {{-- <input type="hidden" name="project_id" value="{{ $projectId }}"> --}}
+            @php
+                $fields = [
+                    'aadhar_card' => 'Aadhar Card (true copy)',
+                    'fee_quotation' => 'Fee Quotation from Educational Institution (original)',
+                    'scholarship_proof' => 'Proof of Scholarship Received Previous Year',
+                    'medical_confirmation' => 'Medical Confirmation (ill health of parents - original)',
+                    'caste_certificate' => 'Caste Certificate (true copy)',
+                    'self_declaration' => 'Self Declaration (single parent - original)',
+                    'death_certificate' => 'Death Certificate (deceased parents - true copy)',
+                    'request_letter' => 'Request Letter (original copy)'
+                ];
+            @endphp
+
+            @foreach ($fields as $field => $label)
+                <div class="col-md-6 form-group">
+                    <label>{{ $label }}</label>
+                    <input type="file" name="{{ $field }}" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+
 
 <!-- Styles -->
 <style>

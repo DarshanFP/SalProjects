@@ -7,7 +7,7 @@
         <!-- Personal Information Fields -->
         <div class="form-group">
             <label>Name:</label>
-            <input type="text" name="name" class="form-control" style="background-color: #202ba3;">
+            <input type="text" name="bname" class="form-control" style="background-color: #202ba3;">
         </div>
 
         <div class="form-group">
@@ -16,9 +16,15 @@
         </div>
 
         <div class="form-group">
-            <label>Gender:</label>
-            <input type="text" name="gender" class="form-control" style="background-color: #202ba3;">
+            <label for="gender">Gender:</label>
+            <select name="gender" id="gender" class="form-control" style="background-color: #202ba3;">
+                <option value="" selected disabled>Select Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+            </select>
         </div>
+
 
         <div class="form-group">
             <label>Date of Birth:</label>
@@ -67,7 +73,7 @@
 
         <div class="form-group">
             <label>Caste:</label>
-            <input type="text" name="caste" class="form-control" style="background-color: #202ba3;">
+            <input type="text" name="bcaste" class="form-control" style="background-color: #202ba3;">
         </div>
     </div>
 

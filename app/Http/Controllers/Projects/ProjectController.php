@@ -37,8 +37,37 @@ use App\Http\Controllers\Projects\RST\GeographicalAreaController as RSTGeographi
 use App\Http\Controllers\Projects\RST\InstitutionInfoController as RSTInstitutionInfoController;
 use App\Http\Controllers\Projects\RST\TargetGroupAnnexureController as RSTTargetGroupAnnexureController;
 use App\Http\Controllers\Projects\RST\TargetGroupController as RSTTargetGroupController;
-
-
+// IES - Individual - Ongoing Educational Support
+use App\Http\Controllers\Projects\IES\IESAttachmentsController as IESAttachmentsController;
+use App\Http\Controllers\Projects\IES\IESEducationBackgroundController as IESEducationBackgroundController;
+use App\Http\Controllers\Projects\IES\IESExpensesController as IESExpensesController;
+use App\Http\Controllers\Projects\IES\IESFamilyWorkingMembersController as IESFamilyWorkingMembersController;
+use App\Http\Controllers\Projects\IES\IESImmediateFamilyDetailsController as IESImmediateFamilyDetailsController;
+use App\Http\Controllers\Projects\IES\IESPersonalInfoController as IESPersonalInfoController;
+// Aliases for ILP Controllers
+use App\Http\Controllers\Projects\ILP\PersonalInfoController as ILPPersonalInfoController;
+use App\Http\Controllers\Projects\ILP\RevenueGoalsController as ILPRevenueGoalsController;
+use App\Http\Controllers\Projects\ILP\StrengthWeaknessController as ILPStrengthWeaknessController;
+use App\Http\Controllers\Projects\ILP\RiskAnalysisController as ILPRiskAnalysisController;
+use App\Http\Controllers\Projects\ILP\AttachedDocumentsController as ILPAttachedDocumentsController;
+use App\Http\Controllers\Projects\ILP\BudgetController as ILPBudgetController;
+// Aliases for IAH Controllers
+use App\Http\Controllers\Projects\IAH\IAHBudgetDetailsController as IAHBudgetDetailsController;
+use App\Http\Controllers\Projects\IAH\IAHDocumentsController as IAHDocumentsController;
+use App\Http\Controllers\Projects\IAH\IAHEarningMembersController as IAHEarningMembersController;
+use App\Http\Controllers\Projects\IAH\IAHHealthConditionController as IAHHealthConditionController;
+use App\Http\Controllers\Projects\IAH\IAHPersonalInfoController as IAHPersonalInfoController;
+use App\Http\Controllers\Projects\IAH\IAHSupportDetailsController as IAHSupportDetailsController;
+// Aliases for IIES Controllers
+use App\Http\Controllers\Projects\IIES\EducationBackgroundController as IIESEducationBackgroundController;
+use App\Http\Controllers\Projects\IIES\FinancialSupportController as IIESFinancialSupportController;
+use App\Http\Controllers\Projects\IIES\IIESAttachmentsController as IIESAttachmentsController;
+use App\Http\Controllers\Projects\IIES\IIESFamilyWorkingMembersController as IIESFamilyWorkingMembersController;
+use App\Http\Controllers\Projects\IIES\IIESImmediateFamilyDetailsController as IIESImmediateFamilyDetailsController;
+use App\Http\Controllers\Projects\IIES\IIESPersonalInfoController as IIESPersonalInfoController;
+use App\Http\Controllers\Projects\IIES\IIESExpensesController as IIESExpensesController;
+use App\Models\OldProjects\IIES\ProjectIIESExpenses;
+use App\Models\OldProjects\IIES\ProjectIIESEducationBackground;
 
 class ProjectController extends Controller
 {
@@ -70,13 +99,44 @@ class ProjectController extends Controller
     protected $ldpInterventionLogicController;
     protected $ldpNeedAnalysisController;
     protected $ldpTargetGroupController;
-    // RST controllers
+
     // RST controllers
     protected $rstBeneficiariesAreaController;
     protected $rstGeographicalAreaController;
     protected $rstInstitutionInfoController;
     protected $rstTargetGroupAnnexureController;
     protected $rstTargetGroupController;
+    // IES - Individual - Ongoing Educational Support
+    protected $iesAttachmentsController;
+    protected $iesEducationBackgroundController;
+    protected $iesExpensesController;
+    protected $iesFamilyWorkingMembersController;
+    protected $iesImmediateFamilyDetailsController;
+    protected $iesPersonalInfoController;
+    //  ILP - Individual - Livelihood Application
+    protected $ilpPersonalInfoController;
+    protected $ilpRevenueGoalsController;
+    protected $ilpStrengthWeaknessController;
+    protected $ilpRiskAnalysisController;
+    protected $ilpAttachedDocumentsController;
+    protected $ilpBudgetController;
+    //  IAH - Individual - Access to Health
+    protected $iahBudgetDetailsController;
+    protected $iahDocumentsController;
+    protected $iahEarningMembersController;
+    protected $iahHealthConditionController;
+    protected $iahPersonalInfoController;
+    protected $iahSupportDetailsController;
+    // Individual - Initial Educational Support controllers
+    protected $iiesEducationBackgroundController;
+    protected $iiesFinancialSupportController;
+    protected $iiesAttachmentsController;
+    protected $iiesFamilyWorkingMembersController;
+    protected $iiesImmediateFamilyDetailsController;
+    protected $iiesPersonalInfoController;
+    protected $iiesExpensesController;
+
+
 
 
 
@@ -115,7 +175,36 @@ class ProjectController extends Controller
         RSTGeographicalAreaController $rstGeographicalAreaController,
         RSTInstitutionInfoController $rstInstitutionInfoController,
         RSTTargetGroupAnnexureController $rstTargetGroupAnnexureController,
-        RSTTargetGroupController $rstTargetGroupController
+        RSTTargetGroupController $rstTargetGroupController,
+        // IES - Individual - Ongoing Educational Support
+        IESAttachmentsController $iesAttachmentsController,
+        IESEducationBackgroundController $iesEducationBackgroundController,
+        IESExpensesController $iesExpensesController,
+        IESFamilyWorkingMembersController $iesFamilyWorkingMembersController,
+        IESImmediateFamilyDetailsController $iesImmediateFamilyDetailsController,
+        IESPersonalInfoController $iesPersonalInfoController,
+    //  ILP - Individual - Livelihood Application
+        ILPPersonalInfoController $ilpPersonalInfoController,
+        ILPRevenueGoalsController $ilpRevenueGoalsController,
+        ILPStrengthWeaknessController $ilpStrengthWeaknessController,
+        ILPRiskAnalysisController $ilpRiskAnalysisController,
+        ILPAttachedDocumentsController $ilpAttachedDocumentsController,
+        ILPBudgetController $ilpBudgetController,
+     //  IAH - Individual - Access to Health
+        IAHBudgetDetailsController $iahBudgetDetailsController,
+        IAHDocumentsController $iahDocumentsController,
+        IAHEarningMembersController $iahEarningMembersController,
+        IAHHealthConditionController $iahHealthConditionController,
+        IAHPersonalInfoController $iahPersonalInfoController,
+        IAHSupportDetailsController $iahSupportDetailsController,
+    //  IIES - Individual - Initial Educational Support
+        IIESEducationBackgroundController $iiesEducationBackgroundController,
+        IIESFinancialSupportController $iiesFinancialSupportController,
+        IIESAttachmentsController $iiesAttachmentsController,
+        IIESFamilyWorkingMembersController $iiesFamilyWorkingMembersController,
+        IIESImmediateFamilyDetailsController $iiesImmediateFamilyDetailsController,
+        IIESPersonalInfoController $iiesPersonalInfoController,
+        IIESExpensesController $iiesExpensesController
 
     ) {
         $this->logicalFrameworkController = $logicalFrameworkController;
@@ -152,6 +241,35 @@ class ProjectController extends Controller
         $this->rstInstitutionInfoController = $rstInstitutionInfoController;
         $this->rstTargetGroupAnnexureController = $rstTargetGroupAnnexureController;
         $this->rstTargetGroupController = $rstTargetGroupController;
+        // IES - Individual - Ongoing Educational Support
+        $this->iesAttachmentsController = $iesAttachmentsController;
+        $this->iesEducationBackgroundController = $iesEducationBackgroundController;
+        $this->iesExpensesController = $iesExpensesController;
+        $this->iesFamilyWorkingMembersController = $iesFamilyWorkingMembersController;
+        $this->iesImmediateFamilyDetailsController = $iesImmediateFamilyDetailsController;
+        $this->iesPersonalInfoController = $iesPersonalInfoController;
+        // Assign ILP controllers
+        $this->ilpPersonalInfoController = $ilpPersonalInfoController;
+        $this->ilpRevenueGoalsController = $ilpRevenueGoalsController;
+        $this->ilpStrengthWeaknessController = $ilpStrengthWeaknessController;
+        $this->ilpRiskAnalysisController = $ilpRiskAnalysisController;
+        $this->ilpAttachedDocumentsController = $ilpAttachedDocumentsController;
+        $this->ilpBudgetController = $ilpBudgetController;
+        //  IAH - Individual - Access to Health
+        $this->iahBudgetDetailsController = $iahBudgetDetailsController;
+        $this->iahDocumentsController = $iahDocumentsController;
+        $this->iahEarningMembersController = $iahEarningMembersController;
+        $this->iahHealthConditionController = $iahHealthConditionController;
+        $this->iahPersonalInfoController = $iahPersonalInfoController;
+        $this->iahSupportDetailsController = $iahSupportDetailsController;
+        //  IIES - Individual - Initial Educational Support
+        $this->iiesEducationBackgroundController = $iiesEducationBackgroundController;
+        $this->iiesFinancialSupportController = $iiesFinancialSupportController;
+        $this->iiesAttachmentsController = $iiesAttachmentsController;
+        $this->iiesFamilyWorkingMembersController = $iiesFamilyWorkingMembersController;
+        $this->iiesImmediateFamilyDetailsController = $iiesImmediateFamilyDetailsController;
+        $this->iiesPersonalInfoController = $iiesPersonalInfoController;
+        $this->iiesExpensesController = $iiesExpensesController;
 
 
     }
@@ -169,93 +287,393 @@ class ProjectController extends Controller
         return view('projects.Oldprojects.index', compact('projects', 'user'));
     }
 
-    public function create()
-    {
-        $users = User::all();
-        $user = Auth::user();
-        return view('projects.Oldprojects.createProjects', compact('users', 'user'));
+    // public function create()
+    // {
+    //     $users = User::all();
+    //     $user = Auth::user();
+    //     return view('projects.Oldprojects.createProjects', compact('users', 'user'));
+    // }
+
+//     public function create()
+// {
+//     $users = User::all();
+//     $user = Auth::user();
+
+//     // Fetch projects where the user is either the owner or in charge
+//     $projects = Project::whereIn('project_type', ['Development Projects', 'NEXT PHASE - DEVELOPMENT PROPOSAL'])
+//                         ->where(function ($query) use ($user) {
+//                             $query->where('user_id', $user->id)
+//                                   ->orWhere('in_charge', $user->id);
+//                         })
+//                         ->get();
+
+//     return view('projects.Oldprojects.createProjects', compact('users', 'user', 'projects'));
+// }
+
+// public function create()
+// {
+//     $user = Auth::user();
+//     $users = User::all();
+
+//     // Fetch Development Projects and NEXT PHASE - DEVELOPMENT PROPOSAL
+//     $developmentProjects = Project::where(function ($query) use ($user) {
+//         $query->where('user_id', $user->id)
+//               ->orWhere('in_charge', $user->id);
+//     })
+//     ->whereIn('project_type', ['Development Projects', 'NEXT PHASE - DEVELOPMENT PROPOSAL'])
+//     ->get();
+
+//     // Initialize predecessor data
+//     $predecessorGoal = null;
+//     $predecessorBeneficiaries = [];
+//     $predecessorProjectId = request()->get('predecessor_project_id'); // Ensure predecessor_project_id is passed via the request
+
+//     if ($predecessorProjectId) {
+//         $predecessorProject = Project::find($predecessorProjectId);
+//         if ($predecessorProject) {
+//             // Fetch predecessor project goal
+//             $predecessorGoal = $predecessorProject->goal;
+
+//             // Fetch predecessor project beneficiaries
+//             $predecessorBeneficiaries = $predecessorProject->DPRSTBeneficiariesAreas->toArray();
+//         }
+//     }
+
+//     return view('projects.Oldprojects.createProjects', compact(
+//         'users',
+//         'user',
+//         'developmentProjects',
+//         'predecessorGoal',
+//         'predecessorBeneficiaries'
+//     ));
+// }
+
+public function create()
+{
+    $user = Auth::user();
+    $users = User::all();
+
+    // Fetch Development Projects and NEXT PHASE - DEVELOPMENT PROPOSAL
+    $developmentProjects = Project::where(function ($query) use ($user) {
+        $query->where('user_id', $user->id)
+              ->orWhere('in_charge', $user->id);
+    })
+    ->whereIn('project_type', ['Development Projects', 'NEXT PHASE - DEVELOPMENT PROPOSAL'])
+    ->get();
+
+    // Initialize predecessor data variables
+    $predecessorBeneficiaries = [];
+    $predecessorObjectives = [];
+    $predecessorActivities = [];
+    $predecessorSustainability = [];
+    $predecessorBudget = [];
+    $predecessorAttachments = [];
+    $predecessorProjectId = request()->get('predecessor_project_id');
+
+    if ($predecessorProjectId) {
+        $predecessorProject = Project::with([
+            'DPRSTBeneficiariesAreas',
+            'objectives.results',
+            'objectives.risks',
+            'objectives.activities.timeframes',
+            'sustainabilities',
+            'budgets',
+            'attachments'
+        ])->find($predecessorProjectId);
+
+        if ($predecessorProject) {
+            // 1️⃣ **Beneficiaries**
+            $predecessorBeneficiaries = $predecessorProject->DPRSTBeneficiariesAreas->toArray();
+
+            // 2️⃣ **Objectives and Related Data**
+            $predecessorObjectives = $predecessorProject->objectives->map(function ($objective) {
+                return [
+                    'objective_id' => $objective->objective_id,
+                    'objective' => $objective->objective,
+                    'results' => $objective->results->toArray(),
+                    'risks' => $objective->risks->toArray(),
+                    'activities' => $objective->activities->map(function ($activity) {
+                        return [
+                            'activity_id' => $activity->activity_id,
+                            'activity' => $activity->activity,
+                            'verification' => $activity->verification,
+                            'timeframes' => $activity->timeframes->toArray(),
+                        ];
+                    })->toArray(),
+                ];
+            })->toArray();
+
+            // 3️⃣ **Sustainability**
+            $predecessorSustainability = $predecessorProject->sustainabilities->first()
+                ? $predecessorProject->sustainabilities->first()->toArray()
+                : [];
+
+            // 4️⃣ **Budget**
+            $predecessorBudget = $predecessorProject->budgets->groupBy('phase')->map(function ($phase) {
+                return [
+                    'amount_sanctioned' => $phase->sum('amount'),
+                    'budget' => $phase->map(function ($budget) {
+                        return [
+                            'particular' => $budget->particular,
+                            'rate_quantity' => $budget->rate_quantity,
+                            'rate_multiplier' => $budget->rate_multiplier,
+                            'rate_duration' => $budget->rate_duration,
+                            'rate_increase' => $budget->rate_increase,
+                            'this_phase' => $budget->this_phase,
+                            'next_phase' => $budget->next_phase,
+                        ];
+                    })->toArray(),
+                ];
+            })->toArray();
+
+            // 5️⃣ **Attachments**
+            $predecessorAttachments = $predecessorProject->attachments->map(function ($attachment) {
+                return [
+                    'file' => $attachment->file,
+                    'file_name' => $attachment->file_name,
+                    'description' => $attachment->description,
+                ];
+            })->toArray();
+        }
     }
 
+    // Pass all data to the createProjects view
+    return view('projects.Oldprojects.createProjects', compact(
+        'users',
+        'user',
+        'developmentProjects',
+        'predecessorBeneficiaries',
+        'predecessorObjectives',
+        'predecessorActivities',
+        'predecessorSustainability',
+        'predecessorBudget',
+        'predecessorAttachments'
+    ));
+}
 
-    public function store(Request $request)
+
+public function getProjectDetails($id)
+{
+    $project = Project::find($id);
+
+    if (!$project) {
+        return response()->json(['error' => 'Project not found'], 404);
+    }
+
+    return response()->json([
+        'project_title' => $project->project_title,
+        'society_name' => $project->society_name,
+        'president_name' => $project->president_name,
+        'applicant_name' => $project->user->name,
+        'applicant_mobile' => $project->user->phone,
+        'applicant_email' => $project->user->email,
+        'in_charge' => $project->in_charge,
+        'full_address' => $project->full_address,
+        'overall_project_period' => $project->overall_project_period,
+        'current_phase' => $project->current_phase,
+        'commencement_month' => $project->commencement_month,
+        'commencement_year' => $project->commencement_year,
+        'overall_project_budget' => $project->overall_project_budget,
+    ]);
+}
+
+
+//     public function store(Request $request)
+// {
+//     DB::beginTransaction();
+//     try {
+//         Log::info('ProjectController@store - Data received from form', $request->all());
+
+//         // Store the main project details first
+//         $project = (new GeneralInfoController())->store($request);
+
+//         // Now pass the $project->project_id to the LogicalFrameworkController
+//         $keyInformation = (new KeyInformationController())->store($request, $project);
+//         $budget = (new BudgetController())->store($request, $project);
+//         $attachments = (new AttachmentController())->store($request, $project);
+
+//         // Ensure project_id is passed to LogicalFrameworkController
+//         $request->merge(['project_id' => $project->project_id]);
+//         $this->logicalFrameworkController->store($request);
+//         $this->sustainabilityController->store($request, $project->project_id);
+//         // Check for Education Rural-Urban-Tribal project type
+//         if ($request->project_type == 'Rural-Urban-Tribal') {
+//             $this->eduRUTBasicInfoController->store($request, $project->project_id);
+//             $this->eduRUTTargetGroupController->store($request, $project->project_id);
+//             $this->eduRUTAnnexedTargetGroupController->store($request);
+//         }
+//         elseif ($request->project_type == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
+//             $this->cicBasicInfoController->store($request, $project->project_id);
+//         }
+//         // Check for CCI project type
+//         elseif ($project->project_type === 'CHILD CARE INSTITUTION') {
+//             // CCI Project type logic
+//             $this->cciAchievementsController->store($request, $project->project_id);
+//             $this->cciAgeProfileController->store($request, $project->project_id);
+//             $this->cciAnnexedTargetGroupController->store($request, $project->project_id);
+//             $this->cciEconomicBackgroundController->store($request, $project->project_id);
+//             $this->cciPersonalSituationController->store($request, $project->project_id);
+//             $this->cciPresentSituationController->store($request, $project->project_id);
+//             $this->cciRationaleController->store($request, $project->project_id);
+//             $this->cciStatisticsController->store($request, $project->project_id);
+//         }
+//         //IGE project type
+//         elseif ($request->project_type === 'Institutional Ongoing Group Educational proposal') {
+//             // Call methods from the IGE controllers
+//             $this->igeInstitutionInfoController->store($request, $project->project_id);
+//             $this->igeBeneficiariesSupportedController->store($request, $project->project_id);
+//             $this->igeNewBeneficiariesController->store($request, $project->project_id);
+//             $this->igeOngoingBeneficiariesController->store($request, $project->project_id);
+//             $this->igeBudgetController->store($request, $project->project_id);
+//             $this->igeDevelopmentMonitoringController->store($request, $project->project_id);
+//         }
+//         // LDP project type
+//         elseif ($request->project_type == 'Livelihood Development Projects') {
+//             $this->ldpInterventionLogicController->store($request, $project->project_id);
+//             $this->ldpNeedAnalysisController->store($request, $project->project_id);
+//             $this->ldpTargetGroupController->store($request, $project->project_id);
+//         }
+//         // RST project type
+//         elseif ($request->project_type === 'Residential Skill Training Proposal 2') {  // Replace with actual type
+//             Log::info('Calling rstBeneficiariesAreaController@store');
+//             $this->rstBeneficiariesAreaController->store($request, $project->project_id);
+//             Log::info('Calling rstGeographicalAreaController@store');
+//             $this->rstGeographicalAreaController->store($request, $project->project_id);
+//             Log::info('Calling rstInstitutionInfoController@store');
+//             $this->rstInstitutionInfoController->store($request, $project->project_id);
+//             Log::info('Calling rstTargetGroupAnnexureController@store');
+//             $this->rstTargetGroupAnnexureController->store($request, $project->project_id);
+//             Log::info('Calling rstTargetGroupController@store');
+//             $this->rstTargetGroupController->store($request, $project->project_id);
+
+//             Log::info('All RST controllers called successfully');
+//         }
+//         elseif ($request->project_type === 'Development Projects') {
+//             Log::info('Handling Beneficiaries Area for Development Projects');
+//             $this->rstBeneficiariesAreaController->store($request, $project->project_id);
+//             Log::info('Beneficiaries Area stored for Development Projects');
+//         }
+//         elseif ($request->project_type === 'Individual - Ongoing Educational support') {
+//             Log::info('Storing data for Individual - Ongoing Educational Support project type');
+//             $this->iesPersonalInfoController->store($request, $project->project_id);
+//             $this->iesFamilyWorkingMembersController->store($request, $project->project_id);
+//             $this->iesImmediateFamilyDetailsController->store($request, $project->project_id);
+//             $this->iesEducationBackgroundController->store($request, $project->project_id);
+//             $this->iesExpensesController->store($request, $project->project_id);
+//             $this->iesAttachmentsController->store($request, $project->project_id);
+//         }
+
+
+
+
+//         DB::commit();
+
+//         return redirect()->route('projects.index')->with('success', 'Project created successfully.');
+//     } catch (\Exception $e) {
+//         DB::rollBack();
+//         Log::error('ProjectController@store - Error', ['error' => $e->getMessage()]);
+//         return redirect()->back()->withErrors(['error' => 'There was an error creating the project. Please try again.'])->withInput();
+//     }
+// }
+//
+
+//with feching oroject ID for IES attachement
+
+
+public function store(Request $request)
 {
     DB::beginTransaction();
+
     try {
+        // Log incoming request
         Log::info('ProjectController@store - Data received from form', $request->all());
+        Log::info('Received Project Type:', ['project_type' => $request->project_type]);
 
-        // Store the main project details first
+
+        // Step 1: Store general project details
         $project = (new GeneralInfoController())->store($request);
+        Log::info('General project details saved', ['project_id' => $project->project_id]);
 
-        // Now pass the $project->project_id to the LogicalFrameworkController
-        $keyInformation = (new KeyInformationController())->store($request, $project);
-        $budget = (new BudgetController())->store($request, $project);
-        $attachments = (new AttachmentController())->store($request, $project);
-
-        // Ensure project_id is passed to LogicalFrameworkController
+        // Add the project ID to the request for downstream use
         $request->merge(['project_id' => $project->project_id]);
-        $this->logicalFrameworkController->store($request);
-        $this->sustainabilityController->store($request, $project->project_id);
-        // Check for Education Rural-Urban-Tribal project type
-        if ($request->project_type == 'Rural-Urban-Tribal') {
-            $this->eduRUTBasicInfoController->store($request, $project->project_id);
-            $this->eduRUTTargetGroupController->store($request, $project->project_id);
-            $this->eduRUTAnnexedTargetGroupController->store($request);
-        }
-        elseif ($request->project_type == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
-            $this->cicBasicInfoController->store($request, $project->project_id);
-        }
-        // Check for CCI project type
-        elseif ($project->project_type === 'CHILD CARE INSTITUTION') {
-            // CCI Project type logic
-            $this->cciAchievementsController->store($request, $project->project_id);
-            $this->cciAgeProfileController->store($request, $project->project_id);
-            $this->cciAnnexedTargetGroupController->store($request, $project->project_id);
-            $this->cciEconomicBackgroundController->store($request, $project->project_id);
-            $this->cciPersonalSituationController->store($request, $project->project_id);
-            $this->cciPresentSituationController->store($request, $project->project_id);
-            $this->cciRationaleController->store($request, $project->project_id);
-            $this->cciStatisticsController->store($request, $project->project_id);
-        }
-        //IGE project type
-        elseif ($request->project_type === 'Institutional Ongoing Group Educational proposal') {
-            // Call methods from the IGE controllers
-            $this->igeInstitutionInfoController->store($request, $project->project_id);
-            $this->igeBeneficiariesSupportedController->store($request, $project->project_id);
-            $this->igeNewBeneficiariesController->store($request, $project->project_id);
-            $this->igeOngoingBeneficiariesController->store($request, $project->project_id);
-            $this->igeBudgetController->store($request, $project->project_id);
-            $this->igeDevelopmentMonitoringController->store($request, $project->project_id);
-        }
-        // LDP project type
-        elseif ($request->project_type == 'Livelihood Development Projects') {
-            $this->ldpInterventionLogicController->store($request, $project->project_id);
-            $this->ldpNeedAnalysisController->store($request, $project->project_id);
-            $this->ldpTargetGroupController->store($request, $project->project_id);
-        }
-        // RST project type
-        elseif ($request->project_type === 'Residential Skill Training Proposal 2') {  // Replace with actual type
-            Log::info('Calling rstBeneficiariesAreaController@store');
-            $this->rstBeneficiariesAreaController->store($request, $project->project_id);
-            Log::info('Calling rstGeographicalAreaController@store');
-            $this->rstGeographicalAreaController->store($request, $project->project_id);
-            Log::info('Calling rstInstitutionInfoController@store');
-            $this->rstInstitutionInfoController->store($request, $project->project_id);
-            Log::info('Calling rstTargetGroupAnnexureController@store');
-            $this->rstTargetGroupAnnexureController->store($request, $project->project_id);
-            Log::info('Calling rstTargetGroupController@store');
-            $this->rstTargetGroupController->store($request, $project->project_id);
 
-            Log::info('All RST controllers called successfully');
+        // Handle project type-specific logic with logging
+        switch ($request->project_type) {
+            case 'Rural-Urban-Tribal':
+                Log::info('Processing Rural-Urban-Tribal project type');
+                $this->eduRUTBasicInfoController->store($request, $project->project_id);
+                $this->eduRUTTargetGroupController->store($request, $project->project_id);
+                $this->eduRUTAnnexedTargetGroupController->store($request);
+                break;
+
+            case 'CHILD CARE INSTITUTION':
+                Log::info('Processing Child Care Institution project type');
+                $this->cciAchievementsController->store($request, $project->project_id);
+                $this->cciAgeProfileController->store($request, $project->project_id);
+                $this->cciAnnexedTargetGroupController->store($request, $project->project_id);
+                $this->cciEconomicBackgroundController->store($request, $project->project_id);
+                $this->cciPersonalSituationController->store($request, $project->project_id);
+                $this->cciPresentSituationController->store($request, $project->project_id);
+                $this->cciRationaleController->store($request, $project->project_id);
+                $this->cciStatisticsController->store($request, $project->project_id);
+                break;
+
+            case 'Individual - Ongoing Educational support':
+                Log::info('Processing Individual - Ongoing Educational Support project type');
+                $this->iesPersonalInfoController->store($request, $project->project_id);
+                $this->iesFamilyWorkingMembersController->store($request, $project->project_id);
+                $this->iesImmediateFamilyDetailsController->store($request, $project->project_id);
+                $this->iesEducationBackgroundController->store($request, $project->project_id);
+                $this->iesExpensesController->store($request, $project->project_id);
+                $this->iesAttachmentsController->store($request, $project->project_id);
+                break;
+
+            case 'Individual - Livelihood Application':
+                $this->ilpPersonalInfoController->store($request, $project->project_id);
+                $this->ilpRevenueGoalsController->store($request, $project->project_id);
+                $this->ilpStrengthWeaknessController->store($request, $project->project_id);
+                $this->ilpRiskAnalysisController->store($request, $project->project_id);
+                $this->ilpAttachedDocumentsController->store($request, $project->project_id);
+                $this->ilpBudgetController->store($request, $project->project_id);
+                break;
+            case 'Individual - Access to Health':
+                // Store IAH-specific data
+                $this->iahPersonalInfoController->store($request, $project->project_id);
+                $this->iahEarningMembersController->store($request, $project->project_id);
+                $this->iahHealthConditionController->store($request, $project->project_id);
+                $this->iahSupportDetailsController->store($request, $project->project_id);
+                $this->iahBudgetDetailsController->store($request, $project->project_id);
+                $this->iahDocumentsController->store($request, $project->project_id);
+                break;
+
+            case 'Individual - Initial - Educational support':
+                Log::info('Processing Individual - Initial - Educational support project type');
+                $this->iiesPersonalInfoController->store($request, $project->project_id);
+                $this->iiesFamilyWorkingMembersController->store($request, $project->project_id);
+                $this->iiesImmediateFamilyDetailsController->store($request, $project->project_id);
+                $this->iiesEducationBackgroundController->store($request, $project->project_id);
+                $this->iiesFinancialSupportController->store($request, $project->project_id);
+                $this->iiesAttachmentsController->store($request, $project->project_id);
+                $this->iiesExpensesController->store($request, $project->project_id);
+                break;
+
+            default:
+                Log::warning('Unknown project type', ['project_type' => $request->project_type]);
+                break;
 
         }
-
 
         DB::commit();
+        Log::info('Project and all related data saved successfully', ['project_id' => $project->project_id]);
 
         return redirect()->route('projects.index')->with('success', 'Project created successfully.');
     } catch (\Exception $e) {
         DB::rollBack();
-        Log::error('ProjectController@store - Error', ['error' => $e->getMessage()]);
+        Log::error('Error in ProjectController@store', [
+            'error' => $e->getMessage(),
+            'request' => $request->all(),
+        ]);
+
         return redirect()->back()->withErrors(['error' => 'There was an error creating the project. Please try again.'])->withInput();
     }
 }
@@ -298,6 +716,16 @@ class ProjectController extends Controller
             'RSTInstitutionInfo' => null, // Renamed for RST
             'RSTTargetGroupAnnexure' => null, // Renamed for RST
             'RSTTargetGroup' => null, // Renamed for RST
+        // IIES - Individual - Initial Educational Support
+        'IIESPersonalInfo' => null,
+        'IIESFamilyWorkingMembers' => null,
+        'IIESImmediateFamilyDetails' => null,
+        'IIESEducationBackground' => null,
+        'IIESFinancialSupport' => null,
+        'IIESAttachments' => null,
+        'IIESExpenses' => null,
+
+
         ];
 
         // Handle project-specific data
@@ -334,7 +762,89 @@ class ProjectController extends Controller
             $data['RSTInstitutionInfo'] = $this->rstInstitutionInfoController->show($project->project_id);
             $data['RSTTargetGroupAnnexure'] = $this->rstTargetGroupAnnexureController->show($project->project_id);
             $data['RSTTargetGroup'] = $this->rstTargetGroupController->show($project->project_id);
+        } elseif ($project->project_type === 'Development Projects') {
+            $data['RSTBeneficiariesArea'] = $this->rstBeneficiariesAreaController->show($project->project_id);
+        } elseif ($project->project_type === 'Individual - Ongoing Educational support') {
+            $data['IESpersonalInfo'] = $this->iesPersonalInfoController->show($project->project_id);
+            $data['IESfamilyWorkingMembers'] = $this->iesFamilyWorkingMembersController->show($project->project_id);
+            $data['IESimmediateFamilyDetails'] = $this->iesImmediateFamilyDetailsController->show($project->project_id);
+            $data['IESEducationBackground'] = $this->iesEducationBackgroundController->show($project->project_id);
+            $data['IESExpenses'] = $this->iesExpensesController->show($project->project_id);
+            $data['IESAttachments'] = $this->iesAttachmentsController->show($project->project_id);
+        } elseif ($project->project_type === 'Individual - Livelihood Application') {
+            $data['ILPPersonalInfo'] = $this->ilpPersonalInfoController->show($project_id);
+            $data['ILPRevenueGoals'] = $this->ilpRevenueGoalsController->show($project_id);
+            $data['ILPStrengthWeakness'] = $this->ilpStrengthWeaknessController->show($project_id);
+            $data['ILPRiskAnalysis'] = $this->ilpRiskAnalysisController->show($project_id);
+            $data['ILPAttachedDocuments'] = $this->ilpAttachedDocumentsController->show($project_id);
+            $data['ILPBudget'] = $this->ilpBudgetController->show($project_id);
+        } elseif ($project->project_type === 'Individual - Access to Health') {
+            $data['IAHPersonalInfo'] = $this->iahPersonalInfoController->show($project->project_id);
+            $data['IAHEarningMembers'] = $this->iahEarningMembersController->show($project->project_id);
+            $data['IAHHealthCondition'] = $this->iahHealthConditionController->show($project->project_id);
+            $data['IAHSupportDetails'] = $this->iahSupportDetailsController->show($project->project_id);
+            $data['IAHBudgetDetails'] = $this->iahBudgetDetailsController->show($project->project_id);
+            $data['IAHDocuments'] = $this->iahDocumentsController->show($project->project_id);
+        } elseif
+        // ($project->project_type === 'Individual - Initial - Educational support') {
+        //     $data['IIESPersonalInfo'] = $this->iiesPersonalInfoController->show($project->project_id);
+        //     $data['IIESFamilyWorkingMembers'] = $this->iiesFamilyWorkingMembersController->show($project->project_id);
+        //     $data['IIESImmediateFamilyDetails'] = $this->iiesImmediateFamilyDetailsController->show($project->project_id);
+        //     $data['IIESEducationBackground'] = $this->iiesEducationBackgroundController->show($project->project_id);
+        //     $data['IIESFinancialSupport'] = $this->iiesFinancialSupportController->show($project->project_id);
+        //     $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project->project_id);
+        //     $data['IIESExpenses'] = $this->iiesExpensesController->show($project->project_id);
+        // }
+         ($project->project_type === 'Individual - Initial - Educational support') {
+            Log::info('ProjectController@show - Fetching data for IIES project', ['project_id' => $project->project_id]);
+
+            // Fetch data from controllers
+            $data['IIESPersonalInfo'] = $this->iiesPersonalInfoController->show($project->project_id);
+            // $data['IIESFamilyWorkingMembers'] = $this->iiesFamilyWorkingMembersController->show($project->project_id);
+            $data['IIESFamilyWorkingMembers'] = $this->iiesFamilyWorkingMembersController->show($project->project_id);
+
+            $data['IIESImmediateFamilyDetails'] = $this->iiesImmediateFamilyDetailsController->show($project->project_id);
+            // $data['IIESEducationBackground'] = $this->iiesEducationBackgroundController->show($project->project_id);
+            // $data['IIESEducationBackground'] = $this->iiesEducationBackgroundController->show($project->project_id);
+            $data['IIESEducationBackground'] = $this->iiesEducationBackgroundController->show($project->project_id);
+
+            $data['IIESFinancialSupport'] = $this->iiesFinancialSupportController->show($project->project_id);
+            // $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project->project_id);
+            $data['iiesExpenses'] = $this->iiesExpensesController->show($project->project_id);
+// Fetch attachments using IIESAttachmentsController
+// 🛠️ Ensure attachments are properly retrieved
+// $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project_id);
+
+$data['IIESAttachments'] = $this->iiesAttachmentsController->show($project_id);
+
+// $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project->project_id);
+// $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project->project_id);
+
+// // If it's a collection, extract the first record
+// if ($data['IIESAttachments'] instanceof \Illuminate\Database\Eloquent\Collection) {
+//     $data['IIESAttachments'] = $data['IIESAttachments']->first();
+// }
+
+
+
         }
+
+
+        // Log final data being passed to view
+        //Log::info('ProjectController@show - Data passed to view', ['data' => $data]);
+
+        // Log::info('ProjectController@show - Final Data Array Before Passing to View', ['data' => $data]);
+
+      //  \Log::info('ProjectController@show - IIES Education Background Data:', ['data' => $project->iiesEducationBackground]);
+       // \Log::info('ProjectController@show - IIES Financial Support Data:', ['data' => $project->iiesFinancialSupport]);
+        \Log::info('Attachments Data - iiesAttachments- ProjectController@show - IIES Attachments Data:', ['data' => $project->iiesAttachments]);
+        \Log::info('Attachments Data - IIESAttachments- ProjectController@show - IIES Attachments Data:', ['data' => $project->IIESAttachments]);
+        // \Log::info('ProjectController@show - IIES Expenses Data:', ['data' => $project->iiesExpenses]);
+        // \Log::info('ProjectController@show - IIES Financial Support Data:', ['data' => $IIESFinancialSupport ?? 'Not Set for IIES']);
+        // \Log::info('ProjectController@show -iies- IIES Financial Support Data:', ['data' => $iiesFinancialSupport ?? 'Not Set for iies']);
+
+        // \Log::info('Project Controller show - Passing IIES Financial Support to Blade:', ['data' => $data['IIESFinancialSupport']]);
+
 
         // Pass data to the view
         return view('projects.Oldprojects.show', $data);
@@ -352,6 +862,11 @@ class ProjectController extends Controller
                 ->firstOrFail();
 
             Log::info('ProjectController@edit - Project type', ['project_type' => $project->project_type]);
+
+            $developmentProjects = Project::whereIn('project_type', [
+                'Development Projects',
+                'NEXT PHASE - DEVELOPMENT PROPOSAL'
+            ])->get();
 
             $user = Auth::user();
             $users = User::all();
@@ -388,6 +903,38 @@ class ProjectController extends Controller
             $RSTinstitutionInfo = null; //Added RST
             $RSTtargetGroupAnnexure = null; //Added RST
             $RSTtargetGroup = null; //Added RST
+
+            // IES Initialize variables
+            $IESpersonalInfo = null;
+            $IESfamilyWorkingMembers = null;
+            $IESimmediateFamilyDetails = null;
+            $IESEducationBackground = null;
+            $IESExpenses = null;
+            $IESAttachments = null;
+            // Initialize variables for ILP
+            $ILPPersonalInfo = null;
+            $ILPRevenueGoals = null;
+            $ILPStrengthWeakness = null;
+            $ILPRiskAnalysis = null;
+            $ILPAttachedDocuments = null;
+            $ILPBudget = null;
+            // Initialize variables for IAH
+            $IAHPersonalInfo = null;
+            $IAHEarningMembers = null;
+            $IAHHealthCondition = null;
+            $IAHSupportDetails = null;
+            $IAHBudgetDetails = null;
+            $IAHDocuments = null;
+             // Initialize variables for IIES
+            $IIESPersonalInfo = null;
+            $IIESFamilyWorkingMembers = null;
+            $IIESImmediateFamilyDetails = null;
+            $IIESEducationBackground = null;
+            $IIESFinancialSupport = null;
+            $IIESAttachments = null;
+            $IIESExpenses = null;
+
+
 
 
             // Handle specific project types
@@ -432,10 +979,112 @@ class ProjectController extends Controller
                 $RSTtargetGroupAnnexure = $this->rstTargetGroupAnnexureController->edit($project->project_id);
                 $RSTtargetGroup = $this->rstTargetGroupController->edit($project->project_id);
             }
+            elseif ($project->project_type === 'Development Projects') {
+                $beneficiariesArea = $this->rstBeneficiariesAreaController->edit($project->project_id);
+            } elseif ($project->project_type === 'Individual - Ongoing Educational support') {
+                $data['IESpersonalInfo'] = $this->iesPersonalInfoController->edit($project->project_id);
+                $data['IESfamilyWorkingMembers'] = $this->iesFamilyWorkingMembersController->edit($project->project_id);
+                $data['IESimmediateFamilyDetails'] = $this->iesImmediateFamilyDetailsController->edit($project->project_id);
+                $data['IESEducationBackground'] = $this->iesEducationBackgroundController->edit($project->project_id);
+                // $data['IESExpenses'] = $this->iesExpensesController->edit($project->project_id);
+                $data['IESExpenses'] = $this->iesExpensesController->edit($project_id);
+                    // Then just create a local variable from that:
+                    $IESExpenses = $data['IESExpenses'];
+
+                    if ($data['IESExpenses']) {
+                        Log::info('✅ IES Expenses Found in Controller:', ['IESExpenses' => $data['IESExpenses']]);
+                    } else {
+                        Log::warning('⚠️ IES Expenses is NULL inside ProjectController@edit');
+                    }
+
+
+                // $data['IESAttachments'] = $this->iesAttachmentsController->edit($project->project_id);
+                $IESAttachments = $this->iesAttachmentsController->edit($project->project_id);
+
+            } elseif ($project->project_type === 'Individual - Livelihood Application') {
+
+                // $ILPPersonalInfo = $this->ilpPersonalInfoController->edit($project->project_id);
+                $ILPPersonalInfo = $this->ilpPersonalInfoController->edit($project->project_id);
+
+                if ($ILPPersonalInfo) {
+                    Log::info('Fetched ILP Personal Information in ProjectController@edit', ['ILP_personal_info' => $ILPPersonalInfo]);
+                } else {
+                    Log::warning('No ILP Personal Information found in ProjectController@edit', ['project_id' => $project->project_id]);
+                }
+                $ILPRevenueGoals = $this->ilpRevenueGoalsController->edit($project->project_id);
+                $ILPStrengthWeakness = $this->ilpStrengthWeaknessController->edit($project->project_id);
+                $ILPRiskAnalysis = $this->ilpRiskAnalysisController->edit($project->project_id);
+                $ILPAttachedDocuments = $this->ilpAttachedDocumentsController->edit($project->project_id);
+            //  $ILPBudget = $this->ilpBudgetController->edit($project->project_id);
+                $ILPBudget = $this->ilpBudgetController->edit($project->project_id);
+
+            } elseif ($project->project_type === 'Individual - Access to Health') {
+                $data['IAHPersonalInfo'] = $this->iahPersonalInfoController->edit($project->project_id);
+                $data['IAHEarningMembers'] = $this->iahEarningMembersController->edit($project->project_id);
+                $data['IAHHealthCondition'] = $this->iahHealthConditionController->edit($project->project_id);
+                $data['IAHSupportDetails'] = $this->iahSupportDetailsController->edit($project->project_id);
+                $data['IAHBudgetDetails'] = $this->iahBudgetDetailsController->edit($project->project_id);
+                $data['IAHDocuments'] = $this->iahDocumentsController->edit($project->project_id);
+
+        } elseif ($project->project_type === 'Individual - Initial - Educational support') {
+            Log::info('ProjectController@edit - Handling IIES with two hyphens', ['project_id' => $project->project_id]);
+
+            $IIESPersonalInfo = $this->iiesPersonalInfoController->edit($project->project_id);
+            $IIESFamilyWorkingMembers = $this->iiesFamilyWorkingMembersController->edit($project->project_id);
+            $IIESImmediateFamilyDetails = $this->iiesImmediateFamilyDetailsController->edit($project->project_id);
+
+                // log the IIESImmediateFamilyDetails
+                if ($IIESImmediateFamilyDetails) {
+                // Log::info('ProjectController@edit - IIES Immediate Family Details found', ['details' => $IIESImmediateFamilyDetails]);
+                Log::info('ProjectController@edit - IIES Immediate Family Details found');
+                } else {
+                    Log::warning('ProjectController@edit - No Immediate Family Details found');
+                }
+
+            // $IIESEducationBackground = $this->iiesEducationBackgroundController->edit($project->project_id);
+            $IIESEducationBackground = $this->iiesEducationBackgroundController->edit($project->project_id);
+
+        // Check and log if data exists
+        if ($IIESEducationBackground) {
+            Log::info('✅ ProjectController@edit - IIES Education Background Found', ['data' => $IIESEducationBackground]);
+        } else {
+            Log::warning('⚠️ ProjectController@edit - No IIES Education Background Found, returning empty object');
+            // $IIESEducationBackground = new ProjectIIESEducationBackground();
+        }
+
+
+
+            // $IIESFinancialSupport = $this->iiesFinancialSupportController->edit($project->project_id);
+
+        $IIESFinancialSupport = $this->iiesFinancialSupportController->edit($project->project_id);
+            // 🔍 Check attachments
+            $IIESAttachments = $this->iiesAttachmentsController->edit($project->project_id);
+            if ($IIESAttachments) {
+                Log::info('ProjectController@edit - IIES Attachments found', ['attachments' => $IIESAttachments]);
+            } else {
+                Log::warning('ProjectController@edit - No attachments returned by IIESAttachmentsController@edit');
+            }
+
+            $iiesExpenses = app(IIESExpensesController::class)->edit($project->project_id);
+   if($iiesExpenses) {
+        Log::info('IIES Expenses found in ProjectController@edit', ['IIESExpenses' => $iiesExpenses]);
+   } else {
+        $iiesExpenses = null;
+        Log::warning('No IIES Expenses found in ProjectController@edit');
+    }
+
+
+
+
+            }
+
+
+
+
 
 
             return view('projects.Oldprojects.edit', compact(
-                'project', 'user', 'users',
+                'project', 'developmentProjects', 'user', 'users',
                 // Variables for different project types
                 'basicInfo', 'targetGroups', 'annexedTargetGroups', 'cicBasicInfo',
                 // CCI variables
@@ -448,9 +1097,28 @@ class ProjectController extends Controller
                 'interventionLogic', 'needAnalysis', 'LDPtargetGroups',
                 // RST variables
                 'beneficiariesArea', 'geographicalArea', 'RSTinstitutionInfo',
-                'RSTtargetGroupAnnexure', 'RSTtargetGroup'
+                'RSTtargetGroupAnnexure', 'RSTtargetGroup',
+                // IES VAriables
+                'IESpersonalInfo', 'IESfamilyWorkingMembers',
+                'IESimmediateFamilyDetails', 'IESEducationBackground',
+                'IESExpenses', 'IESAttachments',
+                // ILP variables
+                'ILPPersonalInfo', 'ILPRevenueGoals', 'ILPStrengthWeakness',
+                'ILPRiskAnalysis', 'ILPAttachedDocuments', 'ILPBudget',
+                // IAH variables
+                'IAHPersonalInfo', 'IAHEarningMembers', 'IAHHealthCondition',
+                'IAHSupportDetails', 'IAHBudgetDetails', 'IAHDocuments',
+                // IIES variables
+                'IIESFinancialSupport', 'IESAttachments', 'iiesExpenses',
+                'IIESPersonalInfo', 'IIESFamilyWorkingMembers',
+                'IIESImmediateFamilyDetails', 'IIESEducationBackground', 'IIESAttachments'
 
             ));
+            // return view('projects.Oldprojects.edit', [
+            //     'project' => $project,
+            //     'IESExpenses' => $data['IESExpenses'] ?? '🚨 NULL IN CONTROLLER 🚨', // Debugging line
+            // ]);
+
         } catch (\Exception $e) {
             Log::error('ProjectController@edit - Error retrieving project data', ['error' => $e->getMessage()]);
             return redirect()->back()->withErrors(['error' => 'Unable to retrieve project data.']);
@@ -464,18 +1132,48 @@ public function update(Request $request, $project_id)
 {
     Log::info('ProjectController@update - Start', ['project_id' => $project_id, 'request_data' => $request->all()]);
 
+    // Force `phases` to be an array if it doesn't exist
+    $request->merge(['phases' => $request->input('phases', [])]);
+
     DB::beginTransaction();
     try {
         $project = Project::where('project_id', $project_id)->firstOrFail();
+        // ✅ Ensure 'phases' key exists before accessing it
+        // $phases = $request->has('phases') ? $request->input('phases') : null;
 
         // Update the project details
         $project = (new GeneralInfoController())->update($request, $project->project_id);
 
         $keyInformation = (new KeyInformationController())->update($request, $project);
-        $budget = (new BudgetController())->update($request, $project);
-        $attachments = (new AttachmentController())->update($request, $project->project_id);
-        $this->logicalFrameworkController->update($request, $project->project_id);
-        $this->sustainabilityController->update($request, $project->project_id);
+
+        // $budget = (new BudgetController())->update($request, $project);
+        // $attachments = (new AttachmentController())->update($request, $project->project_id);
+        // $this->logicalFrameworkController->update($request, $project->project_id);
+        // $this->sustainabilityController->update($request, $project->project_id);
+        /**
+         * 3. Conditionally call Budget/Attachment/LogicalFramework/Sustainability updates
+         *    EXCEPT for "Individual - Ongoing Educational support".
+         */
+        // if ($project->project_type !== 'Individual - Ongoing Educational support') {
+        //     // Only call these if NOT IES (Individual - Ongoing Educational support)
+        //     $budget      = (new BudgetController())->update($request, $project);
+        //     $attachments = (new AttachmentController())->update($request, $project->project_id);
+        //     $this->logicalFrameworkController->update($request, $project->project_id);
+        //     $this->sustainabilityController->update($request, $project->project_id);
+        // }
+        if (!in_array($project->project_type, [
+            'Individual - Ongoing Educational support',
+            'Individual - Livelihood Application',
+            'Individual - Access to Health',
+            'Individual - Initial - Educational support',
+        ])) {
+            // Only call these if NOT one of the specified project types
+            $budget      = (new BudgetController())->update($request, $project);
+            $attachments = (new AttachmentController())->update($request, $project->project_id);
+            $this->logicalFrameworkController->update($request, $project->project_id);
+            $this->sustainabilityController->update($request, $project->project_id);
+        }
+
 
         if ($project->project_type == 'Rural-Urban-Tribal') {
             $this->eduRUTBasicInfoController->update($request, $project->project_id);
@@ -520,6 +1218,49 @@ public function update(Request $request, $project_id)
             $this->rstTargetGroupAnnexureController->update($request, $project->project_id);
             $this->rstTargetGroupController->update($request, $project->project_id);
         }
+        elseif ($project->project_type === 'Development Projects') {
+            $this->rstBeneficiariesAreaController->update($request, $project->project_id);
+        }
+        // IES Projec type
+        elseif ($project->project_type === 'Individual - Ongoing Educational support') {
+            Log::info('Updating data for Individual - Ongoing Educational Support project type');
+            $this->iesPersonalInfoController->update($request, $project->project_id);
+            $this->iesFamilyWorkingMembersController->update($request, $project->project_id);
+            $this->iesImmediateFamilyDetailsController->update($request, $project->project_id);
+            $this->iesEducationBackgroundController->update($request, $project->project_id);
+            $this->iesExpensesController->update($request, $project->project_id);
+            $this->iesAttachmentsController->update($request, $project->project_id);
+        }
+        // ILP Project Type
+        elseif  ($project->project_type === 'Individual - Livelihood Application') {
+            $this->ilpPersonalInfoController->update($request, $project_id);
+            $this->ilpRevenueGoalsController->update($request, $project_id);
+            $this->ilpStrengthWeaknessController->update($request, $project_id);
+            $this->ilpRiskAnalysisController->update($request, $project_id);
+            $this->ilpAttachedDocumentsController->update($request, $project_id);
+            $this->ilpBudgetController->update($request, $project_id);
+        }
+        // IAH Project Type
+        elseif ($project->project_type === 'Individual - Access to Health') {
+            $this->iahPersonalInfoController->update($request, $project->project_id);
+            $this->iahEarningMembersController->update($request, $project->project_id);
+            $this->iahHealthConditionController->update($request, $project->project_id);
+            $this->iahSupportDetailsController->update($request, $project->project_id);
+            $this->iahBudgetDetailsController->update($request, $project->project_id);
+            $this->iahDocumentsController->update($request, $project->project_id);
+        }
+        // IIES Project Type
+        elseif ($project->project_type === 'Individual - Initial - Educational support') {
+            Log::info('Updating data for Individual - Initial - Educational support project type');
+            $this->iiesPersonalInfoController->update($request, $project->project_id);
+            $this->iiesFamilyWorkingMembersController->update($request, $project->project_id);
+            $this->iiesImmediateFamilyDetailsController->update($request, $project->project_id);
+            $this->iiesEducationBackgroundController->update($request, $project->project_id);
+            $this->iiesFinancialSupportController->update($request, $project->project_id);
+            $this->iiesAttachmentsController->update($request, $project->project_id);
+            $this->iiesExpensesController->update($request, $project->project_id);
+        }
+
 
         DB::commit();
         return redirect()->route('projects.index')->with('success', 'Project updated successfully.');
@@ -587,6 +1328,51 @@ public function update(Request $request, $project_id)
                 $this->rstTargetGroupAnnexureController->destroy($project_id);
                 $this->rstTargetGroupController->destroy($project_id);
             }
+            elseif ($project->project_type === 'Development Projects') {
+                $this->rstBeneficiariesAreaController->destroy($project_id);
+            }
+            // IES Project Type
+            elseif ($project->project_type === 'Individual - Ongoing Educational support') {
+                Log::info('Deleting data for Individual - Ongoing Educational Support project type');
+                $this->iesPersonalInfoController->destroy($project->project_id);
+                $this->iesFamilyWorkingMembersController->destroy($project->project_id);
+                $this->iesImmediateFamilyDetailsController->destroy($project->project_id);
+                $this->iesEducationBackgroundController->destroy($project->project_id);
+                $this->iesExpensesController->destroy($project->project_id);
+                $this->iesAttachmentsController->destroy($project->project_id);
+            }
+            //ILP Project Type
+            elseif ($project->project_type ===  'Individual - Livelihood Application'){
+                $this->ilpPersonalInfoController->destroy($project_id);
+                $this->ilpRevenueGoalsController->destroy($project_id);
+                $this->ilpStrengthWeaknessController->destroy($project_id);
+                $this->ilpRiskAnalysisController->destroy($project_id);
+                $this->ilpAttachedDocumentsController->destroy($project_id);
+                $this->ilpBudgetController->destroy($project_id);
+            }
+            //IAH Project Type
+            elseif ($project->project_type === 'Individual - Access to Health') {
+                $this->iahPersonalInfoController->destroy($project->project_id);
+                $this->iahEarningMembersController->destroy($project->project_id);
+                $this->iahHealthConditionController->destroy($project->project_id);
+                $this->iahSupportDetailsController->destroy($project->project_id);
+                $this->iahBudgetDetailsController->destroy($project->project_id);
+                $this->iahDocumentsController->destroy($project->project_id);
+            }
+            //IIES Project Type
+            elseif ($project->project_type === 'Individual - Initial - Educational support') {
+                Log::info('Deleting data for Individual - Initial - Educational support project type');
+                $this->iiesPersonalInfoController->destroy($project->project_id);
+                $this->iiesFamilyWorkingMembersController->destroy($project->project_id);
+                $this->iiesImmediateFamilyDetailsController->destroy($project->project_id);
+                $this->iiesEducationBackgroundController->destroy($project->project_id);
+                $this->iiesFinancialSupportController->destroy($project->project_id);
+                $this->iiesAttachmentsController->destroy($project->project_id);
+                $this->iiesExpensesController->destroy($project->project_id);
+            }
+
+
+
 
 
             $project->delete();
