@@ -123,14 +123,37 @@ class IAHBudgetDetailsController extends Controller
     /**
      * Fetch budget details for a project (read-only).
      */
+    // public function show($projectId)
+    // {
+    //     try {
+    //         Log::info('IAHBudgetDetailsController@show - Fetching IAH budget details', [
+    //             'project_id' => $projectId
+    //         ]);
+    //         $budgetDetails = ProjectIAHBudgetDetails::where('project_id', $projectId)->get();
+    //         return response()->json($budgetDetails, 200);
+    //     } catch (\Exception $e) {
+    //         Log::error('IAHBudgetDetailsController@show - Error fetching budget details', [
+    //             'project_id' => $projectId,
+    //             'error'      => $e->getMessage(),
+    //         ]);
+    //         return response()->json(['error' => 'Failed to fetch IAH budget details.'], 500);
+    //     }
+    // }
     public function show($projectId)
     {
         try {
             Log::info('IAHBudgetDetailsController@show - Fetching IAH budget details', [
                 'project_id' => $projectId
             ]);
-            $budgetDetails = ProjectIAHBudgetDetails::where('project_id', $projectId)->get();
-            return response()->json($budgetDetails, 200);
+
+            // Fetching only the first record (assuming one budget per project)
+            $budgetDetail = ProjectIAHBudgetDetails::where('project_id', $projectId)->first();
+
+            if (!$budgetDetail) {
+                return response()->json(['error' => 'No budget details found.'], 404);
+            }
+
+            return response()->json($budgetDetail, 200);
         } catch (\Exception $e) {
             Log::error('IAHBudgetDetailsController@show - Error fetching budget details', [
                 'project_id' => $projectId,

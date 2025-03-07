@@ -87,19 +87,10 @@
         @include('projects.partials.show.IIES.personal_info')
         @include('projects.partials.show.IIES.family_working_members')
         @include('projects.partials.show.IIES.immediate_family_details')
-        {{-- @include('projects.partials.show.IIES.education_background') --}}
-        {{-- @include('projects.partials.show.IIES.education_background', ['project' => $project]) --}}
-
-        @include('projects.partials.show.IIES.attachments', [
-            'IIESAttachments' => $data['IIESAttachments']
-        ])
-
         @include('projects.partials.show.IIES.scope_financial_support')
         @include('projects.partials.show.IIES.estimated_expenses')
         @include('projects.partials.show.IIES.attachments')
-        {{-- @include('projects.partials.show.IIES.attachments', ['IIESAttachments' => $IIESAttachments]) --}}
-
-        @endif
+    @endif
 
 
 

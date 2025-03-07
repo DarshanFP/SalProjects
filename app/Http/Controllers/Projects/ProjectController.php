@@ -687,6 +687,8 @@ public function store(Request $request)
 
         $user = Auth::user();
 
+
+
         // Initialize variables for each project type as needed
         $data = [
             'project' => $project,
@@ -724,7 +726,6 @@ public function store(Request $request)
         'IIESFinancialSupport' => null,
         'IIESAttachments' => null,
         'IIESExpenses' => null,
-
 
         ];
 
@@ -772,12 +773,25 @@ public function store(Request $request)
             $data['IESExpenses'] = $this->iesExpensesController->show($project->project_id);
             $data['IESAttachments'] = $this->iesAttachmentsController->show($project->project_id);
         } elseif ($project->project_type === 'Individual - Livelihood Application') {
-            $data['ILPPersonalInfo'] = $this->ilpPersonalInfoController->show($project_id);
-            $data['ILPRevenueGoals'] = $this->ilpRevenueGoalsController->show($project_id);
-            $data['ILPStrengthWeakness'] = $this->ilpStrengthWeaknessController->show($project_id);
-            $data['ILPRiskAnalysis'] = $this->ilpRiskAnalysisController->show($project_id);
-            $data['ILPAttachedDocuments'] = $this->ilpAttachedDocumentsController->show($project_id);
-            $data['ILPBudget'] = $this->ilpBudgetController->show($project_id);
+            $data['ILPPersonalInfo'] = $this->ilpPersonalInfoController->show($project_id) ?? [];
+            Log::info('ProjectController@show - Personal Info Data:', ['data' => $data['ILPPersonalInfo']]);
+            // $data['ILPRevenueGoals'] = $this->ilpRevenueGoalsController->show($project_id);
+            // $data['ILPStrengthWeakness'] = $this->ilpStrengthWeaknessController->show($project_id);
+            // $data['ILPRiskAnalysis'] = $this->ilpRiskAnalysisController->show($project_id);
+            // $data['ILPAttachedDocuments'] = $this->ilpAttachedDocumentsController->show($project_id);
+            // $data['ILPBudget'] = $this->ilpBudgetController->show($project_id);
+            $data['ILPRevenueGoals'] = $this->ilpRevenueGoalsController->show($project_id) ?? [];
+            Log::info('ProjectController@show - Revenue Goals Data:', ['data' => $data['ILPRevenueGoals']]);
+            $data['ILPStrengthWeakness'] = $this->ilpStrengthWeaknessController->show($project_id) ?? [];
+            Log::info('ProjectController@show - Strength Weakness Data:', ['data' => $data['ILPStrengthWeakness']]);
+            $data['ILPRiskAnalysis'] = $this->ilpRiskAnalysisController->show($project_id) ?? [];
+            Log::info('ProjectController@show - Revenue Goals Data:', ['data' => $data['ILPRevenueGoals']]);
+            $data['ILPAttachedDocuments'] = $this->ilpAttachedDocumentsController->show($project_id) ?? [];
+            Log::info('ProjectController@show - Revenue Goals Data:', ['data' => $data['ILPRevenueGoals']]);
+            $data['ILPBudgets'] = $this->ilpBudgetController->show($project_id) ?? collect([]);
+            Log::info('ProjectController@show - Budget Data:', ['data' => $data['ILPBudgets']]);
+
+
         } elseif ($project->project_type === 'Individual - Access to Health') {
             $data['IAHPersonalInfo'] = $this->iahPersonalInfoController->show($project->project_id);
             $data['IAHEarningMembers'] = $this->iahEarningMembersController->show($project->project_id);
@@ -786,68 +800,34 @@ public function store(Request $request)
             $data['IAHBudgetDetails'] = $this->iahBudgetDetailsController->show($project->project_id);
             $data['IAHDocuments'] = $this->iahDocumentsController->show($project->project_id);
         } elseif
-        // ($project->project_type === 'Individual - Initial - Educational support') {
-        //     $data['IIESPersonalInfo'] = $this->iiesPersonalInfoController->show($project->project_id);
-        //     $data['IIESFamilyWorkingMembers'] = $this->iiesFamilyWorkingMembersController->show($project->project_id);
-        //     $data['IIESImmediateFamilyDetails'] = $this->iiesImmediateFamilyDetailsController->show($project->project_id);
-        //     $data['IIESEducationBackground'] = $this->iiesEducationBackgroundController->show($project->project_id);
-        //     $data['IIESFinancialSupport'] = $this->iiesFinancialSupportController->show($project->project_id);
-        //     $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project->project_id);
-        //     $data['IIESExpenses'] = $this->iiesExpensesController->show($project->project_id);
-        // }
+
          ($project->project_type === 'Individual - Initial - Educational support') {
             Log::info('ProjectController@show - Fetching data for IIES project', ['project_id' => $project->project_id]);
 
             // Fetch data from controllers
             $data['IIESPersonalInfo'] = $this->iiesPersonalInfoController->show($project->project_id);
-            // $data['IIESFamilyWorkingMembers'] = $this->iiesFamilyWorkingMembersController->show($project->project_id);
             $data['IIESFamilyWorkingMembers'] = $this->iiesFamilyWorkingMembersController->show($project->project_id);
-
             $data['IIESImmediateFamilyDetails'] = $this->iiesImmediateFamilyDetailsController->show($project->project_id);
-            // $data['IIESEducationBackground'] = $this->iiesEducationBackgroundController->show($project->project_id);
-            // $data['IIESEducationBackground'] = $this->iiesEducationBackgroundController->show($project->project_id);
             $data['IIESEducationBackground'] = $this->iiesEducationBackgroundController->show($project->project_id);
-
             $data['IIESFinancialSupport'] = $this->iiesFinancialSupportController->show($project->project_id);
-            // $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project->project_id);
             $data['iiesExpenses'] = $this->iiesExpensesController->show($project->project_id);
-// Fetch attachments using IIESAttachmentsController
-// 🛠️ Ensure attachments are properly retrieved
-// $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project_id);
 
-$data['IIESAttachments'] = $this->iiesAttachmentsController->show($project_id);
+            $attachments = $this->iiesAttachmentsController->show($project->project_id);
 
-// $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project->project_id);
-// $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project->project_id);
-
-// // If it's a collection, extract the first record
-// if ($data['IIESAttachments'] instanceof \Illuminate\Database\Eloquent\Collection) {
-//     $data['IIESAttachments'] = $data['IIESAttachments']->first();
-// }
+            $data['IIESAttachments'] = $attachments;
 
 
 
         }
 
+        // Log::info('✅ Passing IIESAttachments to View', ['IIESAttachments' => $data['IIESAttachments']]);
 
-        // Log final data being passed to view
-        //Log::info('ProjectController@show - Data passed to view', ['data' => $data]);
-
-        // Log::info('ProjectController@show - Final Data Array Before Passing to View', ['data' => $data]);
-
-      //  \Log::info('ProjectController@show - IIES Education Background Data:', ['data' => $project->iiesEducationBackground]);
-       // \Log::info('ProjectController@show - IIES Financial Support Data:', ['data' => $project->iiesFinancialSupport]);
-        \Log::info('Attachments Data - iiesAttachments- ProjectController@show - IIES Attachments Data:', ['data' => $project->iiesAttachments]);
-        \Log::info('Attachments Data - IIESAttachments- ProjectController@show - IIES Attachments Data:', ['data' => $project->IIESAttachments]);
-        // \Log::info('ProjectController@show - IIES Expenses Data:', ['data' => $project->iiesExpenses]);
-        // \Log::info('ProjectController@show - IIES Financial Support Data:', ['data' => $IIESFinancialSupport ?? 'Not Set for IIES']);
-        // \Log::info('ProjectController@show -iies- IIES Financial Support Data:', ['data' => $iiesFinancialSupport ?? 'Not Set for iies']);
-
-        // \Log::info('Project Controller show - Passing IIES Financial Support to Blade:', ['data' => $data['IIESFinancialSupport']]);
-
-
+        Log::info('ProjectController@show - Data Passed to View:', $data);
+        // dd($data);
         // Pass data to the view
         return view('projects.Oldprojects.show', $data);
+        // return view('projects.Oldprojects.show',data);
+
     }
 
 
@@ -932,8 +912,8 @@ $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project_id);
             $IIESEducationBackground = null;
             $IIESFinancialSupport = null;
             $IIESAttachments = null;
-            $IIESExpenses = null;
-
+            // $IIESExpenses = null;
+            $iiesExpenses = null;
 
 
 
@@ -1012,9 +992,13 @@ $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project_id);
                     Log::warning('No ILP Personal Information found in ProjectController@edit', ['project_id' => $project->project_id]);
                 }
                 $ILPRevenueGoals = $this->ilpRevenueGoalsController->edit($project->project_id);
+
                 $ILPStrengthWeakness = $this->ilpStrengthWeaknessController->edit($project->project_id);
+
                 $ILPRiskAnalysis = $this->ilpRiskAnalysisController->edit($project->project_id);
+
                 $ILPAttachedDocuments = $this->ilpAttachedDocumentsController->edit($project->project_id);
+
             //  $ILPBudget = $this->ilpBudgetController->edit($project->project_id);
                 $ILPBudget = $this->ilpBudgetController->edit($project->project_id);
 
@@ -1026,57 +1010,50 @@ $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project_id);
                 $data['IAHBudgetDetails'] = $this->iahBudgetDetailsController->edit($project->project_id);
                 $data['IAHDocuments'] = $this->iahDocumentsController->edit($project->project_id);
 
-        } elseif ($project->project_type === 'Individual - Initial - Educational support') {
-            Log::info('ProjectController@edit - Handling IIES with two hyphens', ['project_id' => $project->project_id]);
+            } elseif ($project->project_type === 'Individual - Initial - Educational support') {
+                Log::info('ProjectController@edit - Handling IIES with two hyphens', ['project_id' => $project->project_id]);
 
-            $IIESPersonalInfo = $this->iiesPersonalInfoController->edit($project->project_id);
-            $IIESFamilyWorkingMembers = $this->iiesFamilyWorkingMembersController->edit($project->project_id);
-            $IIESImmediateFamilyDetails = $this->iiesImmediateFamilyDetailsController->edit($project->project_id);
+                $IIESPersonalInfo = $this->iiesPersonalInfoController->edit($project->project_id);
+                $IIESFamilyWorkingMembers = $this->iiesFamilyWorkingMembersController->edit($project->project_id);
+                $IIESImmediateFamilyDetails = $this->iiesImmediateFamilyDetailsController->edit($project->project_id);
 
-                // log the IIESImmediateFamilyDetails
-                if ($IIESImmediateFamilyDetails) {
-                // Log::info('ProjectController@edit - IIES Immediate Family Details found', ['details' => $IIESImmediateFamilyDetails]);
-                Log::info('ProjectController@edit - IIES Immediate Family Details found');
-                } else {
-                    Log::warning('ProjectController@edit - No Immediate Family Details found');
-                }
+                    // log the IIESImmediateFamilyDetails
+                    if ($IIESImmediateFamilyDetails) {
+                    // Log::info('ProjectController@edit - IIES Immediate Family Details found', ['details' => $IIESImmediateFamilyDetails]);
+                    Log::info('ProjectController@edit - IIES Immediate Family Details found');
+                    } else {
+                        Log::warning('ProjectController@edit - No Immediate Family Details found');
+                    }
 
-            // $IIESEducationBackground = $this->iiesEducationBackgroundController->edit($project->project_id);
-            $IIESEducationBackground = $this->iiesEducationBackgroundController->edit($project->project_id);
+                $IIESEducationBackground = $this->iiesEducationBackgroundController->edit($project->project_id);
 
-        // Check and log if data exists
-        if ($IIESEducationBackground) {
-            Log::info('✅ ProjectController@edit - IIES Education Background Found', ['data' => $IIESEducationBackground]);
-        } else {
-            Log::warning('⚠️ ProjectController@edit - No IIES Education Background Found, returning empty object');
-            // $IIESEducationBackground = new ProjectIIESEducationBackground();
-        }
+                    // Check and log if data exists
+                    if ($IIESEducationBackground) {
+                        Log::info('✅ ProjectController@edit - IIES Education Background Found', ['data' => $IIESEducationBackground]);
+                    } else {
+                        Log::warning('⚠️ ProjectController@edit - No IIES Education Background Found, returning empty object');
+                    }
 
 
+                $IIESFinancialSupport = $this->iiesFinancialSupportController->edit($project->project_id);
+                    // 🔍 Check attachments
+                    $IIESAttachments = $this->iiesAttachmentsController->edit($project->project_id);
+                    if ($IIESAttachments) {
+                        Log::info('ProjectController@edit - IIES Attachments found', ['attachments' => $IIESAttachments]);
+                    } else {
+                        Log::warning('ProjectController@edit - No attachments returned by IIESAttachmentsController@edit');
+                    }
 
-            // $IIESFinancialSupport = $this->iiesFinancialSupportController->edit($project->project_id);
-
-        $IIESFinancialSupport = $this->iiesFinancialSupportController->edit($project->project_id);
-            // 🔍 Check attachments
-            $IIESAttachments = $this->iiesAttachmentsController->edit($project->project_id);
-            if ($IIESAttachments) {
-                Log::info('ProjectController@edit - IIES Attachments found', ['attachments' => $IIESAttachments]);
-            } else {
-                Log::warning('ProjectController@edit - No attachments returned by IIESAttachmentsController@edit');
-            }
-
-            $iiesExpenses = app(IIESExpensesController::class)->edit($project->project_id);
-   if($iiesExpenses) {
-        Log::info('IIES Expenses found in ProjectController@edit', ['IIESExpenses' => $iiesExpenses]);
-   } else {
-        $iiesExpenses = null;
+                    // Check if data exists before assigning it
+    $iiesExpenses = app(IIESExpensesController::class)->edit($project->project_id);
+    if (!$iiesExpenses) {
         Log::warning('No IIES Expenses found in ProjectController@edit');
+        $iiesExpenses = null; // Ensure it's set even if data is missing
     }
 
 
 
-
-            }
+                }
 
 
 

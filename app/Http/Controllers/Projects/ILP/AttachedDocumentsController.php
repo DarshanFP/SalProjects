@@ -55,34 +55,58 @@ class AttachedDocumentsController extends Controller
     }
 
     // 🟠 SHOW DOCUMENTS
+    // public function show($projectId)
+    // {
+    //     try {
+    //         $documents = ProjectILPAttachedDocuments::where('project_id', $projectId)->firstOrFail();
+
+    //         $fields = ['aadhar_doc', 'request_letter_doc', 'purchase_quotation_doc', 'other_doc'];
+
+    //         $documentPaths = [];
+    //         foreach ($fields as $field) {
+    //             if (!empty($documents->$field)) {
+    //                 // Use the model's helper function to get file URLs
+    //                 $documentPaths[$field] = $documents->getFileUrl($field);
+    //             }
+    //         }
+
+    //         return response()->json([
+    //             'project_id' => $projectId,
+    //             'documents' => $documentPaths,
+    //         ], 200);
+    //     } catch (\Exception $e) {
+    //         Log::error('Error fetching ILP Attached Documents', [
+    //             'project_id' => $projectId,
+    //             'error' => $e->getMessage(),
+    //         ]);
+
+    //         return response()->json(['error' => 'Failed to fetch Attached Documents.'], 500);
+    //     }
+    // }
     public function show($projectId)
-    {
-        try {
-            $documents = ProjectILPAttachedDocuments::where('project_id', $projectId)->firstOrFail();
+{
+    try {
+        Log::info('Fetching ILP Attached Documents', ['project_id' => $projectId]);
 
-            $fields = ['aadhar_doc', 'request_letter_doc', 'purchase_quotation_doc', 'other_doc'];
+        $documents = ProjectILPAttachedDocuments::where('project_id', $projectId)->first();
 
-            $documentPaths = [];
-            foreach ($fields as $field) {
-                if (!empty($documents->$field)) {
-                    // Use the model's helper function to get file URLs
-                    $documentPaths[$field] = $documents->getFileUrl($field);
-                }
-            }
-
-            return response()->json([
-                'project_id' => $projectId,
-                'documents' => $documentPaths,
-            ], 200);
-        } catch (\Exception $e) {
-            Log::error('Error fetching ILP Attached Documents', [
-                'project_id' => $projectId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json(['error' => 'Failed to fetch Attached Documents.'], 500);
-        }
+        return [
+            'aadhar_doc' => $documents ? $documents->aadhar_doc : null,
+            'request_letter_doc' => $documents ? $documents->request_letter_doc : null,
+            'purchase_quotation_doc' => $documents ? $documents->purchase_quotation_doc : null,
+            'other_doc' => $documents ? $documents->other_doc : null,
+        ];
+    } catch (\Exception $e) {
+        Log::error('Error fetching ILP Attached Documents', ['error' => $e->getMessage()]);
+        return [
+            'aadhar_doc' => null,
+            'request_letter_doc' => null,
+            'purchase_quotation_doc' => null,
+            'other_doc' => null,
+        ];
     }
+}
+
 
     // 🟡 EDIT DOCUMENTS (LOAD EDIT PARTIAL)
     public function edit($projectId)

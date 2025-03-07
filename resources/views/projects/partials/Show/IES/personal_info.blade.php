@@ -17,7 +17,7 @@
         <!-- Personal Information Fields -->
         <div class="form-group">
             <label>Name:</label>
-            <input type="text" name="name" class="form-control" value="{{ old('name', $personalInfo->name) }}">
+            <input type="text" name="name" class="form-control" value="{{ old('name', $personalInfo->bname) }}">
         </div>
 
         <div class="form-group">
@@ -77,7 +77,7 @@
 
         <div class="form-group">
             <label>Caste:</label>
-            <input type="text" name="caste" class="form-control" value="{{ old('caste', $personalInfo->caste) }}">
+            <input type="text" name="caste" class="form-control" value="{{ old('caste', $personalInfo->bcaste) }}">
         </div>
     </div>
 

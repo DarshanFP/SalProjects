@@ -41,18 +41,43 @@ class BudgetController extends Controller
     }
 
     // Show budget for a project
-    public function show($projectId)
-    {
-        try {
-            Log::info('Fetching ILP Budget', ['project_id' => $projectId]);
+    // public function show($projectId)
+    // {
+    //     try {
+    //         Log::info('Fetching ILP Budget', ['project_id' => $projectId]);
 
-            $budgets = ProjectILPBudget::where('project_id', $projectId)->get();
-            return response()->json($budgets, 200);
-        } catch (\Exception $e) {
-            Log::error('Error fetching ILP Budget', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch budget.'], 500);
-        }
+    //         $budgets = ProjectILPBudget::where('project_id', $projectId)->get();
+    //         return response()->json($budgets, 200);
+    //     } catch (\Exception $e) {
+    //         Log::error('Error fetching ILP Budget', ['error' => $e->getMessage()]);
+    //         return response()->json(['error' => 'Failed to fetch budget.'], 500);
+    //     }
+    // }
+    public function show($projectId)
+{
+    try {
+        Log::info('Fetching ILP Budget', ['project_id' => $projectId]);
+
+        $budgets = ProjectILPBudget::where('project_id', $projectId)->get();
+
+        return [
+            'budgets' => $budgets,
+            'total_amount' => $budgets->sum('cost'),
+            'beneficiary_contribution' => $budgets->first()->beneficiary_contribution ?? 0,
+            'amount_requested' => $budgets->first()->amount_requested ?? 0,
+        ];
+    } catch (\Exception $e) {
+        Log::error('Error fetching ILP Budget', ['error' => $e->getMessage()]);
+
+        return [
+            'budgets' => collect([]), // Return empty collection to prevent errors
+            'total_amount' => 0,
+            'beneficiary_contribution' => 0,
+            'amount_requested' => 0,
+        ];
     }
+}
+
 
     // Edit budget for a project
     public function edit($projectId)

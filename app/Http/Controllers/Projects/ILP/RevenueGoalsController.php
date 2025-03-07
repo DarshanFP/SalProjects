@@ -72,23 +72,38 @@ class RevenueGoalsController extends Controller
     /**
      * Display the specified resource.
      */
+    // public function show($projectId)
+    // {
+    //     try {
+    //         Log::info('Fetching Revenue Goals for Project', ['project_id' => $projectId]);
+
+    //         $businessPlanItems = ProjectILPRevenuePlanItem::where('project_id', $projectId)->get();
+    //         $annualIncome = ProjectILPRevenueIncome::where('project_id', $projectId)->get();
+    //         $annualExpenses = ProjectILPRevenueExpense::where('project_id', $projectId)->get();
+
+    //         return response()->json([
+    //             'business_plan_items' => $businessPlanItems,
+    //             'annual_income' => $annualIncome,
+    //             'annual_expenses' => $annualExpenses,
+    //         ], 200);
+    //     } catch (\Exception $e) {
+    //         Log::error('Error fetching Revenue Goals', ['error' => $e->getMessage()]);
+    //         return response()->json(['error' => 'Failed to fetch Revenue Goals.'], 500);
+    //     }
+    // }
     public function show($projectId)
     {
         try {
             Log::info('Fetching Revenue Goals for Project', ['project_id' => $projectId]);
 
-            $businessPlanItems = ProjectILPRevenuePlanItem::where('project_id', $projectId)->get();
-            $annualIncome = ProjectILPRevenueIncome::where('project_id', $projectId)->get();
-            $annualExpenses = ProjectILPRevenueExpense::where('project_id', $projectId)->get();
-
-            return response()->json([
-                'business_plan_items' => $businessPlanItems,
-                'annual_income' => $annualIncome,
-                'annual_expenses' => $annualExpenses,
-            ], 200);
+            return [
+                'business_plan_items' => ProjectILPRevenuePlanItem::where('project_id', $projectId)->get()->toArray(),
+                'annual_income' => ProjectILPRevenueIncome::where('project_id', $projectId)->get()->toArray(),
+                'annual_expenses' => ProjectILPRevenueExpense::where('project_id', $projectId)->get()->toArray(),
+            ];
         } catch (\Exception $e) {
             Log::error('Error fetching Revenue Goals', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch Revenue Goals.'], 500);
+            return [];
         }
     }
 

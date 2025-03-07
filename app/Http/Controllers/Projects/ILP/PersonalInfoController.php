@@ -62,7 +62,7 @@ class PersonalInfoController extends Controller
 
             $personalInfo = ProjectILPPersonalInfo::where('project_id', $projectId)->first();
 
-            return response()->json($personalInfo, 200);
+            return $personalInfo; // Return model object directly
         } catch (\Exception $e) {
             Log::error('Error fetching ILP Personal Information', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to fetch Personal Information.'], 500);

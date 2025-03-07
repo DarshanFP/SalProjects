@@ -38,13 +38,19 @@
         </div>
 
         <div class="mt-3">
-            <label for="family_contribution" class="form-label">Family Contribution:</label>
-            <input type="number" step="0.01" name="family_contribution" class="form-control" id="family_contribution" value="{{ old('family_contribution', $project->iahBudgetDetails->family_contribution ?? 0) }}" placeholder="Enter family contribution">
+            {{-- <label for="family_contribution" class="form-label">Family Contribution:</label>
+            <input type="number" step="0.01" name="family_contribution" class="form-control" id="family_contribution" value="{{ old('family_contribution', $project->iahBudgetDetails->family_contribution ?? 0) }}" placeholder="Enter family contribution"> --}}
+            <input type="number" step="0.01" name="family_contribution" class="form-control" id="family_contribution"
+            value="{{ old('family_contribution', $project->iahBudgetDetails->first()->family_contribution ?? 0) }}" placeholder="Enter family contribution">
+
         </div>
 
         <div class="mt-3">
-            <label for="amount_requested" class="form-label">Total Amount Requested:</label>
-            <input type="number" step="0.01" name="amount_requested" class="form-control" id="amount_requested" value="{{ old('amount_requested', $project->iahBudgetDetails->amount_requested ?? 0) }}" placeholder="Enter total amount requested" readonly>
+            {{-- <label for="amount_requested" class="form-label">Total Amount Requested:</label>
+            <input type="number" step="0.01" name="amount_requested" class="form-control" id="amount_requested" value="{{ old('amount_requested', $project->iahBudgetDetails->amount_requested ?? 0) }}" placeholder="Enter total amount requested" readonly> --}}
+            <input type="number" step="0.01" name="amount_requested" class="form-control" id="amount_requested"
+value="{{ old('amount_requested', $project->iahBudgetDetails->first()->amount_requested ?? 0) }}" placeholder="Enter total amount requested" readonly>
+
         </div>
     </div>
 </div>

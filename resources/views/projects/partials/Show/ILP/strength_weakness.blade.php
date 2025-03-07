@@ -1,3 +1,10 @@
+{{-- <pre>{{ print_r($ILPStrengthWeakness, true) }}</pre> --}}
+@php
+    $strengths = $ILPStrengthWeakness['strengths'] ?? [];
+    $weaknesses = $ILPStrengthWeakness['weaknesses'] ?? [];
+@endphp
+
+
 <div class="mb-4 card">
     <div class="card-header">
         <h4 class="mb-0">IV. Strengths and Weaknesses of Business Initiative</h4>
@@ -8,9 +15,13 @@
         <div class="mb-3">
             <label for="strengths" class="form-label">Strengths:</label>
             <div id="strengths-container">
-                @foreach($strengths as $index => $strength)
-                    <textarea name="strengths[{{ $index }}]" class="form-control mt-2" rows="3" style="background-color: #202ba3;">{{ $strength }}</textarea>
-                @endforeach
+                @if(isset($strengths) && count($strengths) > 0)
+                    @foreach($strengths as $index => $strength)
+                        <textarea name="strengths[{{ $index }}]" class="mt-2 form-control" rows="3" style="background-color: #202ba3;">{{ $strength }}</textarea>
+                    @endforeach
+                @else
+                    <textarea name="strengths[0]" class="mt-2 form-control" rows="3" style="background-color: #202ba3;" placeholder="Enter strengths"></textarea>
+                @endif
             </div>
         </div>
         <!-- Add/Remove Strengths Buttons -->
@@ -21,9 +32,13 @@
         <div class="mt-4 mb-3">
             <label for="weaknesses" class="form-label">Weaknesses:</label>
             <div id="weaknesses-container">
-                @foreach($weaknesses as $index => $weakness)
-                    <textarea name="weaknesses[{{ $index }}]" class="form-control mt-2" rows="3" style="background-color: #202ba3;">{{ $weakness }}</textarea>
-                @endforeach
+                @if(isset($weaknesses) && count($weaknesses) > 0)
+                    @foreach($weaknesses as $index => $weakness)
+                        <textarea name="weaknesses[{{ $index }}]" class="mt-2 form-control" rows="3" style="background-color: #202ba3;">{{ $weakness }}</textarea>
+                    @endforeach
+                @else
+                    <textarea name="weaknesses[0]" class="mt-2 form-control" rows="3" style="background-color: #202ba3;" placeholder="Enter weaknesses"></textarea>
+                @endif
             </div>
         </div>
         <!-- Add/Remove Weaknesses Buttons -->
@@ -36,8 +51,8 @@
 <script>
     (function(){
     document.addEventListener('DOMContentLoaded', function () {
-        let strengthIndex = {{ count($strengths) }};
-        let weaknessIndex = {{ count($weaknesses) }};
+        let strengthIndex = {{ isset($strengths) ? count($strengths) : 1 }};
+        let weaknessIndex = {{ isset($weaknesses) ? count($weaknesses) : 1 }};
 
         // Strengths Add/Remove functionality
         const strengthsContainer = document.getElementById('strengths-container');

@@ -37,16 +37,35 @@ class StrengthWeaknessController extends Controller
     }
 
     // Show strengths and weaknesses for a project
+    // public function show($projectId)
+    // {
+    //     try {
+    //         Log::info('Fetching ILP Strengths and Weaknesses', ['project_id' => $projectId]);
+
+    //         $strengthWeakness = ProjectILPBusinessStrengthWeakness::where('project_id', $projectId)->first();
+    //         return response()->json($strengthWeakness, 200);
+    //     } catch (\Exception $e) {
+    //         Log::error('Error fetching ILP Strengths and Weaknesses', ['error' => $e->getMessage()]);
+    //         return response()->json(['error' => 'Failed to fetch strengths and weaknesses.'], 500);
+    //     }
+    // }
     public function show($projectId)
     {
         try {
             Log::info('Fetching ILP Strengths and Weaknesses', ['project_id' => $projectId]);
 
             $strengthWeakness = ProjectILPBusinessStrengthWeakness::where('project_id', $projectId)->first();
-            return response()->json($strengthWeakness, 200);
+
+            return [
+                'strengths' => $strengthWeakness ? json_decode($strengthWeakness->strengths, true) : [],
+                'weaknesses' => $strengthWeakness ? json_decode($strengthWeakness->weaknesses, true) : [],
+            ];
         } catch (\Exception $e) {
             Log::error('Error fetching ILP Strengths and Weaknesses', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch strengths and weaknesses.'], 500);
+            return [
+                'strengths' => [],
+                'weaknesses' => [],
+            ];
         }
     }
 

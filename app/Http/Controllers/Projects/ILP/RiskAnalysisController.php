@@ -39,16 +39,39 @@ class RiskAnalysisController extends Controller
     }
 
     // Show risk analysis for a project
+    // public function show($projectId)
+    // {
+    //     try {
+    //         Log::info('Fetching ILP Risk Analysis', ['project_id' => $projectId]);
+
+    //         $riskAnalysis = ProjectILPRiskAnalysis::where('project_id', $projectId)->first();
+    //         return response()->json($riskAnalysis, 200);
+    //     } catch (\Exception $e) {
+    //         Log::error('Error fetching ILP Risk Analysis', ['error' => $e->getMessage()]);
+    //         return response()->json(['error' => 'Failed to fetch risk analysis.'], 500);
+    //     }
+    // }
     public function show($projectId)
     {
         try {
             Log::info('Fetching ILP Risk Analysis', ['project_id' => $projectId]);
 
             $riskAnalysis = ProjectILPRiskAnalysis::where('project_id', $projectId)->first();
-            return response()->json($riskAnalysis, 200);
+
+            return [
+                'identified_risks' => $riskAnalysis ? $riskAnalysis->identified_risks : '',
+                'mitigation_measures' => $riskAnalysis ? $riskAnalysis->mitigation_measures : '',
+                'business_sustainability' => $riskAnalysis ? $riskAnalysis->business_sustainability : '',
+                'expected_profits' => $riskAnalysis ? $riskAnalysis->expected_profits : '',
+            ];
         } catch (\Exception $e) {
             Log::error('Error fetching ILP Risk Analysis', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch risk analysis.'], 500);
+            return [
+                'identified_risks' => '',
+                'mitigation_measures' => '',
+                'business_sustainability' => '',
+                'expected_profits' => '',
+            ];
         }
     }
 
