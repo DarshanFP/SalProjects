@@ -11,7 +11,7 @@
             <option value="Institutional Ongoing Group Educational proposal" {{ old('project_type') == 'Institutional Ongoing Group Educational proposal' ? 'selected' : '' }}>Institutional Ongoing Group Educational proposal</option>
             <option value="Livelihood Development Projects" {{ old('project_type') == 'Livelihood Development Projects' ? 'selected' : '' }}>Livelihood Development Projects</option>
             <option value="PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER" {{ old('project_type') == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER' ? 'selected' : '' }}>PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER - Application</option>
-            <option value="NEXT PHASE - DEVELOPMENT PROPOSAL" {{ old('project_type') == 'NEXT PHASE - DEVELOPMENT PROPOSAL' ? 'selected' : '' }}>NEXT PHASE - DEVELOPMENT PROPOSAL</option>
+            {{-- <option value="NEXT PHASE - DEVELOPMENT PROPOSAL" {{ old('project_type') == 'NEXT PHASE - DEVELOPMENT PROPOSAL' ? 'selected' : '' }}>NEXT PHASE - DEVELOPMENT PROPOSAL</option> --}}
             <option value="Residential Skill Training Proposal 2" {{ old('project_type') == 'Residential Skill Training Proposal 2' ? 'selected' : '' }}>Residential Skill Training Proposal 2</option>
             <option value="Individual - Ongoing Educational support" {{ old('project_type') == 'Individual - Ongoing Educational support' ? 'selected' : '' }}>Individual - Ongoing Educational support - Project Application</option>
             <option value="Individual - Livelihood Application" {{ old('project_type') == 'Individual - Livelihood Application' ? 'selected' : '' }}>Individual - Livelihood Application</option>
