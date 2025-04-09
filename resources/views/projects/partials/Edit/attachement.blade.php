@@ -1,3 +1,4 @@
+{{-- resources/views/projects/partials/Edit/attachement.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>3. Attachment</h4>
@@ -17,8 +18,8 @@
             <input type="file" name="file" id="file" class="form-control" accept=".pdf" onchange="checkFileSize(this)">
             <label for="file_name" class="form-label">File Name</label>
             <input type="text" name="file_name" class="form-control" placeholder="Name of File Attached" value="{{ $project->attachments->isNotEmpty() ? $project->attachments[0]->file_name : '' }}">
-            <label for="description" class="form-label">Brief Description</label>
-            <textarea name="description" class="form-control" rows="3" placeholder="Describe the file">{{ $project->attachments->isNotEmpty() ? $project->attachments[0]->description : '' }}</textarea>
+            <label for="attachment_description" class="form-label">Brief Description</label>
+            <textarea name="attachment_description" class="form-control" rows="3" placeholder="Describe the file">{{ $project->attachments->isNotEmpty() ? $project->attachments[0]->description : '' }}</textarea>
         </div>
         <p id="file-size-warning" style="color: red; display: none;">File size must not exceed 10 MB!</p>
     </div>

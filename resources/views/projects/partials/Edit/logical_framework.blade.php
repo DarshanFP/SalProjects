@@ -1,6 +1,6 @@
 <div class="mb-4 card">
     <div class="card-header">
-        <h4>Logical Framework</h4>
+        <h4>Logical a Framework</h4>
     </div>
     <div class="card-body" id="objectives-container">
         @foreach($project->objectives as $objectiveIndex => $objective)
@@ -9,13 +9,13 @@
                 <h5 class="mb-3">Objective {{ $objectiveIndex + 1 }}</h5>
                 <button type="button" class="btn btn-danger btn-sm" onclick="removeObjective(this)">Remove Objective</button>
             </div>
-            <textarea name="objectives[{{ $objectiveIndex }}][objective]" class="mb-3 form-control objective-description" rows="2" required>{{ $objective->objective }}</textarea>
+            <textarea name="objectives[{{ $objectiveIndex }}][objective]" class="mb-3 form-control objective-description" rows="2" >{{ $objective->objective }}</textarea>
 
             <div class="results-container">
                 <h6>Results / Outcomes</h6>
                 @foreach($objective->results as $resultIndex => $result)
                 <div class="mb-3 result-section">
-                    <textarea name="objectives[{{ $objectiveIndex }}][results][{{ $resultIndex }}][result]" class="mb-3 form-control result-outcome" rows="2" required>{{ $result->result }}</textarea>
+                    <textarea name="objectives[{{ $objectiveIndex }}][results][{{ $resultIndex }}][result]" class="mb-3 form-control result-outcome" rows="2" >{{ $result->result }}</textarea>
                     <button type="button" class="btn btn-danger btn-sm" onclick="removeResult(this)">Remove Result</button>
                 </div>
                 @endforeach
@@ -26,7 +26,7 @@
                 <h6>Risks</h6>
                 @foreach($objective->risks as $riskIndex => $risk)
                 <div class="mb-3 risk-section">
-                    <textarea name="objectives[{{ $objectiveIndex }}][risks][{{ $riskIndex }}][risk]" class="mb-3 form-control risk-description" rows="2" required>{{ $risk->risk }}</textarea>
+                    <textarea name="objectives[{{ $objectiveIndex }}][risks][{{ $riskIndex }}][risk]" class="mb-3 form-control risk-description" rows="2" >{{ $risk->risk }}</textarea>
                     <button type="button" class="btn btn-danger btn-sm" onclick="removeRisk(this)">Remove Risk</button>
                 </div>
                 @endforeach
@@ -47,10 +47,10 @@
                         @foreach($objective->activities as $activityIndex => $activity)
                         <tr class="activity-row">
                             <td>
-                                <textarea name="objectives[{{ $objectiveIndex }}][activities][{{ $activityIndex }}][activity]" class="form-control activity-description" rows="2" required>{{ $activity->activity }}</textarea>
+                                <textarea name="objectives[{{ $objectiveIndex }}][activities][{{ $activityIndex }}][activity]" class="form-control activity-description" rows="2" >{{ $activity->activity }}</textarea>
                             </td>
                             <td>
-                                <textarea name="objectives[{{ $objectiveIndex }}][activities][{{ $activityIndex }}][verification]" class="form-control activity-verification" rows="2" required>{{ $activity->verification }}</textarea>
+                                <textarea name="objectives[{{ $objectiveIndex }}][activities][{{ $activityIndex }}][verification]" class="form-control activity-verification" rows="2" >{{ $activity->verification }}</textarea>
                             </td>
                             <td><button type="button" class="btn btn-danger btn-sm" onclick="removeActivity(this)">Remove</button></td>
                         </tr>

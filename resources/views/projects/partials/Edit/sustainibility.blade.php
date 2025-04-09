@@ -8,25 +8,25 @@
                 <!-- Sustainability Section -->
                 <div class="mb-3">
                     <h5>Explain the Sustainability of the Project:</h5>
-                    <textarea name="sustainability" class="form-control" rows="2" required>{{ $sustainability->sustainability }}</textarea>
+                    <textarea name="sustainability" class="form-control" rows="2" >{{ $sustainability->sustainability }}</textarea>
                 </div>
 
                 <!-- Monitoring Process Section -->
                 <div class="mb-3">
                     <h5>Explain the Monitoring Process of the Project:</h5>
-                    <textarea name="monitoring_process" class="form-control" rows="2" required>{{ $sustainability->monitoring_process }}</textarea>
+                    <textarea name="monitoring_process" class="form-control" rows="2" >{{ $sustainability->monitoring_process }}</textarea>
                 </div>
 
                 <!-- Reporting Methodology Section -->
                 <div class="mb-3">
                     <h5>Explain the Methodology of Reporting:</h5>
-                    <textarea name="reporting_methodology" class="form-control" rows="2" required>{{ $sustainability->reporting_methodology }}</textarea>
+                    <textarea name="reporting_methodology" class="form-control" rows="2" >{{ $sustainability->reporting_methodology }}</textarea>
                 </div>
 
                 <!-- Evaluation Methodology Section -->
                 <div class="mb-3">
                     <h5>Explain the Methodology of Evaluation:</h5>
-                    <textarea name="evaluation_methodology" class="form-control" rows="2" required>{{ $sustainability->evaluation_methodology }}</textarea>
+                    <textarea name="evaluation_methodology" class="form-control" rows="2" >{{ $sustainability->evaluation_methodology }}</textarea>
                 </div>
             @endforeach
         @else

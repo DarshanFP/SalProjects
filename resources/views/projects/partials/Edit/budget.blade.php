@@ -39,11 +39,11 @@
                         <tbody class="budget-rows">
                             @foreach($budgets as $budgetIndex => $budget)
                                 <tr>
-                                    <td><input type="text" name="phases[{{ $phaseIndex }}][budget][{{ $budgetIndex }}][particular]" class="form-control" value="{{ $budget->particular }}" required></td>
-                                    <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $budgetIndex }}][rate_quantity]" class="form-control" value="{{ $budget->rate_quantity }}" oninput="calculateBudgetRowTotals(this)" required></td>
-                                    <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $budgetIndex }}][rate_multiplier]" class="form-control" value="{{ $budget->rate_multiplier }}" oninput="calculateBudgetRowTotals(this)" required></td>
-                                    <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $budgetIndex }}][rate_duration]" class="form-control" value="{{ $budget->rate_duration }}" oninput="calculateBudgetRowTotals(this)" required></td>
-                                    <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $budgetIndex }}][rate_increase]" class="form-control" value="{{ $budget->rate_increase }}" oninput="calculateBudgetRowTotals(this)" required></td>
+                                    <td><input type="text" name="phases[{{ $phaseIndex }}][budget][{{ $budgetIndex }}][particular]" class="form-control" value="{{ $budget->particular }}" ></td>
+                                    <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $budgetIndex }}][rate_quantity]" class="form-control" value="{{ $budget->rate_quantity }}" oninput="calculateBudgetRowTotals(this)" ></td>
+                                    <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $budgetIndex }}][rate_multiplier]" class="form-control" value="{{ $budget->rate_multiplier }}" oninput="calculateBudgetRowTotals(this)" ></td>
+                                    <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $budgetIndex }}][rate_duration]" class="form-control" value="{{ $budget->rate_duration }}" oninput="calculateBudgetRowTotals(this)" ></td>
+                                    <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $budgetIndex }}][rate_increase]" class="form-control" value="{{ $budget->rate_increase }}" oninput="calculateBudgetRowTotals(this)" ></td>
                                     <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $budgetIndex }}][this_phase]" class="form-control" value="{{ $budget->this_phase }}" readonly></td>
                                     <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $budgetIndex }}][next_phase]" class="form-control" value="{{ $budget->next_phase }}" readonly></td>
                                     <td><button type="button" class="btn btn-danger btn-sm" onclick="removeBudgetRow(this)">Remove</button></td>

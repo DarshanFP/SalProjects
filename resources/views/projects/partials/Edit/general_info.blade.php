@@ -15,7 +15,7 @@
         {{-- PROJECT TYPE --}}
         <div class="mb-3">
             <label for="project_type" class="form-label">Project Type</label>
-            <select name="project_type" id="project_type" class="form-control select-input" required style="background-color: #202ba3;">
+            <select name="project_type" id="project_type" class="form-control select-input"  style="background-color: #202ba3;">
                 <option value="" disabled>Select Project Type</option>
                 <option value="CHILD CARE INSTITUTION"
                     {{ $project->project_type == 'CHILD CARE INSTITUTION' ? 'selected' : '' }}>
@@ -41,10 +41,10 @@
                     {{ $project->project_type == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER' ? 'selected' : '' }}>
                     PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER - Application
                 </option>
-                <option value="NEXT PHASE - DEVELOPMENT PROPOSAL"
+                {{-- <option value="NEXT PHASE - DEVELOPMENT PROPOSAL"
                     {{ $project->project_type == 'NEXT PHASE - DEVELOPMENT PROPOSAL' ? 'selected' : '' }}>
                     NEXT PHASE - DEVELOPMENT PROPOSAL
-                </option>
+                </option> --}}
                 <option value="Residential Skill Training Proposal 2"
                     {{ $project->project_type == 'Residential Skill Training Proposal 2' ? 'selected' : '' }}>
                     Residential Skill Training Proposal 2

@@ -81,7 +81,7 @@
             button.closest('tr').remove();
             IEScalculateTotalExpenses();
         } else {
-            alert("At least one expense entry is required.");
+            alert("At least one expense entry is .");
         }
     }
 

@@ -16,6 +16,5 @@
             @endforeach
         </div>
         <span style="font-style: italic; font-weight: normal;">(click on attachment name to download it)</span>
-
     </div>
 </div>

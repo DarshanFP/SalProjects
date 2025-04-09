@@ -137,13 +137,13 @@
                 <h5></h5>
                 <button type="button" class="btn btn-danger btn-sm" onclick="removeObjective(this)">Remove Objective</button>
             </div>
-            <textarea name="" class="mb-3 form-control objective-description" rows="2" placeholder="Enter Objective" required></textarea>
+            <textarea name="" class="mb-3 form-control objective-description" rows="2" placeholder="Enter Objective" ></textarea>
 
             <div class="results-container">
                 <h6>Results</h6>
                 <!-- Results Section -->
                 <div class="mb-3 result-section">
-                    <textarea name="" class="mb-3 form-control result-outcome" rows="2" placeholder="Enter Result" required></textarea>
+                    <textarea name="" class="mb-3 form-control result-outcome" rows="2" placeholder="Enter Result" ></textarea>
                     <button type="button" class="btn btn-danger btn-sm" onclick="removeResult(this)">Remove Result</button>
                 </div>
                 <button type="button" class="mb-3 btn btn-primary" onclick="addResult(this)">Add Result</button>
@@ -153,7 +153,7 @@
                 <h6>Risks</h6>
                 <!-- Risks Section -->
                 <div class="mb-3 risk-section">
-                    <textarea name="" class="mb-3 form-control risk-description" rows="2" placeholder="Enter Risk" required></textarea>
+                    <textarea name="" class="mb-3 form-control risk-description" rows="2" placeholder="Enter Risk"  ></textarea>
                     <button type="button" class="btn btn-danger btn-sm" onclick="removeRisk(this)">Remove Risk</button>
                 </div>
                 <button type="button" class="mb-3 btn btn-primary" onclick="addRisk(this)">Add Risk</button>
@@ -173,10 +173,10 @@
                         <!-- Activity Row -->
                         <tr class="activity-row">
                             <td>
-                                <textarea name="" class="form-control activity-description" rows="2" placeholder="Enter Activity" required></textarea>
+                                <textarea name="" class="form-control activity-description" rows="2" placeholder="Enter Activity"  ></textarea>
                             </td>
                             <td>
-                                <textarea name="" class="form-control activity-verification" rows="2" placeholder="Means of Verification" required></textarea>
+                                <textarea name="" class="form-control activity-verification" rows="2" placeholder="Means of Verification"  ></textarea>
                             </td>
                             <td><button type="button" class="btn btn-danger btn-sm" onclick="removeActivity(this)">Remove</button></td>
                         </tr>
@@ -231,7 +231,7 @@
         const resultSection = document.createElement('div');
         resultSection.className = 'mb-3 result-section';
         resultSection.innerHTML = `
-            <textarea name="" class="mb-3 form-control result-outcome" rows="2" placeholder="Enter Result" required></textarea>
+            <textarea name="" class="mb-3 form-control result-outcome" rows="2" placeholder="Enter Result"  ></textarea>
             <button type="button" class="btn btn-danger btn-sm" onclick="removeResult(this)">Remove Result</button>
         `;
         const addResultButton = resultsContainer.querySelector('button[onclick="addResult(this)"]');
@@ -245,7 +245,7 @@
         const riskSection = document.createElement('div');
         riskSection.className = 'mb-3 risk-section';
         riskSection.innerHTML = `
-            <textarea name="" class="mb-3 form-control risk-description" rows="2" placeholder="Enter Risk" required></textarea>
+            <textarea name="" class="mb-3 form-control risk-description" rows="2" placeholder="Enter Risk"  ></textarea>
             <button type="button" class="btn btn-danger btn-sm" onclick="removeRisk(this)">Remove Risk</button>
         `;
         const addRiskButton = risksContainer.querySelector('button[onclick="addRisk(this)"]');
@@ -260,10 +260,10 @@
         activityRow.className = 'activity-row';
         activityRow.innerHTML = `
             <td>
-                <textarea name="" class="form-control activity-description" rows="2" placeholder="Enter Activity" required></textarea>
+                <textarea name="" class="form-control activity-description" rows="2" placeholder="Enter Activity"  ></textarea>
             </td>
             <td>
-                <textarea name="" class="form-control activity-verification" rows="2" placeholder="Means of Verification" required></textarea>
+                <textarea name="" class="form-control activity-verification" rows="2" placeholder="Means of Verification"  ></textarea>
             </td>
             <td><button type="button" class="btn btn-danger btn-sm" onclick="removeActivity(this)">Remove</button></td>
         `;
@@ -651,11 +651,11 @@
         const newRow = document.createElement('tr');
 
         newRow.innerHTML = `
-            <td><input type="text" name="phases[${phaseIndex}][budget][${rowIndex}][particular]" class="form-control" required></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)" required></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" required></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" required></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][rate_increase]" class="form-control" value="0.00" oninput="calculateBudgetRowTotals(this)" required></td>
+            <td><input type="text" name="phases[${phaseIndex}][budget][${rowIndex}][particular]" class="form-control"  ></td>
+            <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)"  ></td>
+            <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"  ></td>
+            <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"  ></td>
+            <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][rate_increase]" class="form-control" value="0.00" oninput="calculateBudgetRowTotals(this)"  ></td>
             <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][this_phase]" class="form-control" readonly></td>
             <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][next_phase]" class="form-control" readonly></td>
             <td><button type="button" class="btn btn-danger btn-sm" onclick="removeBudgetRow(this)">Remove</button></td>
@@ -908,7 +908,7 @@
         const resultSection = document.createElement('div');
         resultSection.className = 'mb-3 result-section';
         resultSection.innerHTML = `
-            <textarea name="" class="mb-3 form-control result-outcome" rows="2" required></textarea>
+            <textarea name="" class="mb-3 form-control result-outcome" rows="2"  ></textarea>
             <button type="button" class="btn btn-danger btn-sm" onclick="removeResult(this)">Remove Result</button>
         `;
         const addResultButton = resultsContainer.querySelector('button[onclick="addResult(this)"]');
@@ -922,7 +922,7 @@
         const riskSection = document.createElement('div');
         riskSection.className = 'mb-3 risk-section';
         riskSection.innerHTML = `
-            <textarea name="" class="mb-3 form-control risk-description" rows="2" required></textarea>
+            <textarea name="" class="mb-3 form-control risk-description" rows="2"  ></textarea>
             <button type="button" class="btn btn-danger btn-sm" onclick="removeRisk(this)">Remove Risk</button>
         `;
         const addRiskButton = risksContainer.querySelector('button[onclick="addRisk(this)"]');
@@ -937,10 +937,10 @@
         activityRow.className = 'activity-row';
         activityRow.innerHTML = `
             <td>
-                <textarea name="" class="form-control activity-description" rows="2" required></textarea>
+                <textarea name="" class="form-control activity-description" rows="2"  ></textarea>
             </td>
             <td>
-                <textarea name="" class="form-control activity-verification" rows="2" required></textarea>
+                <textarea name="" class="form-control activity-verification" rows="2"  ></textarea>
             </td>
             <td><button type="button" class="btn btn-danger btn-sm" onclick="removeActivity(this)">Remove</button></td>
         `;
@@ -1286,11 +1286,11 @@
         const newRow = document.createElement('tr');
 
         newRow.innerHTML = `
-            <td><input type="text" name="phases[${phaseIndex}][budget][${tableBody.children.length}][particular]" class="form-control" required></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)" required></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" required></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" required></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_increase]" class="form-control" value="0.00" oninput="calculateBudgetRowTotals(this)" required></td>
+            <td><input type="text" name="phases[${phaseIndex}][budget][${tableBody.children.length}][particular]" class="form-control"  ></td>
+            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)"  ></td>
+            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"  ></td>
+            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"  ></td>
+            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_increase]" class="form-control" value="0.00" oninput="calculateBudgetRowTotals(this)"  ></td>
             <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][this_phase]" class="form-control" readonly></td>
             <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][next_phase]" class="form-control" readonly></td>
             <td><button type="button" class="btn btn-danger btn-sm" onclick="removeBudgetRow(this)">Remove</button></td>
@@ -1351,11 +1351,11 @@
                 </thead>
                 <tbody class="budget-rows">
                     <tr>
-                        <td><input type="text" name="phases[${newPhaseIndex}][budget][0][particular]" class="form-control" required></td>
-                        <td><input type="number" name="phases[${newPhaseIndex}][budget][0][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)" required></td>
-                        <td><input type="number" name="phases[${newPhaseIndex}][budget][0][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" required></td>
-                        <td><input type="number" name="phases[${newPhaseIndex}][budget][0][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" required></td>
-                        <td><input type="number" name="phases[${newPhaseIndex}][budget][0][rate_increase]" class="form-control" value="0.00" oninput="calculateBudgetRowTotals(this)" required></td>
+                        <td><input type="text" name="phases[${newPhaseIndex}][budget][0][particular]" class="form-control"  ></td>
+                        <td><input type="number" name="phases[${newPhaseIndex}][budget][0][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)"  ></td>
+                        <td><input type="number" name="phases[${newPhaseIndex}][budget][0][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"  ></td>
+                        <td><input type="number" name="phases[${newPhaseIndex}][budget][0][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"  ></td>
+                        <td><input type="number" name="phases[${newPhaseIndex}][budget][0][rate_increase]" class="form-control" value="0.00" oninput="calculateBudgetRowTotals(this)"  ></td>
                         <td><input type="number" name="phases[${newPhaseIndex}][budget][0][this_phase]" class="form-control" readonly></td>
                         <td><input type="number" name="phases[${newPhaseIndex}][budget][0][next_phase]" class="form-control" readonly></td>
                         <td><button type="button" class="btn btn-danger btn-sm" onclick="removeBudgetRow(this)">Remove</button></td>
