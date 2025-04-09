@@ -125,7 +125,7 @@
                     @include('projects.partials.logical_framework')
                     @include('projects.partials.sustainability')
                     @include('projects.partials.budget')
-                    @include('projects.partials.attachments')
+                    @include('projects.partials.attachments') 
 
                     <!-- Annexed Target Group Partial for EduRUT (After Attachments Section) -->
                     <div id="edu-rut-annexed-section" style="display:none;">

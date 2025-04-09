@@ -59,69 +59,39 @@ class IIESAttachmentsController extends Controller
     /**
      * SHOW: retrieve existing attachments for a project.
      */
-    // public function show($projectId)
-    // {
-    //     Log::info('IIESAttachmentsController@show - Fetching attachments', ['project_id' => $projectId]);
+    public function show($projectId)
+    {
+        try {
+            Log::info('IIESAttachmentsController@show - Fetching attachments', ['project_id' => $projectId]);
 
-    //     try {
-    //         // Fetch attachments related to the project
-    //         $attachments = ProjectIIESAttachments::where('project_id', $projectId)->first();
+            // Fetch attachments for the given project ID
+            $attachments = ProjectIIESAttachments::where('project_id', $projectId)->first();
 
-    //         if (!$attachments) {
-    //             Log::warning('IIESAttachmentsController@show - No attachments found', ['project_id' => $projectId]);
-    //             return null; // Return null so Blade can handle "No attachments" scenario
-    //         }
+            if (!$attachments) {
+                Log::warning('IIESAttachmentsController@show - No attachments found', ['project_id' => $projectId]);
+                return []; // ✅ Always return an empty array instead of null
+            }
 
-    //         Log::info('IIESAttachmentsController@show - Attachments found', [
-    //             'project_id' => $projectId,
-    //             'attachments' => $attachments->toArray(),
-    //         ]);
+            return [
+                'iies_aadhar_card'          => $attachments->iies_aadhar_card ? Storage::url($attachments->iies_aadhar_card) : null,
+                'iies_fee_quotation'        => $attachments->iies_fee_quotation ? Storage::url($attachments->iies_fee_quotation) : null,
+                'iies_scholarship_proof'    => $attachments->iies_scholarship_proof ? Storage::url($attachments->iies_scholarship_proof) : null,
+                'iies_medical_confirmation' => $attachments->iies_medical_confirmation ? Storage::url($attachments->iies_medical_confirmation) : null,
+                'iies_caste_certificate'    => $attachments->iies_caste_certificate ? Storage::url($attachments->iies_caste_certificate) : null,
+                'iies_self_declaration'     => $attachments->iies_self_declaration ? Storage::url($attachments->iies_self_declaration) : null,
+                'iies_death_certificate'    => $attachments->iies_death_certificate ? Storage::url($attachments->iies_death_certificate) : null,
+                'iies_request_letter'       => $attachments->iies_request_letter ? Storage::url($attachments->iies_request_letter) : null,
+            ];
+        } catch (\Exception $e) {
+            Log::error('IIESAttachmentsController@show - Error retrieving attachments', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage(),
+            ]);
 
-    //         return $attachments; // Return as an object to be used in the Blade view
-    //     } catch (\Exception $e) {
-    //         Log::error('IIESAttachmentsController@show - Error retrieving attachments', [
-    //             'project_id' => $projectId,
-    //             'error' => $e->getMessage(),
-    //         ]);
+            return []; // ✅ Always return an array, even on error
+        }
+    }
 
-    //         return null; // Prevents Blade from breaking in case of an error
-    //     }
-    // }
-
-    // public function show($projectId)
-    // {
-    //     try {
-    //         Log::info('IIESAttachmentsController@show - Fetching attachments', ['project_id' => $projectId]);
-
-    //         // Fetch the single row containing all IIES attachments
-    //         $attachments = ProjectIIESAttachments::where('project_id', $projectId)->first();
-
-    //         if (!$attachments) {
-    //             // If no attachments are found, return `null` so the Blade can handle the "not found" gracefully
-    //             return null;
-    //         }
-
-    //         return $attachments;
-    //     } catch (\Exception $e) {
-    //         Log::error('IIESAttachmentsController@show - Error fetching attachments', [
-    //             'project_id' => $projectId,
-    //             'error' => $e->getMessage(),
-    //         ]);
-
-    //         // Return null or handle as needed
-    //         return null;
-    //     }
-    // }
-// app/Http/Controllers/Projects/IIES/IIESAttachmentsController.php
-
-public function show($projectId)
-{
-    // Grab the single attachments row for the project:
-    $attachments = ProjectIIESAttachments::where('project_id', $projectId)->first();
-
-    // If no attachments, return null so the Blade can handle it gracefully.
-    return $attachments;
-}
 
     /**
      * EDIT: return either a Blade view or JSON to allow editing.

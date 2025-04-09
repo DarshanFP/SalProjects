@@ -212,7 +212,7 @@ Route::middleware(['auth', 'role:executor'])->group(function () {
         // project status actions routes
         Route::post('/projects/{project_id}/submit-to-provincial', [ProjectController::class, 'submitToProvincial'])->name('projects.submitToProvincial');
 // NEXT Phase Development Proposal get data for general info
-Route::get('/projects/{id}/details', [ProjectController::class, 'getProjectDetails']);
+Route::get('/projects/{project_id}/details', [ProjectController::class, 'getProjectDetails']);
 
 
 

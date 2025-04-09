@@ -1,4 +1,4 @@
-<?php
+// missing common attachements link to attachement controller for attachment partial
 
 namespace App\Http\Controllers\Projects;
 
@@ -586,8 +586,10 @@ public function store(Request $request)
     DB::beginTransaction();
 
     try {
+        // Log incoming request
         Log::info('ProjectController@store - Data received from form', $request->all());
         Log::info('Received Project Type:', ['project_type' => $request->project_type]);
+
 
         // Step 1: Store general project details
         $project = (new GeneralInfoController())->store($request);
@@ -596,28 +598,7 @@ public function store(Request $request)
         // Add the project ID to the request for downstream use
         $request->merge(['project_id' => $project->project_id]);
 
-        // Step 2: Handle common sections for non-individual project types
-        $nonIndividualTypes = [
-            'Rural-Urban-Tribal',
-            'CHILD CARE INSTITUTION',
-            'Institutional Ongoing Group Educational proposal',
-            'Livelihood Development Projects',
-            'Residential Skill Training Proposal 2',
-            'Development Projects',
-            'NEXT PHASE - DEVELOPMENT PROPOSAL',
-            'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER'
-        ];
-
-        if (in_array($request->project_type, $nonIndividualTypes)) {
-            $this->logicalFrameworkController->store($request);
-            $this->sustainabilityController->store($request, $project->project_id);
-            (new BudgetController())->store($request, $project);
-            if ($request->hasFile('file')) { // Check for the common attachment partial
-                (new AttachmentController())->store($request, $project);
-            }
-        }
-
-        // Step 3: Handle project type-specific logic
+        // Handle project type-specific logic with logging
         switch ($request->project_type) {
             case 'Rural-Urban-Tribal':
                 Log::info('Processing Rural-Urban-Tribal project type');
@@ -638,47 +619,6 @@ public function store(Request $request)
                 $this->cciStatisticsController->store($request, $project->project_id);
                 break;
 
-            case 'Institutional Ongoing Group Educational proposal':
-                Log::info('Processing Institutional Ongoing Group Educational proposal');
-                $this->igeInstitutionInfoController->store($request, $project->project_id);
-                $this->igeBeneficiariesSupportedController->store($request, $project->project_id);
-                $this->igeNewBeneficiariesController->store($request, $project->project_id);
-                $this->igeOngoingBeneficiariesController->store($request, $project->project_id);
-                $this->igeBudgetController->store($request, $project->project_id);
-                $this->igeDevelopmentMonitoringController->store($request, $project->project_id);
-                break;
-
-            case 'Livelihood Development Projects':
-                Log::info('Processing Livelihood Development Projects');
-                $this->ldpInterventionLogicController->store($request, $project->project_id);
-                $this->ldpNeedAnalysisController->store($request, $project->project_id);
-                $this->ldpTargetGroupController->store($request, $project->project_id);
-                break;
-
-            case 'Residential Skill Training Proposal 2':
-                Log::info('Processing Residential Skill Training Proposal 2');
-                $this->rstBeneficiariesAreaController->store($request, $project->project_id);
-                $this->rstGeographicalAreaController->store($request, $project->project_id);
-                $this->rstInstitutionInfoController->store($request, $project->project_id);
-                $this->rstTargetGroupAnnexureController->store($request, $project->project_id);
-                $this->rstTargetGroupController->store($request, $project->project_id);
-                break;
-
-            case 'Development Projects':
-                Log::info('Processing Development Projects');
-                $this->rstBeneficiariesAreaController->store($request, $project->project_id);
-                break;
-
-            case 'NEXT PHASE - DEVELOPMENT PROPOSAL':
-                Log::info('Processing NEXT PHASE - DEVELOPMENT PROPOSAL');
-                $this->rstBeneficiariesAreaController->store($request, $project->project_id);
-                break;
-
-            case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
-                Log::info('Processing PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER');
-                $this->cicBasicInfoController->store($request, $project->project_id);
-                break;
-
             case 'Individual - Ongoing Educational support':
                 Log::info('Processing Individual - Ongoing Educational Support project type');
                 $this->iesPersonalInfoController->store($request, $project->project_id);
@@ -686,27 +626,25 @@ public function store(Request $request)
                 $this->iesImmediateFamilyDetailsController->store($request, $project->project_id);
                 $this->iesEducationBackgroundController->store($request, $project->project_id);
                 $this->iesExpensesController->store($request, $project->project_id);
-                $this->iesAttachmentsController->store($request, $project->project_id); // Specific IES controller
+                $this->iesAttachmentsController->store($request, $project->project_id);
                 break;
 
             case 'Individual - Livelihood Application':
-                Log::info('Processing Individual - Livelihood Application');
                 $this->ilpPersonalInfoController->store($request, $project->project_id);
                 $this->ilpRevenueGoalsController->store($request, $project->project_id);
                 $this->ilpStrengthWeaknessController->store($request, $project->project_id);
                 $this->ilpRiskAnalysisController->store($request, $project->project_id);
-                $this->ilpAttachedDocumentsController->store($request, $project->project_id); // Specific ILP controller
+                $this->ilpAttachedDocumentsController->store($request, $project->project_id);
                 $this->ilpBudgetController->store($request, $project->project_id);
                 break;
-
             case 'Individual - Access to Health':
-                Log::info('Processing Individual - Access to Health');
+                // Store IAH-specific data
                 $this->iahPersonalInfoController->store($request, $project->project_id);
                 $this->iahEarningMembersController->store($request, $project->project_id);
                 $this->iahHealthConditionController->store($request, $project->project_id);
                 $this->iahSupportDetailsController->store($request, $project->project_id);
                 $this->iahBudgetDetailsController->store($request, $project->project_id);
-                $this->iahDocumentsController->store($request, $project->project_id); // Specific IAH controller
+                $this->iahDocumentsController->store($request, $project->project_id);
                 break;
 
             case 'Individual - Initial - Educational support':
@@ -716,13 +654,14 @@ public function store(Request $request)
                 $this->iiesImmediateFamilyDetailsController->store($request, $project->project_id);
                 $this->iiesEducationBackgroundController->store($request, $project->project_id);
                 $this->iiesFinancialSupportController->store($request, $project->project_id);
-                $this->iiesAttachmentsController->store($request, $project->project_id); // Specific IIES controller
+                $this->iiesAttachmentsController->store($request, $project->project_id);
                 $this->iiesExpensesController->store($request, $project->project_id);
                 break;
 
             default:
                 Log::warning('Unknown project type', ['project_type' => $request->project_type]);
                 break;
+
         }
 
         DB::commit();
@@ -735,28 +674,23 @@ public function store(Request $request)
             'error' => $e->getMessage(),
             'request' => $request->all(),
         ]);
+
         return redirect()->back()->withErrors(['error' => 'There was an error creating the project. Please try again.'])->withInput();
     }
 }
 
 
-public function show($project_id)
-{
-    Log::info('ProjectController@show - Starting show process', ['project_id' => $project_id]);
-
-    try {
-        Log::info('ProjectController@show - Fetching project data with relationships');
+    public function show($project_id)
+    {
         $project = Project::where('project_id', $project_id)
             ->with('budgets', 'attachments', 'objectives', 'sustainabilities')
             ->firstOrFail();
 
         $user = Auth::user();
-        Log::info('ProjectController@show - Project and user fetched', [
-            'project_type' => $project->project_type,
-            'user_id' => $user->id
-        ]);
 
-        // Initialize data array with defaults
+
+
+        // Initialize variables for each project type as needed
         $data = [
             'project' => $project,
             'user' => $user,
@@ -773,294 +707,219 @@ public function show($project_id)
             'statistics' => null,
             'interventionLogic' => null,
             'needAnalysis' => null,
-            'LDPtargetGroups' => null,
-            'IGEInstitutionInfo' => null,
+            'LDPtargetGroups' => null, // Renamed for LDP
+            'IGEInstitutionInfo' => null, // Renamed for IGE
             'beneficiariesSupported' => null,
             'newBeneficiaries' => null,
             'ongoingBeneficiaries' => null,
             'budget' => null,
             'developmentMonitoring' => null,
-            'RSTBeneficiariesArea' => null,
-            'RSTGeographicalArea' => null,
-            'RSTInstitutionInfo' => null,
-            'RSTTargetGroupAnnexure' => null,
-            'RSTTargetGroup' => null,
-            'IESpersonalInfo' => null,
-            'IESfamilyWorkingMembers' => null,
-            'IESimmediateFamilyDetails' => null,
-            'IESEducationBackground' => null,
-            'IESExpenses' => null,
-            'IESAttachments' => null,
-            'ILPPersonalInfo' => null,
-            'ILPRevenueGoals' => null,
-            'ILPStrengthWeakness' => null,
-            'ILPRiskAnalysis' => null,
-            'ILPAttachedDocuments' => null,
-            'ILPBudgets' => null,
-            'IAHPersonalInfo' => null,
-            'IAHEarningMembers' => null,
-            'IAHHealthCondition' => null,
-            'IAHSupportDetails' => null,
-            'IAHBudgetDetails' => null,
-            'IAHDocuments' => null,
-            'IIESPersonalInfo' => null,
-            'IIESFamilyWorkingMembers' => null,
-            'IIESImmediateFamilyDetails' => null,
-            'IIESEducationBackground' => null,
-            'IIESFinancialSupport' => null,
-            'IIESAttachments' => null,
-            'IIESExpenses' => null,
+            'RSTBeneficiariesArea' => null, // Renamed for RST
+            'RSTGeographicalArea' => null, // Renamed for RST
+            'RSTInstitutionInfo' => null, // Renamed for RST
+            'RSTTargetGroupAnnexure' => null, // Renamed for RST
+            'RSTTargetGroup' => null, // Renamed for RST
+        // IIES - Individual - Initial Educational Support
+        'IIESPersonalInfo' => null,
+        'IIESFamilyWorkingMembers' => null,
+        'IIESImmediateFamilyDetails' => null,
+        'IIESEducationBackground' => null,
+        'IIESFinancialSupport' => null,
+        'IIESAttachments' => null,
+        'IIESExpenses' => null,
+
         ];
 
         // Handle project-specific data
-        switch ($project->project_type) {
-            case 'Rural-Urban-Tribal':
-                Log::info('ProjectController@show - Fetching Rural-Urban-Tribal data');
-                $data['basicInfo'] = $this->eduRUTBasicInfoController->show($project_id);
-                $data['RUTtargetGroups'] = $this->eduRUTTargetGroupController->show($project_id);
-                $data['annexedTargetGroups'] = $this->eduRUTAnnexedTargetGroupController->show($project_id);
-                break;
+        if ($project->project_type == 'Rural-Urban-Tribal') {
+            $data['basicInfo'] = $this->eduRUTBasicInfoController->show($project_id);
+            $data['RUTtargetGroups'] = $this->eduRUTTargetGroupController->show($project_id);
+            $data['annexedTargetGroups'] = $this->eduRUTAnnexedTargetGroupController->show($project_id);
+        } elseif ($project->project_type == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
+            $data['basicInfo'] = $this->cicBasicInfoController->show($project->project_id);
+        } elseif ($project->project_type === 'CHILD CARE INSTITUTION') {
+            $data['achievements'] = $this->cciAchievementsController->show($project->project_id);
+            $data['ageProfile'] = $this->cciAgeProfileController->show($project->project_id);
+            $data['annexedTargetGroup'] = $this->cciAnnexedTargetGroupController->show($project->project_id);
 
-            case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
-                Log::info('ProjectController@show - Fetching CIC data');
-                $data['basicInfo'] = $this->cicBasicInfoController->show($project->project_id);
-                break;
+            $data['economicBackground'] = $this->cciEconomicBackgroundController->show($project->project_id);
+            $data['personalSituation'] = $this->cciPersonalSituationController->show($project->project_id);
+            $data['presentSituation'] = $this->cciPresentSituationController->show($project->project_id);
+            $data['rationale'] = $this->cciRationaleController->show($project->project_id);
+            $data['statistics'] = $this->cciStatisticsController->show($project->project_id);
+        } elseif ($project->project_type === 'Institutional Ongoing Group Educational proposal') {
+            $data['IGEInstitutionInfo'] = $this->igeInstitutionInfoController->show($project->project_id);
+            $data['beneficiariesSupported'] = $this->igeBeneficiariesSupportedController->show($project->project_id);
+            $data['newBeneficiaries'] = $this->igeNewBeneficiariesController->show($project->project_id);
+            $data['ongoingBeneficiaries'] = $this->igeOngoingBeneficiariesController->show($project->project_id);
+            $data['IGEbudget'] = $this->igeBudgetController->show($project->project_id);
+            $data['developmentMonitoring'] = $this->igeDevelopmentMonitoringController->show($project->project_id);
+        } elseif ($project->project_type == 'Livelihood Development Projects') {
+            $data['interventionLogic'] = $this->ldpInterventionLogicController->show($project_id);
+            $data['needAnalysis'] = $this->ldpNeedAnalysisController->show($project_id);
+            $data['LDPtargetGroups'] = $this->ldpTargetGroupController->show($project_id);
+        } elseif ($project->project_type === 'Residential Skill Training Proposal 2') {
+            $data['RSTBeneficiariesArea'] = $this->rstBeneficiariesAreaController->show($project->project_id);
+            $data['RSTGeographicalArea'] = $this->rstGeographicalAreaController->show($project->project_id);
+            $data['RSTInstitutionInfo'] = $this->rstInstitutionInfoController->show($project->project_id);
+            $data['RSTTargetGroupAnnexure'] = $this->rstTargetGroupAnnexureController->show($project->project_id);
+            $data['RSTTargetGroup'] = $this->rstTargetGroupController->show($project->project_id);
+        } elseif ($project->project_type === 'Development Projects') {
+            $data['RSTBeneficiariesArea'] = $this->rstBeneficiariesAreaController->show($project->project_id);
+        } elseif ($project->project_type === 'Individual - Ongoing Educational support') {
+            $data['IESpersonalInfo'] = $this->iesPersonalInfoController->show($project->project_id);
+            $data['IESfamilyWorkingMembers'] = $this->iesFamilyWorkingMembersController->show($project->project_id);
+            $data['IESimmediateFamilyDetails'] = $this->iesImmediateFamilyDetailsController->show($project->project_id);
+            $data['IESEducationBackground'] = $this->iesEducationBackgroundController->show($project->project_id);
+            $data['IESExpenses'] = $this->iesExpensesController->show($project->project_id);
+            $data['IESAttachments'] = $this->iesAttachmentsController->show($project->project_id);
+        } elseif ($project->project_type === 'Individual - Livelihood Application') {
+            $data['ILPPersonalInfo'] = $this->ilpPersonalInfoController->show($project_id) ?? [];
+            Log::info('ProjectController@show - Personal Info Data:', ['data' => $data['ILPPersonalInfo']]);
+            $data['ILPRevenueGoals'] = $this->ilpRevenueGoalsController->show($project_id) ?? [];
+            Log::info('ProjectController@show - Revenue Goals Data:', ['data' => $data['ILPRevenueGoals']]);
+            $data['ILPStrengthWeakness'] = $this->ilpStrengthWeaknessController->show($project_id) ?? [];
+            Log::info('ProjectController@show - Strength Weakness Data:', ['data' => $data['ILPStrengthWeakness']]);
+            $data['ILPRiskAnalysis'] = $this->ilpRiskAnalysisController->show($project_id) ?? [];
+            Log::info('ProjectController@show - Revenue Goals Data:', ['data' => $data['ILPRevenueGoals']]);
+            $data['ILPAttachedDocuments'] = $this->ilpAttachedDocumentsController->show($project_id) ?? [];
+            Log::info('ProjectController@show - Revenue Goals Data:', ['data' => $data['ILPRevenueGoals']]);
+            $data['ILPBudgets'] = $this->ilpBudgetController->show($project_id) ?? collect([]);
+            Log::info('ProjectController@show - Budget Data:', ['data' => $data['ILPBudgets']]);
 
-            case 'CHILD CARE INSTITUTION':
-                Log::info('ProjectController@show - Fetching CCI data');
-                $data['achievements'] = $this->cciAchievementsController->show($project->project_id);
-                $data['ageProfile'] = $this->cciAgeProfileController->show($project->project_id);
-                $data['annexedTargetGroup'] = $this->cciAnnexedTargetGroupController->show($project->project_id);
-                $data['economicBackground'] = $this->cciEconomicBackgroundController->show($project->project_id);
-                $data['personalSituation'] = $this->cciPersonalSituationController->show($project->project_id);
-                $data['presentSituation'] = $this->cciPresentSituationController->show($project->project_id);
-                $data['rationale'] = $this->cciRationaleController->show($project->project_id);
-                $data['statistics'] = $this->cciStatisticsController->show($project->project_id);
-                break;
 
-            case 'Institutional Ongoing Group Educational proposal':
-                Log::info('ProjectController@show - Fetching IGE data');
-                $data['IGEInstitutionInfo'] = $this->igeInstitutionInfoController->show($project->project_id);
-                $data['beneficiariesSupported'] = $this->igeBeneficiariesSupportedController->show($project->project_id);
-                $data['newBeneficiaries'] = $this->igeNewBeneficiariesController->show($project->project_id);
-                $data['ongoingBeneficiaries'] = $this->igeOngoingBeneficiariesController->show($project->project_id);
-                $data['budget'] = $this->igeBudgetController->show($project->project_id);
-                $data['developmentMonitoring'] = $this->igeDevelopmentMonitoringController->show($project->project_id);
-                break;
+        } elseif ($project->project_type === 'Individual - Access to Health') {
+            $data['IAHPersonalInfo'] = $this->iahPersonalInfoController->show($project->project_id);
+            $data['IAHEarningMembers'] = $this->iahEarningMembersController->show($project->project_id);
+            $data['IAHHealthCondition'] = $this->iahHealthConditionController->show($project->project_id);
+            $data['IAHSupportDetails'] = $this->iahSupportDetailsController->show($project->project_id);
+            $data['IAHBudgetDetails'] = $this->iahBudgetDetailsController->show($project->project_id);
+            $data['IAHDocuments'] = $this->iahDocumentsController->show($project->project_id);
+        } elseif
 
-            case 'Livelihood Development Projects':
-                Log::info('ProjectController@show - Fetching LDP data');
-                $data['interventionLogic'] = $this->ldpInterventionLogicController->show($project_id);
-                $data['needAnalysis'] = $this->ldpNeedAnalysisController->show($project_id);
-                $data['LDPtargetGroups'] = $this->ldpTargetGroupController->show($project_id);
-                break;
+         ($project->project_type === 'Individual - Initial - Educational support') {
+            Log::info('ProjectController@show - Fetching data for IIES project', ['project_id' => $project->project_id]);
 
-            case 'Residential Skill Training Proposal 2':
-                Log::info('ProjectController@show - Fetching RST data');
-                $data['RSTBeneficiariesArea'] = $this->rstBeneficiariesAreaController->show($project->project_id);
-                $data['RSTGeographicalArea'] = $this->rstGeographicalAreaController->show($project->project_id);
-                $data['RSTInstitutionInfo'] = $this->rstInstitutionInfoController->show($project->project_id);
-                $data['RSTTargetGroupAnnexure'] = $this->rstTargetGroupAnnexureController->show($project->project_id);
-                $data['RSTTargetGroup'] = $this->rstTargetGroupController->show($project->project_id);
-                break;
+            // Fetch data from controllers
+            $data['IIESPersonalInfo'] = $this->iiesPersonalInfoController->show($project->project_id);
+            $data['IIESFamilyWorkingMembers'] = $this->iiesFamilyWorkingMembersController->show($project->project_id);
+            $data['IIESImmediateFamilyDetails'] = $this->iiesImmediateFamilyDetailsController->show($project->project_id);
+            $data['IIESEducationBackground'] = $this->iiesEducationBackgroundController->show($project->project_id);
+            $data['IIESFinancialSupport'] = $this->iiesFinancialSupportController->show($project->project_id);
+            $data['iiesExpenses'] = $this->iiesExpensesController->show($project->project_id);
+            $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project_id) ?? [];
 
-            case 'Development Projects':
-                Log::info('ProjectController@show - Fetching Development Projects data');
-                $data['RSTBeneficiariesArea'] = $this->rstBeneficiariesAreaController->show($project->project_id);
-                break;
 
-            case 'NEXT PHASE - DEVELOPMENT PROPOSAL':
-                Log::info('ProjectController@show - Fetching NEXT PHASE - DEVELOPMENT PROPOSAL data');
-                $data['RSTBeneficiariesArea'] = $this->rstBeneficiariesAreaController->show($project->project_id);
-                break;
 
-            case 'Individual - Ongoing Educational support':
-                Log::info('ProjectController@show - Fetching IES data');
-                $data['IESpersonalInfo'] = $this->iesPersonalInfoController->show($project->project_id);
-                $data['IESfamilyWorkingMembers'] = $this->iesFamilyWorkingMembersController->show($project->project_id);
-                $data['IESimmediateFamilyDetails'] = $this->iesImmediateFamilyDetailsController->show($project->project_id);
-                $data['IESEducationBackground'] = $this->iesEducationBackgroundController->show($project->project_id);
-                $data['IESExpenses'] = $this->iesExpensesController->show($project->project_id);
-                $data['IESAttachments'] = $this->iesAttachmentsController->show($project->project_id) ?? [];
-                Log::info('ProjectController@show - IES attachments fetched', [
-                    'attachments' => $data['IESAttachments']
-                ]);
-                break;
 
-            case 'Individual - Livelihood Application':
-                Log::info('ProjectController@show - Fetching ILP data');
-                $data['ILPPersonalInfo'] = $this->ilpPersonalInfoController->show($project_id) ?? [];
-                $data['ILPRevenueGoals'] = $this->ilpRevenueGoalsController->show($project_id) ?? [];
-                $data['ILPStrengthWeakness'] = $this->ilpStrengthWeaknessController->show($project_id) ?? [];
-                $data['ILPRiskAnalysis'] = $this->ilpRiskAnalysisController->show($project_id) ?? [];
-                $data['ILPAttachedDocuments'] = $this->ilpAttachedDocumentsController->show($project_id) ?? [];
-                $data['ILPBudgets'] = $this->ilpBudgetController->show($project_id) ?? collect([]);
-                Log::info('ProjectController@show - ILP data fetched', [
-                    'personal_info' => $data['ILPPersonalInfo'],
-                    'attachments' => $data['ILPAttachedDocuments']
-                ]);
-                break;
-
-            case 'Individual - Access to Health':
-                Log::info('ProjectController@show - Fetching IAH data');
-                $data['IAHPersonalInfo'] = $this->iahPersonalInfoController->show($project->project_id);
-                $data['IAHEarningMembers'] = $this->iahEarningMembersController->show($project->project_id);
-                $data['IAHHealthCondition'] = $this->iahHealthConditionController->show($project->project_id);
-                $data['IAHSupportDetails'] = $this->iahSupportDetailsController->show($project->project_id);
-                $data['IAHBudgetDetails'] = $this->iahBudgetDetailsController->show($project->project_id);
-                $data['IAHDocuments'] = $this->iahDocumentsController->show($project->project_id) ?? [];
-                Log::info('ProjectController@show - IAH documents fetched', [
-                    'documents' => $data['IAHDocuments']
-                ]);
-                break;
-
-            case 'Individual - Initial - Educational support':
-                Log::info('ProjectController@show - Fetching IIES data');
-                $data['IIESPersonalInfo'] = $this->iiesPersonalInfoController->show($project->project_id);
-                $data['IIESFamilyWorkingMembers'] = $this->iiesFamilyWorkingMembersController->show($project->project_id);
-                $data['IIESImmediateFamilyDetails'] = $this->iiesImmediateFamilyDetailsController->show($project->project_id);
-                $data['IIESEducationBackground'] = $this->iiesEducationBackgroundController->show($project->project_id);
-                $data['IIESFinancialSupport'] = $this->iiesFinancialSupportController->show($project->project_id);
-                $data['IIESAttachments'] = $this->iiesAttachmentsController->show($project_id) ?? [];
-                $data['IIESExpenses'] = $this->iiesExpensesController->show($project_id) ?? [];
-                Log::info('ProjectController@show - IIES attachments fetched', [
-                    'attachments' => $data['IIESAttachments']
-                ]);
-                break;
-
-            default:
-                Log::warning('ProjectController@show - Unknown project type', [
-                    'project_type' => $project->project_type
-                ]);
-                break;
         }
 
-        // For non-individual types, attachments are already eager-loaded in $project->attachments
-        if (!in_array($project->project_type, [
-            'Individual - Ongoing Educational support',
-            'Individual - Livelihood Application',
-            'Individual - Access to Health',
-            'Individual - Initial - Educational support'
-        ])) {
-            Log::info('ProjectController@show - Using default attachments from project model', [
-                'attachments_count' => $project->attachments->count()
-            ]);
-        }
+        // Log::info('✅ Passing IIESAttachments to View', ['IIESAttachments' => $data['IIESAttachments']]);
 
-        Log::info('ProjectController@show - Data prepared for view', [
-            'project_id' => $project_id,
-            'data_keys' => array_keys($data)
-        ]);
-
+        Log::info('ProjectController@show - Data Passed to View:', $data);
+        // dd($data);
+        // Pass data to the view
         return view('projects.Oldprojects.show', $data);
-    } catch (\Exception $e) {
-        Log::error('ProjectController@show - Error fetching project data', [
-            'project_id' => $project_id,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        return redirect()->back()->withErrors(['error' => 'Failed to load project details.']);
+        // return view('projects.Oldprojects.show',data);
+
     }
-}
 
 
 
-public function edit($project_id)
-{
-    Log::info('ProjectController@edit - Starting edit process', ['project_id' => $project_id]);
+    public function edit($project_id)
+    {
+        Log::info('ProjectController@edit - Received project_id', ['project_id' => $project_id]);
 
-    try {
-        Log::info('ProjectController@edit - Fetching project data with relationships');
-        $project = Project::where('project_id', $project_id)
-            ->with('budgets', 'attachments', 'objectives', 'sustainabilities')
-            ->firstOrFail();
+        try {
+            $project = Project::where('project_id', $project_id)
+                ->with('budgets', 'attachments', 'objectives', 'sustainabilities')
+                ->firstOrFail();
 
-        Log::info('ProjectController@edit - Project fetched', [
-            'project_type' => $project->project_type,
-            'attachments_count' => $project->attachments->count()
-        ]);
+            Log::info('ProjectController@edit - Project type', ['project_type' => $project->project_type]);
 
-        $developmentProjects = Project::whereIn('project_type', [
-            'Development Projects',
-            'NEXT PHASE - DEVELOPMENT PROPOSAL'
-        ])->get();
+            $developmentProjects = Project::whereIn('project_type', [
+                'Development Projects',
+                'NEXT PHASE - DEVELOPMENT PROPOSAL'
+            ])->get();
 
-        $user = Auth::user();
-        $users = User::all();
-        Log::info('ProjectController@edit - User and development projects fetched', [
-            'user_id' => $user->id,
-            'development_projects_count' => $developmentProjects->count()
-        ]);
+            $user = Auth::user();
+            $users = User::all();
 
-        // Initialize variables for different project types
-        $basicInfo = null;
-        $targetGroups = null;
-        $annexedTargetGroups = null;
-        $cicBasicInfo = null;
-        $achievements = null;
-        $ageProfile = null;
-        $targetGroup = null;
-        $economicBackground = null;
-        $personalSituation = null;
-        $presentSituation = null;
-        $rationale = null;
-        $statistics = null;
-        $IGEinstitutionInfo = null;
-        $beneficiariesSupported = collect();
-        $newBeneficiaries = null;
-        $ongoingBeneficiaries = null;
-        $budget = null;
-        $developmentMonitoring = null;
-        $interventionLogic = null;
-        $needAnalysis = null;
-        $LDPtargetGroups = null;
-        $beneficiariesArea = null;
-        $geographicalArea = null;
-        $RSTinstitutionInfo = null;
-        $RSTtargetGroupAnnexure = null;
-        $RSTtargetGroup = null;
-        $IESpersonalInfo = null;
-        $IESfamilyWorkingMembers = null;
-        $IESimmediateFamilyDetails = null;
-        $IESEducationBackground = null;
-        $IESExpenses = null;
-        $IESAttachments = null;
-        $ILPPersonalInfo = null;
-        $ILPRevenueGoals = null;
-        $ILPStrengthWeakness = null;
-        $ILPRiskAnalysis = null;
-        $ILPAttachedDocuments = null;
-        $ILPBudget = null;
-        $IAHPersonalInfo = null;
-        $IAHEarningMembers = null;
-        $IAHHealthCondition = null;
-        $IAHSupportDetails = null;
-        $IAHBudgetDetails = null;
-        $IAHDocuments = null;
-        $IIESPersonalInfo = null;
-        $IIESFamilyWorkingMembers = null;
-        $IIESImmediateFamilyDetails = null;
-        $IIESEducationBackground = null;
-        $IIESFinancialSupport = null;
-        $IIESAttachments = null;
-        $iiesExpenses = null;
+            // Initialize variables for different project types
+            $basicInfo = null;
+            $targetGroups = null;
+            $annexedTargetGroups = null;
+            $cicBasicInfo = null;
 
-        // Handle specific project types
-        switch ($project->project_type) {
-            case 'Rural-Urban-Tribal':
-                Log::info('ProjectController@edit - Fetching Rural-Urban-Tribal data');
+            // Initialize variables for CCI project type
+            $achievements = null;
+            $ageProfile = null;
+            $targetGroup = null; // Renamed to match the view's variable
+            $economicBackground = null;
+            $personalSituation = null;
+            $presentSituation = null;
+            $rationale = null;
+            $statistics = null;
+            // Initialize variables for IGE
+            $IGEinstitutionInfo = null; //Added IGE
+            $beneficiariesSupported = collect();
+            $newBeneficiaries = null;
+            $ongoingBeneficiaries = null;
+            $budget = null;
+            $developmentMonitoring = null;
+            // Initialize variables for LDP
+            $interventionLogic = null;
+            $needAnalysis = null;
+            $LDPtargetGroups = null;
+            // Initialize variables for RST
+            $beneficiariesArea = null;
+            $geographicalArea = null;
+            $RSTinstitutionInfo = null; //Added RST
+            $RSTtargetGroupAnnexure = null; //Added RST
+            $RSTtargetGroup = null; //Added RST
+
+            // IES Initialize variables
+            $IESpersonalInfo = null;
+            $IESfamilyWorkingMembers = null;
+            $IESimmediateFamilyDetails = null;
+            $IESEducationBackground = null;
+            $IESExpenses = null;
+            $IESAttachments = null;
+            // Initialize variables for ILP
+            $ILPPersonalInfo = null;
+            $ILPRevenueGoals = null;
+            $ILPStrengthWeakness = null;
+            $ILPRiskAnalysis = null;
+            $ILPAttachedDocuments = null;
+            $ILPBudget = null;
+            // Initialize variables for IAH
+            $IAHPersonalInfo = null;
+            $IAHEarningMembers = null;
+            $IAHHealthCondition = null;
+            $IAHSupportDetails = null;
+            $IAHBudgetDetails = null;
+            $IAHDocuments = null;
+             // Initialize variables for IIES
+            $IIESPersonalInfo = null;
+            $IIESFamilyWorkingMembers = null;
+            $IIESImmediateFamilyDetails = null;
+            $IIESEducationBackground = null;
+            $IIESFinancialSupport = null;
+            $IIESAttachments = null;
+            // $IIESExpenses = null;
+            $iiesExpenses = null;
+
+
+
+            // Handle specific project types
+            if ($project->project_type == 'Rural-Urban-Tribal') {
                 $basicInfo = $this->eduRUTBasicInfoController->edit($project->project_id);
                 $targetGroups = $this->eduRUTTargetGroupController->edit($project->project_id);
                 $annexedTargetGroups = $this->eduRUTAnnexedTargetGroupController->edit($project->project_id);
-                break;
-
-            case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
-                Log::info('ProjectController@edit - Fetching CIC data');
+            } elseif ($project->project_type == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
                 $cicBasicInfo = $this->cicBasicInfoController->edit($project->project_id);
-                break;
-
-            case 'CHILD CARE INSTITUTION':
-                Log::info('ProjectController@edit - Fetching CCI data');
+            } elseif ($project->project_type === 'CHILD CARE INSTITUTION') {
+                // For CCI projects, retrieve data models
                 $achievements = $this->cciAchievementsController->edit($project->project_id);
                 $ageProfile = $this->cciAgeProfileController->edit($project->project_id);
                 $targetGroup = $this->cciAnnexedTargetGroupController->edit($project->project_id);
@@ -1069,374 +928,344 @@ public function edit($project_id)
                 $presentSituation = $this->cciPresentSituationController->edit($project->project_id);
                 $rationale = $this->cciRationaleController->edit($project->project_id);
                 $statistics = $this->cciStatisticsController->edit($project->project_id);
-                break;
-
-            case 'Institutional Ongoing Group Educational proposal':
-                Log::info('ProjectController@edit - Fetching IGE data');
+            } elseif ($project->project_type === 'Institutional Ongoing Group Educational proposal') {
                 $IGEinstitutionInfo = $this->igeInstitutionInfoController->edit($project->project_id);
                 $beneficiariesSupported = $this->igeBeneficiariesSupportedController->edit($project->project_id);
+                // $newBeneficiaries = $this->igeNewBeneficiariesController->edit($project->project_id);
                 $newBeneficiaries = $this->igeNewBeneficiariesController->edit($project->project_id);
                 $ongoingBeneficiaries = $this->igeOngoingBeneficiariesController->edit($project->project_id);
                 $budget = $this->igeBudgetController->edit($project->project_id);
                 $developmentMonitoring = $this->igeDevelopmentMonitoringController->edit($project->project_id);
-                break;
-
-            case 'Livelihood Development Projects':
-                Log::info('ProjectController@edit - Fetching LDP data');
+            }
+            // LDP project type
+            elseif ($project->project_type == 'Livelihood Development Projects') {
                 $interventionLogic = $this->ldpInterventionLogicController->edit($project_id);
+                // $needAnalysis = $this->ldpNeedAnalysisController->edit($project_id);
                 $needAnalysis = $this->ldpNeedAnalysisController->edit($project_id);
-                $LDPtargetGroups = $this->ldpTargetGroupController->edit($project_id);
-                break;
 
-            case 'Residential Skill Training Proposal 2':
-                Log::info('ProjectController@edit - Fetching RST data');
+                $LDPtargetGroups = $this->ldpTargetGroupController->edit($project_id);
+            }
+            // RST project type
+            elseif ($project->project_type === 'Residential Skill Training Proposal 2') {  // Replace with actual type
                 $beneficiariesArea = $this->rstBeneficiariesAreaController->edit($project->project_id);
                 $geographicalArea = $this->rstGeographicalAreaController->edit($project->project_id);
                 $RSTinstitutionInfo = $this->rstInstitutionInfoController->edit($project->project_id);
                 $RSTtargetGroupAnnexure = $this->rstTargetGroupAnnexureController->edit($project->project_id);
                 $RSTtargetGroup = $this->rstTargetGroupController->edit($project->project_id);
-                break;
-
-            case 'Development Projects':
-                Log::info('ProjectController@edit - Fetching Development Projects data');
+            }
+            elseif ($project->project_type === 'Development Projects') {
                 $beneficiariesArea = $this->rstBeneficiariesAreaController->edit($project->project_id);
-                break;
+            } elseif ($project->project_type === 'Individual - Ongoing Educational support') {
+                $data['IESpersonalInfo'] = $this->iesPersonalInfoController->edit($project->project_id);
+                $data['IESfamilyWorkingMembers'] = $this->iesFamilyWorkingMembersController->edit($project->project_id);
+                $data['IESimmediateFamilyDetails'] = $this->iesImmediateFamilyDetailsController->edit($project->project_id);
+                $data['IESEducationBackground'] = $this->iesEducationBackgroundController->edit($project->project_id);
+                // $data['IESExpenses'] = $this->iesExpensesController->edit($project->project_id);
+                $data['IESExpenses'] = $this->iesExpensesController->edit($project_id);
+                    // Then just create a local variable from that:
+                    $IESExpenses = $data['IESExpenses'];
 
-            case 'Individual - Ongoing Educational support':
-                Log::info('ProjectController@edit - Fetching IES data');
-                $IESpersonalInfo = $this->iesPersonalInfoController->edit($project->project_id);
-                $IESfamilyWorkingMembers = $this->iesFamilyWorkingMembersController->edit($project->project_id);
-                $IESimmediateFamilyDetails = $this->iesImmediateFamilyDetailsController->edit($project->project_id);
-                $IESEducationBackground = $this->iesEducationBackgroundController->edit($project->project_id);
-                $IESExpenses = $this->iesExpensesController->edit($project->project_id);
-                $IESAttachments = $this->iesAttachmentsController->edit($project->project_id) ?? [];
-                Log::info('ProjectController@edit - IES attachments fetched', [
-                    'attachments' => $IESAttachments
-                ]);
-                break;
+                    if ($data['IESExpenses']) {
+                        Log::info('✅ IES Expenses Found in Controller:', ['IESExpenses' => $data['IESExpenses']]);
+                    } else {
+                        Log::warning('⚠️ IES Expenses is NULL inside ProjectController@edit');
+                    }
 
-            case 'Individual - Livelihood Application':
-                Log::info('ProjectController@edit - Fetching ILP data');
-                $ILPPersonalInfo = $this->ilpPersonalInfoController->edit($project->project_id) ?? [];
-                $ILPRevenueGoals = $this->ilpRevenueGoalsController->edit($project->project_id) ?? [];
-                $ILPStrengthWeakness = $this->ilpStrengthWeaknessController->edit($project->project_id) ?? [];
-                $ILPRiskAnalysis = $this->ilpRiskAnalysisController->edit($project->project_id) ?? [];
-                $ILPAttachedDocuments = $this->ilpAttachedDocumentsController->edit($project->project_id) ?? [];
-                $ILPBudget = $this->ilpBudgetController->edit($project->project_id) ?? collect([]);
-                Log::info('ProjectController@edit - ILP attachments fetched', [
-                    'attachments' => $ILPAttachedDocuments
-                ]);
-                break;
 
-            case 'Individual - Access to Health':
-                Log::info('ProjectController@edit - Fetching IAH data');
-                $IAHPersonalInfo = $this->iahPersonalInfoController->edit($project->project_id);
-                $IAHEarningMembers = $this->iahEarningMembersController->edit($project->project_id);
-                $IAHHealthCondition = $this->iahHealthConditionController->edit($project->project_id);
-                $IAHSupportDetails = $this->iahSupportDetailsController->edit($project->project_id);
-                $IAHBudgetDetails = $this->iahBudgetDetailsController->edit($project->project_id);
-                $IAHDocuments = $this->iahDocumentsController->edit($project->project_id) ?? [];
-                Log::info('ProjectController@edit - IAH documents fetched', [
-                    'documents' => $IAHDocuments
-                ]);
-                break;
+                // $data['IESAttachments'] = $this->iesAttachmentsController->edit($project->project_id);
+                $IESAttachments = $this->iesAttachmentsController->edit($project->project_id);
 
-            case 'Individual - Initial - Educational support':
-                Log::info('ProjectController@edit - Fetching IIES data');
+            } elseif ($project->project_type === 'Individual - Livelihood Application') {
+
+                // $ILPPersonalInfo = $this->ilpPersonalInfoController->edit($project->project_id);
+                $ILPPersonalInfo = $this->ilpPersonalInfoController->edit($project->project_id);
+
+                if ($ILPPersonalInfo) {
+                    Log::info('Fetched ILP Personal Information in ProjectController@edit', ['ILP_personal_info' => $ILPPersonalInfo]);
+                } else {
+                    Log::warning('No ILP Personal Information found in ProjectController@edit', ['project_id' => $project->project_id]);
+                }
+                $ILPRevenueGoals = $this->ilpRevenueGoalsController->edit($project->project_id);
+
+                $ILPStrengthWeakness = $this->ilpStrengthWeaknessController->edit($project->project_id);
+
+                $ILPRiskAnalysis = $this->ilpRiskAnalysisController->edit($project->project_id);
+
+                $ILPAttachedDocuments = $this->ilpAttachedDocumentsController->edit($project->project_id);
+
+            //  $ILPBudget = $this->ilpBudgetController->edit($project->project_id);
+                $ILPBudget = $this->ilpBudgetController->edit($project->project_id);
+
+            } elseif ($project->project_type === 'Individual - Access to Health') {
+                $data['IAHPersonalInfo'] = $this->iahPersonalInfoController->edit($project->project_id);
+                $data['IAHEarningMembers'] = $this->iahEarningMembersController->edit($project->project_id);
+                $data['IAHHealthCondition'] = $this->iahHealthConditionController->edit($project->project_id);
+                $data['IAHSupportDetails'] = $this->iahSupportDetailsController->edit($project->project_id);
+                $data['IAHBudgetDetails'] = $this->iahBudgetDetailsController->edit($project->project_id);
+                $data['IAHDocuments'] = $this->iahDocumentsController->edit($project->project_id);
+
+            } elseif ($project->project_type === 'Individual - Initial - Educational support') {
+                Log::info('ProjectController@edit - Handling IIES with two hyphens', ['project_id' => $project->project_id]);
+
                 $IIESPersonalInfo = $this->iiesPersonalInfoController->edit($project->project_id);
                 $IIESFamilyWorkingMembers = $this->iiesFamilyWorkingMembersController->edit($project->project_id);
                 $IIESImmediateFamilyDetails = $this->iiesImmediateFamilyDetailsController->edit($project->project_id);
+
+                    // log the IIESImmediateFamilyDetails
+                    if ($IIESImmediateFamilyDetails) {
+                    // Log::info('ProjectController@edit - IIES Immediate Family Details found', ['details' => $IIESImmediateFamilyDetails]);
+                    Log::info('ProjectController@edit - IIES Immediate Family Details found');
+                    } else {
+                        Log::warning('ProjectController@edit - No Immediate Family Details found');
+                    }
+
                 $IIESEducationBackground = $this->iiesEducationBackgroundController->edit($project->project_id);
+
+                    // Check and log if data exists
+                    if ($IIESEducationBackground) {
+                        Log::info('✅ ProjectController@edit - IIES Education Background Found', ['data' => $IIESEducationBackground]);
+                    } else {
+                        Log::warning('⚠️ ProjectController@edit - No IIES Education Background Found, returning empty object');
+                    }
+
+
                 $IIESFinancialSupport = $this->iiesFinancialSupportController->edit($project->project_id);
-                $IIESAttachments = $this->iiesAttachmentsController->edit($project->project_id) ?? [];
-                $iiesExpenses = $this->iiesExpensesController->edit($project->project_id) ?? [];
-                Log::info('ProjectController@edit - IIES attachments fetched', [
-                    'attachments' => $IIESAttachments
-                ]);
-                break;
+                    // 🔍 Check attachments
+                    $IIESAttachments = $this->iiesAttachmentsController->edit($project->project_id);
+                    if ($IIESAttachments) {
+                        Log::info('ProjectController@edit - IIES Attachments found', ['attachments' => $IIESAttachments]);
+                    } else {
+                        Log::warning('ProjectController@edit - No attachments returned by IIESAttachmentsController@edit');
+                    }
 
-            default:
-                Log::warning('ProjectController@edit - Unknown project type', [
-                    'project_type' => $project->project_type
-                ]);
-                break;
+                    // Check if data exists before assigning it
+    $iiesExpenses = app(IIESExpensesController::class)->edit($project->project_id);
+    if (!$iiesExpenses) {
+        Log::warning('No IIES Expenses found in ProjectController@edit');
+        $iiesExpenses = null; // Ensure it's set even if data is missing
+    }
+
+
+
+                }
+
+
+
+
+
+
+            return view('projects.Oldprojects.edit', compact(
+                'project', 'developmentProjects', 'user', 'users',
+                // Variables for different project types
+                'basicInfo', 'targetGroups', 'annexedTargetGroups', 'cicBasicInfo',
+                // CCI variables
+                'achievements', 'ageProfile', 'targetGroup', 'economicBackground',
+                'personalSituation', 'presentSituation', 'rationale', 'statistics',
+                 // IGE variables
+                'IGEinstitutionInfo', 'beneficiariesSupported', 'newBeneficiaries',
+                'ongoingBeneficiaries', 'budget', 'developmentMonitoring',
+                // LDP variables
+                'interventionLogic', 'needAnalysis', 'LDPtargetGroups',
+                // RST variables
+                'beneficiariesArea', 'geographicalArea', 'RSTinstitutionInfo',
+                'RSTtargetGroupAnnexure', 'RSTtargetGroup',
+                // IES VAriables
+                'IESpersonalInfo', 'IESfamilyWorkingMembers',
+                'IESimmediateFamilyDetails', 'IESEducationBackground',
+                'IESExpenses', 'IESAttachments',
+                // ILP variables
+                'ILPPersonalInfo', 'ILPRevenueGoals', 'ILPStrengthWeakness',
+                'ILPRiskAnalysis', 'ILPAttachedDocuments', 'ILPBudget',
+                // IAH variables
+                'IAHPersonalInfo', 'IAHEarningMembers', 'IAHHealthCondition',
+                'IAHSupportDetails', 'IAHBudgetDetails', 'IAHDocuments',
+                // IIES variables
+                'IIESFinancialSupport', 'IESAttachments', 'iiesExpenses',
+                'IIESPersonalInfo', 'IIESFamilyWorkingMembers',
+                'IIESImmediateFamilyDetails', 'IIESEducationBackground', 'IIESAttachments'
+
+            ));
+            // return view('projects.Oldprojects.edit', [
+            //     'project' => $project,
+            //     'IESExpenses' => $data['IESExpenses'] ?? '🚨 NULL IN CONTROLLER 🚨', // Debugging line
+            // ]);
+
+        } catch (\Exception $e) {
+            Log::error('ProjectController@edit - Error retrieving project data', ['error' => $e->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Unable to retrieve project data.']);
         }
+    }
 
-        // For non-individual types, attachments are available via $project->attachments
+
+
+
+public function update(Request $request, $project_id)
+{
+    Log::info('ProjectController@update - Start', ['project_id' => $project_id, 'request_data' => $request->all()]);
+
+    // Force `phases` to be an array if it doesn't exist
+    $request->merge(['phases' => $request->input('phases', [])]);
+
+    DB::beginTransaction();
+    try {
+        $project = Project::where('project_id', $project_id)->firstOrFail();
+        // ✅ Ensure 'phases' key exists before accessing it
+        // $phases = $request->has('phases') ? $request->input('phases') : null;
+
+        // Update the project details
+        $project = (new GeneralInfoController())->update($request, $project->project_id);
+
+        $keyInformation = (new KeyInformationController())->update($request, $project);
+
+        // $budget = (new BudgetController())->update($request, $project);
+        // $attachments = (new AttachmentController())->update($request, $project->project_id);
+        // $this->logicalFrameworkController->update($request, $project->project_id);
+        // $this->sustainabilityController->update($request, $project->project_id);
+        /**
+         * 3. Conditionally call Budget/Attachment/LogicalFramework/Sustainability updates
+         *    EXCEPT for "Individual - Ongoing Educational support".
+         */
+        // if ($project->project_type !== 'Individual - Ongoing Educational support') {
+        //     // Only call these if NOT IES (Individual - Ongoing Educational support)
+        //     $budget      = (new BudgetController())->update($request, $project);
+        //     $attachments = (new AttachmentController())->update($request, $project->project_id);
+        //     $this->logicalFrameworkController->update($request, $project->project_id);
+        //     $this->sustainabilityController->update($request, $project->project_id);
+        // }
         if (!in_array($project->project_type, [
             'Individual - Ongoing Educational support',
             'Individual - Livelihood Application',
             'Individual - Access to Health',
-            'Individual - Initial - Educational support'
+            'Individual - Initial - Educational support',
         ])) {
-            Log::info('ProjectController@edit - Using default attachments from project model', [
-                'attachments_count' => $project->attachments->count()
-            ]);
+            // Only call these if NOT one of the specified project types
+            $budget      = (new BudgetController())->update($request, $project);
+            $attachments = (new AttachmentController())->update($request, $project->project_id);
+            $this->logicalFrameworkController->update($request, $project->project_id);
+            $this->sustainabilityController->update($request, $project->project_id);
         }
 
-        Log::info('ProjectController@edit - Preparing data for view', [
-            'project_id' => $project_id
-        ]);
 
-        return view('projects.Oldprojects.edit', compact(
-            'project', 'developmentProjects', 'user', 'users',
-            'basicInfo', 'targetGroups', 'annexedTargetGroups', 'cicBasicInfo',
-            'achievements', 'ageProfile', 'targetGroup', 'economicBackground',
-            'personalSituation', 'presentSituation', 'rationale', 'statistics',
-            'IGEinstitutionInfo', 'beneficiariesSupported', 'newBeneficiaries',
-            'ongoingBeneficiaries', 'budget', 'developmentMonitoring',
-            'interventionLogic', 'needAnalysis', 'LDPtargetGroups',
-            'beneficiariesArea', 'geographicalArea', 'RSTinstitutionInfo',
-            'RSTtargetGroupAnnexure', 'RSTtargetGroup',
-            'IESpersonalInfo', 'IESfamilyWorkingMembers',
-            'IESimmediateFamilyDetails', 'IESEducationBackground',
-            'IESExpenses', 'IESAttachments',
-            'ILPPersonalInfo', 'ILPRevenueGoals', 'ILPStrengthWeakness',
-            'ILPRiskAnalysis', 'ILPAttachedDocuments', 'ILPBudget',
-            'IAHPersonalInfo', 'IAHEarningMembers', 'IAHHealthCondition',
-            'IAHSupportDetails', 'IAHBudgetDetails', 'IAHDocuments',
-            'IIESPersonalInfo', 'IIESFamilyWorkingMembers',
-            'IIESImmediateFamilyDetails', 'IIESEducationBackground',
-            'IIESFinancialSupport', 'IIESAttachments', 'iiesExpenses'
-        ));
+        if ($project->project_type == 'Rural-Urban-Tribal') {
+            $this->eduRUTBasicInfoController->update($request, $project->project_id);
+            $this->eduRUTTargetGroupController->update($request, $project->project_id);
+            $this->eduRUTAnnexedTargetGroupController->update($request, $project->project_id);
+        }
+        elseif ($project->project_type == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
+            $this->cicBasicInfoController->update($request, $project->project_id);
+        }
+        elseif ($project->project_type === 'CHILD CARE INSTITUTION') {
+            // CCI Project type logic
+            $this->cciAchievementsController->update($request, $project->project_id);
+            $this->cciAgeProfileController->update($request, $project->project_id);
+            $this->cciAnnexedTargetGroupController->update($request, $project->project_id);
+            $this->cciEconomicBackgroundController->update($request, $project->project_id);
+            $this->cciPersonalSituationController->update($request, $project->project_id);
+            $this->cciPresentSituationController->update($request, $project->project_id);
+            $this->cciRationaleController->update($request, $project->project_id);
+            $this->cciStatisticsController->update($request, $project->project_id);
+        }
+        //IGE project type
+        elseif ($project->project_type === 'Institutional Ongoing Group Educational proposal') {
+            // Call the update methods from IGE controllers
+            $this->igeInstitutionInfoController->update($request, $project->project_id);
+            $this->igeBeneficiariesSupportedController->update($request, $project->project_id);
+            $this->igeNewBeneficiariesController->update($request, $project->project_id);
+            $this->igeOngoingBeneficiariesController->update($request, $project->project_id);
+            $this->igeBudgetController->update($request, $project->project_id);
+            $this->igeDevelopmentMonitoringController->update($request, $project->project_id);
+        }
+        // LDP project type
+        elseif ($project->project_type == 'Livelihood Development Projects') {
+            $this->ldpInterventionLogicController->update($request, $project->project_id);
+            $this->ldpNeedAnalysisController->update($request, $project->project_id);
+            $this->ldpTargetGroupController->update($request, $project->project_id);
+        }
+        // RST project type
+        elseif ($project->project_type === 'Residential Skill Training Proposal 2') {  // Replace with actual type
+            $this->rstBeneficiariesAreaController->update($request, $project->project_id);
+            $this->rstGeographicalAreaController->update($request, $project->project_id);
+            $this->rstInstitutionInfoController->update($request, $project->project_id);
+            $this->rstTargetGroupAnnexureController->update($request, $project->project_id);
+            $this->rstTargetGroupController->update($request, $project->project_id);
+        }
+        elseif ($project->project_type === 'Development Projects') {
+            $this->rstBeneficiariesAreaController->update($request, $project->project_id);
+        }
+        // IES Projec type
+        elseif ($project->project_type === 'Individual - Ongoing Educational support') {
+            Log::info('Updating data for Individual - Ongoing Educational Support project type');
+            $this->iesPersonalInfoController->update($request, $project->project_id);
+            $this->iesFamilyWorkingMembersController->update($request, $project->project_id);
+            $this->iesImmediateFamilyDetailsController->update($request, $project->project_id);
+            $this->iesEducationBackgroundController->update($request, $project->project_id);
+            $this->iesExpensesController->update($request, $project->project_id);
+            $this->iesAttachmentsController->update($request, $project->project_id);
+        }
+        // ILP Project Type
+        elseif  ($project->project_type === 'Individual - Livelihood Application') {
+            $this->ilpPersonalInfoController->update($request, $project_id);
+            $this->ilpRevenueGoalsController->update($request, $project_id);
+            $this->ilpStrengthWeaknessController->update($request, $project_id);
+            $this->ilpRiskAnalysisController->update($request, $project_id);
+            $this->ilpAttachedDocumentsController->update($request, $project_id);
+            $this->ilpBudgetController->update($request, $project_id);
+        }
+        // IAH Project Type
+        elseif ($project->project_type === 'Individual - Access to Health') {
+            $this->iahPersonalInfoController->update($request, $project->project_id);
+            $this->iahEarningMembersController->update($request, $project->project_id);
+            $this->iahHealthConditionController->update($request, $project->project_id);
+            $this->iahSupportDetailsController->update($request, $project->project_id);
+            $this->iahBudgetDetailsController->update($request, $project->project_id);
+            $this->iahDocumentsController->update($request, $project->project_id);
+        }
+        // IIES Project Type
+        elseif ($project->project_type === 'Individual - Initial - Educational support') {
+            Log::info('Updating data for Individual - Initial - Educational support project type');
+            $this->iiesPersonalInfoController->update($request, $project->project_id);
+            $this->iiesFamilyWorkingMembersController->update($request, $project->project_id);
+            $this->iiesImmediateFamilyDetailsController->update($request, $project->project_id);
+            $this->iiesEducationBackgroundController->update($request, $project->project_id);
+            $this->iiesFinancialSupportController->update($request, $project->project_id);
+            $this->iiesAttachmentsController->update($request, $project->project_id);
+            $this->iiesExpensesController->update($request, $project->project_id);
+        }
+
+
+        DB::commit();
+        return redirect()->route('projects.index')->with('success', 'Project updated successfully.');
     } catch (\Exception $e) {
-        Log::error('ProjectController@edit - Error retrieving project data', [
-            'project_id' => $project_id,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        return redirect()->back()->withErrors(['error' => 'Unable to retrieve project data.']);
+        DB::rollBack();
+        Log::error('ProjectController@update - Error', ['project_id' => $project_id, 'error' => $e->getMessage()]);
+        return redirect()->back()->withErrors(['error' => 'There was an error updating the project. Please try again.'])->withInput();
     }
 }
 
 
 
-
-    public function update(Request $request, $project_id)
+    public function destroy($project_id)
     {
-        Log::info('ProjectController@update - Starting update process', [
-            'project_id' => $project_id,
-            'request_data' => $request->all()
-        ]);
-
-        // Force `phases` to be an array if it doesn't exist
-        $request->merge(['phases' => $request->input('phases', [])]);
-
         DB::beginTransaction();
         try {
-            Log::info('ProjectController@update - Fetching project from database');
-            $project = Project::where('project_id', $project_id)->firstOrFail();
-            Log::info('ProjectController@update - Project fetched', [
-                'project_type' => $project->project_type
-            ]);
-
-            // Update general project details
-            Log::info('ProjectController@update - Updating general info');
-            $project = (new GeneralInfoController())->update($request, $project->project_id);
-            $keyInformation = (new KeyInformationController())->update($request, $project);
-            Log::info('ProjectController@update - General info and key information updated');
-
-            // Handle common sections for non-individual project types
-            $nonIndividualTypes = [
-                'Rural-Urban-Tribal',
-                'CHILD CARE INSTITUTION',
-                'Institutional Ongoing Group Educational proposal',
-                'Livelihood Development Projects',
-                'Residential Skill Training Proposal 2',
-                'Development Projects',
-                'NEXT PHASE - DEVELOPMENT PROPOSAL',
-                'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER'
-            ];
-
-            if (in_array($project->project_type, $nonIndividualTypes)) {
-                Log::info('ProjectController@update - Updating common sections for non-individual type');
-                $this->logicalFrameworkController->update($request, $project->project_id);
-                $this->sustainabilityController->update($request, $project->project_id);
-                (new BudgetController())->update($request, $project);
-                if ($request->hasFile('file')) {
-                    Log::info('ProjectController@update - Updating default attachment');
-                    (new AttachmentController())->update($request, $project->project_id);
-                } else {
-                    Log::info('ProjectController@update - No new attachment uploaded for default partial');
-                }
-            }
-
-            // Handle project type-specific updates
-            switch ($project->project_type) {
-                case 'Rural-Urban-Tribal':
-                    Log::info('ProjectController@update - Updating Rural-Urban-Tribal data');
-                    $this->eduRUTBasicInfoController->update($request, $project->project_id);
-                    $this->eduRUTTargetGroupController->update($request, $project->project_id);
-                    $this->eduRUTAnnexedTargetGroupController->update($request, $project->project_id);
-                    break;
-
-                case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
-                    Log::info('ProjectController@update - Updating CIC data');
-                    $this->cicBasicInfoController->update($request, $project->project_id);
-                    break;
-
-                case 'CHILD CARE INSTITUTION':
-                    Log::info('ProjectController@update - Updating CCI data');
-                    $this->cciAchievementsController->update($request, $project->project_id);
-                    $this->cciAgeProfileController->update($request, $project->project_id);
-                    $this->cciAnnexedTargetGroupController->update($request, $project->project_id);
-                    $this->cciEconomicBackgroundController->update($request, $project->project_id);
-                    $this->cciPersonalSituationController->update($request, $project->project_id);
-                    $this->cciPresentSituationController->update($request, $project->project_id);
-                    $this->cciRationaleController->update($request, $project->project_id);
-                    $this->cciStatisticsController->update($request, $project->project_id);
-                    break;
-
-                case 'Institutional Ongoing Group Educational proposal':
-                    Log::info('ProjectController@update - Updating IGE data');
-                    $this->igeInstitutionInfoController->update($request, $project->project_id);
-                    $this->igeBeneficiariesSupportedController->update($request, $project->project_id);
-                    $this->igeNewBeneficiariesController->update($request, $project->project_id);
-                    $this->igeOngoingBeneficiariesController->update($request, $project->project_id);
-                    $this->igeBudgetController->update($request, $project->project_id);
-                    $this->igeDevelopmentMonitoringController->update($request, $project->project_id);
-                    break;
-
-                case 'Livelihood Development Projects':
-                    Log::info('ProjectController@update - Updating LDP data');
-                    $this->ldpInterventionLogicController->update($request, $project->project_id);
-                    $this->ldpNeedAnalysisController->update($request, $project->project_id);
-                    $this->ldpTargetGroupController->update($request, $project->project_id);
-                    break;
-
-                case 'Residential Skill Training Proposal 2':
-                    Log::info('ProjectController@update - Updating RST data');
-                    $this->rstBeneficiariesAreaController->update($request, $project->project_id);
-                    $this->rstGeographicalAreaController->update($request, $project->project_id);
-                    $this->rstInstitutionInfoController->update($request, $project->project_id);
-                    $this->rstTargetGroupAnnexureController->update($request, $project->project_id);
-                    $this->rstTargetGroupController->update($request, $project->project_id);
-                    break;
-
-                case 'Development Projects':
-                    Log::info('ProjectController@update - Updating Development Projects data');
-                    $this->rstBeneficiariesAreaController->update($request, $project->project_id);
-                    break;
-
-                case 'NEXT PHASE - DEVELOPMENT PROPOSAL':
-                    Log::info('ProjectController@update - Updating NEXT PHASE - DEVELOPMENT PROPOSAL data');
-                    $this->rstBeneficiariesAreaController->update($request, $project->project_id);
-                    break;
-
-                case 'Individual - Ongoing Educational support':
-                    Log::info('ProjectController@update - Updating IES data');
-                    $this->iesPersonalInfoController->update($request, $project->project_id);
-                    $this->iesFamilyWorkingMembersController->update($request, $project->project_id);
-                    $this->iesImmediateFamilyDetailsController->update($request, $project->project_id);
-                    $this->iesEducationBackgroundController->update($request, $project->project_id);
-                    $this->iesExpensesController->update($request, $project->project_id);
-                    $this->iesAttachmentsController->update($request, $project->project_id);
-                    break;
-
-                case 'Individual - Livelihood Application':
-                    Log::info('ProjectController@update - Updating ILP data');
-                    $this->ilpPersonalInfoController->update($request, $project_id);
-                    $this->ilpRevenueGoalsController->update($request, $project_id);
-                    $this->ilpStrengthWeaknessController->update($request, $project_id);
-                    $this->ilpRiskAnalysisController->update($request, $project_id);
-                    $this->ilpAttachedDocumentsController->update($request, $project_id);
-                    $this->ilpBudgetController->update($request, $project_id);
-                    break;
-
-                case 'Individual - Access to Health':
-                    Log::info('ProjectController@update - Updating IAH data');
-                    $this->iahPersonalInfoController->update($request, $project->project_id);
-                    $this->iahEarningMembersController->update($request, $project->project_id);
-                    $this->iahHealthConditionController->update($request, $project->project_id);
-                    $this->iahSupportDetailsController->update($request, $project->project_id);
-                    $this->iahBudgetDetailsController->update($request, $project->project_id);
-                    $this->iahDocumentsController->update($request, $project->project_id);
-                    break;
-
-                case 'Individual - Initial - Educational support':
-                    Log::info('ProjectController@update - Updating IIES data');
-                    $this->iiesPersonalInfoController->update($request, $project->project_id);
-                    $this->iiesFamilyWorkingMembersController->update($request, $project->project_id);
-                    $this->iiesImmediateFamilyDetailsController->update($request, $project->project_id);
-                    $this->iiesEducationBackgroundController->update($request, $project->project_id);
-                    $this->iiesFinancialSupportController->update($request, $project->project_id);
-                    $this->iiesAttachmentsController->update($request, $project->project_id);
-                    $this->iiesExpensesController->update($request, $project->project_id);
-                    break;
-
-                default:
-                    Log::warning('ProjectController@update - Unknown project type', [
-                        'project_type' => $project->project_type
-                    ]);
-                    break;
-            }
-
-            DB::commit();
-            Log::info('ProjectController@update - Project updated successfully', [
-                'project_id' => $project->project_id
-            ]);
-
-            return redirect()->route('projects.index')->with('success', 'Project updated successfully.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('ProjectController@update - Error during update', [
-                'project_id' => $project_id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return redirect()->back()->withErrors(['error' => 'There was an error updating the project. Please try again.'])->withInput();
-        }
-    }
-
-
-
-    public function destroy($project_id)
-{
-    Log::info('ProjectController@destroy - Starting destroy process', ['project_id' => $project_id]);
-
-    DB::beginTransaction();
-    try {
-        Log::info('ProjectController@destroy - Fetching project from database');
-        $project = Project::where('project_id', $project_id)->firstOrFail();
-        Log::info('ProjectController@destroy - Project fetched', [
-            'project_type' => $project->project_type
-        ]);
-
-        // Delete common sections for non-individual types
-        $nonIndividualTypes = [
-            'Rural-Urban-Tribal',
-            'CHILD CARE INSTITUTION',
-            'Institutional Ongoing Group Educational proposal',
-            'Livelihood Development Projects',
-            'Residential Skill Training Proposal 2',
-            'Development Projects',
-            'NEXT PHASE - DEVELOPMENT PROPOSAL',
-            'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER'
-        ];
-
-        if (in_array($project->project_type, $nonIndividualTypes)) {
-            Log::info('ProjectController@destroy - Deleting common sections for non-individual type');
             $this->sustainabilityController->destroy($project_id);
             $this->logicalFrameworkController->destroy($project_id);
-            // Attachments are handled by the model's cascading delete (assumed via foreign key)
-        }
 
-        // Handle project type-specific deletions
-        switch ($project->project_type) {
-            case 'Rural-Urban-Tribal':
-                Log::info('ProjectController@destroy - Deleting Rural-Urban-Tribal data');
+            $project = Project::where('project_id', $project_id)->firstOrFail();
+
+            // Check for Education Rural-Urban-Tribal project type
+            if ($project->project_type == 'Rural-Urban-Tribal') {
                 $this->eduRUTBasicInfoController->destroy($project_id);
                 $this->eduRUTTargetGroupController->destroy($project_id);
                 $this->eduRUTAnnexedTargetGroupController->destroy($project_id);
-                break;
-
-            case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
-                Log::info('ProjectController@destroy - Deleting CIC data');
+            }
+            // Check for CCI project type
+            elseif ($project->project_type == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
                 $this->cicBasicInfoController->destroy($project_id);
-                break;
-
-            case 'CHILD CARE INSTITUTION':
-                Log::info('ProjectController@destroy - Deleting CCI data');
+            }
+            // Check for CCI project type
+            elseif ($project->project_type === 'CHILD CARE INSTITUTION') {
+                // CCI Project type logic
                 $this->cciAchievementsController->destroy($project_id);
                 $this->cciAgeProfileController->destroy($project_id);
                 $this->cciAnnexedTargetGroupController->destroy($project_id);
@@ -1445,76 +1274,65 @@ public function edit($project_id)
                 $this->cciPresentSituationController->destroy($project_id);
                 $this->cciRationaleController->destroy($project_id);
                 $this->cciStatisticsController->destroy($project_id);
-                break;
-
-            case 'Institutional Ongoing Group Educational proposal':
-                Log::info('ProjectController@destroy - Deleting IGE data');
+            }
+            //IGE project type
+            elseif ($project->project_type === 'Institutional Ongoing Group Educational proposal') {
+                // Call the destroy methods from IGE controllers
                 $this->igeInstitutionInfoController->destroy($project_id);
                 $this->igeBeneficiariesSupportedController->destroy($project_id);
                 $this->igeNewBeneficiariesController->destroy($project_id);
                 $this->igeOngoingBeneficiariesController->destroy($project_id);
                 $this->igeBudgetController->destroy($project_id);
                 $this->igeDevelopmentMonitoringController->destroy($project_id);
-                break;
-
-            case 'Livelihood Development Projects':
-                Log::info('ProjectController@destroy - Deleting LDP data');
+            }
+            // LDP project type
+            elseif ($project->project_type == 'Livelihood Development Projects') {
                 $this->ldpInterventionLogicController->destroy($project_id);
                 $this->ldpNeedAnalysisController->destroy($project_id);
                 $this->ldpTargetGroupController->destroy($project_id);
-                break;
-
-            case 'Residential Skill Training Proposal 2':
-                Log::info('ProjectController@destroy - Deleting RST data');
+            }
+            // RST project type
+            elseif ($project->project_type === 'Residential Skill Training Proposal 2') {  // Replace with actual type
                 $this->rstBeneficiariesAreaController->destroy($project_id);
                 $this->rstGeographicalAreaController->destroy($project_id);
                 $this->rstInstitutionInfoController->destroy($project_id);
                 $this->rstTargetGroupAnnexureController->destroy($project_id);
                 $this->rstTargetGroupController->destroy($project_id);
-                break;
-
-            case 'Development Projects':
-                Log::info('ProjectController@destroy - Deleting Development Projects data');
+            }
+            elseif ($project->project_type === 'Development Projects') {
                 $this->rstBeneficiariesAreaController->destroy($project_id);
-                break;
-
-            case 'NEXT PHASE - DEVELOPMENT PROPOSAL':
-                Log::info('ProjectController@destroy - Deleting NEXT PHASE - DEVELOPMENT PROPOSAL data');
-                $this->rstBeneficiariesAreaController->destroy($project_id);
-                break;
-
-            case 'Individual - Ongoing Educational support':
-                Log::info('ProjectController@destroy - Deleting IES data');
+            }
+            // IES Project Type
+            elseif ($project->project_type === 'Individual - Ongoing Educational support') {
+                Log::info('Deleting data for Individual - Ongoing Educational Support project type');
                 $this->iesPersonalInfoController->destroy($project->project_id);
                 $this->iesFamilyWorkingMembersController->destroy($project->project_id);
                 $this->iesImmediateFamilyDetailsController->destroy($project->project_id);
                 $this->iesEducationBackgroundController->destroy($project->project_id);
                 $this->iesExpensesController->destroy($project->project_id);
                 $this->iesAttachmentsController->destroy($project->project_id);
-                break;
-
-            case 'Individual - Livelihood Application':
-                Log::info('ProjectController@destroy - Deleting ILP data');
+            }
+            //ILP Project Type
+            elseif ($project->project_type ===  'Individual - Livelihood Application'){
                 $this->ilpPersonalInfoController->destroy($project_id);
                 $this->ilpRevenueGoalsController->destroy($project_id);
                 $this->ilpStrengthWeaknessController->destroy($project_id);
                 $this->ilpRiskAnalysisController->destroy($project_id);
                 $this->ilpAttachedDocumentsController->destroy($project_id);
                 $this->ilpBudgetController->destroy($project_id);
-                break;
-
-            case 'Individual - Access to Health':
-                Log::info('ProjectController@destroy - Deleting IAH data');
+            }
+            //IAH Project Type
+            elseif ($project->project_type === 'Individual - Access to Health') {
                 $this->iahPersonalInfoController->destroy($project->project_id);
                 $this->iahEarningMembersController->destroy($project->project_id);
                 $this->iahHealthConditionController->destroy($project->project_id);
                 $this->iahSupportDetailsController->destroy($project->project_id);
                 $this->iahBudgetDetailsController->destroy($project->project_id);
                 $this->iahDocumentsController->destroy($project->project_id);
-                break;
-
-            case 'Individual - Initial - Educational support':
-                Log::info('ProjectController@destroy - Deleting IIES data');
+            }
+            //IIES Project Type
+            elseif ($project->project_type === 'Individual - Initial - Educational support') {
+                Log::info('Deleting data for Individual - Initial - Educational support project type');
                 $this->iiesPersonalInfoController->destroy($project->project_id);
                 $this->iiesFamilyWorkingMembersController->destroy($project->project_id);
                 $this->iiesImmediateFamilyDetailsController->destroy($project->project_id);
@@ -1522,34 +1340,22 @@ public function edit($project_id)
                 $this->iiesFinancialSupportController->destroy($project->project_id);
                 $this->iiesAttachmentsController->destroy($project->project_id);
                 $this->iiesExpensesController->destroy($project->project_id);
-                break;
+            }
 
-            default:
-                Log::warning('ProjectController@destroy - Unknown project type', [
-                    'project_type' => $project->project_type
-                ]);
-                break;
+
+
+
+
+            $project->delete();
+
+            DB::commit();
+            return redirect()->route('projects.index')->with('success', 'Project deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('ProjectController@destroy - Error', ['error' => $e->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'There was an error deleting the project. Please try again.']);
         }
-
-        Log::info('ProjectController@destroy - Deleting project record');
-        $project->delete();
-
-        DB::commit();
-        Log::info('ProjectController@destroy - Project and related data deleted successfully', [
-            'project_id' => $project_id
-        ]);
-
-        return redirect()->route('projects.index')->with('success', 'Project deleted successfully.');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('ProjectController@destroy - Error during deletion', [
-            'project_id' => $project_id,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        return redirect()->back()->withErrors(['error' => 'There was an error deleting the project. Please try again.']);
     }
-}
 
     // 9122024
     public function listProjects(Request $request)
