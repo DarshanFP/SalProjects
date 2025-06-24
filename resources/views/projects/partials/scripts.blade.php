@@ -1,6 +1,6 @@
 {{-- resources/views/projects/partials/scripts.blade.php --}}
 <script>
-   
+
     function beforeSubmit() {
     const formData = new FormData(document.querySelector('form'));
     formData.forEach((value, key) => {
@@ -21,22 +21,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('in_charge_email').value = email;
     });
 
-    // Update the phase options based on the selected overall project period
+    // Update all budget rows based on the selected project period
     document.getElementById('overall_project_period').addEventListener('change', function() {
-        const projectPeriod = parseInt(this.value);
-        const phaseSelect = document.getElementById('current_phase');
-
-        // Clear previous options
-        phaseSelect.innerHTML = '<option value="" disabled selected>Select Phase</option>';
-
-        // Add new options based on the selected value
-        for (let i = 1; i <= projectPeriod; i++) {
-            const option = document.createElement('option');
-            option.value = i;
-            option.text = `${i}${i === 1 ? 'st' : i === 2 ? 'nd' : i === 3 ? 'rd' : 'th'} Phase`;
-            phaseSelect.appendChild(option);
-        }
-
         // Update all budget rows based on the selected project period
         updateAllBudgetRows();
     });

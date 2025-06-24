@@ -17,11 +17,11 @@
                         <label class="form-label">{{ $label }}:</label>
                         @if(!empty($IESAttachments->$name))
                             <p>Attached:</p>
-                            <a href="{{ asset('storage/' . str_replace('public/', '', $IESAttachments->$name)) }}" target="_blank">
+                            <a href="{{ Storage::url($IESAttachments->$name) }}" target="_blank">
                                 {{ basename($IESAttachments->$name) }}
                             </a>
                             <br>
-                            <a href="{{ asset('storage/' . str_replace('public/', '', $IESAttachments->$name)) }}" download class="btn btn-green">
+                            <a href="{{ Storage::url($IESAttachments->$name) }}" download class="btn btn-green">
                                 Download
                             </a>
                         @else
@@ -43,11 +43,11 @@
                         <label class="form-label">{{ $label }}:</label>
                         @if(!empty($IESAttachments->$name))
                             <p>Attached:</p>
-                            <a href="{{ asset('storage/' . str_replace('public/', '', $IESAttachments->$name)) }}" target="_blank">
+                            <a href="{{ Storage::url($IESAttachments->$name) }}" target="_blank">
                                 {{ basename($IESAttachments->$name) }}
                             </a>
                             <br>
-                            <a href="{{ asset('storage/' . str_replace('public/', '', $IESAttachments->$name)) }}" download class="btn btn-green">
+                            <a href="{{ Storage::url($IESAttachments->$name) }}" download class="btn btn-green">
                                 Download
                             </a>
                         @else

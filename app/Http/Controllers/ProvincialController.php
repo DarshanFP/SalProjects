@@ -42,94 +42,169 @@ class ProvincialController extends Controller
             $reportsQuery->where('project_type', $request->project_type);
         }
 
-        $reports = $reportsQuery->get();
+        $reports = $reportsQuery->with('accountDetails')->get();
 
-        // Fetch unique places and users for filters resources/views/projects/Coord-Prov-ProjectList.blade.php
-        $places = DPReport::distinct()->pluck('place');
+        // Calculate budget summaries
+        $budgetSummaries = $this->calculateBudgetSummaries($reports, $request);
+
+        // Fetch unique places and users for filters
+        $places = DPReport::whereHas('user', function ($query) use ($provincial) {
+            $query->where('parent_id', $provincial->id);
+        })->distinct()->pluck('place');
+
         $users = User::where('parent_id', $provincial->id)->get();
 
-        return view('provincial.index', compact('reports', 'places', 'users'));
+        // Fetch distinct project types for filters
+        $projectTypes = DPReport::whereHas('user', function ($query) use ($provincial) {
+            $query->where('parent_id', $provincial->id);
+        })->distinct()->pluck('project_type');
+
+        return view('provincial.index', compact('budgetSummaries', 'places', 'users', 'projectTypes'));
     }
+
+    private function calculateBudgetSummaries($reports, $request)
+    {
+        $budgetSummaries = [
+            'by_project_type' => [],
+            'by_executor' => [],
+            'total' => [
+                'total_budget' => 0,
+                'total_expenses' => 0,
+                'total_remaining' => 0
+            ]
+        ];
+
+        foreach ($reports as $report) {
+            // Calculate totals for this report
+            $reportTotal = $report->accountDetails->sum('total_amount');
+            $reportExpenses = $report->accountDetails->sum('total_expenses');
+            $reportRemaining = $report->accountDetails->sum('balance_amount');
+
+            // Update project type summary
+            if (!isset($budgetSummaries['by_project_type'][$report->project_type])) {
+                $budgetSummaries['by_project_type'][$report->project_type] = [
+                    'total_budget' => 0,
+                    'total_expenses' => 0,
+                    'total_remaining' => 0
+                ];
+            }
+            $budgetSummaries['by_project_type'][$report->project_type]['total_budget'] += $reportTotal;
+            $budgetSummaries['by_project_type'][$report->project_type]['total_expenses'] += $reportExpenses;
+            $budgetSummaries['by_project_type'][$report->project_type]['total_remaining'] += $reportRemaining;
+
+            // Update executor summary
+            $executorName = $report->user->name;
+            if (!isset($budgetSummaries['by_executor'][$executorName])) {
+                $budgetSummaries['by_executor'][$executorName] = [
+                    'total_budget' => 0,
+                    'total_expenses' => 0,
+                    'total_remaining' => 0
+                ];
+            }
+            $budgetSummaries['by_executor'][$executorName]['total_budget'] += $reportTotal;
+            $budgetSummaries['by_executor'][$executorName]['total_expenses'] += $reportExpenses;
+            $budgetSummaries['by_executor'][$executorName]['total_remaining'] += $reportRemaining;
+
+            // Update total summary
+            $budgetSummaries['total']['total_budget'] += $reportTotal;
+            $budgetSummaries['total']['total_expenses'] += $reportExpenses;
+            $budgetSummaries['total']['total_remaining'] += $reportRemaining;
+        }
+
+        return $budgetSummaries;
+    }
+
     public function ReportList(Request $request)
-{
-    $provincial = auth()->user();
+    {
+        $provincial = auth()->user();
 
-    // Fetch reports for executors under this provincial
-    $reportsQuery = DPReport::whereHas('user', function ($query) use ($provincial) {
-        $query->where('parent_id', $provincial->id);
-    });
+        // Fetch reports for executors under this provincial
+        $reportsQuery = DPReport::whereHas('user', function ($query) use ($provincial) {
+            $query->where('parent_id', $provincial->id);
+        });
 
-    // Apply any filters as needed
-    if ($request->filled('place')) {
-        $reportsQuery->where('place', $request->place);
-    }
-    if ($request->filled('user_id')) {
-        $reportsQuery->where('user_id', $request->user_id);
-    }
-    if ($request->filled('project_type')) {
-        $reportsQuery->where('project_type', $request->project_type);
-    }
+        // Apply any filters as needed
+        if ($request->filled('place')) {
+            $reportsQuery->where('place', $request->place);
+        }
+        if ($request->filled('user_id')) {
+            $reportsQuery->where('user_id', $request->user_id);
+        }
+        if ($request->filled('project_type')) {
+            $reportsQuery->where('project_type', $request->project_type);
+        }
 
-    $reports = $reportsQuery->get();
+        $reports = $reportsQuery->with(['user', 'accountDetails'])->get();
 
-    // Fetch unique places and users for filters
-    $places = DPReport::distinct()->pluck('place');
-    $users = User::where('parent_id', $provincial->id)->get();
+        // Calculate budget summaries
+        $budgetSummaries = $this->calculateBudgetSummaries($reports, $request);
 
-    return view('provincial.ReportList', compact('reports', 'places', 'users'));
-}
+        // Fetch unique places and users for filters
+        $places = DPReport::whereHas('user', function ($query) use ($provincial) {
+            $query->where('parent_id', $provincial->id);
+        })->distinct()->pluck('place');
 
-public function ProjectList(Request $request)
-{
-    $provincial = auth()->user();
+        $users = User::where('parent_id', $provincial->id)->get();
 
-    // Fetch all projects where the project's user is a child of the provincial
-    $projectsQuery = \App\Models\OldProjects\Project::whereHas('user', function($query) use ($provincial) {
-        $query->where('parent_id', $provincial->id);
-    });
+        // Fetch distinct project types for filters
+        $projectTypes = DPReport::whereHas('user', function ($query) use ($provincial) {
+            $query->where('parent_id', $provincial->id);
+        })->distinct()->pluck('project_type');
 
-    // Apply optional filters if you want:
-    if ($request->filled('project_type')) {
-        $projectsQuery->where('project_type', $request->project_type);
+        return view('provincial.ReportList', compact('reports', 'budgetSummaries', 'places', 'users', 'projectTypes'));
     }
 
-    if ($request->filled('user_id')) {
-        $projectsQuery->where('user_id', $request->user_id);
+    public function ProjectList(Request $request)
+    {
+        $provincial = auth()->user();
+
+        // Fetch all projects where the project's user is a child of the provincial
+        // Only show projects with status 'submitted_to_provincial' and 'reverted_by_coordinator'
+        $projectsQuery = \App\Models\OldProjects\Project::whereHas('user', function($query) use ($provincial) {
+            $query->where('parent_id', $provincial->id);
+        })
+        ->whereIn('status', ['submitted_to_provincial', 'reverted_by_coordinator']);
+
+        // Apply optional filters if you want:
+        if ($request->filled('project_type')) {
+            $projectsQuery->where('project_type', $request->project_type);
+        }
+
+        if ($request->filled('user_id')) {
+            $projectsQuery->where('user_id', $request->user_id);
+        }
+        if ($request->filled('status')) {
+            $projectsQuery->where('status', $request->status);
+        }
+
+        $projects = $projectsQuery->get();
+
+        // Fetch distinct executors under this provincial for filtering
+        $users = \App\Models\User::where('parent_id', $provincial->id)->get();
+
+        // Distinct project types (if needed)
+        $projectTypes = \App\Models\OldProjects\Project::distinct()->pluck('project_type');
+
+        return view('provincial.ProjectList', compact('projects', 'users', 'projectTypes'));
     }
-    if ($request->filled('status')) {
-        $projectsQuery->where('status', $request->status);
+
+    public function showProject($project_id)
+    {
+        $provincial = auth()->user();
+
+        // Fetch the project and ensure it exists
+        $project = Project::where('project_id', $project_id)
+            ->with('user')
+            ->firstOrFail();
+
+        // Authorization check: the project's user must be a child (executor) of the current provincial
+        if ($project->user->parent_id !== $provincial->id) {
+            abort(403, 'Unauthorized');
+        }
+
+        // If passed the authorization, call ProjectController@show
+        return app(ProjectController::class)->show($project_id);
     }
-
-    $projects = $projectsQuery->get();
-
-    // Fetch distinct executors under this provincial for filtering
-    $users = \App\Models\User::where('parent_id', $provincial->id)->get();
-
-    // Distinct project types (if needed)
-    $projectTypes = \App\Models\OldProjects\Project::distinct()->pluck('project_type');
-
-    return view('provincial.ProjectList', compact('projects', 'users', 'projectTypes'));
-}
-public function showProject($project_id)
-{
-    $provincial = auth()->user();
-
-    // Fetch the project and ensure it exists
-    $project = Project::where('project_id', $project_id)
-        ->with('user')
-        ->firstOrFail();
-
-    // Authorization check: the project's user must be a child (executor) of the current provincial
-    if ($project->user->parent_id !== $provincial->id) {
-        abort(403, 'Unauthorized');
-    }
-
-    // If passed the authorization, call ProjectController@show
-    return app(ProjectController::class)->show($project_id);
-}
-
-
-
 
     public function showMonthlyReport($report_id)
     {
@@ -148,7 +223,6 @@ public function showProject($project_id)
         // // Retrieve associated project
         // $project = Project::where('project_id', $report->project_id)->firstOrFail();
 
-
         $provincial = auth()->user();
 
         // Authorization check: Ensure the report belongs to an executor under this provincial
@@ -158,11 +232,10 @@ public function showProject($project_id)
 
         // return view('reports.monthly.show', compact('report', 'project'));
         return app(ReportController::class)->show($report_id);
-
     }
 
     // Add Comment in reports
-        public function addComment(Request $request, $report_id)
+    public function addComment(Request $request, $report_id)
     {
         $provincial = auth()->user();
 
@@ -189,7 +262,6 @@ public function showProject($project_id)
         return redirect()->back()->with('success', 'Comment added successfully.');
     }
 
-
     // Show Create Executor form
     public function CreateExecutor()
     {
@@ -206,7 +278,7 @@ public function showProject($project_id)
             'VISAKHAPATNAM' => [
                 'Arilova', 'Malkapuram', 'Madugula', 'Rajam', 'Kapileswarapuram',
                 'Erukonda', 'Navajara, Jharkhand', 'Jalaripeta',
-                'Wilhelm Meyer’s Developmental Society, Visakhapatnam.',
+                'Wilhelm Meyer\'s Developmental Society, Visakhapatnam.',
                 'Edavalli', 'Megalaya', 'Nalgonda', 'Shanthi Niwas, Madugula',
                 'Malkapuram College', 'Malkapuram Hospital', 'Arilova School',
                 'Morning Star, Eluru'
@@ -224,7 +296,6 @@ public function showProject($project_id)
     }
 
     // Store Executor
-
     public function StoreExecutor(Request $request)
     {
         try {
@@ -238,6 +309,7 @@ public function showProject($project_id)
                 'password' => 'required|string|min:8|confirmed',
                 'phone' => 'nullable|string|max:255',
                 'society_name' => 'required|string|max:255',
+                'role' => 'required|in:executor,applicant',
                 'center' => 'nullable|string|max:255',
                 'address' => 'nullable|string',
             ]);
@@ -259,73 +331,73 @@ public function showProject($project_id)
                 'province' => $provincial->province,
                 'center' => $validatedData['center'],
                 'address' => $validatedData['address'],
-                'role' => 'executor',
+                'role' => $validatedData['role'],
                 'status' => 'active',
                 'parent_id' => $provincial->id,
             ]);
 
             // Log the successful creation of the executor
             if ($executor) {
-                Log::info('Executor created successfully', ['executor_id' => $executor->id]);
-                $executor->assignRole('executor');
+                Log::info('User created successfully', ['user_id' => $executor->id, 'role' => $validatedData['role']]);
+                $executor->assignRole($validatedData['role']);
             } else {
-                // Log failure to create executor
-                Log::error('Failed to create executor');
+                // Log failure to create user
+                Log::error('Failed to create user');
             }
 
-            return redirect()->route('provincial.createExecutor')->with('success', 'Executor created successfully.');
+            $roleName = ucfirst($validatedData['role']);
+            return redirect()->route('provincial.createExecutor')->with('success', $roleName . ' created successfully.');
         } catch (\Exception $e) {
             // Log any exceptions that occur
-            Log::error('Error storing executor', ['error' => $e->getMessage()]);
-            return back()->withErrors('Failed to create executor: ' . $e->getMessage());
+            Log::error('Error storing user', ['error' => $e->getMessage()]);
+            return back()->withErrors('Failed to create user: ' . $e->getMessage());
         }
     }
 
-
-
-    // List of Executors
+    // List of Users (Executors and Applicants)
     public function listExecutors()
     {
         $provincial = auth()->user();
-        $executors = User::where('parent_id', $provincial->id)->where('role', 'executor')->get();
+        $executors = User::where('parent_id', $provincial->id)
+                        ->whereIn('role', ['executor', 'applicant'])
+                        ->get();
 
         return view('provincial.executors', compact('executors'));
     }
 
     // Edit Executor
     public function editExecutor($id)
-{
-    $executor = User::findOrFail($id);
-    $provincial = auth()->user();
-    $province = strtoupper($provincial->province);
+    {
+        $executor = User::findOrFail($id);
+        $provincial = auth()->user();
+        $province = strtoupper($provincial->province);
 
-    // Define the mapping of provinces to their centers
-    $centersMap = [
-        'VIJAYAWADA' => [
-            'Ajitsingh Nagar', 'Nunna', 'Jaggayyapeta', 'Beed', 'Mangalagiri',
-            'S.A.Peta', 'Thiruvur', 'Chakan', 'Megalaya', 'Rajavaram',
-            'Avanigadda', 'Darjeeling', 'Sarvajan Sneha Charitable Trust, Vijayawada'
-        ],
-        'VISAKHAPATNAM' => [
-            'Arilova', 'Malkapuram', 'Madugula', 'Rajam', 'Kapileswarapuram',
-            'Erukonda', 'Navajara, Jharkhand', 'Jalaripeta',
-            'Wilhelm Meyer’s Developmental Society, Visakhapatnam.',
-            'Edavalli', 'Megalaya', 'Nalgonda', 'Shanthi Niwas, Madugula',
-            'Malkapuram College', 'Malkapuram Hospital', 'Arilova School',
-            'Morning Star, Eluru'
-        ],
-        'BANGALORE' => [
-            'Prajyothi Welfare Centre', 'Gadag', 'Kurnool', 'Madurai',
-            'Madhavaram', 'Belgaum', 'Kadirepalli', 'Munambam', 'Kuderu'
-        ],
-    ];
+        // Define the mapping of provinces to their centers
+        $centersMap = [
+            'VIJAYAWADA' => [
+                'Ajitsingh Nagar', 'Nunna', 'Jaggayyapeta', 'Beed', 'Mangalagiri',
+                'S.A.Peta', 'Thiruvur', 'Chakan', 'Megalaya', 'Rajavaram',
+                'Avanigadda', 'Darjeeling', 'Sarvajan Sneha Charitable Trust, Vijayawada'
+            ],
+            'VISAKHAPATNAM' => [
+                'Arilova', 'Malkapuram', 'Madugula', 'Rajam', 'Kapileswarapuram',
+                'Erukonda', 'Navajara, Jharkhand', 'Jalaripeta',
+                'Wilhelm Meyer\'s Developmental Society, Visakhapatnam.',
+                'Edavalli', 'Megalaya', 'Nalgonda', 'Shanthi Niwas, Madugula',
+                'Malkapuram College', 'Malkapuram Hospital', 'Arilova School',
+                'Morning Star, Eluru'
+            ],
+            'BANGALORE' => [
+                'Prajyothi Welfare Centre', 'Gadag', 'Kurnool', 'Madurai',
+                'Madhavaram', 'Belgaum', 'Kadirepalli', 'Munambam', 'Kuderu'
+            ],
+        ];
 
-    // Get the centers for the current provincial's province
-    $centers = $centersMap[$province] ?? [];
+        // Get the centers for the current provincial's province
+        $centers = $centersMap[$province] ?? [];
 
-    return view('provincial.editExecutor', compact('executor', 'centers'));
-}
-
+        return view('provincial.editExecutor', compact('executor', 'centers'));
+    }
 
     // Update Executor
     public function updateExecutor(Request $request, $id)
@@ -372,6 +444,39 @@ public function showProject($project_id)
 
         return redirect()->route('provincial.executors')->with('success', 'Executor password reset successfully.');
     }
+
+    // Activate User
+    public function activateUser($id)
+    {
+        $user = User::findOrFail($id);
+        $provincial = auth()->user();
+
+        // Check if the user belongs to this provincial
+        if ($user->parent_id !== $provincial->id) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $user->update(['status' => 'active']);
+
+        return redirect()->route('provincial.executors')->with('success', ucfirst($user->role) . ' activated successfully.');
+    }
+
+    // Deactivate User
+    public function deactivateUser($id)
+    {
+        $user = User::findOrFail($id);
+        $provincial = auth()->user();
+
+        // Check if the user belongs to this provincial
+        if ($user->parent_id !== $provincial->id) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $user->update(['status' => 'inactive']);
+
+        return redirect()->route('provincial.executors')->with('success', ucfirst($user->role) . ' deactivated successfully.');
+    }
+
     public function addProjectComment(Request $request, $project_id)
     {
         $provincial = auth()->user();
@@ -430,35 +535,70 @@ public function showProject($project_id)
     }
     // Status
     public function revertToExecutor($project_id)
-{
-    $project = Project::where('project_id', $project_id)->firstOrFail();
-    $provincial = auth()->user();
+    {
+        $project = Project::where('project_id', $project_id)->firstOrFail();
+        $provincial = auth()->user();
 
-    // Check if user is provincial and can revert
-    if($provincial->role !== 'provincial' || !in_array($project->status, ['submitted_to_provincial','reverted_by_coordinator'])) {
-        abort(403, 'Unauthorized action.');
+        // Check if user is provincial and can revert
+        if($provincial->role !== 'provincial' || !in_array($project->status, ['submitted_to_provincial','reverted_by_coordinator'])) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $project->status = 'reverted_by_provincial';
+        $project->save();
+
+        return redirect()->back()->with('success', 'Project reverted to Executor.');
     }
 
-    $project->status = 'reverted_by_provincial';
-    $project->save();
+    public function forwardToCoordinator($project_id)
+    {
+        $project = Project::where('project_id', $project_id)->firstOrFail();
+        $provincial = auth()->user();
 
-    return redirect()->back()->with('success', 'Project reverted to Executor.');
-}
+        if($provincial->role !== 'provincial' || !in_array($project->status, ['submitted_to_provincial','reverted_by_coordinator'])) {
+            abort(403, 'Unauthorized action.');
+        }
 
-public function forwardToCoordinator($project_id)
-{
-    $project = Project::where('project_id', $project_id)->firstOrFail();
-    $provincial = auth()->user();
+        $project->status = 'forwarded_to_coordinator';
+        $project->save();
 
-    if($provincial->role !== 'provincial' || !in_array($project->status, ['submitted_to_provincial','reverted_by_coordinator'])) {
-        abort(403, 'Unauthorized action.');
+        return redirect()->back()->with('success', 'Project forwarded to Coordinator.');
     }
 
-    $project->status = 'forwarded_to_coordinator';
-    $project->save();
+    // Approved Projects for Provincials
+    public function approvedProjects(Request $request)
+    {
+        $provincial = auth()->user();
 
-    return redirect()->back()->with('success', 'Project forwarded to Coordinator.');
-}
+        // Fetch approved projects for all executors under this provincial
+        // Use a subquery to get unique project IDs first, then fetch the full records
+        $projectIds = \App\Models\OldProjects\Project::whereHas('user', function($query) use ($provincial) {
+            $query->where('parent_id', $provincial->id);
+        })
+        ->where('status', 'approved_by_coordinator')
+        ->distinct()
+        ->pluck('project_id');
 
+        $projectsQuery = \App\Models\OldProjects\Project::whereIn('project_id', $projectIds)
+            ->with('user');
 
+        // Apply optional filters
+        if ($request->filled('project_type')) {
+            $projectsQuery->where('project_type', $request->project_type);
+        }
+
+        if ($request->filled('user_id')) {
+            $projectsQuery->where('user_id', $request->user_id);
+        }
+
+        $projects = $projectsQuery->orderBy('project_id')->orderBy('user_id')->get();
+
+        // Fetch distinct executors under this provincial for filtering
+        $users = \App\Models\User::where('parent_id', $provincial->id)->get();
+
+        // Distinct project types
+        $projectTypes = \App\Models\OldProjects\Project::distinct()->pluck('project_type');
+
+        return view('provincial.approvedProjects', compact('projects', 'users', 'projectTypes'));
+    }
 }

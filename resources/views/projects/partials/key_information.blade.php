@@ -6,7 +6,10 @@
     <div class="card-body">
         <div class="mb-3">
             <label for="goal" class="form-label">Goal of the Project</label>
-            <textarea name="goal" class="form-control select-input" rows="3" required  style="background-color: #202ba3;">{{ old('goal') }}</textarea>
+            <textarea name="goal" id="goal" class="form-control select-input" rows="3" required style="background-color: #202ba3;">{{ old('goal') }}</textarea>
+            @error('goal')
+                <span class="text-danger">{{ $message }}</span>
+            @enderror
         </div>
     </div>
 </div>

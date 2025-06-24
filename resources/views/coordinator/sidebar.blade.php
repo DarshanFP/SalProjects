@@ -110,7 +110,14 @@
             <li class="nav-item">
                 <a href="{{ route('coordinator.projects.list') }}" class="nav-link">
                     <i class="link-icon" data-feather="folder"></i>
-                    <span class="link-title">All Projects (Coordinator)</span>
+                    <span class="link-title">Pending Projects</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a href="{{ route('coordinator.approved.projects') }}" class="nav-link">
+                    <i class="link-icon" data-feather="check-circle"></i>
+                    <span class="link-title">Approved Projects</span>
                 </a>
             </li>
 

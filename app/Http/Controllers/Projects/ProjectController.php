@@ -276,119 +276,209 @@ class ProjectController extends Controller
 
     public function index()
     {
-        $projects = Project::all();
         $user = Auth::user();
 
         // Fetch projects where the user is either the owner or the in-charge
-        $projects = Project::where('user_id', $user->id)
-                       ->orWhere('in_charge', $user->id)
-                       ->get();
+        // Exclude projects with status 'approved_by_coordinator' for executors
+        $projects = Project::where(function($query) use ($user) {
+            $query->where('user_id', $user->id)
+                  ->orWhere('in_charge', $user->id);
+        })
+        ->where('status', '!=', 'approved_by_coordinator')
+        ->get();
 
         return view('projects.Oldprojects.index', compact('projects', 'user'));
     }
 
-// not working for next phase
-// public function create()
-// {
-//     $user = Auth::user();
-//     $users = User::all();
+    // befoir logical framework
+//     public function create()
+//     {
+//         Log::info('ProjectController@create - Starting create process');
 
-//     // Fetch Development Projects and NEXT PHASE - DEVELOPMENT PROPOSAL
-//     $developmentProjects = Project::where(function ($query) use ($user) {
-//         $query->where('user_id', $user->id)
-//               ->orWhere('in_charge', $user->id);
-//     })
-//     ->whereIn('project_type', ['Development Projects', 'NEXT PHASE - DEVELOPMENT PROPOSAL'])
-//     ->get();
+//         $user = Auth::user();
+//         $users = User::all();
 
-//     // Initialize predecessor data variables
-//     $predecessorBeneficiaries = [];
-//     $predecessorObjectives = [];
-//     $predecessorActivities = [];
-//     $predecessorSustainability = [];
-//     $predecessorBudget = [];
-//     $predecessorAttachments = [];
-//     $predecessorProjectId = request()->get('predecessor_project_id');
+//         Log::info('ProjectController@create - Fetching development projects for executor or in-charge', [
+//             'user_id' => $user->id
+//         ]);
+//         $developmentProjects = Project::where(function ($query) use ($user) {
+//             $query->where('user_id', $user->id)
+//                   ->orWhere('in_charge', $user->id);
+//         })
+//         ->where('project_type', 'Development Projects')
+//         ->get();
+//         Log::info('ProjectController@create - Development projects fetched', [
+//             'count' => $developmentProjects->count()
+//         ]);
 
-//     if ($predecessorProjectId) {
-//         $predecessorProject = Project::with([
-//             'DPRSTBeneficiariesAreas',
-//             'objectives.results',
-//             'objectives.risks',
-//             'objectives.activities.timeframes',
-//             'sustainabilities',
-//             'budgets',
-//             'attachments'
-//         ])->find($predecessorProjectId);
+//         $predecessorBeneficiaries = [];
+//         $predecessorObjectives = [];
+//         $predecessorActivities = [];
+//         $predecessorSustainability = [];
+//         $predecessorBudget = [];
+//         $predecessorAttachments = [];
+//         $predecessorProjectId = request()->get('predecessor_project_id');
 
-//         if ($predecessorProject) {
-//             // 1️⃣ **Beneficiaries**
-//             $predecessorBeneficiaries = $predecessorProject->DPRSTBeneficiariesAreas->toArray();
+//         if ($predecessorProjectId) {
+//             Log::info('ProjectController@create - Fetching predecessor project data', [
+//                 'predecessor_project_id' => $predecessorProjectId
+//             ]);
+//             $predecessorProject = Project::with([
+//                 'DPRSTBeneficiariesAreas',
+//                 'objectives.results',
+//                 'objectives.risks',
+//                 'objectives.activities.timeframes',
+//                 'sustainabilities',
+//                 'budgets',
+//                 'attachments'
+//             ])->find($predecessorProjectId);
 
-//             // 2️⃣ **Objectives and Related Data**
-//             $predecessorObjectives = $predecessorProject->objectives->map(function ($objective) {
-//                 return [
-//                     'objective_id' => $objective->objective_id,
-//                     'objective' => $objective->objective,
-//                     'results' => $objective->results->toArray(),
-//                     'risks' => $objective->risks->toArray(),
-//                     'activities' => $objective->activities->map(function ($activity) {
-//                         return [
-//                             'activity_id' => $activity->activity_id,
-//                             'activity' => $activity->activity,
-//                             'verification' => $activity->verification,
-//                             'timeframes' => $activity->timeframes->toArray(),
-//                         ];
-//                     })->toArray(),
-//                 ];
-//             })->toArray();
-
-//             // 3️⃣ **Sustainability**
-//             $predecessorSustainability = $predecessorProject->sustainabilities->first()
-//                 ? $predecessorProject->sustainabilities->first()->toArray()
-//                 : [];
-
-//             // 4️⃣ **Budget**
-//             $predecessorBudget = $predecessorProject->budgets->groupBy('phase')->map(function ($phase) {
-//                 return [
-//                     'amount_sanctioned' => $phase->sum('amount'),
-//                     'budget' => $phase->map(function ($budget) {
-//                         return [
-//                             'particular' => $budget->particular,
-//                             'rate_quantity' => $budget->rate_quantity,
-//                             'rate_multiplier' => $budget->rate_multiplier,
-//                             'rate_duration' => $budget->rate_duration,
-//                             'rate_increase' => $budget->rate_increase,
-//                             'this_phase' => $budget->this_phase,
-//                             'next_phase' => $budget->next_phase,
-//                         ];
-//                     })->toArray(),
-//                 ];
-//             })->toArray();
-
-//             // 5️⃣ **Attachments**
-//             $predecessorAttachments = $predecessorProject->attachments->map(function ($attachment) {
-//                 return [
-//                     'file' => $attachment->file,
-//                     'file_name' => $attachment->file_name,
-//                     'description' => $attachment->description,
-//                 ];
-//             })->toArray();
+//             if ($predecessorProject) {
+//                 $predecessorBeneficiaries = $predecessorProject->DPRSTBeneficiariesAreas->map(function ($area) {
+//                     return [
+//                         'project_area' => $area->project_area,
+//                         'category' => $area->category_beneficiary,
+//                         'direct' => $area->direct_beneficiaries,
+//                         'indirect' => $area->indirect_beneficiaries
+//                     ];
+//                 })->toArray();
+//                 $predecessorObjectives = $predecessorProject->objectives->map(function ($objective) {
+//                     return [
+//                         'objective_id' => $objective->objective_id,
+//                         'objective' => $objective->objective,
+//                         'results' => $objective->results->toArray(),
+//                         'risks' => $objective->risks->toArray(),
+//                         'activities' => $objective->activities->map(function ($activity) {
+//                             return [
+//                                 'activity_id' => $activity->activity_id,
+//                                 'activity' => $activity->activity,
+//                                 'verification' => $activity->verification,
+//                                 'timeframes' => $activity->timeframes->toArray(),
+//                             ];
+//                         })->toArray(),
+//                     ];
+//                 })->toArray();
+//                 $predecessorSustainability = $predecessorProject->sustainabilities->first()
+//                     ? $predecessorProject->sustainabilities->first()->toArray()
+//                     : [];
+//                 $predecessorBudget = $predecessorProject->budgets->groupBy('phase')->map(function ($phase) {
+//                     return [
+//                         'amount_sanctioned' => $phase->sum('amount'),
+//                         'budget' => $phase->map(function ($budget) {
+//                             return [
+//                                 'particular' => $budget->particular,
+//                                 'rate_quantity' => $budget->rate_quantity,
+//                                 'rate_multiplier' => $budget->rate_multiplier,
+//                                 'rate_duration' => $budget->rate_duration,
+//                                 'rate_increase' => $budget->rate_increase,
+//                                 'this_phase' => $budget->this_phase,
+//                                 'next_phase' => $budget->next_phase,
+//                             ];
+//                         })->toArray(),
+//                     ];
+//                 })->toArray();
+//                 $predecessorAttachments = $predecessorProject->attachments->map(function ($attachment) {
+//                     return [
+//                         'file' => $attachment->file,
+//                         'file_name' => $attachment->file_name,
+//                         'description' => $attachment->description,
+//                     ];
+//                 })->toArray();
+//                 Log::info('ProjectController@create - Predecessor data fetched', [
+//                     'predecessor_project_id' => $predecessorProjectId,
+//                     'beneficiaries_count' => count($predecessorBeneficiaries)
+//                 ]);
+//             } else {
+//                 Log::warning('ProjectController@create - Predecessor project not found', [
+//                     'predecessor_project_id' => $predecessorProjectId
+//                 ]);
+//             }
 //         }
+
+//         Log::info('ProjectController@create - Preparing data for view');
+//         return view('projects.Oldprojects.createProjects', compact(
+//             'users',
+//             'user',
+//             'developmentProjects',
+//             'predecessorBeneficiaries',
+//             'predecessorObjectives',
+//             'predecessorActivities',
+//             'predecessorSustainability',
+//             'predecessorBudget',
+//             'predecessorAttachments'
+//         ));
 //     }
 
-//     // Pass all data to the createProjects view
-//     return view('projects.Oldprojects.createProjects', compact(
-//         'users',
-//         'user',
-//         'developmentProjects',
-//         'predecessorBeneficiaries',
-//         'predecessorObjectives',
-//         'predecessorActivities',
-//         'predecessorSustainability',
-//         'predecessorBudget',
-//         'predecessorAttachments'
-//     ));
+
+
+// public function getProjectDetails($project_id)
+// {
+//     Log::info('ProjectController@getProjectDetails - Request received', [
+//         'project_id' => $project_id,
+//         'request_headers' => request()->headers->all(),
+//         'request_method' => request()->method()
+//     ]);
+
+//     try {
+//         Log::debug('ProjectController@getProjectDetails - Querying project', [
+//             'project_id' => $project_id
+//         ]);
+//         $project = Project::where('project_id', $project_id)
+//             ->with(['user', 'DPRSTBeneficiariesAreas'])
+//             ->firstOrFail();
+
+//         Log::info('ProjectController@getProjectDetails - Project retrieved', [
+//             'project_id' => $project_id,
+//             'project_data' => $project->toArray()
+//         ]);
+
+//         $responseData = [
+//             'project_title' => $project->project_title,
+//             'society_name' => $project->society_name,
+//             'president_name' => $project->president_name,
+//             'applicant_name' => $project->user ? $project->user->name : null,
+//             'applicant_mobile' => $project->user ? $project->user->phone : null,
+//             'applicant_email' => $project->user ? $project->user->email : null,
+//             'in_charge' => $project->in_charge,
+//             'in_charge_name' => $project->in_charge_name,
+//             'in_charge_mobile' => $project->in_charge_mobile,
+//             'in_charge_email' => $project->in_charge_email,
+//             'full_address' => $project->full_address,
+//             'overall_project_period' => $project->overall_project_period,
+//             'current_phase' => $project->current_phase,
+//             'commencement_month' => $project->commencement_month,
+//             'commencement_year' => $project->commencement_year,
+//             'overall_project_budget' => $project->overall_project_budget,
+//             'goal' => $project->goal, // Added goal field
+//             'beneficiaries_areas' => $project->DPRSTBeneficiariesAreas->map(function ($area) {
+//                 return [
+//                     'project_area' => $area->project_area,
+//                     'category' => $area->category_beneficiary,
+//                     'direct' => $area->direct_beneficiaries,
+//                     'indirect' => $area->indirect_beneficiaries
+//                 ];
+//             })->toArray()
+//         ];
+
+//         Log::info('ProjectController@getProjectDetails - Preparing response', [
+//             'project_id' => $project_id,
+//             'response_data' => $responseData
+//         ]);
+
+//         return response()->json($responseData, 200);
+//     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+//         Log::warning('ProjectController@getProjectDetails - Project not found', [
+//             'project_id' => $project_id
+//         ]);
+//         return response()->json(['error' => 'Project not found'], 404);
+//     } catch (\Exception $e) {
+//         Log::error('ProjectController@getProjectDetails - Unexpected error', [
+//             'project_id' => $project_id,
+//             'error' => $e->getMessage(),
+//             'trace' => $e->getTraceAsString()
+//         ]);
+//         return response()->json(['error' => 'Failed to fetch project details'], 500);
+//     }
 // }
 
 public function create()
@@ -398,13 +488,12 @@ public function create()
     $user = Auth::user();
     $users = User::all();
 
-    // Fetch Development Projects for the current executor (owner or in-charge)
     Log::info('ProjectController@create - Fetching development projects for executor or in-charge', [
         'user_id' => $user->id
     ]);
     $developmentProjects = Project::where(function ($query) use ($user) {
-        $query->where('user_id', $user->id)    // Projects owned by the user
-              ->orWhere('in_charge', $user->id); // Projects where user is in-charge
+        $query->where('user_id', $user->id)
+              ->orWhere('in_charge', $user->id);
     })
     ->where('project_type', 'Development Projects')
     ->get();
@@ -412,7 +501,6 @@ public function create()
         'count' => $developmentProjects->count()
     ]);
 
-    // Initialize predecessor data
     $predecessorBeneficiaries = [];
     $predecessorObjectives = [];
     $predecessorActivities = [];
@@ -436,21 +524,44 @@ public function create()
         ])->find($predecessorProjectId);
 
         if ($predecessorProject) {
-            $predecessorBeneficiaries = $predecessorProject->DPRSTBeneficiariesAreas->toArray();
+            $predecessorBeneficiaries = $predecessorProject->DPRSTBeneficiariesAreas->map(function ($area) {
+                return [
+                    'project_area' => $area->project_area,
+                    'category' => $area->category_beneficiary,
+                    'direct' => $area->direct_beneficiaries,
+                    'indirect' => $area->indirect_beneficiaries
+                ];
+            })->toArray();
             $predecessorObjectives = $predecessorProject->objectives->map(function ($objective) {
                 return [
                     'objective_id' => $objective->objective_id,
                     'objective' => $objective->objective,
-                    'results' => $objective->results->toArray(),
-                    'risks' => $objective->risks->toArray(),
+                    'results' => $objective->results->map(function ($result) {
+                        return [
+                            'result_id' => $result->result_id,
+                            'result' => $result->result
+                        ];
+                    })->toArray(),
+                    'risks' => $objective->risks->map(function ($risk) {
+                        return [
+                            'risk_id' => $risk->risk_id,
+                            'risk' => $risk->risk
+                        ];
+                    })->toArray(),
                     'activities' => $objective->activities->map(function ($activity) {
                         return [
                             'activity_id' => $activity->activity_id,
                             'activity' => $activity->activity,
                             'verification' => $activity->verification,
-                            'timeframes' => $activity->timeframes->toArray(),
+                            'timeframes' => $activity->timeframes->map(function ($timeframe) {
+                                return [
+                                    'timeframe_id' => $timeframe->timeframe_id,
+                                    'month' => $timeframe->month,
+                                    'is_active' => $timeframe->is_active
+                                ];
+                            })->toArray()
                         ];
-                    })->toArray(),
+                    })->toArray()
                 ];
             })->toArray();
             $predecessorSustainability = $predecessorProject->sustainabilities->first()
@@ -481,7 +592,8 @@ public function create()
             })->toArray();
             Log::info('ProjectController@create - Predecessor data fetched', [
                 'predecessor_project_id' => $predecessorProjectId,
-                'beneficiaries_count' => count($predecessorBeneficiaries)
+                'beneficiaries_count' => count($predecessorBeneficiaries),
+                'objectives_count' => count($predecessorObjectives)
             ]);
         } else {
             Log::warning('ProjectController@create - Predecessor project not found', [
@@ -503,7 +615,6 @@ public function create()
         'predecessorAttachments'
     ));
 }
-
 public function getProjectDetails($project_id)
 {
     Log::info('ProjectController@getProjectDetails - Request received', [
@@ -516,7 +627,9 @@ public function getProjectDetails($project_id)
         Log::debug('ProjectController@getProjectDetails - Querying project', [
             'project_id' => $project_id
         ]);
-        $project = Project::where('project_id', $project_id)->with('user')->firstOrFail();
+        $project = Project::where('project_id', $project_id)
+            ->with(['user', 'DPRSTBeneficiariesAreas', 'objectives.results', 'objectives.risks', 'objectives.activities.timeframes'])
+            ->firstOrFail();
 
         Log::info('ProjectController@getProjectDetails - Project retrieved', [
             'project_id' => $project_id,
@@ -531,12 +644,56 @@ public function getProjectDetails($project_id)
             'applicant_mobile' => $project->user ? $project->user->phone : null,
             'applicant_email' => $project->user ? $project->user->email : null,
             'in_charge' => $project->in_charge,
+            'in_charge_name' => $project->in_charge_name,
+            'in_charge_mobile' => $project->in_charge_mobile,
+            'in_charge_email' => $project->in_charge_email,
             'full_address' => $project->full_address,
             'overall_project_period' => $project->overall_project_period,
             'current_phase' => $project->current_phase,
             'commencement_month' => $project->commencement_month,
             'commencement_year' => $project->commencement_year,
             'overall_project_budget' => $project->overall_project_budget,
+            'goal' => $project->goal,
+            'beneficiaries_areas' => $project->DPRSTBeneficiariesAreas->map(function ($area) {
+                return [
+                    'project_area' => $area->project_area,
+                    'category' => $area->category_beneficiary,
+                    'direct' => $area->direct_beneficiaries,
+                    'indirect' => $area->indirect_beneficiaries
+                ];
+            })->toArray(),
+            'objectives' => $project->objectives->map(function ($objective) {
+                return [
+                    'objective_id' => $objective->objective_id,
+                    'objective' => $objective->objective,
+                    'results' => $objective->results->map(function ($result) {
+                        return [
+                            'result_id' => $result->result_id,
+                            'result' => $result->result
+                        ];
+                    })->toArray(),
+                    'risks' => $objective->risks->map(function ($risk) {
+                        return [
+                            'risk_id' => $risk->risk_id,
+                            'risk' => $risk->risk
+                        ];
+                    })->toArray(),
+                    'activities' => $objective->activities->map(function ($activity) {
+                        return [
+                            'activity_id' => $activity->activity_id,
+                            'activity' => $activity->activity,
+                            'verification' => $activity->verification,
+                            'timeframes' => $activity->timeframes->map(function ($timeframe) {
+                                return [
+                                    'timeframe_id' => $timeframe->timeframe_id,
+                                    'month' => $timeframe->month,
+                                    'is_active' => $timeframe->is_active
+                                ];
+                            })->toArray()
+                        ];
+                    })->toArray()
+                ];
+            })->toArray()
         ];
 
         Log::info('ProjectController@getProjectDetails - Preparing response', [
@@ -559,9 +716,6 @@ public function getProjectDetails($project_id)
         return response()->json(['error' => 'Failed to fetch project details'], 500);
     }
 }
-
-
-
 public function store(Request $request)
 {
     DB::beginTransaction();
@@ -598,7 +752,10 @@ public function store(Request $request)
             }
         }
 
-        // Step 3: Handle project type-specific logic
+        // Step 3: Handle key information (applies to all project types)
+        (new KeyInformationController())->store($request, $project);
+
+        // Step 4: Handle project type-specific logic
         switch ($request->project_type) {
             case 'Rural-Urban-Tribal':
                 Log::info('Processing Rural-Urban-Tribal project type');
@@ -728,14 +885,54 @@ public function show($project_id)
     try {
         Log::info('ProjectController@show - Fetching project data with relationships');
         $project = Project::where('project_id', $project_id)
-            ->with('budgets', 'attachments', 'objectives', 'sustainabilities')
+            ->with('budgets', 'attachments', 'objectives', 'sustainabilities', 'user')
             ->firstOrFail();
 
         $user = Auth::user();
         Log::info('ProjectController@show - Project and user fetched', [
             'project_type' => $project->project_type,
-            'user_id' => $user->id
+            'user_id' => $user->id,
+            'user_role' => $user->role,
+            'project_status' => $project->status
         ]);
+
+        // Role-based access control
+        $hasAccess = false;
+
+        switch ($user->role) {
+            case 'executor':
+                // Executors can view their own projects regardless of status (except approved ones which go to approved page)
+                if ($project->user_id === $user->id || $project->in_charge === $user->id) {
+                    $hasAccess = true;
+                }
+                break;
+
+            case 'provincial':
+                // Provincials can view projects from executors under them with specific statuses
+                if ($project->user->parent_id === $user->id) {
+                    if (in_array($project->status, ['submitted_to_provincial', 'reverted_by_coordinator'])) {
+                        $hasAccess = true;
+                    }
+                }
+                break;
+
+            case 'coordinator':
+                // Coordinators can view projects with status 'forwarded_to_coordinator'
+                if ($project->status === 'forwarded_to_coordinator') {
+                    $hasAccess = true;
+                }
+                break;
+        }
+
+        if (!$hasAccess) {
+            Log::warning('ProjectController@show - Access denied', [
+                'user_id' => $user->id,
+                'user_role' => $user->role,
+                'project_id' => $project_id,
+                'project_status' => $project->status
+            ]);
+            abort(403, 'You do not have permission to view this project.');
+        }
 
         // Initialize data array with defaults
         $data = [
@@ -1545,16 +1742,8 @@ public function edit($project_id)
         });
     }
 
-    // If Coordinator: show all except the individual project types
-    if ($user->role === 'coordinator') {
-        $excludedTypes = [
-            'Individual - Ongoing Educational support',
-            'Individual - Livelihood Application',
-            'Individual - Access to Health',
-            'Individual - Initial - Educational support'
-        ];
-        $query->whereNotIn('project_type', $excludedTypes);
-    }
+    // If Coordinator: show all projects (no filtering needed)
+    // Coordinators can see all project types including individual projects
 
     // Apply filters if provided (e.g., project_type)
     if ($request->filled('project_type')) {
@@ -1584,5 +1773,22 @@ public function submitToProvincial($project_id)
     return redirect()->back()->with('success', 'Project submitted to Provincial successfully.');
 }
 
+// Approved Projects for Executors
+public function approvedProjects()
+{
+    $user = Auth::user();
+
+    // Fetch approved projects where the user is either the owner or the in-charge
+    $projects = Project::where(function($query) use ($user) {
+        $query->where('user_id', $user->id)
+              ->orWhere('in_charge', $user->id);
+    })
+    ->where('status', 'approved_by_coordinator')
+    ->orderBy('project_id')
+    ->orderBy('user_id')
+    ->get();
+
+    return view('projects.Oldprojects.approved', compact('projects', 'user'));
+}
 
 }

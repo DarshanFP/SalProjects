@@ -9,7 +9,9 @@ use App\Models\OldProjects\Project;
 use App\Models\OldProjects\ProjectBudget;
 use Barryvdh\Snappy\Facades\SnappyPdf as PDF;
 use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\IOFactory;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class ExportReportController extends Controller
 {
@@ -35,77 +37,81 @@ class ExportReportController extends Controller
         set_time_limit(300); // Increase execution time
 
         try {
-            // Fetch the report with relationships
-            $report = DPReport::with([
-                'objectives.activities.timeframes',
-                'accountDetails',
-                'photos',
-                'outlooks',
-                'attachments'
-            ])->findOrFail($report_id);
+            // Use eager loading to reduce the number of queries
+            $report = DPReport::with(['objectives.activities', 'accountDetails', 'photos', 'outlooks', 'user'])
+                              ->findOrFail($report_id);
 
-            // Decode expected outcomes for objectives
-            foreach ($report->objectives as $objective) {
-                $objective->expected_outcome = json_decode($objective->expected_outcome, true) ?? [];
+            $user = Auth::user();
+
+            // Role-based access control
+            $hasAccess = false;
+
+            switch ($user->role) {
+                case 'executor':
+                    // Executors can download their own reports
+                    if ($report->user_id === $user->id) {
+                        $hasAccess = true;
+                    }
+                    break;
+
+                case 'provincial':
+                    // Provincials can download reports from executors under them
+                    if ($report->user->parent_id === $user->id) {
+                        $hasAccess = true;
+                    }
+                    break;
+
+                case 'coordinator':
+                    // Coordinators can download all reports except individual project types
+                    $excludedTypes = [
+                        'Individual - Ongoing Educational support',
+                        'Individual - Livelihood Application',
+                        'Individual - Access to Health',
+                        'Individual - Initial - Educational support'
+                    ];
+                    if (!in_array($report->project_type, $excludedTypes)) {
+                        $hasAccess = true;
+                    }
+                    break;
             }
 
-            // Group photos by description
-            $groupedPhotos = $report->photos->groupBy('description');
+            if (!$hasAccess) {
+                abort(403, 'You do not have permission to download this report.');
+            }
 
-            // Fetch project and budgets
-            $project = Project::where('project_id', $report->project_id)->firstOrFail();
-            $highestPhase = ProjectBudget::where('project_id', $project->project_id)->max('phase');
-            $budgets = ProjectBudget::where('project_id', $project->project_id)
-                                    ->where('phase', $highestPhase)
-                                    ->get();
+            // Get associated project and budgets
+            $project = Project::where('project_id', $report->project_id)->first();
+            $budgets = ProjectBudget::where('project_id', $report->project_id)->get();
 
-            // Fetch additional data based on project type
+            // Group photos by category
+            $groupedPhotos = [];
+            if ($report->photos) {
+                foreach ($report->photos as $photo) {
+                    $category = $photo->category ?? 'Other';
+                    if (!isset($groupedPhotos[$category])) {
+                        $groupedPhotos[$category] = [];
+                    }
+                    $groupedPhotos[$category][] = $photo;
+                }
+            }
+
+            // Get annexures
             $annexures = [];
+            if ($report->outlooks) {
+                $annexures = $report->outlooks;
+            }
+
+            // Get age profiles, trainee profiles, and inmate profiles based on project type
             $ageProfiles = [];
             $traineeProfiles = [];
             $inmateProfiles = [];
+
             switch ($report->project_type) {
-                case 'Livelihood Development Projects':
-                    $annexures = $this->livelihoodAnnexureController->getAnnexures($report_id);
-                    break;
-                case 'Institutional Ongoing Group Educational proposal':
+                case 'CHILD CARE INSTITUTION':
                     $ageProfiles = $this->institutionalGroupController->getAgeProfiles($report_id);
                     break;
                 case 'Residential Skill Training Proposal 2':
                     $traineeProfiles = $this->residentialSkillTrainingController->getTraineeProfiles($report_id);
-
-                    // Prepare education data for Residential Skill Training
-                    $education = [];
-                    foreach ($traineeProfiles as $profile) {
-                        $category = $profile->education_category;
-                        $number = $profile->number;
-
-                        switch ($category) {
-                            case 'Below 9th standard':
-                                $education['below_9'] = $number;
-                                break;
-                            case '10th class failed':
-                                $education['class_10_fail'] = $number;
-                                break;
-                            case '10th class passed':
-                                $education['class_10_pass'] = $number;
-                                break;
-                            case 'Intermediate':
-                                $education['intermediate'] = $number;
-                                break;
-                            case 'Intermediate and above':
-                                $education['above_intermediate'] = $number;
-                                break;
-                            case 'Total':
-                                $education['total'] = $number;
-                                break;
-                            default:
-                                $education['other'] = $category;
-                                $education['other_count'] = $number;
-                                break;
-                        }
-                    }
-                    $report->education = $education;
                     break;
                 case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
                     $inmateProfiles = $this->crisisInterventionCenterController->getInmateProfiles($report_id);
@@ -147,40 +153,81 @@ class ExportReportController extends Controller
         set_time_limit(300); // Increase execution time
 
         try {
-            $report = DPReport::with([
-                'objectives.activities.timeframes',
-                'accountDetails',
-                'photos',
-                'outlooks',
-                'attachments'
-            ])->findOrFail($report_id);
+            // Use eager loading to reduce the number of queries
+            $report = DPReport::with(['objectives.activities', 'accountDetails', 'photos', 'outlooks', 'user'])
+                              ->findOrFail($report_id);
 
-            foreach ($report->objectives as $objective) {
-                $objective->expected_outcome = json_decode($objective->expected_outcome, true) ?? [];
+            $user = Auth::user();
+
+            // Role-based access control
+            $hasAccess = false;
+
+            switch ($user->role) {
+                case 'executor':
+                    // Executors can download their own reports
+                    if ($report->user_id === $user->id) {
+                        $hasAccess = true;
+                    }
+                    break;
+
+                case 'provincial':
+                    // Provincials can download reports from executors under them
+                    if ($report->user->parent_id === $user->id) {
+                        $hasAccess = true;
+                    }
+                    break;
+
+                case 'coordinator':
+                    // Coordinators can download all reports except individual project types
+                    $excludedTypes = [
+                        'Individual - Ongoing Educational support',
+                        'Individual - Livelihood Application',
+                        'Individual - Access to Health',
+                        'Individual - Initial - Educational support'
+                    ];
+                    if (!in_array($report->project_type, $excludedTypes)) {
+                        $hasAccess = true;
+                    }
+                    break;
             }
 
-            $groupedPhotos = $report->photos->groupBy('description');
+            if (!$hasAccess) {
+                abort(403, 'You do not have permission to download this report.');
+            }
 
-            $project = Project::where('project_id', $report->project_id)->firstOrFail();
-            $highestPhase = ProjectBudget::where('project_id', $project->project_id)->max('phase');
-            $budgets = ProjectBudget::where('project_id', $project->project_id)
-                                    ->where('phase', $highestPhase)
-                                    ->get();
+            // Get associated project and budgets
+            $project = Project::where('project_id', $report->project_id)->first();
+            $budgets = ProjectBudget::where('project_id', $report->project_id)->get();
 
+            // Group photos by category
+            $groupedPhotos = [];
+            if ($report->photos) {
+                foreach ($report->photos as $photo) {
+                    $category = $photo->category ?? 'Other';
+                    if (!isset($groupedPhotos[$category])) {
+                        $groupedPhotos[$category] = [];
+                    }
+                    $groupedPhotos[$category][] = $photo;
+                }
+            }
+
+            // Get annexures
             $annexures = [];
+            if ($report->outlooks) {
+                $annexures = $report->outlooks;
+            }
+
+            // Get age profiles, trainee profiles, and inmate profiles based on project type
             $ageProfiles = [];
             $traineeProfiles = [];
             $inmateProfiles = [];
+
             switch ($report->project_type) {
-                case 'Livelihood Development Projects':
-                    $annexures = $this->livelihoodAnnexureController->getAnnexures($report_id);
-                    break;
-                case 'Institutional Ongoing Group Educational proposal':
+                case 'CHILD CARE INSTITUTION':
                     $ageProfiles = $this->institutionalGroupController->getAgeProfiles($report_id);
                     break;
                 case 'Residential Skill Training Proposal 2':
                     $traineeProfiles = $this->residentialSkillTrainingController->getTraineeProfiles($report_id);
-                    $report->education = $education ?? [];
                     break;
                 case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
                     $inmateProfiles = $this->crisisInterventionCenterController->getInmateProfiles($report_id);

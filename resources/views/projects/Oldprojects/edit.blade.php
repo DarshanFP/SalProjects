@@ -14,7 +14,7 @@
                         @csrf
                         @method('PUT')
 
-                        <!-- Project General Information -->
+                        <!-- Project General Information  -->
                         <div class="mb-3 card">
                             <div class="card-header">
                                 <h4 class="fp-text-margin">General Information</h4>

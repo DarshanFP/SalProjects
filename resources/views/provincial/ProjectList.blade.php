@@ -7,7 +7,7 @@
         <div class="col-md-12 col-xl-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="fp-text-center1">All Projects (Provincial)</h4>
+                    <h4 class="fp-text-center1">Projects Pending Review (Provincial)</h4>
                 </div>
                 <div class="card-body">
                     <form method="GET" action="{{ route('provincial.projects.list') }}">

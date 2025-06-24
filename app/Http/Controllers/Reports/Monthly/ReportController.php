@@ -309,47 +309,6 @@ class ReportController extends Controller
         return $report;
     }
 
-    // private function storeObjectivesAndActivities($request, $report_id, $report)
-    // {
-    //     $objectivesInput = $request->input('objective', []);
-    //     $expectedOutcomesInput = $request->input('expected_outcome', []);
-    //     $projectObjectiveIds = $request->input('project_objective_id', []);
-
-    //     foreach ($objectivesInput as $index => $objectiveText) {
-    //         $objective_id_suffix = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
-    //         $objective_id = "{$report_id}-{$objective_id_suffix}";
-
-    //         // Retrieve project_objective_id
-    //         $projectObjectiveId = $projectObjectiveIds[$index] ?? null;
-
-    //         // Serialize expected_outcome for this objective
-    //         $expectedOutcomeArray = $expectedOutcomesInput[$index] ?? [];
-    //         $expectedOutcomeJson = json_encode($expectedOutcomeArray);
-
-    //         $objectiveData = [
-    //             'objective_id' => $objective_id,
-    //             'report_id' => $report->report_id,
-    //             'project_objective_id' => $projectObjectiveId,
-    //             'objective' => $objectiveText,
-    //             'expected_outcome' => $expectedOutcomeJson,
-    //             'not_happened' => $request->input("not_happened.$index"),
-    //             'why_not_happened' => $request->input("why_not_happened.$index"),
-    //             'changes' => $request->input("changes.$index") === 'yes',
-    //             'why_changes' => $request->input("why_changes.$index"),
-    //             'lessons_learnt' => $request->input("lessons_learnt.$index"),
-    //             'todo_lessons_learnt' => $request->input("todo_lessons_learnt.$index"),
-    //         ];
-
-    //         Log::info('Objective Data:', $objectiveData);
-
-    //         $objective = DPObjective::create($objectiveData);
-    //         Log::info('Objective Created:', $objective->toArray());
-
-    //         // Handle activities
-    //         $this->storeActivities($request, $objective, $index, $objective_id);
-    //     }
-    // }
-
     private function storeObjectivesAndActivities($request, $report_id, $report)
 {
     $objectivesInput = $request->input('objective', []);
@@ -407,40 +366,6 @@ class ReportController extends Controller
         }, array_keys($objectivesInput)))
         ->delete();
 }
-
-//     private function storeActivities($request, $objective, $objectiveIndex, $objective_id)
-// {
-//     $activitiesInput = $request->input("activity.$objectiveIndex", []);
-//     $projectActivityIds = $request->input("project_activity_id.$objectiveIndex", []);
-
-//     foreach ($activitiesInput as $activityIndex => $activityText) {
-//         $activity_id_suffix = str_pad($activityIndex + 1, 3, '0', STR_PAD_LEFT);
-//         $activity_id = "{$objective_id}-{$activity_id_suffix}";
-
-//         // Retrieve project_activity_id
-//         $projectActivityId = $projectActivityIds[$activityIndex] ?? null;
-
-//         $summaryActivities = $request->input("summary_activities.$objectiveIndex.$activityIndex.1");
-//         $qualitativeQuantitativeData = $request->input("qualitative_quantitative_data.$objectiveIndex.$activityIndex.1");
-//         $intermediateOutcomes = $request->input("intermediate_outcomes.$objectiveIndex.$activityIndex.1");
-
-//         $activityData = [
-//             'activity_id' => $activity_id,
-//             'objective_id' => $objective->objective_id,
-//             'project_activity_id' => $projectActivityId,
-//             'activity' => $activityText,
-//             'month' => $request->input("month.$objectiveIndex.$activityIndex"),
-//             'summary_activities' => $summaryActivities,
-//             'qualitative_quantitative_data' => $qualitativeQuantitativeData,
-//             'intermediate_outcomes' => $intermediateOutcomes,
-//         ];
-
-//         Log::info('Activity Data:', $activityData);
-
-//         $activity = DPActivity::create($activityData);
-//         Log::info('Activity Created:', $activity->toArray());
-//     }
-// }
 
 private function storeActivities($request, $objective, $objectiveIndex, $objective_id)
 {
@@ -507,22 +432,6 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             ]);
         }
     }
-
-    // private function handleOutlooks($request, $report_id)
-    // {
-    //     $outlookDates = $request->input('date', []);
-    //     foreach ($outlookDates as $index => $date) {
-    //         $outlook_id_suffix = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
-    //         $outlook_id = "{$report_id}-{$outlook_id_suffix}";
-
-    //         DPOutlook::create([
-    //             'outlook_id' => $outlook_id,
-    //             'report_id' => $report_id,
-    //             'date' => $date,
-    //             'plan_next_month' => $request->input("plan_next_month.{$index}")
-    //         ]);
-    //     }
-    // }
 
     private function handleOutlooks($request, $report_id)
 {
@@ -684,212 +593,182 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
     {
         Log::info('Entering index method');
 
-        $reports = DPReport::with('project', 'user')->get();
-        Log::info('Reports retrieved', ['reports' => $reports]);
+        $user = Auth::user();
+        $reportsQuery = DPReport::with('project', 'user');
+
+        // Apply role-based filters
+        if ($user->role === 'provincial') {
+            // Provincial can see reports from executors under them
+            $reportsQuery->whereHas('user', function ($query) use ($user) {
+                $query->where('parent_id', $user->id);
+            });
+        } elseif ($user->role === 'executor') {
+            // Executor can only see their own reports
+            $reportsQuery->where('user_id', $user->id);
+        } elseif ($user->role === 'coordinator') {
+            // Coordinator can see all reports (no filtering needed)
+            // No additional filters - coordinators see everything
+        }
+        // If role is not specified, show no reports (for security)
+
+        $reports = $reportsQuery->orderBy('created_at', 'desc')->get();
+        Log::info('Reports retrieved with role-based filtering', [
+            'user_role' => $user->role,
+            'user_id' => $user->id,
+            'reports_count' => $reports->count()
+        ]);
 
         return view('reports.monthly.index', compact('reports'));
     }
 
-    // public function show($report_id)
-    // {
-    //     Log::info('Entering show method', ['report_id' => $report_id]);
-
-    //     $report = DPReport::with(['objectives.activities', 'accountDetails', 'photos', 'outlooks', 'attachments'])
-    //                       ->where('report_id', $report_id)
-    //                       ->firstOrFail();
-    //     Log::info('Report retrieved', ['report' => $report]);
-
-    //     $annexures = [];
-    //     $ageProfiles = [];
-    //     $traineeProfiles = [];
-    //     $inmateProfiles = [];
-    //      //ReportAttachment
-    //      $attachments = []; // Placeholder, add logic to fetch attachments if required
-
-
-    //     $projectType = $report->project_type;
-
-    //     switch ($projectType) {
-    //         case 'Livelihood Development Projects':
-    //             $annexures = $this->livelihoodAnnexureController->getAnnexures($report_id);
-    //             break;
-    //         case 'Institutional Ongoing Group Educational proposal':
-    //             $ageProfiles = $this->institutionalGroupController->getAgeProfiles($report_id);
-    //             break;
-    //         case 'Residential Skill Training Proposal 2':
-    //              $traineeProfiles = $this->residentialSkillTrainingController->getTraineeProfiles($report_id);
-    //             // Populate the $report->education array for the view
-    //                 $education = [];
-    //                 foreach ($traineeProfiles as $profile) {
-    //                     $category = $profile->education_category;
-    //                     $number = $profile->number;
-
-    //                     switch ($category) {
-    //                         case 'Below 9th standard':
-    //                             $education['below_9'] = $number;
-    //                             break;
-    //                         case '10th class failed':
-    //                             $education['class_10_fail'] = $number;
-    //                             break;
-    //                         case '10th class passed':
-    //                             $education['class_10_pass'] = $number;
-    //                             break;
-    //                         case 'Intermediate':
-    //                             $education['intermediate'] = $number;
-    //                             break;
-    //                         case 'Intermediate and above':
-    //                             $education['above_intermediate'] = $number;
-    //                             break;
-    //                         case 'Total':
-    //                             $education['total'] = $number;
-    //                             break;
-    //                         default:
-    //                             // For 'Other' category
-    //                             $education['other'] = $category; // The category name is the 'other' text
-    //                             $education['other_count'] = $number;
-    //                             break;
-    //                     }
-    //                 }
-    //                 $report->education = $education;
-    //             break;
-    //         case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
-    //             $inmateProfiles = $this->crisisInterventionCenterController->getInmateProfiles($report_id);
-    //             break;
-    //     }
-
-    //     return view('reports.monthly.show', compact('report', 'annexures', 'ageProfiles', 'traineeProfiles', 'inmateProfiles'));
-    // }
-
     public function show($report_id)
-{
-    Log::info('Entering show method', ['report_id' => $report_id]);
+    {
+        Log::info('Entering show method', ['report_id' => $report_id]);
 
-    $user = Auth::user();
-    $report = DPReport::with([
-        'objectives.activities.timeframes',
-        'accountDetails',
-        'photos',
-        'outlooks',
-        'attachments'
-    // ])
-    // ->where('report_id', $report_id)
-    // ->firstOrFail();
-    // Log::info('Report data retrieved', ['report' => $report]);
-    ])->where('report_id', $report_id);
+        $user = Auth::user();
+        $report = DPReport::with([
+            'objectives.activities.timeframes',
+            'accountDetails',
+            'photos',
+            'outlooks',
+            'attachments'
+        ])->where('report_id', $report_id);
 
-    // Apply role-based filters
-    if ($user->role === 'provincial') {
-        // Filter reports to those whose user (executor) has parent_id = this provincial user's id
-        $report->whereHas('user', function ($query) use ($user) {
-            $query->where('parent_id', $user->id);
-        });
-    } elseif ($user->role === 'executor') {
-        // Filter reports to those created by this executor
-        $report->where('user_id', $user->id);
-    }
-    $report = $report->firstOrFail();
-    Log::info('Report retrieved successfully', ['report' => $report]);
+        // Apply role-based filters
+        if ($user->role === 'provincial') {
+            // Filter reports to those whose user (executor) has parent_id = this provincial user's id
+            $report->whereHas('user', function ($query) use ($user) {
+                $query->where('parent_id', $user->id);
+            });
+        } elseif ($user->role === 'executor') {
+            // Filter reports to those created by this executor
+            $report->where('user_id', $user->id);
+        } elseif ($user->role === 'coordinator') {
+            // Coordinator can see all reports (no filtering needed)
+            // No additional filters - coordinators see everything
+        }
+        $report = $report->firstOrFail();
+        Log::info('Report retrieved successfully', ['report' => $report]);
 
-    // Decode expected_outcome for objectives
-    foreach ($report->objectives as $objective) {
-        $objective->expected_outcome = json_decode($objective->expected_outcome, true) ?? [];
-    }
+        // Decode expected_outcome for objectives
+        foreach ($report->objectives as $objective) {
+            $objective->expected_outcome = json_decode($objective->expected_outcome, true) ?? [];
+        }
 
-    // Group photos by description
-    $groupedPhotos = $report->photos->groupBy('description');
+        // Group photos by description
+        $groupedPhotos = $report->photos->groupBy('description');
 
-    // Retrieve associated project
-    $project = Project::where('project_id', $report->project_id)->firstOrFail();
-    Log::info('Project retrieved successfully', ['project_id' => $project->project_id]);
+        // Retrieve associated project
+        $project = Project::where('project_id', $report->project_id)->firstOrFail();
+        Log::info('Project retrieved successfully', ['project_id' => $project->project_id]);
 
-    // Retrieve highest phase budgets
-    $highestPhase = ProjectBudget::where('project_id', $project->project_id)->max('phase');
-    $budgets = ProjectBudget::where('project_id', $project->project_id)
-                            ->where('phase', $highestPhase)
-                            ->get();
+        // Retrieve highest phase budgets
+        $highestPhase = ProjectBudget::where('project_id', $project->project_id)->max('phase');
+        $budgets = ProjectBudget::where('project_id', $project->project_id)
+                                ->where('phase', $highestPhase)
+                                ->get();
 
-    // Prepare additional data based on project type
-    $annexures = [];
-    $ageProfiles = [];
-    $traineeProfiles = [];
-    $inmateProfiles = [];
-    switch ($report->project_type) {
-        case 'Livelihood Development Projects':
-            $annexures = $this->livelihoodAnnexureController->getAnnexures($report_id);
-            break;
-        case 'Institutional Ongoing Group Educational proposal':
-            $ageProfiles = $this->institutionalGroupController->getAgeProfiles($report_id);
-            break;
-        case 'Residential Skill Training Proposal 2':
-            $traineeProfiles = $this->residentialSkillTrainingController->getTraineeProfiles($report_id);
-            // Arrange them in array
-            if ($report->project_type === 'Residential Skill Training Proposal 2') {
-                $education = [];
-                foreach ($traineeProfiles as $profile) {
-                    $category = $profile->education_category;
-                    $number = $profile->number;
+        // Prepare additional data based on project type
+        $annexures = [];
+        $ageProfiles = [];
+        $traineeProfiles = [];
+        $inmateProfiles = [];
+        switch ($report->project_type) {
+            case 'Livelihood Development Projects':
+                $annexures = $this->livelihoodAnnexureController->getAnnexures($report_id);
+                break;
+            case 'Institutional Ongoing Group Educational proposal':
+                $ageProfiles = $this->institutionalGroupController->getAgeProfiles($report_id);
+                break;
+            case 'Residential Skill Training Proposal 2':
+                $traineeProfiles = $this->residentialSkillTrainingController->getTraineeProfiles($report_id);
+                // Arrange them in array
+                if ($report->project_type === 'Residential Skill Training Proposal 2') {
+                    $education = [];
+                    foreach ($traineeProfiles as $profile) {
+                        $category = $profile->education_category;
+                        $number = $profile->number;
 
-                    switch ($category) {
-                        case 'Below 9th standard':
-                            $education['below_9'] = $number;
-                            break;
-                        case '10th class failed':
-                            $education['class_10_fail'] = $number;
-                            break;
-                        case '10th class passed':
-                            $education['class_10_pass'] = $number;
-                            break;
-                        case 'Intermediate':
-                            $education['intermediate'] = $number;
-                            break;
-                        case 'Intermediate and above':
-                            $education['above_intermediate'] = $number;
-                            break;
-                        case 'Total':
-                            $education['total'] = $number;
-                            break;
-                        default:
-                            // For 'Other' category
-                            $education['other'] = $category; // The category name is the 'other' text
-                            $education['other_count'] = $number;
-                            break;
+                        switch ($category) {
+                            case 'Below 9th standard':
+                                $education['below_9'] = $number;
+                                break;
+                            case '10th class failed':
+                                $education['class_10_fail'] = $number;
+                                break;
+                            case '10th class passed':
+                                $education['class_10_pass'] = $number;
+                                break;
+                            case 'Intermediate':
+                                $education['intermediate'] = $number;
+                                break;
+                            case 'Intermediate and above':
+                                $education['above_intermediate'] = $number;
+                                break;
+                            case 'Total':
+                                $education['total'] = $number;
+                                break;
+                            default:
+                                // For 'Other' category
+                                $education['other'] = $category; // The category name is the 'other' text
+                                $education['other_count'] = $number;
+                                break;
+                        }
                     }
+                    $report->education = $education;
                 }
-                $report->education = $education;
-            }
-            break;
-        case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
-            $inmateProfiles = $this->crisisInterventionCenterController->getInmateProfiles($report_id);
-            break;
-    }
+                break;
+            case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
+                $inmateProfiles = $this->crisisInterventionCenterController->getInmateProfiles($report_id);
+                break;
+        }
 
-    // Pass data to the view
-    return view('reports.monthly.show', compact(
-        'report',
-        'groupedPhotos',
-        'project',
-        'budgets',
-        'annexures',
-        'ageProfiles',
-        'traineeProfiles',
-        'inmateProfiles'
-    ));
-}
+        // Pass data to the view
+        return view('reports.monthly.show', compact(
+            'report',
+            'groupedPhotos',
+            'project',
+            'budgets',
+            'annexures',
+            'ageProfiles',
+            'traineeProfiles',
+            'inmateProfiles'
+        ));
+    }
 
     public function edit($report_id)
     {
         Log::info('Entering edit method', ['report_id' => $report_id]);
 
-        // Fetch the report with necessary relationships
-        $report = DPReport::with([
+        $user = Auth::user();
+
+        // Fetch the report with necessary relationships and apply role-based filtering
+        $reportQuery = DPReport::with([
             'objectives.activities.timeframes', // Add timeframes here
             'accountDetails',
             'photos',
             'outlooks',
             'attachments'
-        ])
-        ->where('report_id', $report_id)
-        ->firstOrFail();
+        ])->where('report_id', $report_id);
+
+        // Apply role-based filters
+        if ($user->role === 'provincial') {
+            // Provincial can edit reports from executors under them
+            $reportQuery->whereHas('user', function ($query) use ($user) {
+                $query->where('parent_id', $user->id);
+            });
+        } elseif ($user->role === 'executor') {
+            // Executor can only edit their own reports
+            $reportQuery->where('user_id', $user->id);
+        } elseif ($user->role === 'coordinator') {
+            // Coordinator can edit all reports (no filtering needed)
+            // No additional filters - coordinators can edit everything
+        } else {
+            // If role is not specified, deny access
+            abort(403, 'Access denied');
+        }
+
+        $report = $reportQuery->firstOrFail();
         Log::info('Report retrieved for editing', ['report_id' => $report_id]);
 
         // Decode expected_outcome for each objective
@@ -1045,8 +924,29 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             // Validate request data
             $validatedData = $this->validateRequest($request);
 
-            // Find the report
-            $report = DPReport::where('report_id', $report_id)->firstOrFail();
+            $user = Auth::user();
+
+            // Find the report with role-based filtering
+            $reportQuery = DPReport::where('report_id', $report_id);
+
+            // Apply role-based filters
+            if ($user->role === 'provincial') {
+                // Provincial can update reports from executors under them
+                $reportQuery->whereHas('user', function ($query) use ($user) {
+                    $query->where('parent_id', $user->id);
+                });
+            } elseif ($user->role === 'executor') {
+                // Executor can only update their own reports
+                $reportQuery->where('user_id', $user->id);
+            } elseif ($user->role === 'coordinator') {
+                // Coordinator can update all reports (no filtering needed)
+                // No additional filters - coordinators can update everything
+            } else {
+                // If role is not specified, deny access
+                abort(403, 'Access denied');
+            }
+
+            $report = $reportQuery->firstOrFail();
 
             // Update the main report
             $this->updateReport($validatedData, $report);
@@ -1110,9 +1010,30 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
     {
         Log::info('Entering review method', ['report_id' => $report_id]);
 
-        $report = DPReport::with(['objectives.activities', 'accountDetails', 'photos', 'outlooks'])
-                          ->where('report_id', $report_id)
-                          ->firstOrFail();
+        $user = Auth::user();
+
+        // Fetch the report with role-based filtering
+        $reportQuery = DPReport::with(['objectives.activities', 'accountDetails', 'photos', 'outlooks'])
+                              ->where('report_id', $report_id);
+
+        // Apply role-based filters
+        if ($user->role === 'provincial') {
+            // Provincial can review reports from executors under them
+            $reportQuery->whereHas('user', function ($query) use ($user) {
+                $query->where('parent_id', $user->id);
+            });
+        } elseif ($user->role === 'executor') {
+            // Executor can only review their own reports
+            $reportQuery->where('user_id', $user->id);
+        } elseif ($user->role === 'coordinator') {
+            // Coordinator can review all reports (no filtering needed)
+            // No additional filters - coordinators can review everything
+        } else {
+            // If role is not specified, deny access
+            abort(403, 'Access denied');
+        }
+
+        $report = $reportQuery->firstOrFail();
         Log::info('Report retrieved for review', ['report' => $report]);
 
         return view('reports.monthly.review', compact('report'));
@@ -1122,7 +1043,29 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
     {
         Log::info('Entering revert method', ['report_id' => $report_id, 'request' => $request->all()]);
 
-        $report = DPReport::where('report_id', $report_id)->firstOrFail();
+        $user = Auth::user();
+
+        // Find the report with role-based filtering
+        $reportQuery = DPReport::where('report_id', $report_id);
+
+        // Apply role-based filters
+        if ($user->role === 'provincial') {
+            // Provincial can revert reports from executors under them
+            $reportQuery->whereHas('user', function ($query) use ($user) {
+                $query->where('parent_id', $user->id);
+            });
+        } elseif ($user->role === 'executor') {
+            // Executor can only revert their own reports
+            $reportQuery->where('user_id', $user->id);
+        } elseif ($user->role === 'coordinator') {
+            // Coordinator can revert all reports (no filtering needed)
+            // No additional filters - coordinators can revert everything
+        } else {
+            // If role is not specified, deny access
+            abort(403, 'Access denied');
+        }
+
+        $report = $reportQuery->firstOrFail();
         $report->update([
             'status' => 'reverted',
             'revert_reason' => $request->input('revert_reason'),

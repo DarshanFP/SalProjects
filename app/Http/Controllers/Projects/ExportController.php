@@ -10,6 +10,7 @@ use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Style\Table;
 use PhpOffice\PhpWord\IOFactory;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class ExportController extends Controller
 {
@@ -18,8 +19,42 @@ class ExportController extends Controller
     {
         try {
             $project = Project::where('project_id', $project_id)
-                ->with(['attachments', 'objectives.risks', 'objectives.activities.timeframes', 'sustainabilities', 'budgets'])
+                ->with(['attachments', 'objectives.risks', 'objectives.activities.timeframes', 'sustainabilities', 'budgets', 'user'])
                 ->firstOrFail();
+
+            $user = Auth::user();
+
+            // Role-based access control
+            $hasAccess = false;
+
+            switch ($user->role) {
+                case 'executor':
+                    // Executors can download their own projects
+                    if ($project->user_id === $user->id || $project->in_charge === $user->id) {
+                        $hasAccess = true;
+                    }
+                    break;
+
+                case 'provincial':
+                    // Provincials can download projects from executors under them with specific statuses
+                    if ($project->user->parent_id === $user->id) {
+                        if (in_array($project->status, ['submitted_to_provincial', 'reverted_by_coordinator'])) {
+                            $hasAccess = true;
+                        }
+                    }
+                    break;
+
+                case 'coordinator':
+                    // Coordinators can download projects with status 'forwarded_to_coordinator'
+                    if ($project->status === 'forwarded_to_coordinator') {
+                        $hasAccess = true;
+                    }
+                    break;
+            }
+
+            if (!$hasAccess) {
+                abort(403, 'You do not have permission to download this project.');
+            }
 
             $generalUser = User::where('role', 'general')->first();
 
@@ -319,8 +354,43 @@ class ExportController extends Controller
                     'objectives.risks',
                     'objectives.activities.timeframes',
                     'sustainabilities',
-                    'budgets'
+                    'budgets',
+                    'user'
                 ])->firstOrFail();
+
+            $user = Auth::user();
+
+            // Role-based access control
+            $hasAccess = false;
+
+            switch ($user->role) {
+                case 'executor':
+                    // Executors can download their own projects
+                    if ($project->user_id === $user->id || $project->in_charge === $user->id) {
+                        $hasAccess = true;
+                    }
+                    break;
+
+                case 'provincial':
+                    // Provincials can download projects from executors under them with specific statuses
+                    if ($project->user->parent_id === $user->id) {
+                        if (in_array($project->status, ['submitted_to_provincial', 'reverted_by_coordinator'])) {
+                            $hasAccess = true;
+                        }
+                    }
+                    break;
+
+                case 'coordinator':
+                    // Coordinators can download projects with status 'forwarded_to_coordinator'
+                    if ($project->status === 'forwarded_to_coordinator') {
+                        $hasAccess = true;
+                    }
+                    break;
+            }
+
+            if (!$hasAccess) {
+                abort(403, 'You do not have permission to download this project.');
+            }
 
             $generalUser = User::where('role', 'general')->first();
 
@@ -342,70 +412,44 @@ class ExportController extends Controller
             $this->addKeyInformationSection($phpWord, $project);
 
             // 3. CCI Specific Partials (commented out for now)
-            if ($project->project_type === 'CHILD CARE INSTITUTION') {
-                $this->addRationaleSection($phpWord, $project);
-                $this->addStatisticsSection($phpWord, $project);
-                $this->addAnnexedTargetGroupSection($phpWord, $project);
-                $this->addAgeProfileSection($phpWord, $project);
-                $this->addPersonalSituationSection($phpWord, $project);
-                $this->addEconomicBackgroundSection($phpWord, $project);
-                $this->addAchievementsSection($phpWord, $project);
-                $this->addPresentSituationSection($phpWord, $project);
+            // $this->addCCISections($phpWord, $project);
+
+            // 4. RST Specific Partials
+            if (in_array($project->project_type, ['Residential Skill Training Proposal 2', 'Development Projects', 'NEXT PHASE - DEVELOPMENT PROPOSAL'])) {
+                $this->addRSTSections($phpWord, $project);
             }
 
-            // 4. RST Specific Partials (commented out for now)
-            if ($project->project_type === 'Residential Skill Training Proposal 2') {
-                $this->addInstitutionInfoSection($phpWord, $project);
-                $this->addBeneficiariesAreaSection($phpWord, $project);
-               // dd($project->RSTTargetGroup);
-                $this->addTargetGroupSection($phpWord, $project);
-                $this->addTargetGroupAnnexureSection($phpWord, $project);
-                $this->addGeographicalAreaSection($phpWord, $project);
-            }
-
-            // 5. Edu-RUT Specific Partials (commented out for now)
+            // 5. Edu-RUT Specific Partials
             if ($project->project_type === 'Rural-Urban-Tribal') {
-                $this->addEduRUTBasicInfoSection($phpWord, $project);
-                $this->addEduRUTTargetGroupSection($phpWord, $project);
-            //     $this->addEduRUTAnnexedTargetGroupSection($phpWord, $project);
+                $this->addEduRUTSections($phpWord, $project);
             }
 
-            // 6. Individual - Ongoing Educational support (commented out for now)
-            // if ($project->project_type === 'Individual - Ongoing Educational support') {
-            //     // personal_info, family_working_members, immediate_family_details, educational_background, estimated_expenses, attachments
-            // }
+            // 6. Individual Project Types
+            if (in_array($project->project_type, [
+                'Individual - Ongoing Educational support',
+                'Individual - Livelihood Application',
+                'Individual - Access to Health',
+                'Individual - Initial - Educational support'
+            ])) {
+                $this->addIndividualProjectSections($phpWord, $project);
+            }
 
-            // 7. Individual - Initial Educational support (commented out for now)
-            // if ($project->project_type === 'Individual - Initial - Educational support') {
-            //     // personal_info, family_working_members, immediate_family_details, iies.education_background, scope_financial_support, ies.attachments
-            // }
-
-            // 8. Individual - Livelihood Application (commented out for now)
-            // if ($project->project_type === 'Individual - Livelihood Application') {
-            //     // personal_info, revenue_goals, strength_weakness, risk_analysis, attached_docs, budget
-            // }
-
-            // 9. Individual - Access to Health (commented out for now)
-            // if ($project->project_type === 'Individual - Access to Health') {
-            //     // personal_info, health_conditions, earning_members, support_details, budget_details, documents
-            //}
-
-            // 10. Institutional Ongoing Group Educational proposal (commented out for now)
+            // 7. IGE Specific Partials
             if ($project->project_type === 'Institutional Ongoing Group Educational proposal') {
-                // institution_info, beneficiaries_supported, ongoing_beneficiaries, new_beneficiaries, budget, development_monitoring
+                $this->addIGESections($phpWord, $project);
             }
 
-            // 11. Livelihood Development Projects (commented out for now)
+            // 8. LDP Specific Partials
             if ($project->project_type === 'Livelihood Development Projects') {
-                // need_analysis, target_group, intervention_logic
+                $this->addLDPSections($phpWord, $project);
             }
 
-            // 12. CIC Specific Partial (commented out for now)
+            // 9. CIC Specific Partials
             if ($project->project_type === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
                 $this->addCICSections($phpWord, $project);
             }
 
-            // 13. Default Partial Sections for all except certain individual types
+            // 10. Common Sections (for non-individual types)
             if (!in_array($project->project_type, [
                 'Individual - Ongoing Educational support',
                 'Individual - Livelihood Application',
@@ -1156,14 +1200,13 @@ private function addEduRUTSections(PhpWord $phpWord, $project)
 {
     $this->addEduRUTBasicInfoSection($phpWord, $project);
     $this->addEduRUTTargetGroupSection($phpWord, $project);
-    $this->addEduRUTAnnexedTargetGroupSection($phpWord, $project);
 }
 
 // Section - RUT Basic Info - Rural Urban Tribal
 private function addEduRUTBasicInfoSection(PhpWord $phpWord, $basicInfo)
 {
     $section = $phpWord->addSection();
-    $section->addText("Basic Information of Project’s Operational Area", ['bold' => true, 'size' => 14]);
+    $section->addText("Basic Information of Project's Operational Area", ['bold' => true, 'size' => 14]);
 
     if ($basicInfo) {
         // Add a table for structured layout
@@ -1582,7 +1625,7 @@ private function addIGEDevelopmentMonitoringSection(PhpWord $phpWord, $project)
     $section->addTextBreak(1);
 
     // Add Monitoring Methods
-    $section->addText("Methods of Monitoring the Beneficiaries’ Growth:", ['bold' => true]);
+    $section->addText("Methods of Monitoring the Beneficiaries' Growth:", ['bold' => true]);
     $section->addText($developmentMonitoring?->monitoring_methods ?? 'No data provided.');
     $section->addTextBreak(1);
 

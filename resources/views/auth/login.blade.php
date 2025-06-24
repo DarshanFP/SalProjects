@@ -97,9 +97,8 @@
 									<!-- Actions -->
 									<div class="d-flex align-items-center justify-content-between">
 										@if (Route::has('password.request'))
-											<a class="text-sm underline 9text-gray-00 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-
-                                                {{ __('Forgot your password?') }}
+											<a href="{{ route('password.request') }}" class="text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+												{{ __('Forgot your password?') }}
 											</a>
 										@endif
 										<x-primary-button class="text-white btn btn-primary">

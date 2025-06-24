@@ -1,4 +1,4 @@
-{{-- resources/views/projects/Oldprojects/index.blade.php --}}
+{{-- resources/views/projects/Oldprojects/approved.blade.php --}}
 @extends('executor.dashboard')
 
 @section('content')
@@ -7,7 +7,7 @@
         <div class="col-md-12 col-xl-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="fp-text-center1">My Projects (Pending)</h4>
+                    <h4 class="fp-text-center1">My Approved Projects</h4>
                 </div>
                 <div class="card-body">
                     <style>
@@ -63,7 +63,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($projects as $project)
+                            @forelse($projects as $project)
                                 <tr>
                                     <td>{{ $project->project_id }}</td>
                                     <td class="project-title">{{ $project->project_title }}</td>
@@ -73,13 +73,14 @@
                                     </td>
                                     <td>
                                         <a href="{{ route('projects.show', $project->project_id) }}" class="btn btn-info">View</a>
-                                        @if($project->status == 'draft' || $project->status == 'reverted_by_provincial' || $project->status == 'reverted_by_coordinator')
-                                            <a href="{{ route('projects.edit', $project->project_id) }}" class="btn btn-primary">Edit</a>
-                                        @endif
                                         <a href="{{ route('monthly.report.create', ['project_id' => $project->project_id]) }}" class="btn btn-success">Write Report</a>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-center">No approved projects found.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>

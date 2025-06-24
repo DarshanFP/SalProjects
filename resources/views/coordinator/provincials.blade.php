@@ -6,8 +6,8 @@
         <div class="col-md-12 col-xl-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="fp-text-center1">All Provincials</h4>
-                    <a href="{{ route('coordinator.createProvincial') }}" class="float-right btn btn-primary">Create Provincial</a>
+                    <h4 class="fp-text-center1">All Users</h4>
+                    <a href="{{ route('coordinator.createProvincial') }}" class="float-right btn btn-primary">Create User</a>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -37,9 +37,26 @@
                                     <td>{{ $provincial->phone }}</td>
                                     <td>{{ $provincial->center }}</td>
                                     <td>{{ $provincial->address }}</td>
-                                    <td>{{ $provincial->status }}</td>
+                                    <td>
+                                        @if($provincial->status === 'active')
+                                            <span class="badge badge-success">Active</span>
+                                        @else
+                                            <span class="badge badge-danger">Inactive</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         <a href="{{ route('coordinator.editProvincial', $provincial->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                        @if($provincial->status === 'active')
+                                            <form action="{{ route('coordinator.deactivateUser', $provincial->id) }}" method="POST" style="display: inline;">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Are you sure you want to deactivate this user?')">Deactivate</button>
+                                            </form>
+                                        @else
+                                            <form action="{{ route('coordinator.activateUser', $provincial->id) }}" method="POST" style="display: inline;">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Are you sure you want to activate this user?')">Activate</button>
+                                            </form>
+                                        @endif
                                         <form action="{{ route('coordinator.resetProvincialPassword', $provincial->id) }}" method="POST" style="display:inline;">
                                             @csrf
                                             <button type="submit" class="btn btn-danger btn-sm">Reset Password</button>

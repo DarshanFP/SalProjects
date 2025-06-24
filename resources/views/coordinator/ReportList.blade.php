@@ -6,10 +6,10 @@
         <div class="col-md-12 col-xl-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="fp-text-center1">ALL PROJECT REPORTS</h4>
+                    <h4 class="fp-text-center1">Project Reports Overview</h4>
                 </div>
                 <div class="card-body">
-                    <form method="GET" action="{{ route('coordinator.dashboard') }}">
+                    <form method="GET" action="{{ route('coordinator.report.list') }}">
                         <div class="mb-3 row">
                             <div class="col-md-3">
                                 <select name="province" class="form-control">
@@ -31,18 +31,11 @@
                             <div class="col-md-4">
                                 <select name="project_type" class="form-control">
                                     <option value="">Filter by Project Type</option>
-                                    <option value="CHILD CARE INSTITUTION">CHILD CARE INSTITUTION - Welfare home for children - Ongoing</option>
-                                    <option value="Development Projects">Development Projects - Application</option>
-                                    <option value="Rural-Urban-Tribal">Education Rural-Urban-Tribal</option>
-                                    <option value="Institutional Ongoing Group Educational proposal">Institutional Ongoing Group Educational proposal</option>
-                                    <option value="Livelihood Development Projects">Livelihood Development Projects</option>
-                                    <option value="PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER">PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER - Application</option>
-                                    <option value="NEXT PHASE - DEVELOPMENT PROPOSAL">NEXT PHASE - DEVELOPMENT PROPOSAL</option>
-                                    <option value="Residential Skill Training Proposal 2">Residential Skill Training Proposal 2</option>
-                                    <option value="Individual - Ongoing Educational support">Individual - Ongoing Educational support - Project Application</option>
-                                    <option value="Individual - Livelihood Application">Individual - Livelihood Application</option>
-                                    <option value="Individual - Access to Health">Individual - Access to Health - Project Application</option>
-                                    <option value="Individual - Initial - Educational support">Individual - Initial - Educational support - Project Application</option>
+                                    @foreach($projectTypes as $type)
+                                        <option value="{{ $type }}" {{ request('project_type') == $type ? 'selected' : '' }}>
+                                            {{ $type }}
+                                        </option>
+                                    @endforeach
                                 </select>
                             </div>
                             <div class="col-md-3">

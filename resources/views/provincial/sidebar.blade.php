@@ -155,18 +155,16 @@
             <li class="nav-item">
                 <a href="{{ route('provincial.projects.list') }}" class="nav-link">
                     <i class="link-icon" data-feather="folder"></i>
-                    <span class="link-title">All Projects</span>
+                    <span class="link-title">Pending Projects</span>
                 </a>
             </li>
 
-            {{-- remobed for above code
             <li class="nav-item">
-                <!-- Provincial specific all projects link -->
-                <a href="{{ route('provincial.projects.list') }}" class="nav-link">
-                    <i class="link-icon" data-feather="folder-plus"></i>
-                    <span class="link-title">All Project Applications</span>
+                <a href="{{ route('provincial.approved.projects') }}" class="nav-link">
+                    <i class="link-icon" data-feather="check-circle"></i>
+                    <span class="link-title">Approved Projects</span>
                 </a>
-            </li> --}}
+            </li>
 
             {{-- If needed, you can have collapsible menus for other project categories --}}
             <li class="nav-item">

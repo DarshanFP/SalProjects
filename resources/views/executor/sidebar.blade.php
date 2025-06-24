@@ -53,7 +53,10 @@
                             <a href="{{ route('projects.create') }}" class="nav-link">Write Project</a>
                         </li>
                         <li class="nav-item">
-                            <a href="{{ route('projects.index') }}" class="nav-link">View My Projects</a>
+                            <a href="{{ route('projects.index') }}" class="nav-link">Pending Projects</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('projects.approved') }}" class="nav-link">Approved Projects</a>
                         </li>
                         {{-- <li class="nav-item">
                             <a href="#" class="nav-link">Compose</a>
@@ -73,6 +76,9 @@
                     <ul class="nav sub-menu">
                         <li class="nav-item">
                             <a href="{{ route('monthly.report.index') }}" class="nav-link">My Reports List</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('executor.report.list') }}" class="nav-link">Reports Overview</a>
                         </li>
                         {{-- <li class="nav-item">
                             <a href="{{ route('quarterly.developmentLivelihood.index') }}" class="nav-link">Development Livelihood</a>

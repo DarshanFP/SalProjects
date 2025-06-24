@@ -6,92 +6,123 @@
         <div class="col-md-12 col-xl-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="fp-text-center1">ALL PROJECT REPORTS</h4>
+                    <h4 class="fp-text-center1">Project Budgets Overview</h4>
                 </div>
                 <div class="card-body">
-                    <form method="GET" action="{{ route('coordinator.dashboard') }}">
-                        <div class="mb-3 row">
-                            <div class="col-md-3">
-                                <select name="province" class="form-control">
-                                    <option value="">Filter by Province</option>
-                                    @foreach($provinces as $province)
-                                        <option value="{{ $province }}">{{ $province }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <select name="user_id" class="form-control">
-                                    <option value="">Filter by Executor</option>
-                                    @foreach($users as $user)
-                                        <option value="{{ $user->id }}">{{ $user->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
+                    <!-- Filters -->
+                    <div class="mb-4">
+                        <form method="GET" action="{{ route('coordinator.dashboard') }}" class="row g-3">
                             <div class="col-md-4">
-                                <select name="project_type" class="form-control">
-                                    <option value="">Filter by Project Type</option>
-                                    <option value="CHILD CARE INSTITUTION">CHILD CARE INSTITUTION - Welfare home for children - Ongoing</option>
-                                    <option value="Development Projects">Development Projects - Application</option>
-                                    <option value="Rural-Urban-Tribal">Education Rural-Urban-Tribal</option>
-                                    <option value="Institutional Ongoing Group Educational proposal">Institutional Ongoing Group Educational proposal</option>
-                                    <option value="Livelihood Development Projects">Livelihood Development Projects</option>
-                                    <option value="PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER">PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER - Application</option>
-                                    <option value="NEXT PHASE - DEVELOPMENT PROPOSAL">NEXT PHASE - DEVELOPMENT PROPOSAL</option>
-                                    <option value="Residential Skill Training Proposal 2">Residential Skill Training Proposal 2</option>
-                                    <option value="Individual - Ongoing Educational support">Individual - Ongoing Educational support - Project Application</option>
-                                    <option value="Individual - Livelihood Application">Individual - Livelihood Application</option>
-                                    <option value="Individual - Access to Health">Individual - Access to Health - Project Application</option>
-                                    <option value="Individual - Initial - Educational support">Individual - Initial - Educational support - Project Application</option>
+                                <label for="province" class="form-label">Province</label>
+                                <select name="province" id="province" class="form-select">
+                                    <option value="">All Provinces</option>
+                                    @foreach($provinces as $province)
+                                        <option value="{{ $province }}" {{ request('province') == $province ? 'selected' : '' }}>
+                                            {{ $province }}
+                                        </option>
+                                    @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
-                                <button type="submit" class="btn btn-primary">Filter</button>
+                            <div class="col-md-4">
+                                <label for="project_type" class="form-label">Project Type</label>
+                                <select name="project_type" id="project_type" class="form-select">
+                                    <option value="">All Project Types</option>
+                                    @foreach($projectTypes as $type)
+                                        <option value="{{ $type }}" {{ request('project_type') == $type ? 'selected' : '' }}>
+                                            {{ $type }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+                                <a href="{{ route('coordinator.dashboard') }}" class="btn btn-secondary">Reset</a>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Total Summary -->
+                    <div class="mb-4">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="text-white card bg-primary">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Total Budget</h5>
+                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_budget'], 2) }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-white card bg-success">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Total Expenses</h5>
+                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_expenses'], 2) }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-white card bg-info">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Total Remaining</h5>
+                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_remaining'], 2) }}</h3>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </form>
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Executor</th>
-                                    <th>Province</th>
-                                    <th>Project Title</th>
-                                    <th>Total Amount</th>
-                                    <th>Total Expenses</th>
-                                    <th>Expenses This Month</th>
-                                    <th>Balance Amount</th>
-                                    <th>Type</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($reports as $report)
-                                    @php
-                                        // Summing up the account details
-                                        $totalAmount = $report->accountDetails->sum('total_amount');
-                                        $totalExpenses = $report->accountDetails->sum('total_expenses');
-                                        $expensesThisMonth = $report->accountDetails->sum('expenses_this_month');
-                                        $balanceAmount = $report->accountDetails->sum('balance_amount');
-                                    @endphp
+                    </div>
+
+                    <!-- By Project Type -->
+                    <div class="mb-4">
+                        <h5 class="mb-3 card-title">Budget Summary by Project Type</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                                <thead>
                                     <tr>
-                                        <td>{{ $report->report_id }}</td>
-                                        <td>{{ $report->user->name }}</td>
-                                        <td>{{ $report->user->province }}</td>
-                                        <td>{{ $report->project_title }}</td>
-                                        <td>{{ number_format($totalAmount, 2) }}</td>
-                                        <td>{{ number_format($totalExpenses, 2) }}</td>
-                                        <td>{{ number_format($expensesThisMonth, 2) }}</td>
-                                        <td>{{ number_format($balanceAmount, 2) }}</td>
-                                        <td>{{ $report->project_type }}</td>
-                                        <td>
-                                            <a href="{{ route('coordinator.monthly.report.show', $report->report_id) }}" class="btn btn-primary btn-sm">View</a>
-                                        </td>
+                                        <th>Project Type</th>
+                                        <th>Total Budget</th>
+                                        <th>Total Expenses</th>
+                                        <th>Remaining Budget</th>
                                     </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @foreach($budgetSummaries['by_project_type'] as $type => $summary)
+                                    <tr>
+                                        <td>{{ $type }}</td>
+                                        <td>₱{{ number_format($summary['total_budget'], 2) }}</td>
+                                        <td>₱{{ number_format($summary['total_expenses'], 2) }}</td>
+                                        <td>₱{{ number_format($summary['total_remaining'], 2) }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- By Province -->
+                    <div class="mb-4">
+                        <h5 class="mb-3 card-title">Budget Summary by Province</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Province</th>
+                                        <th>Total Budget</th>
+                                        <th>Total Expenses</th>
+                                        <th>Remaining Budget</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($budgetSummaries['by_province'] as $province => $summary)
+                                    <tr>
+                                        <td>{{ $province }}</td>
+                                        <td>₱{{ number_format($summary['total_budget'], 2) }}</td>
+                                        <td>₱{{ number_format($summary['total_expenses'], 2) }}</td>
+                                        <td>₱{{ number_format($summary['total_remaining'], 2) }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>

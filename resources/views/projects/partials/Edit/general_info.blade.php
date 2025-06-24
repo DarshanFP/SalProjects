@@ -41,10 +41,10 @@
                     {{ $project->project_type == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER' ? 'selected' : '' }}>
                     PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER - Application
                 </option>
-                {{-- <option value="NEXT PHASE - DEVELOPMENT PROPOSAL"
+                <option value="NEXT PHASE - DEVELOPMENT PROPOSAL"
                     {{ $project->project_type == 'NEXT PHASE - DEVELOPMENT PROPOSAL' ? 'selected' : '' }}>
                     NEXT PHASE - DEVELOPMENT PROPOSAL
-                </option> --}}
+                </option>
                 <option value="Residential Skill Training Proposal 2"
                     {{ $project->project_type == 'Residential Skill Training Proposal 2' ? 'selected' : '' }}>
                     Residential Skill Training Proposal 2

@@ -1,4 +1,4 @@
-@extends('executor.dashboard')
+@extends('coordinator.dashboard')
 
 @section('content')
 <div class="page-content">
@@ -11,7 +11,18 @@
                 <div class="card-body">
                     <!-- Filters -->
                     <div class="mb-4">
-                        <form method="GET" action="{{ route('executor.dashboard') }}" class="row g-3">
+                        <form method="GET" action="{{ route('coordinator.budgets') }}" class="row g-3">
+                            <div class="col-md-4">
+                                <label for="province" class="form-label">Province</label>
+                                <select name="province" id="province" class="form-select">
+                                    <option value="">All Provinces</option>
+                                    @foreach($provinces as $province)
+                                        <option value="{{ $province }}" {{ request('province') == $province ? 'selected' : '' }}>
+                                            {{ $province }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <div class="col-md-4">
                                 <label for="project_type" class="form-label">Project Type</label>
                                 <select name="project_type" id="project_type" class="form-select">
@@ -25,7 +36,7 @@
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
-                                <a href="{{ route('executor.dashboard') }}" class="btn btn-secondary">Reset</a>
+                                <a href="{{ route('coordinator.budgets') }}" class="btn btn-secondary">Reset</a>
                             </div>
                         </form>
                     </div>
@@ -87,37 +98,26 @@
                         </div>
                     </div>
 
-                    <!-- Projects List -->
+                    <!-- By Province -->
                     <div class="mb-4">
-                        <h5 class="mb-3 card-title">My Projects</h5>
+                        <h5 class="mb-3 card-title">Budget Summary by Province</h5>
                         <div class="table-responsive">
                             <table class="table table-bordered table-striped">
                                 <thead>
                                     <tr>
-                                        <th>Project ID</th>
-                                        <th>Project Title</th>
-                                        <th>Project Type</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
+                                        <th>Province</th>
+                                        <th>Total Budget</th>
+                                        <th>Total Expenses</th>
+                                        <th>Remaining Budget</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($projects as $project)
+                                    @foreach($budgetSummaries['by_province'] as $province => $summary)
                                     <tr>
-                                        <td>{{ $project->project_id }}</td>
-                                        <td>{{ $project->project_title }}</td>
-                                        <td>{{ $project->project_type }}</td>
-                                        <td>
-                                            <span class="badge bg-{{ $project->status === 'approved_by_coordinator' ? 'success' : ($project->status === 'rejected_by_coordinator' ? 'danger' : 'warning') }}">
-                                                {{ $project->status }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <a href="{{ route('projects.show', $project->project_id) }}" class="btn btn-primary btn-sm">View</a>
-                                            @if($project->status === 'draft')
-                                                <a href="{{ route('projects.edit', $project->project_id) }}" class="btn btn-warning btn-sm">Edit</a>
-                                            @endif
-                                        </td>
+                                        <td>{{ $province }}</td>
+                                        <td>₱{{ number_format($summary['total_budget'], 2) }}</td>
+                                        <td>₱{{ number_format($summary['total_expenses'], 2) }}</td>
+                                        <td>₱{{ number_format($summary['total_remaining'], 2) }}</td>
                                     </tr>
                                     @endforeach
                                 </tbody>

@@ -50,6 +50,7 @@
                                 <option value="coordinator">Coordinator</option>
                                 <option value="provincial">Provincial</option>
                                 <option value="executor">Executor</option>
+                                <option value="applicant">Applicant</option>
                             </select>
                         </div>
                         <div class="form-group">

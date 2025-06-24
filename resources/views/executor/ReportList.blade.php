@@ -1,5 +1,4 @@
-{{-- resources/views/provincial/ReportList.blade.php --}}
-@extends('provincial.dashboard')
+@extends('executor.dashboard')
 
 @section('content')
 <div class="page-content">
@@ -7,35 +6,13 @@
         <div class="col-md-12 col-xl-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="fp-text-center1">Project Reports Overview</h4>
+                    <h4 class="fp-text-center1">My Project Reports</h4>
                 </div>
                 <div class="card-body">
                     <!-- Filters -->
                     <div class="mb-4">
-                        <form method="GET" action="{{ route('provincial.report.list') }}" class="row g-3">
-                            <div class="col-md-3">
-                                <label for="place" class="form-label">Place</label>
-                                <select name="place" id="place" class="form-select">
-                                    <option value="">All Places</option>
-                                    @foreach($places as $place)
-                                        <option value="{{ $place }}" {{ request('place') == $place ? 'selected' : '' }}>
-                                            {{ $place }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label for="user_id" class="form-label">Executor</label>
-                                <select name="user_id" id="user_id" class="form-select">
-                                    <option value="">All Executors</option>
-                                    @foreach($users as $user)
-                                        <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>
-                                            {{ $user->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-3">
+                        <form method="GET" action="{{ route('executor.report.list') }}" class="row g-3">
+                            <div class="col-md-4">
                                 <label for="project_type" class="form-label">Project Type</label>
                                 <select name="project_type" id="project_type" class="form-select">
                                     <option value="">All Project Types</option>
@@ -46,9 +23,9 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3 d-flex align-items-end">
+                            <div class="col-md-4 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
-                                <a href="{{ route('provincial.report.list') }}" class="btn btn-secondary">Reset</a>
+                                <a href="{{ route('executor.report.list') }}" class="btn btn-secondary">Reset</a>
                             </div>
                         </form>
                     </div>
@@ -89,14 +66,12 @@
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>Executor</th>
-                                    <th>Place</th>
                                     <th>Project Title</th>
+                                    <th>Project Type</th>
                                     <th>Total Amount</th>
                                     <th>Total Expenses</th>
                                     <th>Expenses This Month</th>
                                     <th>Balance Amount</th>
-                                    <th>Type</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -111,16 +86,15 @@
                                     @endphp
                                     <tr>
                                         <td>{{ $report->report_id }}</td>
-                                        <td>{{ $report->user->name }}</td>
-                                        <td>{{ $report->place }}</td>
                                         <td>{{ $report->project_title }}</td>
+                                        <td>{{ $report->project_type }}</td>
                                         <td>{{ number_format($totalAmount, 2) }}</td>
                                         <td>{{ number_format($totalExpenses, 2) }}</td>
                                         <td>{{ number_format($expensesThisMonth, 2) }}</td>
                                         <td>{{ number_format($balanceAmount, 2) }}</td>
-                                        <td>{{ $report->project_type }}</td>
                                         <td>
-                                            <a href="{{ route('provincial.monthly.report.show', $report->report_id) }}" class="btn btn-primary btn-sm">View</a>
+                                            <a href="{{ route('monthly.report.show', $report->report_id) }}" class="btn btn-primary btn-sm">View</a>
+                                            <a href="{{ route('monthly.report.edit', $report->report_id) }}" class="btn btn-warning btn-sm">Edit</a>
                                         </td>
                                     </tr>
                                 @endforeach

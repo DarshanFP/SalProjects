@@ -10,7 +10,7 @@
             <option value="Institutional Ongoing Group Educational proposal" {{ old('project_type') == 'Institutional Ongoing Group Educational proposal' ? 'selected' : '' }}>Institutional Ongoing Group Educational proposal</option>
             <option value="Livelihood Development Projects" {{ old('project_type') == 'Livelihood Development Projects' ? 'selected' : '' }}>Livelihood Development Projects</option>
             <option value="PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER" {{ old('project_type') == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER' ? 'selected' : '' }}>PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER - Application</option>
-            {{-- <option value="NEXT PHASE - DEVELOPMENT PROPOSAL" {{ old('project_type') == 'NEXT PHASE - DEVELOPMENT PROPOSAL' ? 'selected' : '' }}>NEXT PHASE - DEVELOPMENT PROPOSAL</option> --}}
+            <option value="NEXT PHASE - DEVELOPMENT PROPOSAL" {{ old('project_type') == 'NEXT PHASE - DEVELOPMENT PROPOSAL' ? 'selected' : '' }}>NEXT PHASE - DEVELOPMENT PROPOSAL</option>
             <option value="Residential Skill Training Proposal 2" {{ old('project_type') == 'Residential Skill Training Proposal 2' ? 'selected' : '' }}>Residential Skill Training Proposal 2</option>
             <option value="Individual - Ongoing Educational support" {{ old('project_type') == 'Individual - Ongoing Educational support' ? 'selected' : '' }}>Individual - Ongoing Educational support - Project Application</option>
             <option value="Individual - Livelihood Application" {{ old('project_type') == 'Individual - Livelihood Application' ? 'selected' : '' }}>Individual - Livelihood Application</option>
@@ -35,7 +35,6 @@
         <label for="project_title" class="form-label">Project Title</label>
         <input type="text" name="project_title" id="project_title" class="form-control select-input" value="{{ old('project_title') }}" required style="background-color: #202ba3;">
     </div>
-    <!-- Keep other fields as-is -->
     <div class="mb-3">
         <label for="society_name" class="form-label">Name of the Society / Trust</label>
         <select name="society_name" id="society_name" class="form-select" required>
@@ -65,7 +64,7 @@
             <select name="in_charge" id="in_charge" class="form-control select-input me-2" style="background-color: #202ba3;">
                 <option value="" disabled selected>Select In-Charge</option>
                 @foreach($users as $potential_in_charge)
-                    @if($potential_in_charge->province == $user->province)
+                    @if($potential_in_charge->province == $user->province && $potential_in_charge->role == 'applicant')
                         <option value="{{ $potential_in_charge->id }}" data-name="{{ $potential_in_charge->name }}" data-mobile="{{ $potential_in_charge->phone }}" data-email="{{ $potential_in_charge->email }}" {{ old('in_charge') == $potential_in_charge->id ? 'selected' : '' }}>
                             {{ $potential_in_charge->name }}
                         </option>
@@ -93,9 +92,9 @@
     </div>
     <div class="mb-3">
         <label for="current_phase" class="form-label">Current Phase</label>
-        <select name="current_phase" id="current_phase" class="form-control readonly-select" style="background-color: #202ba3;">
+        <select name="current_phase" id="current_phase" class="form-control select-input" style="background-color: #202ba3;">
             <option value="" disabled selected>Select Phase</option>
-            @for ($i = 1; $i <= old('overall_project_period', 4); $i++)
+            @for ($i = 1; $i <= 10; $i++)
                 <option value="{{ $i }}" {{ old('current_phase') == $i ? 'selected' : '' }}>Phase {{ $i }}</option>
             @endfor
         </select>
@@ -138,7 +137,9 @@
             @endif
         </div>
     </div>
-    <div class="mb-3">
+    <!-- Mission Co-Ordinator, Luzern, Switzerland -->
+    {{-- shall add only if there is nerw appointment for Mission Co-Ordinator, Luzern, Switzerland --}}
+    {{-- <div class="mb-3">
         @php $coordinator_luzern = $users->firstWhere('role', 'coordinator')->firstWhere('province', 'Luzern'); @endphp
         <label for="coordinator_luzern" class="form-label">Mission Co-Ordinator, Luzern, Switzerland</label>
         <div class="d-flex">
@@ -153,100 +154,107 @@
                 <input type="text" name="coordinator_luzern_email" class="form-control readonly-input" placeholder="Email not found for Project Co-Ordinator, Luzern, Switzerland" readonly>
             @endif
         </div>
-    </div>
+    </div> --}}
 </div>
 
-<!-- Keep HTML unchanged, update script only -->
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const overallProjectPeriod = document.getElementById('overall_project_period');
-        const currentPhase = document.getElementById('current_phase');
-        const projectTypeDropdown = document.getElementById('project_type');
-        const predecessorProjectDropdown = document.getElementById('predecessor_project_id');
-        const predecessorProjectSection = document.getElementById('predecessor-project-section');
+document.addEventListener('DOMContentLoaded', function () {
+    const projectTypeDropdown = document.getElementById('project_type');
+    const predecessorProjectDropdown = document.getElementById('predecessor_project_id');
+    const predecessorProjectSection = document.getElementById('predecessor-project-section');
 
-        // Update current phase options dynamically
-        overallProjectPeriod.addEventListener('change', function () {
-            const projectPeriod = parseInt(this.value) || 0;
-            currentPhase.innerHTML = '<option value="" disabled selected>Select Phase</option>';
-            for (let i = 1; i <= projectPeriod; i++) {
-                const option = document.createElement('option');
-                option.value = i;
-                option.textContent = `Phase ${i}`;
-                currentPhase.appendChild(option);
-            }
-        });
+    // Toggle Predecessor Project section based on project type
+    function togglePredecessorProjectSection() {
+        const projectType = projectTypeDropdown.value;
+        predecessorProjectSection.style.display = (projectType === 'NEXT PHASE - DEVELOPMENT PROPOSAL') ? 'block' : 'none';
+        console.log('Toggled predecessor section visibility:', { projectType, display: predecessorProjectSection.style.display });
+    }
 
-        // Toggle Predecessor Project section based on project type
-        function togglePredecessorProjectSection() {
-            const projectType = projectTypeDropdown.value;
-            predecessorProjectSection.style.display = (projectType === 'NEXT PHASE - DEVELOPMENT PROPOSAL') ? 'block' : 'none';
-            console.log('Toggled predecessor section visibility:', { projectType, display: predecessorProjectSection.style.display });
-        }
+    // Populate fields based on selected predecessor project
+    predecessorProjectDropdown.addEventListener('change', function () {
+        const selectedProjectId = this.value;
+        console.log('Predecessor project selected:', { selectedProjectId });
 
-        // Populate fields based on selected predecessor project
-        predecessorProjectDropdown.addEventListener('change', function () {
-            const selectedProjectId = this.value;
-            console.log('Predecessor project selected:', { selectedProjectId });
+        if (selectedProjectId) {
+            const url = '/executor/projects/' + selectedProjectId + '/details';
+            console.log('Initiating fetch request:', { url });
 
-            if (selectedProjectId) {
-                const url = '/executor/projects/' + selectedProjectId + '/details';
-                console.log('Initiating fetch request:', { url });
-
-                fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    }
-                })
-                .then(response => {
-                    console.log('Fetch response received:', {
-                        status: response.status,
-                        statusText: response.statusText,
-                        headers: Object.fromEntries(response.headers.entries())
-                    });
-                    if (!response.ok) {
-                        return response.text().then(text => {
-                            console.log('Raw response text:', text);
-                            throw new Error(`Network response was not ok: ${response.status} - ${text}`);
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Project details fetched successfully:', data);
-                    document.getElementById('project_title').value = data.project_title || '';
-                    document.getElementById('society_name').value = data.society_name || '';
-                    document.getElementById('president_name').value = data.president_name || '';
-                    document.getElementById('applicant_name').value = data.applicant_name || '';
-                    document.getElementById('applicant_mobile').value = data.applicant_mobile || '';
-                    document.getElementById('applicant_email').value = data.applicant_email || '';
-                    document.getElementById('in_charge').value = data.in_charge || '';
-                    document.getElementById('full_address').value = data.full_address || '';
-                    document.getElementById('overall_project_period').value = data.overall_project_period || '';
-                    document.getElementById('current_phase').value = data.current_phase || '';
-                    document.getElementById('commencement_month').value = data.commencement_month || '';
-                    document.getElementById('commencement_year').value = data.commencement_year || '';
-                    document.getElementById('overall_project_budget').value = data.overall_project_budget || '';
-                })
-                .catch(error => {
-                    console.error('Error fetching predecessor project data:', {
-                        message: error.message,
-                        stack: error.stack
-                    });
-                    alert('Failed to fetch project details. Please try again.');
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            })
+            .then(response => {
+                console.log('Fetch response received:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: Object.fromEntries(response.headers.entries())
                 });
-            } else {
-                console.log('No predecessor project selected');
-            }
-        });
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.log('Raw response text:', text);
+                        throw new Error(`Network response was not ok: ${response.status} - ${text}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Project details fetched successfully:', data);
+                const fields = {
+                    'project_title': data.project_title,
+                    'society_name': data.society_name,
+                    'president_name': data.president_name,
+                    'applicant_name': data.applicant_name,
+                    'applicant_mobile': data.applicant_mobile,
+                    'applicant_email': data.applicant_email,
+                    'in_charge': data.in_charge,
+                    'in_charge_name': data.in_charge_name,
+                    'in_charge_mobile': data.in_charge_mobile,
+                    'in_charge_email': data.in_charge_email,
+                    'full_address': data.full_address,
+                    'overall_project_period': data.overall_project_period,
+                    'current_phase': data.current_phase,
+                    'commencement_month': data.commencement_month,
+                    'commencement_year': data.commencement_year,
+                    'overall_project_budget': data.overall_project_budget
+                };
 
-        // Initialize visibility on page load
-        togglePredecessorProjectSection();
-        projectTypeDropdown.addEventListener('change', togglePredecessorProjectSection);
+                for (const [id, value] of Object.entries(fields)) {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.value = value || '';
+                    } else {
+                        console.warn(`Element with ID '${id}' not found in DOM`);
+                    }
+                }
+
+                // Pass beneficiaries data to the parent view
+                window.predecessorBeneficiaries = data.beneficiaries_areas || [];
+                console.log('Predecessor beneficiaries set:', window.predecessorBeneficiaries);
+
+                // Trigger an event to notify the parent view
+                const event = new CustomEvent('predecessorDataFetched', { detail: data });
+                document.dispatchEvent(event);
+            })
+            .catch(error => {
+                console.error('Error fetching predecessor project data:', {
+                    message: error.message,
+                    stack: error.stack
+                });
+                alert('Failed to fetch project details. Please try again.');
+            });
+        } else {
+            console.log('No predecessor project selected');
+        }
     });
-    </script>
 
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    // Initialize visibility on page load
+    togglePredecessorProjectSection();
+    projectTypeDropdown.addEventListener('change', togglePredecessorProjectSection);
+});
+</script>
+
+<meta name="csrf-token" content="{{ csrf_token() }}">

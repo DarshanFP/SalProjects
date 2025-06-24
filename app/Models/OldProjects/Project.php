@@ -464,4 +464,9 @@ public function successors()
     return $this->hasMany(Project::class, 'predecessor_project_id', 'project_id');
 }
 
+public function reports()
+{
+    return $this->hasMany(\App\Models\Reports\Monthly\DPReport::class, 'project_id', 'project_id');
+}
+
 }

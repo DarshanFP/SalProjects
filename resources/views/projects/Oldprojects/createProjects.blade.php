@@ -1,3 +1,4 @@
+{{-- resources/views/projects/Oldprojects/createProjects.blade.php --}}
 @extends('executor.dashboard')
 
 @section('content')
@@ -31,17 +32,19 @@
                     </div>
                 @endif
 
+                <!-- Key Information Section (Always Visible) -->
+                @include('projects.partials.key_information')
+
                 <!-- Project Area Section (Development Projects and NEXT PHASE) -->
                 <div id="project-area-section" style="display:none;">
-                    @include('projects.partials.RST.beneficiaries_area')
+                    @php
+                        $initialBeneficiaries = (!empty($predecessorBeneficiaries) && request()->input('project_type') === 'NEXT PHASE - DEVELOPMENT PROPOSAL') ? $predecessorBeneficiaries : [];
+                    @endphp
+                    @include('projects.partials.RST.beneficiaries_area', ['beneficiaries' => $initialBeneficiaries])
                 </div>
-
-                <!-- Key Information Section -->
-                @include('projects.partials.key_information')
 
                 <!-- Residential Skill Training Specific Partials -->
                 <div id="rst-section" style="display:none;">
-                    @include('projects.partials.RST.beneficiaries_area')
                     @include('projects.partials.RST.institution_info')
                     @include('projects.partials.RST.target_group')
                     @include('projects.partials.RST.target_group_annexure')
@@ -130,7 +133,7 @@
 
                 <!-- Default Partial Sections -->
                 <div id="default-sections">
-                    @include('projects.partials.logical_framework')
+                    @include('projects.partials.logical_framework', ['predecessorObjectives' => $predecessorObjectives])
                     @include('projects.partials.sustainability')
                     @include('projects.partials.budget')
                     @include('projects.partials.attachments')
@@ -143,6 +146,40 @@
             </form>
         </div>
     </div>
+</div>
+
+<!-- Templates for Logical Framework -->
+<div id="activity-template" style="display: none;">
+    <tr class="activity-row">
+        <td>
+            <textarea name="objectives[0][activities][0][activity]" class="form-control activity-description" rows="2" placeholder="Enter Activity" style="background-color: #202ba3;"></textarea>
+        </td>
+        <td>
+            <textarea name="objectives[0][activities][0][verification]" class="form-control activity-verification" rows="2" placeholder="Means of Verification" style="background-color: #202ba3;"></textarea>
+        </td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeActivity(this)">Remove</button></td>
+    </tr>
+</div>
+
+<div id="timeframe-template" style="display: none;">
+    <tr class="activity-timeframe-row">
+        <td class="activity-description-text">
+            <textarea name="objectives[0][activities][0][timeframe][description]" class="form-control" rows="2" style="background-color: #202ba3;"></textarea>
+        </td>
+        <td class="text-center"><input type="checkbox" class="month-checkbox" value="1" name="objectives[0][activities][0][timeframe][months][1]"></td>
+        <td class="text-center"><input type="checkbox" class="month-checkbox" value="1" name="objectives[0][activities][0][timeframe][months][2]"></td>
+        <td class="text-center"><input type="checkbox" class="month-checkbox" value="1" name="objectives[0][activities][0][timeframe][months][3]"></td>
+        <td class="text-center"><input type="checkbox" class="month-checkbox" value="1" name="objectives[0][activities][0][timeframe][months][4]"></td>
+        <td class="text-center"><input type="checkbox" class="month-checkbox" value="1" name="objectives[0][activities][0][timeframe][months][5]"></td>
+        <td class="text-center"><input type="checkbox" class="month-checkbox" value="1" name="objectives[0][activities][0][timeframe][months][6]"></td>
+        <td class="text-center"><input type="checkbox" class="month-checkbox" value="1" name="objectives[0][activities][0][timeframe][months][7]"></td>
+        <td class="text-center"><input type="checkbox" class="month-checkbox" value="1" name="objectives[0][activities][0][timeframe][months][8]"></td>
+        <td class="text-center"><input type="checkbox" class="month-checkbox" value="1" name="objectives[0][activities][0][timeframe][months][9]"></td>
+        <td class="text-center"><input type="checkbox" class="month-checkbox" value="1" name="objectives[0][activities][0][timeframe][months][10]"></td>
+        <td class="text-center"><input type="checkbox" class="month-checkbox" value="1" name="objectives[0][activities][0][timeframe][months][11]"></td>
+        <td class="text-center"><input type="checkbox" class="month-checkbox" value="1" name="objectives[0][activities][0][timeframe][months][12]"></td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeTimeFrameRow(this)">Remove</button></td>
+    </tr>
 </div>
 
 @include('projects.partials.scripts')
@@ -252,6 +289,123 @@ document.addEventListener('DOMContentLoaded', function() {
             disableInputsIn(defaultSections);
         }
     }
+
+    // Handle predecessor data fetched event
+    document.addEventListener('predecessorDataFetched', function(event) {
+        const beneficiaries = event.detail.beneficiaries_areas || [];
+        const objectives = event.detail.objectives || [];
+        const tbody = document.getElementById('RST-project-area-rows');
+        if (tbody && projectTypeDropdown.value === 'NEXT PHASE - DEVELOPMENT PROPOSAL') {
+            tbody.innerHTML = '';
+            window.RSTprojectAreaRowIndex = beneficiaries.length || 1;
+            if (beneficiaries.length > 0) {
+                beneficiaries.forEach(b => {
+                    const row = `
+                        <tr>
+                            <td><input type="text" name="project_area[]" class="form-control" value="${b.project_area || ''}" style="background-color: #202ba3;"></td>
+                            <td><input type="text" name="category_beneficiary[]" class="form-control" value="${b.category || ''}" style="background-color: #202ba3;"></td>
+                            <td><input type="number" name="direct_beneficiaries[]" class="form-control" value="${b.direct || 0}" style="background-color: #202ba3;"></td>
+                            <td><input type="number" name="indirect_beneficiaries[]" class="form-control" value="${b.indirect || 0}" style="background-color: #202ba3;"></td>
+                            <td><button type="button" class="btn btn-danger" onclick="removeRSTProjectAreaRow(this)">Remove</button></td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+            } else {
+                addRSTProjectAreaRow();
+            }
+        }
+
+        // Populate goal field
+        const goalTextarea = document.querySelector('textarea[name="goal"]');
+        if (goalTextarea && event.detail.goal) {
+            goalTextarea.value = event.detail.goal;
+        }
+
+        // Enhance logical framework with predecessor data (sync activities and timeframes)
+        if (objectives.length > 0 && projectTypeDropdown.value === 'NEXT PHASE - DEVELOPMENT PROPOSAL') {
+            const container = document.getElementById('objectives-container');
+            console.log('Container found:', container);
+            const objectiveCards = container.querySelectorAll('.objective-card:not(#objective-template .objective-card)');
+            console.log('Objective cards found:', objectiveCards.length);
+
+            objectiveCards.forEach((objectiveCard, index) => {
+                if (index < objectives.length) {
+                    const obj = objectives[index];
+                    objectiveCard.querySelector('textarea.objective-description').value = obj.objective || '';
+
+                    // Populate results
+                    const resultsContainer = objectiveCard.querySelector('.results-container');
+                    const defaultResult = resultsContainer.querySelector('.result-section');
+                    if (defaultResult) defaultResult.remove();
+                    obj.results.forEach((result, rIndex) => {
+                        addResult(resultsContainer.querySelector('button[onclick="addResult(this)"]'));
+                        const resultSection = resultsContainer.querySelectorAll('.result-section')[rIndex];
+                        if (resultSection) {
+                            resultSection.querySelector('textarea.result-outcome').value = result.result || '';
+                        }
+                    });
+
+                    // Populate risks
+                    const risksContainer = objectiveCard.querySelector('.risks-container');
+                    const defaultRisk = risksContainer.querySelector('.risk-section');
+                    if (defaultRisk) defaultRisk.remove();
+                    obj.risks.forEach((risk, rIndex) => {
+                        addRisk(risksContainer.querySelector('button[onclick="addRisk(this)"]'));
+                        const riskSection = risksContainer.querySelectorAll('.risk-section')[rIndex];
+                        if (riskSection) {
+                            riskSection.querySelector('textarea.risk-description').value = risk.risk || '';
+                        }
+                    });
+
+                    // Sync activities and timeframes
+                    const activitiesTable = objectiveCard.querySelector('.activities-table tbody');
+                    const timeFrameTable = objectiveCard.querySelector('.time-frame-card tbody');
+                    const existingActivities = activitiesTable.querySelectorAll('.activity-row');
+                    const existingTimeframes = timeFrameTable.querySelectorAll('.activity-timeframe-row');
+
+                    // Remove excess rows if any
+                    while (existingActivities.length > obj.activities.length) {
+                        existingActivities[existingActivities.length - 1].remove();
+                        existingTimeframes[existingTimeframes.length - 1].remove();
+                    }
+
+                    // Add or update rows
+                    obj.activities.forEach((activity, aIndex) => {
+                        let activityRow = existingActivities[aIndex];
+                        let timeFrameRow = existingTimeframes[aIndex];
+
+                        if (!activityRow) {
+                            addActivity(objectiveCard.querySelector('button[onclick="addActivity(this)"]'));
+                            activityRow = activitiesTable.querySelectorAll('.activity-row')[aIndex];
+                            timeFrameRow = timeFrameTable.querySelectorAll('.activity-timeframe-row')[aIndex];
+                        }
+
+                        const activityDesc = activityRow.querySelector('textarea.activity-description');
+                        const activityVerif = activityRow.querySelector('textarea.activity-verification');
+                        const timeFrameDesc = timeFrameRow.querySelector('textarea');
+
+                        activityDesc.value = activity.activity || '';
+                        activityVerif.value = activity.verification || '';
+                        timeFrameDesc.value = activity.activity || '';
+
+                        activity.timeframes.forEach(tf => {
+                            const monthCheckbox = timeFrameRow.querySelector(`input[name="objectives[${index}][activities][${aIndex}][timeframe][months][${tf.month}]"]`);
+                            if (monthCheckbox && tf.is_active) {
+                                monthCheckbox.checked = true;
+                            }
+                        });
+                    });
+
+                    attachActivityEventListeners(objectiveCard);
+                    updateNameAttributes(objectiveCard, index);
+                }
+            });
+
+            updateObjectiveNumbers();
+            console.log('Final objective count:', window.objectiveCount);
+        }
+    });
 
     toggleSections();
     projectTypeDropdown.addEventListener('change', toggleSections);

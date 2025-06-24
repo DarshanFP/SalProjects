@@ -4,7 +4,7 @@
 <div class="page-content">
     <div class="card">
         <div class="card-body">
-            <h4 class="card-title">Create New Executor</h4>
+            <h4 class="card-title">Create New User</h4>
             @if (session('success'))
                 <div class="alert alert-success">
                     {{ session('success') }}
@@ -45,6 +45,14 @@
                     <input type="text" class="form-control" id="society_name" name="society_name" required>
                 </div>
                 <div class="form-group">
+                    <label for="role">Role</label>
+                    <select class="form-control" id="role" name="role" required>
+                        <option value="" disabled selected>Select Role</option>
+                        <option value="executor">Executor</option>
+                        <option value="applicant">Applicant</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="center">Center</label>
                     <select class="form-control" id="center" name="center" required>
                         <option value="" disabled selected>Select Center</option>
@@ -57,7 +65,7 @@
                     <label for="address">Address</label>
                     <textarea class="form-control" id="address" name="address"></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary">Add Member</button>
+                <button type="submit" class="btn btn-primary">Add User</button>
             </form>
         </div>
     </div>
