@@ -1,10 +1,10 @@
 <div class="mb-4 card">
     <div class="card-header">
-        <h4>Logical a Framework</h4>
+        <h4>Logical Framework (Edit)</h4>
     </div>
     <div class="card-body" id="objectives-container">
         @foreach($project->objectives as $objectiveIndex => $objective)
-        <div class="p-3 mb-4 border rounded objective-card">
+        <div class="p-3 mb-4 rounded border objective-card">
             <div class="objective-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-3">Objective {{ $objectiveIndex + 1 }}</h5>
                 <button type="button" class="btn btn-danger btn-sm" onclick="removeObjective(this)">Remove Objective</button>

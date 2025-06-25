@@ -212,11 +212,7 @@ Route::middleware(['auth', 'role:executor'])->group(function () {
         Route::get('{project_id}', [ProjectController::class, 'show'])->name('projects.show');
         Route::get('{project_id}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
         Route::put('{project_id}/update', [ProjectController::class, 'update'])->name('projects.update');
-        Route::get('download/{id}', [AttachmentController::class, 'downloadAttachment'])->name('projects.downloadAttachment');
-        Route::get('{project_id}/download-pdf', [ExportController::class, 'downloadPdf'])->name('projects.downloadPdf');
-        Route::get('{project_id}/download-doc', [ExportController::class, 'downloadDoc'])->name('projects.downloadDoc');
-        // Route::get('download/{id}', [ProjectController::class, 'downloadAttachment'])->name('download.attachment');
-        Route::get('download/{id}', [AttachmentController::class, 'downloadAttachment'])->name('download.attachment');
+        // Download routes moved to shared middleware group
         //Education Rural Urban Tribal
         Route::resource('projects/edurut/basic-info',ProjectEduRUTBasicInfoController::class);
         //
@@ -242,8 +238,7 @@ Route::prefix('reports/monthly')->group(function () {
     Route::get('review/{report_id}', [ReportController::class, 'review'])->name('monthly.report.review');
     Route::post('revert/{report_id}', [ReportController::class, 'revert'])->name('monthly.report.revert');
 
-    Route::get('reports/monthly/downloadPdf/{report_id}', [ExportReportController::class, 'downloadPdf'])->name('monthly.report.downloadPdf');
-    Route::get('reports/monthly/downloadDoc/{report_id}', [ExportReportController::class, 'downloadDoc'])->name('monthly.report.downloadDoc');
+    // Monthly report download routes moved to shared middleware group
 
     Route::get('livelihood-annexure/{report_id}', [LivelihoodAnnexureController::class, 'show'])->name('livelihood.annexure.show');
     Route::get('livelihood-annexure/{report_id}/edit', [LivelihoodAnnexureController::class, 'edit'])->name('livelihood.annexure.edit');
@@ -261,6 +256,11 @@ Route::prefix('reports/monthly')->group(function () {
 // for Projects 9122024
 Route::middleware(['auth', 'role:executor,provincial,coordinator'])->group(function () {
     Route::get('/projects-list', [ProjectController::class, 'listProjects'])->name('projects.list');
+
+    // Project download routes accessible to all roles
+    Route::get('/projects/{project_id}/download-pdf', [ExportController::class, 'downloadPdf'])->name('projects.downloadPdf');
+    Route::get('/projects/{project_id}/download-doc', [ExportController::class, 'downloadDoc'])->name('projects.downloadDoc');
+    Route::get('/projects/download/{id}', [AttachmentController::class, 'downloadAttachment'])->name('download.attachment');
 });
 
 
@@ -272,6 +272,10 @@ Route::middleware(['auth', 'role:executor,provincial,coordinator'])->group(funct
     Route::get('reports/monthly/download/{id}', [ReportAttachmentController::class, 'downloadAttachment'])->name('monthly.report.downloadAttachment');
     //View Montly Reports
     Route::get('show/{report_id}', [ReportController::class, 'show'])->name('monthly.report.show');
+
+    // Monthly report PDF and DOC download routes
+    Route::get('reports/monthly/downloadPdf/{report_id}', [ExportReportController::class, 'downloadPdf'])->name('monthly.report.downloadPdf');
+    Route::get('reports/monthly/downloadDoc/{report_id}', [ExportReportController::class, 'downloadDoc'])->name('monthly.report.downloadDoc');
 });
 
 

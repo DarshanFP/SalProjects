@@ -1,12 +1,12 @@
-{{-- resources/views/projects/partials/Edit/IES/personal_info.blade.php --}}
+{{-- resources/views/projects/partials/Show/IES/personal_info.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
-        <h4>Edit: Personal Information of the Beneficiary</h4>
+        <h4>Personal Information of the Beneficiary</h4>
     </div>
     <div class="card-body">
-        @if($project->iesPersonalInfo)
+        @if($IESpersonalInfo)
             @php
-                $personalInfo = $project->iesPersonalInfo;
+                $personalInfo = $IESpersonalInfo;
             @endphp
         @else
             @php
@@ -14,96 +14,100 @@
             @endphp
         @endif
 
-        <!-- Personal Information Fields -->
-        <div class="form-group">
-            <label>Name:</label>
-            <input type="text" name="name" class="form-control" value="{{ old('name', $personalInfo->bname) }}">
-        </div>
+        <div class="info-grid">
+            <!-- Personal Information Fields -->
+            <div class="mb-3">
+                <span class="info-label">Name:</span>
+                <span class="info-value">{{ $personalInfo->bname ?? 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>Age:</label>
-            <input type="number" name="age" class="form-control" value="{{ old('age', $personalInfo->age) }}">
-        </div>
+            <div class="mb-3">
+                <span class="info-label">Age:</span>
+                <span class="info-value">{{ $personalInfo->age ?? 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>Gender:</label>
-            <input type="text" name="gender" class="form-control" value="{{ old('gender', $personalInfo->gender) }}">
-        </div>
+            <div class="mb-3">
+                <span class="info-label">Gender:</span>
+                <span class="info-value">{{ $personalInfo->gender ?? 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>Date of Birth:</label>
-            <input type="date" name="dob" class="form-control" value="{{ old('dob', $personalInfo->dob) }}">
-        </div>
+            <div class="mb-3">
+                <span class="info-label">Date of Birth:</span>
+                <span class="info-value">{{ $personalInfo->dob ? \Carbon\Carbon::parse($personalInfo->dob)->format('d/m/Y') : 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>E-mail:</label>
-            <input type="email" name="email" class="form-control" value="{{ old('email', $personalInfo->email) }}">
-        </div>
+            <div class="mb-3">
+                <span class="info-label">E-mail:</span>
+                <span class="info-value">{{ $personalInfo->email ?? 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>Contact number:</label>
-            <input type="text" name="contact" class="form-control" value="{{ old('contact', $personalInfo->contact) }}">
-        </div>
+            <div class="mb-3">
+                <span class="info-label">Contact number:</span>
+                <span class="info-value">{{ $personalInfo->contact ?? 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>Aadhar number:</label>
-            <input type="text" name="aadhar" class="form-control" value="{{ old('aadhar', $personalInfo->aadhar) }}">
-        </div>
+            <div class="mb-3">
+                <span class="info-label">Aadhar number:</span>
+                <span class="info-value">{{ $personalInfo->aadhar ?? 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>Full Address:</label>
-            <textarea name="full_address" class="form-control" rows="3">{{ old('full_address', $personalInfo->full_address) }}</textarea>
-        </div>
+            <div class="mb-3">
+                <span class="info-label">Full Address:</span>
+                <span class="info-value">{{ $personalInfo->full_address ?? 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>Name of Father:</label>
-            <input type="text" name="father_name" class="form-control" value="{{ old('father_name', $personalInfo->father_name) }}">
-        </div>
+            <div class="mb-3">
+                <span class="info-label">Name of Father:</span>
+                <span class="info-value">{{ $personalInfo->father_name ?? 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>Name of Mother:</label>
-            <input type="text" name="mother_name" class="form-control" value="{{ old('mother_name', $personalInfo->mother_name) }}">
-        </div>
+            <div class="mb-3">
+                <span class="info-label">Name of Mother:</span>
+                <span class="info-value">{{ $personalInfo->mother_name ?? 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>Mother tongue:</label>
-            <input type="text" name="mother_tongue" class="form-control" value="{{ old('mother_tongue', $personalInfo->mother_tongue) }}">
-        </div>
+            <div class="mb-3">
+                <span class="info-label">Mother tongue:</span>
+                <span class="info-value">{{ $personalInfo->mother_tongue ?? 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>Current studies:</label>
-            <input type="text" name="current_studies" class="form-control" value="{{ old('current_studies', $personalInfo->current_studies) }}">
-        </div>
+            <div class="mb-3">
+                <span class="info-label">Current studies:</span>
+                <span class="info-value">{{ $personalInfo->current_studies ?? 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>Caste:</label>
-            <input type="text" name="caste" class="form-control" value="{{ old('caste', $personalInfo->bcaste) }}">
+            <div class="mb-3">
+                <span class="info-label">Caste:</span>
+                <span class="info-value">{{ $personalInfo->bcaste ?? 'Not provided' }}</span>
+            </div>
         </div>
     </div>
 
     <div class="card-header">
-        <h4>Edit: Information about the Family</h4>
+        <h4>Information about the Family</h4>
     </div>
     <div class="card-body">
-        <!-- Family Information Fields -->
-        <div class="form-group">
-            <label>Occupation of Father:</label>
-            <input type="text" name="father_occupation" class="form-control" value="{{ old('father_occupation', $personalInfo->father_occupation) }}">
-        </div>
+        <div class="info-grid">
+            <!-- Family Information Fields -->
+            <div class="mb-3">
+                <span class="info-label">Occupation of Father:</span>
+                <span class="info-value">{{ $personalInfo->father_occupation ?? 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>Monthly income of Father:</label>
-            <input type="number" step="0.01" name="father_income" class="form-control" value="{{ old('father_income', $personalInfo->father_income) }}">
-        </div>
+            <div class="mb-3">
+                <span class="info-label">Monthly income of Father:</span>
+                <span class="info-value">{{ $personalInfo->father_income ? '₹' . number_format($personalInfo->father_income, 2) : 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>Occupation of Mother:</label>
-            <input type="text" name="mother_occupation" class="form-control" value="{{ old('mother_occupation', $personalInfo->mother_occupation) }}">
-        </div>
+            <div class="mb-3">
+                <span class="info-label">Occupation of Mother:</span>
+                <span class="info-value">{{ $personalInfo->mother_occupation ?? 'Not provided' }}</span>
+            </div>
 
-        <div class="form-group">
-            <label>Monthly income of Mother:</label>
-            <input type="number" step="0.01" name="mother_income" class="form-control" value="{{ old('mother_income', $personalInfo->mother_income) }}">
+            <div class="mb-3">
+                <span class="info-label">Monthly income of Mother:</span>
+                <span class="info-value">{{ $personalInfo->mother_income ? '₹' . number_format($personalInfo->mother_income, 2) : 'Not provided' }}</span>
+            </div>
         </div>
     </div>
 </div>

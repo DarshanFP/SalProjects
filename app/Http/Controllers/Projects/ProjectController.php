@@ -910,15 +910,15 @@ public function show($project_id)
             case 'provincial':
                 // Provincials can view projects from executors under them with specific statuses
                 if ($project->user->parent_id === $user->id) {
-                    if (in_array($project->status, ['submitted_to_provincial', 'reverted_by_coordinator'])) {
+                    if (in_array($project->status, ['submitted_to_provincial', 'reverted_by_coordinator', 'approved_by_coordinator'])) {
                         $hasAccess = true;
                     }
                 }
                 break;
 
             case 'coordinator':
-                // Coordinators can view projects with status 'forwarded_to_coordinator'
-                if ($project->status === 'forwarded_to_coordinator') {
+                // Coordinators can view projects with various statuses
+                if (in_array($project->status, ['forwarded_to_coordinator', 'approved_by_coordinator', 'reverted_by_coordinator'])) {
                     $hasAccess = true;
                 }
                 break;

@@ -40,18 +40,20 @@ class IESEducationBackgroundController extends Controller
         try {
             Log::info('Fetching IES educational background', ['project_id' => $projectId]);
 
-            $educationBackground = ProjectIESEducationBackground::where('project_id', $projectId)->firstOrFail();
-            return response()->json($educationBackground, 200);
+            $educationBackground = ProjectIESEducationBackground::where('project_id', $projectId)->first();
+
+            // Return the model object directly, not a JSON response
+            return $educationBackground;
         } catch (\Exception $e) {
             Log::error('Error fetching IES educational background', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch IES educational background.'], 500);
+            return null; // Return null instead of JSON error
         }
     }
 
     // Edit educational background for a project
     public function edit($projectId)
     {
-        
+
         try {
             Log::info('Fetching project with IES educational background', ['project_id' => $projectId]);
 

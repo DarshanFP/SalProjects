@@ -1,48 +1,74 @@
-{{-- resources/views/projects/partials/Edit/ILP/attached_docs.blade.php --}}
+{{-- resources/views/projects/partials/Show/ILP/attached_docs.blade.php --}}
 {{-- <pre>{{ print_r($ILPAttachedDocuments, true) }}</pre> --}}
 
 <div class="mb-4 card">
     <div class="card-header">
-        <h4 class="mb-0">Edit: Attach the following documents of the beneficiary:</h4>
+        <h4 class="mb-0">Attached Documents of the Beneficiary</h4>
     </div>
     <div class="card-body">
+        @if($ILPAttachedDocuments)
+            @php
+                $documents = $ILPAttachedDocuments;
+            @endphp
+        @else
+            @php
+                $documents = [];
+            @endphp
+        @endif
 
-        <!-- Aadhar Document -->
-        <div class="mb-3">
-            <label for="aadhar_doc" class="form-label">Self-attested Aadhar:</label>
-            <input type="file" name="aadhar_doc" class="form-control">
-            @if(!empty($ILPAttachedDocuments['aadhar_doc']))
-                <p>Currently Attached: <a href="{{ asset('storage/' . $ILPAttachedDocuments['aadhar_doc']) }}" target="_blank">View Document</a></p>
-            @endif
+        <div class="info-grid">
+            <!-- Aadhar Document -->
+            <div class="mb-3">
+                <span class="info-label">Self-attested Aadhar:</span>
+                @if(!empty($documents['aadhar_doc']))
+                    <span class="info-value">
+                        <a href="{{ Storage::url($documents['aadhar_doc']) }}" target="_blank" class="btn btn-sm btn-primary">View Document</a>
+                        <a href="{{ Storage::url($documents['aadhar_doc']) }}" download class="btn btn-sm btn-secondary">Download</a>
+                    </span>
+                @else
+                    <span class="info-value text-muted">No file uploaded</span>
+                @endif
+            </div>
+
+            <!-- Request Letter -->
+            <div class="mb-3">
+                <span class="info-label">Request Letter:</span>
+                @if(!empty($documents['request_letter_doc']))
+                    <span class="info-value">
+                        <a href="{{ Storage::url($documents['request_letter_doc']) }}" target="_blank" class="btn btn-sm btn-primary">View Document</a>
+                        <a href="{{ Storage::url($documents['request_letter_doc']) }}" download class="btn btn-sm btn-secondary">Download</a>
+                    </span>
+                @else
+                    <span class="info-value text-muted">No file uploaded</span>
+                @endif
+            </div>
+
+            <!-- Purchase Quotation -->
+            <div class="mb-3">
+                <span class="info-label">Quotations regarding purchase:</span>
+                @if(!empty($documents['purchase_quotation_doc']))
+                    <span class="info-value">
+                        <a href="{{ Storage::url($documents['purchase_quotation_doc']) }}" target="_blank" class="btn btn-sm btn-primary">View Document</a>
+                        <a href="{{ Storage::url($documents['purchase_quotation_doc']) }}" download class="btn btn-sm btn-secondary">Download</a>
+                    </span>
+                @else
+                    <span class="info-value text-muted">No file uploaded</span>
+                @endif
+            </div>
+
+            <!-- Other Documents -->
+            <div class="mb-3">
+                <span class="info-label">Other relevant documents:</span>
+                @if(!empty($documents['other_doc']))
+                    <span class="info-value">
+                        <a href="{{ Storage::url($documents['other_doc']) }}" target="_blank" class="btn btn-sm btn-primary">View Document</a>
+                        <a href="{{ Storage::url($documents['other_doc']) }}" download class="btn btn-sm btn-secondary">Download</a>
+                    </span>
+                @else
+                    <span class="info-value text-muted">No file uploaded</span>
+                @endif
+            </div>
         </div>
-
-        <!-- Request Letter -->
-        <div class="mb-3">
-            <label for="request_letter_doc" class="form-label">Request Letter:</label>
-            <input type="file" name="request_letter_doc" class="form-control">
-            @if(!empty($ILPAttachedDocuments['request_letter_doc']))
-                <p>Currently Attached: <a href="{{ asset('storage/' . $ILPAttachedDocuments['request_letter_doc']) }}" target="_blank">View Document</a></p>
-            @endif
-        </div>
-
-        <!-- Purchase Quotation -->
-        <div class="mb-3">
-            <label for="purchase_quotation_doc" class="form-label">Quotations regarding purchase:</label>
-            <input type="file" name="purchase_quotation_doc" class="form-control">
-            @if(!empty($ILPAttachedDocuments['purchase_quotation_doc']))
-                <p>Currently Attached: <a href="{{ asset('storage/' . $ILPAttachedDocuments['purchase_quotation_doc']) }}" target="_blank">View Document</a></p>
-            @endif
-        </div>
-
-        <!-- Other Documents -->
-        <div class="mb-3">
-            <label for="other_doc" class="form-label">Other relevant documents:</label>
-            <input type="file" name="other_doc" class="form-control">
-            @if(!empty($ILPAttachedDocuments['other_doc']))
-                <p>Currently Attached: <a href="{{ asset('storage/' . $ILPAttachedDocuments['other_doc']) }}" target="_blank">View Document</a></p>
-            @endif
-        </div>
-
     </div>
 </div>
 

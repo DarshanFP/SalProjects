@@ -108,10 +108,12 @@ class IESFamilyWorkingMembersController extends Controller
             Log::info('Fetching IES family working members', ['project_id' => $projectId]);
 
             $familyMembers = ProjectIESFamilyWorkingMembers::where('project_id', $projectId)->get();
-            return response()->json($familyMembers, 200);
+
+            // Return the model collection directly, not a JSON response
+            return $familyMembers;
         } catch (\Exception $e) {
             Log::error('Error fetching IES family working members', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch IES family working members.'], 500);
+            return collect([]); // Return empty collection instead of JSON error
         }
     }
 

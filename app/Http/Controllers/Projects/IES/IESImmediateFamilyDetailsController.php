@@ -39,11 +39,13 @@ class IESImmediateFamilyDetailsController extends Controller
         try {
             Log::info('Fetching IES immediate family details', ['project_id' => $projectId]);
 
-            $familyDetails = ProjectIESImmediateFamilyDetails::where('project_id', $projectId)->firstOrFail();
-            return response()->json($familyDetails, 200);
+            $familyDetails = ProjectIESImmediateFamilyDetails::where('project_id', $projectId)->first();
+
+            // Return the model object directly, not a JSON response
+            return $familyDetails;
         } catch (\Exception $e) {
             Log::error('Error fetching IES immediate family details', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to fetch IES immediate family details.'], 500);
+            return null; // Return null instead of JSON error
         }
     }
 

@@ -127,13 +127,15 @@ class IAHEarningMembersController extends Controller
             Log::info('IAHEarningMembersController@show - Fetching data', ['project_id' => $projectId]);
 
             $earningMembers = ProjectIAHEarningMembers::where('project_id', $projectId)->get();
-            return response()->json($earningMembers, 200);
+
+            // Return the model collection directly, not a JSON response
+            return $earningMembers;
         } catch (\Exception $e) {
             Log::error('IAHEarningMembersController@show - Error', [
                 'project_id' => $projectId,
                 'error'      => $e->getMessage(),
             ]);
-            return response()->json(['error' => 'Failed to fetch IAH earning members details.'], 500);
+            return collect([]); // Return empty collection instead of JSON error
         }
     }
 

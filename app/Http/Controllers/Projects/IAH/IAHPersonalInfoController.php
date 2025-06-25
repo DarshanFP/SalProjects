@@ -112,14 +112,16 @@ class IAHPersonalInfoController extends Controller
         try {
             Log::info('IAHPersonalInfoController@show - Start', ['project_id' => $projectId]);
 
-            $personalInfo = ProjectIAHPersonalInfo::where('project_id', $projectId)->firstOrFail();
-            return response()->json($personalInfo, 200);
+            $personalInfo = ProjectIAHPersonalInfo::where('project_id', $projectId)->first();
+
+            // Return the model object directly, not a JSON response
+            return $personalInfo;
         } catch (\Exception $e) {
             Log::error('IAHPersonalInfoController@show - Error', [
                 'project_id' => $projectId,
                 'error'      => $e->getMessage()
             ]);
-            return response()->json(['error' => 'Failed to fetch IAH personal info.'], 500);
+            return null;
         }
     }
 

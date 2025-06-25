@@ -78,25 +78,24 @@ class IESPersonalInfoController extends Controller
      * Show personal info for a project.
      *
      * @param  int  $projectId
-     * @return \Illuminate\Http\JsonResponse
+     * @return \App\Models\OldProjects\IES\ProjectIESPersonalInfo|null
      */
     public function show($projectId)
     {
         try {
             Log::info('Fetching IES Personal Info', ['project_id' => $projectId]);
 
-            $personalInfo = ProjectIESPersonalInfo::where('project_id', $projectId)->firstOrFail();
+            $personalInfo = ProjectIESPersonalInfo::where('project_id', $projectId)->first();
 
-            // Return as JSON or you can return a view if that's your workflow
-            return response()->json($personalInfo, 200);
-
+            // Return the model object directly, not a JSON response
+            return $personalInfo;
         } catch (\Exception $e) {
             Log::error('Error fetching IES Personal Info', [
                 'project_id' => $projectId,
                 'error' => $e->getMessage()
             ]);
 
-            return response()->json(['error' => 'Failed to fetch IES Personal Info.'], 500);
+            return null; // Return null instead of JSON error
         }
     }
 

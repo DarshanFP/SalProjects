@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Projects;
 use App\Http\Controllers\Controller;
 use App\Models\OldProjects\Project;
 use App\Models\User;
-use Barryvdh\Snappy\Facades\SnappyPdf as PDF;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Style\Table;
 use PhpOffice\PhpWord\IOFactory;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Mpdf\Mpdf;
 
 class ExportController extends Controller
 {
@@ -38,15 +38,15 @@ class ExportController extends Controller
                 case 'provincial':
                     // Provincials can download projects from executors under them with specific statuses
                     if ($project->user->parent_id === $user->id) {
-                        if (in_array($project->status, ['submitted_to_provincial', 'reverted_by_coordinator'])) {
+                        if (in_array($project->status, ['submitted_to_provincial', 'reverted_by_coordinator', 'approved_by_coordinator'])) {
                             $hasAccess = true;
                         }
                     }
                     break;
 
                 case 'coordinator':
-                    // Coordinators can download projects with status 'forwarded_to_coordinator'
-                    if ($project->status === 'forwarded_to_coordinator') {
+                    // Coordinators can download projects with various statuses
+                    if (in_array($project->status, ['forwarded_to_coordinator', 'approved_by_coordinator', 'reverted_by_coordinator'])) {
                         $hasAccess = true;
                     }
                     break;
@@ -66,11 +66,12 @@ class ExportController extends Controller
                 'coordinator' => $project->coordinator_india_name
             ];
 
-            $pdf = PDF::loadView('projects.Oldprojects.pdf', compact('project', 'projectRoles'));
-
-            Log::info('ExportController@downloadPdf - PDF generated', ['project_id' => $project_id]);
-
-            return $pdf->download("project_{$project_id}.pdf");
+            $html = view('projects.Oldprojects.pdf', compact('project', 'projectRoles'))->render();
+            $mpdf = new Mpdf();
+            $mpdf->WriteHTML($html);
+            return response($mpdf->Output('', 'S'), 200)
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'attachment; filename="project_' . $project_id . '.pdf"');
         } catch (\Exception $e) {
             Log::error('ExportController@downloadPdf - Error', ['error' => $e->getMessage(), 'project_id' => $project_id]);
             throw $e;
@@ -374,15 +375,15 @@ class ExportController extends Controller
                 case 'provincial':
                     // Provincials can download projects from executors under them with specific statuses
                     if ($project->user->parent_id === $user->id) {
-                        if (in_array($project->status, ['submitted_to_provincial', 'reverted_by_coordinator'])) {
+                        if (in_array($project->status, ['submitted_to_provincial', 'reverted_by_coordinator', 'approved_by_coordinator'])) {
                             $hasAccess = true;
                         }
                     }
                     break;
 
                 case 'coordinator':
-                    // Coordinators can download projects with status 'forwarded_to_coordinator'
-                    if ($project->status === 'forwarded_to_coordinator') {
+                    // Coordinators can download projects with various statuses
+                    if (in_array($project->status, ['forwarded_to_coordinator', 'approved_by_coordinator', 'reverted_by_coordinator'])) {
                         $hasAccess = true;
                     }
                     break;

@@ -123,22 +123,6 @@ class IAHBudgetDetailsController extends Controller
     /**
      * Fetch budget details for a project (read-only).
      */
-    // public function show($projectId)
-    // {
-    //     try {
-    //         Log::info('IAHBudgetDetailsController@show - Fetching IAH budget details', [
-    //             'project_id' => $projectId
-    //         ]);
-    //         $budgetDetails = ProjectIAHBudgetDetails::where('project_id', $projectId)->get();
-    //         return response()->json($budgetDetails, 200);
-    //     } catch (\Exception $e) {
-    //         Log::error('IAHBudgetDetailsController@show - Error fetching budget details', [
-    //             'project_id' => $projectId,
-    //             'error'      => $e->getMessage(),
-    //         ]);
-    //         return response()->json(['error' => 'Failed to fetch IAH budget details.'], 500);
-    //     }
-    // }
     public function show($projectId)
     {
         try {
@@ -146,20 +130,17 @@ class IAHBudgetDetailsController extends Controller
                 'project_id' => $projectId
             ]);
 
-            // Fetching only the first record (assuming one budget per project)
-            $budgetDetail = ProjectIAHBudgetDetails::where('project_id', $projectId)->first();
+            // Fetch all budget details for the project
+            $budgetDetails = ProjectIAHBudgetDetails::where('project_id', $projectId)->get();
 
-            if (!$budgetDetail) {
-                return response()->json(['error' => 'No budget details found.'], 404);
-            }
-
-            return response()->json($budgetDetail, 200);
+            // Return the model collection directly, not a JSON response
+            return $budgetDetails;
         } catch (\Exception $e) {
             Log::error('IAHBudgetDetailsController@show - Error fetching budget details', [
                 'project_id' => $projectId,
                 'error'      => $e->getMessage(),
             ]);
-            return response()->json(['error' => 'Failed to fetch IAH budget details.'], 500);
+            return collect([]); // Return empty collection instead of JSON error
         }
     }
 

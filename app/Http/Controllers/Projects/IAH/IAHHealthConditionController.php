@@ -103,14 +103,16 @@ class IAHHealthConditionController extends Controller
             Log::info('IAHHealthConditionController@show - Start', [
                 'project_id' => $projectId
             ]);
-            $healthCondition = ProjectIAHHealthCondition::where('project_id', $projectId)->firstOrFail();
-            return response()->json($healthCondition, 200);
+            $healthCondition = ProjectIAHHealthCondition::where('project_id', $projectId)->first();
+
+            // Return the model object directly, not a JSON response
+            return $healthCondition;
         } catch (\Exception $e) {
             Log::error('IAHHealthConditionController@show - Error', [
                 'project_id' => $projectId,
                 'error'      => $e->getMessage()
             ]);
-            return response()->json(['error' => 'Failed to fetch IAH health condition details.'], 500);
+            return null; // Return null instead of JSON error
         }
     }
 

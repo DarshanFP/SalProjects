@@ -39,7 +39,7 @@ class IAHDocumentsController extends Controller
                 return response()->json(['error' => 'Project not found.'], 404);
             }
 
-            // The model’s static handleDocuments(...) does the actual file moving + DB updates
+            // The model's static handleDocuments(...) does the actual file moving + DB updates
             $documents = ProjectIAHDocuments::handleDocuments($request, $projectId);
 
             DB::commit();
@@ -70,30 +70,16 @@ class IAHDocumentsController extends Controller
         Log::info('IAHDocumentsController@show - Start', ['project_id' => $projectId]);
 
         try {
-            $documents = ProjectIAHDocuments::where('project_id', $projectId)->firstOrFail();
+            $documents = ProjectIAHDocuments::where('project_id', $projectId)->first();
 
-            // If you want to return just the DB record with stored paths, you can do:
-            // return response()->json($documents, 200);
-
-            // Or, if you want to return the file "public" URLs (like in your ILP example):
-            $fields       = ['aadhar_copy', 'request_letter', 'medical_reports', 'other_docs'];
-            $documentUrls = [];
-            foreach ($fields as $field) {
-                if (!empty($documents->$field)) {
-                    $documentUrls[$field] = Storage::url($documents->$field);
-                }
-            }
-
-            return response()->json([
-                'project_id' => $projectId,
-                'documents'  => $documentUrls,
-            ], 200);
+            // Return the model object directly, not a JSON response
+            return $documents;
         } catch (\Exception $e) {
             Log::error('IAHDocumentsController@show - Error', [
                 'project_id' => $projectId,
                 'error'      => $e->getMessage()
             ]);
-            return response()->json(['error' => 'Failed to fetch IAH documents.'], 500);
+            return null; // Return null instead of JSON error
         }
     }
 
