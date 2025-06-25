@@ -349,14 +349,19 @@ class ExportController extends Controller
     public function downloadDoc($project_id)
     {
         try {
+            // Check if XML extension is available
+            if (!extension_loaded('xml')) {
+                Log::warning('ExportController@downloadDoc - XML extension not available, falling back to PDF', ['project_id' => $project_id]);
+                return $this->downloadPdf($project_id);
+            }
+
             $project = Project::where('project_id', $project_id)
                 ->with([
                     'attachments',
                     'objectives.risks',
                     'objectives.activities.timeframes',
                     'sustainabilities',
-                    'budgets',
-                    'user'
+                    'budgets'
                 ])->firstOrFail();
 
             $user = Auth::user();
@@ -403,17 +408,21 @@ class ExportController extends Controller
                 'coordinator' => $project->coordinator_india_name
             ];
 
-            $phpWord = new PhpWord();
+            Log::info('ExportController@downloadDoc - Starting Word document generation', ['project_id' => $project_id]);
 
-            // Order as per show.blade.php
-            // 1. General Information
+            $phpWord = new PhpWord();
+            $section = $phpWord->addSection();
+
+            // 1. General Information Section
             $this->addGeneralInfoSection($phpWord, $project, $projectRoles);
 
-            // 2. Key Information
+            // 2. Key Information Section
             $this->addKeyInformationSection($phpWord, $project);
 
-            // 3. CCI Specific Partials (commented out for now)
-            // $this->addCCISections($phpWord, $project);
+            // 3. CCI Specific Partials
+            if ($project->project_type === 'CHILD CARE INSTITUTION') {
+                $this->addCCISections($phpWord, $project);
+            }
 
             // 4. RST Specific Partials (Residential Skill Training Proposal 2, Development Projects, NEXT PHASE - DEVELOPMENT PROPOSAL)
             if (in_array($project->project_type, [
