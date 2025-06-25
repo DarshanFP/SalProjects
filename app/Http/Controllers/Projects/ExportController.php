@@ -412,8 +412,10 @@ class ExportController extends Controller
             // 2. Key Information
             $this->addKeyInformationSection($phpWord, $project);
 
-            // 3. CCI Specific Partials (commented out for now)
-            // $this->addCCISections($phpWord, $project);
+            // 3. CCI Specific Partials
+            if ($project->project_type === 'CHILD CARE INSTITUTION') {
+                $this->addCCISections($phpWord, $project);
+            }
 
             // 4. RST Specific Partials
             if (in_array($project->project_type, ['Residential Skill Training Proposal 2', 'Development Projects', 'NEXT PHASE - DEVELOPMENT PROPOSAL'])) {
@@ -2143,6 +2145,277 @@ private function addSignatureAndApprovalSections(PhpWord $phpWord, $project, $pr
     $table->addRow();
     $table->addCell(5000)->addText("Date");
     $table->addCell(5000)->addText('');
+}
+
+// Individual Project Sections
+private function addIndividualProjectSections(PhpWord $phpWord, $project)
+{
+    switch ($project->project_type) {
+        case 'Individual - Ongoing Educational support':
+            $this->addIESections($phpWord, $project);
+            break;
+        case 'Individual - Initial - Educational support':
+            $this->addIIESSections($phpWord, $project);
+            break;
+        case 'Individual - Livelihood Application':
+            $this->addILPSections($phpWord, $project);
+            break;
+        case 'Individual - Access to Health':
+            $this->addIAHSections($phpWord, $project);
+            break;
+    }
+}
+
+// IES - Individual - Ongoing Educational Support
+private function addIESections(PhpWord $phpWord, $project)
+{
+    $section = $phpWord->addSection();
+
+    // Personal Information
+    $section->addText("Personal Information", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    // Add personal info data here
+    $section->addText("Student Name: " . ($project->iesPersonalInfo->student_name ?? 'N/A'));
+    $section->addText("Age: " . ($project->iesPersonalInfo->age ?? 'N/A'));
+    $section->addText("Gender: " . ($project->iesPersonalInfo->gender ?? 'N/A'));
+    $section->addText("Address: " . ($project->iesPersonalInfo->address ?? 'N/A'));
+    $section->addTextBreak(1);
+
+    // Family Working Members
+    $section->addText("Family Working Members", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->iesFamilyWorkingMembers) {
+        $tableStyle = ['borderSize' => 6, 'borderColor' => '000000', 'cellMargin' => 80];
+        $phpWord->addTableStyle('FamilyTable', $tableStyle);
+        $table = $section->addTable('FamilyTable');
+
+        $table->addRow();
+        $table->addCell(3000)->addText("Name", ['bold' => true]);
+        $table->addCell(3000)->addText("Relationship", ['bold' => true]);
+        $table->addCell(3000)->addText("Occupation", ['bold' => true]);
+        $table->addCell(3000)->addText("Monthly Income", ['bold' => true]);
+
+        foreach ($project->iesFamilyWorkingMembers as $member) {
+            $table->addRow();
+            $table->addCell(3000)->addText($member->name ?? 'N/A');
+            $table->addCell(3000)->addText($member->relationship ?? 'N/A');
+            $table->addCell(3000)->addText($member->occupation ?? 'N/A');
+            $table->addCell(3000)->addText($member->monthly_income ?? 'N/A');
+        }
+    }
+    $section->addTextBreak(1);
+
+    // Educational Background
+    $section->addText("Educational Background", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->iesEducationBackground) {
+        $section->addText("Current Class: " . ($project->iesEducationBackground->current_class ?? 'N/A'));
+        $section->addText("School/College: " . ($project->iesEducationBackground->school_college ?? 'N/A'));
+        $section->addText("Previous Academic Performance: " . ($project->iesEducationBackground->previous_performance ?? 'N/A'));
+    }
+    $section->addTextBreak(1);
+
+    // Estimated Expenses
+    $section->addText("Estimated Expenses", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->iesExpenses) {
+        $tableStyle = ['borderSize' => 6, 'borderColor' => '000000', 'cellMargin' => 80];
+        $phpWord->addTableStyle('ExpensesTable', $tableStyle);
+        $table = $section->addTable('ExpensesTable');
+
+        $table->addRow();
+        $table->addCell(5000)->addText("Expense Type", ['bold' => true]);
+        $table->addCell(5000)->addText("Amount", ['bold' => true]);
+
+        foreach ($project->iesExpenses as $expense) {
+            $table->addRow();
+            $table->addCell(5000)->addText($expense->expense_type ?? 'N/A');
+            $table->addCell(5000)->addText("Rs. " . number_format($expense->amount ?? 0, 2));
+        }
+    }
+}
+
+// IIES - Individual - Initial Educational Support
+private function addIIESSections(PhpWord $phpWord, $project)
+{
+    $section = $phpWord->addSection();
+
+    // Personal Information
+    $section->addText("Personal Information", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->iiesPersonalInfo) {
+        $section->addText("Student Name: " . ($project->iiesPersonalInfo->student_name ?? 'N/A'));
+        $section->addText("Age: " . ($project->iiesPersonalInfo->age ?? 'N/A'));
+        $section->addText("Gender: " . ($project->iiesPersonalInfo->gender ?? 'N/A'));
+        $section->addText("Address: " . ($project->iiesPersonalInfo->address ?? 'N/A'));
+    }
+    $section->addTextBreak(1);
+
+    // Scope of Financial Support
+    $section->addText("Scope of Financial Support", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->iiesFinancialSupport) {
+        $section->addText("Support Type: " . ($project->iiesFinancialSupport->support_type ?? 'N/A'));
+        $section->addText("Duration: " . ($project->iiesFinancialSupport->duration ?? 'N/A'));
+        $section->addText("Amount: Rs. " . number_format($project->iiesFinancialSupport->amount ?? 0, 2));
+    }
+    $section->addTextBreak(1);
+
+    // Estimated Expenses
+    $section->addText("Estimated Expenses", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->iiesExpenses) {
+        $tableStyle = ['borderSize' => 6, 'borderColor' => '000000', 'cellMargin' => 80];
+        $phpWord->addTableStyle('IIESExpensesTable', $tableStyle);
+        $table = $section->addTable('IIESExpensesTable');
+
+        $table->addRow();
+        $table->addCell(5000)->addText("Expense Type", ['bold' => true]);
+        $table->addCell(5000)->addText("Amount", ['bold' => true]);
+
+        foreach ($project->iiesExpenses as $expense) {
+            $table->addRow();
+            $table->addCell(5000)->addText($expense->expense_type ?? 'N/A');
+            $table->addCell(5000)->addText("Rs. " . number_format($expense->amount ?? 0, 2));
+        }
+    }
+}
+
+// ILP - Individual - Livelihood Application
+private function addILPSections(PhpWord $phpWord, $project)
+{
+    $section = $phpWord->addSection();
+
+    // Personal Information
+    $section->addText("Personal Information", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->ilpPersonalInfo) {
+        $section->addText("Applicant Name: " . ($project->ilpPersonalInfo->applicant_name ?? 'N/A'));
+        $section->addText("Age: " . ($project->ilpPersonalInfo->age ?? 'N/A'));
+        $section->addText("Gender: " . ($project->ilpPersonalInfo->gender ?? 'N/A'));
+        $section->addText("Address: " . ($project->ilpPersonalInfo->address ?? 'N/A'));
+    }
+    $section->addTextBreak(1);
+
+    // Revenue Goals
+    $section->addText("Revenue Goals", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->ilpRevenueGoals) {
+        $section->addText("Business Type: " . ($project->ilpRevenueGoals->business_type ?? 'N/A'));
+        $section->addText("Expected Monthly Revenue: Rs. " . number_format($project->ilpRevenueGoals->expected_revenue ?? 0, 2));
+        $section->addText("Target Market: " . ($project->ilpRevenueGoals->target_market ?? 'N/A'));
+    }
+    $section->addTextBreak(1);
+
+    // Risk Analysis
+    $section->addText("Risk Analysis", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->ilpRiskAnalysis) {
+        $section->addText("Identified Risks: " . ($project->ilpRiskAnalysis->identified_risks ?? 'N/A'));
+        $section->addText("Mitigation Strategies: " . ($project->ilpRiskAnalysis->mitigation_strategies ?? 'N/A'));
+    }
+    $section->addTextBreak(1);
+
+    // Budget
+    $section->addText("Budget", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->ilpBudget) {
+        $tableStyle = ['borderSize' => 6, 'borderColor' => '000000', 'cellMargin' => 80];
+        $phpWord->addTableStyle('ILPBudgetTable', $tableStyle);
+        $table = $section->addTable('ILPBudgetTable');
+
+        $table->addRow();
+        $table->addCell(5000)->addText("Item", ['bold' => true]);
+        $table->addCell(5000)->addText("Amount", ['bold' => true]);
+
+        foreach ($project->ilpBudget as $budget) {
+            $table->addRow();
+            $table->addCell(5000)->addText($budget->item ?? 'N/A');
+            $table->addCell(5000)->addText("Rs. " . number_format($budget->amount ?? 0, 2));
+        }
+    }
+}
+
+// IAH - Individual - Access to Health
+private function addIAHSections(PhpWord $phpWord, $project)
+{
+    $section = $phpWord->addSection();
+
+    // Personal Information
+    $section->addText("Personal Information", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->iahPersonalInfo) {
+        $section->addText("Patient Name: " . ($project->iahPersonalInfo->patient_name ?? 'N/A'));
+        $section->addText("Age: " . ($project->iahPersonalInfo->age ?? 'N/A'));
+        $section->addText("Gender: " . ($project->iahPersonalInfo->gender ?? 'N/A'));
+        $section->addText("Address: " . ($project->iahPersonalInfo->address ?? 'N/A'));
+    }
+    $section->addTextBreak(1);
+
+    // Health Conditions
+    $section->addText("Health Conditions", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->iahHealthConditions) {
+        $section->addText("Medical Condition: " . ($project->iahHealthConditions->medical_condition ?? 'N/A'));
+        $section->addText("Diagnosis: " . ($project->iahHealthConditions->diagnosis ?? 'N/A'));
+        $section->addText("Treatment Required: " . ($project->iahHealthConditions->treatment_required ?? 'N/A'));
+    }
+    $section->addTextBreak(1);
+
+    // Budget Details
+    $section->addText("Budget Details", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->iahBudgetDetails) {
+        $tableStyle = ['borderSize' => 6, 'borderColor' => '000000', 'cellMargin' => 80];
+        $phpWord->addTableStyle('IAHBudgetTable', $tableStyle);
+        $table = $section->addTable('IAHBudgetTable');
+
+        $table->addRow();
+        $table->addCell(5000)->addText("Expense Type", ['bold' => true]);
+        $table->addCell(5000)->addText("Amount", ['bold' => true]);
+
+        foreach ($project->iahBudgetDetails as $budget) {
+            $table->addRow();
+            $table->addCell(5000)->addText($budget->expense_type ?? 'N/A');
+            $table->addCell(5000)->addText("Rs. " . number_format($budget->amount ?? 0, 2));
+        }
+    }
+}
+
+// IGE - Institutional Ongoing Group Educational
+private function addIGESections(PhpWord $phpWord, $project)
+{
+    // Institution Information
+    $this->addIGEInstitutionInfoSection($phpWord, $project);
+
+    // Beneficiaries Supported
+    $this->addIGEBeneficiariesSupportedSection($phpWord, $project);
+
+    // Ongoing Beneficiaries
+    $this->addIGEOngoingBeneficiariesSection($phpWord, $project);
+
+    // New Beneficiaries
+    $this->addIGENewBeneficiariesSection($phpWord, $project);
+
+    // Budget
+    $this->addIGEBudgetSection($phpWord, $project);
+
+    // Development Monitoring
+    $this->addIGEDevelopmentMonitoringSection($phpWord, $project);
 }
 
 }
