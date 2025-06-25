@@ -7,10 +7,6 @@
         default => 'executor.dashboard', // fallback to executor if role not matched
     };
 @endphp
-@php
-    \Illuminate\Support\Facades\Log::info('Blade Template - IIES Education Background:', ['data' => $IIESEducationBackground ?? 'Not Set']);
-@endphp
-
 
 @extends($layout)
 
@@ -82,8 +78,7 @@
     @endif
 
     <!-- Individual - Initial Educational Support Partials -->
-    @if ($project->project_type === 'Individual - Initial - Educational support')
-
+     @if ($project->project_type === 'Individual - Initial - Educational support') --}}
         @include('projects.partials.show.IIES.personal_info')
         @include('projects.partials.show.IIES.family_working_members')
         @include('projects.partials.show.IIES.immediate_family_details')
@@ -92,7 +87,15 @@
         @include('projects.partials.show.IIES.attachments')
     @endif
 
+    {{-- @if (true) {{-- Temporarily always show IIES section for testing
+        @include('projects.partials.show.IIES.personal_info')
+        @include('projects.partials.show.IIES.family_working_members')
+        @include('projects.partials.show.IIES.immediate_family_details')
+        @include('projects.partials.show.IIES.scope_financial_support')
+        @include('projects.partials.show.IIES.estimated_expenses')
 
+        @include('projects.partials.show.IIES.attachments', ['IIESAttachments' => $IIESAttachments ?? []])
+    @endif --}}
 
     <!-- Individual - Livelihood Application Partials -->
     @if ($project->project_type === 'Individual - Livelihood Application')
@@ -120,7 +123,7 @@
         @include('projects.partials.show.IGE.beneficiaries_supported')
         @include('projects.partials.show.IGE.ongoing_beneficiaries')
         @include('projects.partials.show.IGE.new_beneficiaries')
-        @include('projects.partials.show.IGE.budget')
+        @include('projects.partials.show.IGE.budget', ['IGEbudget' => $budget ?? collect()])
         @include('projects.partials.show.IGE.development_monitoring')
     @endif
 

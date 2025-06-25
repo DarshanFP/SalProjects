@@ -49,13 +49,5 @@
     function removeRSTGeographicalAreaRow(button) {
         const row = button.closest('tr');
         row.remove();
-        updateRSTGeographicalAreaRowNumbers();
-    }
-
-    function updateRSTGeographicalAreaRowNumbers() {
-        const rows = document.querySelectorAll('#RST-geographical-area-rows tr');
-        rows.forEach((row, index) => {
-            row.children[0].textContent = index + 1;
-        });
     }
 </script>

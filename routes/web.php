@@ -33,9 +33,6 @@ Route::get('/', function () {
     return view('auth.login');
 });
 
-// Logout for all
-Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
-
 // Default redirect to dashboard based on role
 Route::get('/dashboard', function () {
     $role = Auth::user()->role;

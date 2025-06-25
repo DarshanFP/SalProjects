@@ -21,9 +21,7 @@
                                 <th>Costs</th>
                                 <th>Rate Multiplier</th>
                                 <th>Rate Duration</th>
-                                <th>Rate Increase (next phase)</th>
                                 <th>This Phase (Auto)</th>
-                                <th>Next Phase (Auto)</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -34,9 +32,7 @@
                                     <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $rowIndex }}][rate_quantity]" class="form-control select-input" value="{{ old("phases.$phaseIndex.budget.$rowIndex.rate_quantity", $row['rate_quantity'] ?? '') }}" oninput="calculateBudgetRowTotals(this)" style="background-color: #202ba3;"></td>
                                     <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $rowIndex }}][rate_multiplier]" class="form-control select-input" value="{{ old("phases.$phaseIndex.budget.$rowIndex.rate_multiplier", $row['rate_multiplier'] ?? 1) }}" oninput="calculateBudgetRowTotals(this)" style="background-color: #202ba3;"></td>
                                     <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $rowIndex }}][rate_duration]" class="form-control select-input" value="{{ old("phases.$phaseIndex.budget.$rowIndex.rate_duration", $row['rate_duration'] ?? 1) }}" oninput="calculateBudgetRowTotals(this)" style="background-color: #202ba3;"></td>
-                                    <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $rowIndex }}][rate_increase]" class="form-control select-input" value="{{ old("phases.$phaseIndex.budget.$rowIndex.rate_increase", $row['rate_increase'] ?? '') }}" oninput="calculateBudgetRowTotals(this)" style="background-color: #122F6B;"></td>
                                     <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $rowIndex }}][this_phase]" class="form-control readonly-input" readonly value="{{ old("phases.$phaseIndex.budget.$rowIndex.this_phase", $row['this_phase'] ?? '') }}"></td>
-                                    <td><input type="number" name="phases[{{ $phaseIndex }}][budget][{{ $rowIndex }}][next_phase]" class="form-control select-input" value="{{ old("phases.$phaseIndex.budget.$rowIndex.next_phase", $row['next_phase'] ?? '') }}"></td>
                                     <td><button type="button" class="btn btn-danger btn-sm" onclick="removeBudgetRow(this)">Remove</button></td>
                                 </tr>
                             @endforeach
@@ -49,7 +45,7 @@
                 <p>No budget data available from predecessor project.</p>
             @endforelse
         </div>
-        <button type="button" class="mt-3 btn btn-primary" onclick="addPhase()">Add Phase</button>
+        {{-- <button type="button" class="mt-3 btn btn-primary" onclick="addPhase()">Add Phase</button> --}}
         <div class="mt-3">
             <label class="form-label">Total Amount Sanctioned: Rs.</label>
             <input type="number" name="total_amount_sanctioned" class="form-control readonly-input" readonly value="{{ old('total_amount_sanctioned', $predecessorBudget['total_amount_sanctioned'] ?? '') }}">

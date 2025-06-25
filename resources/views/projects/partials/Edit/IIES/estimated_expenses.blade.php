@@ -79,7 +79,7 @@
                    oninput="IIEScalculateBalanceRequested()">
         </div>
         <div class="form-group">
-            <label>Beneficiaries’ contribution:</label>
+            <label>Beneficiaries' contribution:</label>
             <input type="number" name="iies_beneficiary_contribution" class="form-control" step="0.01"
                    value="{{ old('iies_beneficiary_contribution', $iiesExpenses->iies_beneficiary_contribution ?? '') }}"
                    oninput="IIEScalculateBalanceRequested()">
@@ -128,5 +128,11 @@
         const contribution = parseFloat(document.querySelector('input[name="iies_beneficiary_contribution"]').value) || 0;
         const balanceRequested = totalExpenses - (scholarship + otherSources + contribution);
         document.querySelector('input[name="iies_balance_requested"]').value = balanceRequested.toFixed(2);
+
+        // Update the #overall_project_budget in the parent form
+        const overallBudget = document.getElementById('overall_project_budget');
+        if (overallBudget) {
+            overallBudget.value = balanceRequested.toFixed(2);
+        }
     }
 </script>

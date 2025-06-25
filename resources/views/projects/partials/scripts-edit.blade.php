@@ -50,16 +50,21 @@
             overallProjectPeriodElement.dispatchEvent(new Event('change'));
         }
 
-        // Attach the addPhase function to the Add Phase button
+        // Attach the addPhase function to the Add Phase button - COMMENTED OUT TO DISABLE PHASE FUNCTIONALITY
+        /*
         const addPhaseButton = document.getElementById('addPhaseButton');
         if (addPhaseButton) {
             addPhaseButton.addEventListener('click', addPhase);
         }
+        */
 
         // Initialize objective count and name attributes for existing objectives
         initializeObjectives();
 
-        // Call calculateTotalAmountSanctioned initially to set up the correct values on page load
+        // Call calculateTotalAmountSanctioned initially to set up the correct values on page load - COMMENTED OUT TO DISABLE PHASE FUNCTIONALITY
+        // calculateTotalAmountSanctioned();
+
+        // Initialize budget calculations when page loads
         calculateTotalAmountSanctioned();
     });
 
@@ -557,220 +562,124 @@
         return objectives.indexOf(objectiveCard);
     }
 
-    // Calculate the budget totals for a single budget row
+    // Calculate the budget totals for a single budget row - UPDATED FOR SINGLE PHASE
     function calculateBudgetRowTotals(element) {
         const row = element.closest('tr');
         const rateQuantityInput = row.querySelector('[name$="[rate_quantity]"]');
         const rateMultiplierInput = row.querySelector('[name$="[rate_multiplier]"]');
         const rateDurationInput = row.querySelector('[name$="[rate_duration]"]');
-        const rateIncreaseInput = row.querySelector('[name$="[rate_increase]"]');
 
         const rateQuantity = parseFloat(rateQuantityInput.value) || 0;
         const rateMultiplier = parseFloat(rateMultiplierInput.value) || 1;
         const rateDuration = parseFloat(rateDurationInput.value) || 1;
-        const rateIncrease = parseFloat(rateIncreaseInput.value) || 0;
 
         const thisPhase = rateQuantity * rateMultiplier * rateDuration;
-        let nextPhase = 0;
-
-        const projectPeriodElement = document.getElementById('overall_project_period');
-        const projectPeriod = projectPeriodElement ? parseInt(projectPeriodElement.value) : 1;
-        if (projectPeriod !== 1) {
-            nextPhase = (rateQuantity + rateIncrease) * rateMultiplier * rateDuration;
-        }
 
         row.querySelector('[name$="[this_phase]"]').value = thisPhase.toFixed(2);
-        row.querySelector('[name$="[next_phase]"]').value = nextPhase.toFixed(2);
 
-        calculateBudgetTotals(row.closest('.phase-card'));
+        calculateBudgetTotals();
     }
 
     // Update all budget rows based on the selected project period
     function updateAllBudgetRows() {
-        const phases = document.querySelectorAll('.phase-card');
-        phases.forEach(phase => {
-            const rows = phase.querySelectorAll('.budget-rows tr');
-            rows.forEach(row => {
-                calculateBudgetRowTotals(row.querySelector('input'));
-            });
+        const budgetRows = document.querySelectorAll('.budget-rows tr');
+        budgetRows.forEach(row => {
+            calculateBudgetRowTotals(row.querySelector('input'));
         });
     }
 
-    // Calculate the total budget for a phase
-    function calculateBudgetTotals(phaseCard) {
-        const rows = phaseCard.querySelectorAll('.budget-rows tr');
+    // Calculate the total budget for a phase - UPDATED FOR SINGLE PHASE
+    function calculateBudgetTotals() {
+        const budgetRows = document.querySelectorAll('.budget-rows tr');
         let totalRateQuantity = 0;
         let totalRateMultiplier = 0;
         let totalRateDuration = 0;
-        let totalRateIncrease = 0;
         let totalThisPhase = 0;
-        let totalNextPhase = 0;
 
-        rows.forEach(row => {
+        budgetRows.forEach(row => {
             totalRateQuantity += parseFloat(row.querySelector('[name$="[rate_quantity]"]').value) || 0;
-            totalRateMultiplier += parseFloat(row.querySelector('[name$="[rate_multiplier]"]').value) || 1;
-            totalRateDuration += parseFloat(row.querySelector('[name$="[rate_duration]"]').value) || 1;
-            totalRateIncrease += parseFloat(row.querySelector('[name$="[rate_increase]"]').value) || 0;
+            totalRateMultiplier += parseFloat(row.querySelector('[name$="[rate_multiplier]"]').value) || 0;
+            totalRateDuration += parseFloat(row.querySelector('[name$="[rate_duration]"]').value) || 0;
             totalThisPhase += parseFloat(row.querySelector('[name$="[this_phase]"]').value) || 0;
-            totalNextPhase += parseFloat(row.querySelector('[name$="[next_phase]"]').value) || 0;
         });
 
-        phaseCard.querySelector('.total_rate_quantity').value = totalRateQuantity.toFixed(2);
-        phaseCard.querySelector('.total_rate_multiplier').value = totalRateMultiplier.toFixed(2);
-        phaseCard.querySelector('.total_rate_duration').value = totalRateDuration.toFixed(2);
-        phaseCard.querySelector('.total_rate_increase').value = totalRateIncrease.toFixed(2);
-        phaseCard.querySelector('.total_this_phase').value = totalThisPhase.toFixed(2);
-        phaseCard.querySelector('.total_next_phase').value = totalNextPhase.toFixed(2);
+        // Update total row fields
+        const totalRateQuantityField = document.querySelector('.total_rate_quantity');
+        const totalRateMultiplierField = document.querySelector('.total_rate_multiplier');
+        const totalRateDurationField = document.querySelector('.total_rate_duration');
+        const totalThisPhaseField = document.querySelector('.total_this_phase');
+
+        if (totalRateQuantityField) {
+            totalRateQuantityField.value = totalRateQuantity.toFixed(2);
+        }
+        if (totalRateMultiplierField) {
+            totalRateMultiplierField.value = totalRateMultiplier.toFixed(2);
+        }
+        if (totalRateDurationField) {
+            totalRateDurationField.value = totalRateDuration.toFixed(2);
+        }
+        if (totalThisPhaseField) {
+            totalThisPhaseField.value = totalThisPhase.toFixed(2);
+        }
 
         calculateTotalAmountSanctioned();
     }
 
-    // Calculate the total amount sanctioned and update the overall project budget
+    // Calculate the total amount sanctioned and update the overall project budget - UPDATED FOR SINGLE PHASE
     function calculateTotalAmountSanctioned() {
-        const phases = document.querySelectorAll('.phase-card');
+        // Get all budget rows directly from the budget table
+        const budgetRows = document.querySelectorAll('.budget-rows tr');
         let totalAmount = 0;
-        let totalNextPhase = 0;
 
-        phases.forEach((phase, index) => {
-            const thisPhaseTotal = parseFloat(phase.querySelector('.total_this_phase').value) || 0;
-            phase.querySelector('[name^="phases"][name$="[amount_sanctioned]"]').value = thisPhaseTotal.toFixed(2);
-
-            if (index > 0) {
-                const amountForwarded = parseFloat(phase.querySelector('[name^="phases"][name$="[amount_forwarded]"]').value) || 0;
-                const openingBalance = amountForwarded + thisPhaseTotal;
-                phase.querySelector('[name^="phases"][name$="[opening_balance]"]').value = openingBalance.toFixed(2);
-            }
-
-            totalAmount += thisPhaseTotal;
+        // Calculate totals from all budget rows
+        budgetRows.forEach(row => {
+            const thisPhaseValue = parseFloat(row.querySelector('[name$="[this_phase]"]').value) || 0;
+            totalAmount += thisPhaseValue;
         });
 
-        const lastPhase = phases[phases.length - 1];
-        const rows = lastPhase.querySelectorAll('.budget-rows tr');
-        rows.forEach(row => {
-            totalNextPhase += parseFloat(row.querySelector('[name$="[next_phase]"]').value) || 0;
-        });
-
-        const totalAmountSanctionedInput = document.querySelector('[name="total_amount_sanctioned"]');
-        if (totalAmountSanctionedInput) {
-            totalAmountSanctionedInput.value = totalAmount.toFixed(2);
+        // Update the total amount sanctioned field
+        const totalAmountSanctionedField = document.querySelector('[name="total_amount_sanctioned"]');
+        if (totalAmountSanctionedField) {
+            totalAmountSanctionedField.value = totalAmount.toFixed(2);
         }
 
-        const overallProjectBudgetInput = document.getElementById('overall_project_budget');
-        if (overallProjectBudgetInput) {
-            overallProjectBudgetInput.value = (totalAmount + totalNextPhase).toFixed(2);
+        // Update the total amount forwarded field (set to 0 for single phase)
+        const totalAmountForwardedField = document.querySelector('[name="total_amount_forwarded"]');
+        if (totalAmountForwardedField) {
+            totalAmountForwardedField.value = '0.00';
+        }
+
+        // Update the overall project budget (same as total amount sanctioned for single phase)
+        const overallProjectBudgetField = document.getElementById('overall_project_budget');
+        if (overallProjectBudgetField) {
+            overallProjectBudgetField.value = totalAmount.toFixed(2);
         }
     }
 
-    // Add a new budget row to the phase card
+    // Add a new budget row to the budget table - UPDATED FOR SINGLE PHASE
     function addBudgetRow(button) {
-        const phaseCard = button.closest('.phase-card');
-        const tableBody = phaseCard.querySelector('.budget-rows');
-        const phaseIndex = phaseCard.dataset.phase;
-        const rowIndex = tableBody.querySelectorAll('tr').length;
-
+        const tableBody = document.querySelector('.budget-rows');
+        const phaseIndex = 0; // Since we only have one phase
         const newRow = document.createElement('tr');
 
         newRow.innerHTML = `
-            <td><input type="text" name="phases[${phaseIndex}][budget][${rowIndex}][particular]" class="form-control"  ></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)"  ></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"  ></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"  ></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][rate_increase]" class="form-control" value="0.00" oninput="calculateBudgetRowTotals(this)"  ></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][this_phase]" class="form-control" readonly></td>
-            <td><input type="number" name="phases[${phaseIndex}][budget][${rowIndex}][next_phase]" class="form-control" readonly></td>
+            <td><input type="text" name="phases[${phaseIndex}][budget][${tableBody.children.length}][particular]" class="form-control" style="background-color: #202ba3;"></td>
+            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)" style="background-color: #202ba3;"></td>
+            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" style="background-color: #202ba3;"></td>
+            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" style="background-color: #202ba3;"></td>
+            <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][this_phase]" class="form-control readonly-input" readonly></td>
             <td><button type="button" class="btn btn-danger btn-sm" onclick="removeBudgetRow(this)">Remove</button></td>
         `;
 
         tableBody.appendChild(newRow);
-        calculateBudgetTotals(phaseCard);
+        calculateTotalAmountSanctioned();
     }
 
-    // Remove a budget row from the phase card
+    // Remove a budget row from the budget table
     function removeBudgetRow(button) {
         const row = button.closest('tr');
-        const phaseCard = row.closest('.phase-card');
         row.remove();
-        calculateBudgetTotals(phaseCard);
-    }
-
-    // Add a new phase card
-    function addPhase() {
-        const phasesContainer = document.getElementById('phases-container');
-        const phaseCards = phasesContainer.querySelectorAll('.phase-card');
-        const newPhaseIndex = phaseCards.length;
-
-        const newPhaseNumber = newPhaseIndex + 1;
-
-        const newPhase = document.createElement('div');
-        newPhase.className = 'phase-card';
-        newPhase.dataset.phase = newPhaseIndex;
-
-        newPhase.innerHTML = `
-            <div class="card-header">
-                <h4>Phase ${newPhaseNumber}</h4>
-            </div>
-            ${newPhaseIndex > 0 ? `
-            <div class="mb-3">
-                <label class="form-label">Amount Forwarded from the Last Financial Year: Rs.</label>
-                <input type="number" name="phases[${newPhaseIndex}][amount_forwarded]" class="form-control" oninput="calculateBudgetTotals(this.closest('.phase-card'))">
-            </div>
-            ` : ''}
-            <div class="mb-3">
-                <label class="form-label">Amount Sanctioned in Phase ${newPhaseNumber}: Rs.</label>
-                <input type="number" name="phases[${newPhaseIndex}][amount_sanctioned]" class="form-control" readonly>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Opening balance in Phase ${newPhaseNumber}: Rs.</label>
-                <input type="number" name="phases[${newPhaseIndex}][opening_balance]" class="form-control" readonly>
-            </div>
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Particular</th>
-                        <th>Costs</th>
-                        <th>Rate Multiplier</th>
-                        <th>Rate Duration</th>
-                        <th>Rate Increase (next phase)</th>
-                        <th>This Phase (Auto)</th>
-                        <th>Next Phase (Auto)</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody class="budget-rows">
-                    <!-- Initial budget row will be added here -->
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <th>Total</th>
-                        <th><input type="number" class="total_rate_quantity form-control" readonly></th>
-                        <th><input type="number" class="total_rate_multiplier form-control" readonly></th>
-                        <th><input type="number" class="total_rate_duration form-control" readonly></th>
-                        <th><input type="number" class="total_rate_increase form-control" readonly></th>
-                        <th><input type="number" class="total_this_phase form-control" readonly></th>
-                        <th><input type="number" class="total_next_phase form-control" readonly></th>
-                        <th></th>
-                    </tr>
-                </tfoot>
-            </table>
-            <button type="button" class="btn btn-primary" onclick="addBudgetRow(this)">Add Row</button>
-            <div>
-                <button type="button" class="mt-3 btn btn-danger" onclick="removePhase(this)">Remove Phase</button>
-            </div>
-        `;
-
-        phasesContainer.appendChild(newPhase);
-
-        // Add an initial budget row
-        addBudgetRow(newPhase.querySelector('.btn.btn-primary'));
-
-        calculateTotalAmountSanctioned();
-    }
-
-    // Remove a phase card
-    function removePhase(button) {
-        const phaseCard = button.closest('.phase-card');
-        phaseCard.remove();
-        calculateTotalAmountSanctioned();
+        calculateTotalAmountSanctioned(); // Recalculate totals after removing a row
     }
 
     // Add a new attachment field

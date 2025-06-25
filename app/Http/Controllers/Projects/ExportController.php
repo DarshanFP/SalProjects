@@ -349,19 +349,14 @@ class ExportController extends Controller
     public function downloadDoc($project_id)
     {
         try {
-            // Check if XML extension is available
-            if (!extension_loaded('xml')) {
-                Log::warning('ExportController@downloadDoc - XML extension not available, falling back to PDF', ['project_id' => $project_id]);
-                return $this->downloadPdf($project_id);
-            }
-
             $project = Project::where('project_id', $project_id)
                 ->with([
                     'attachments',
                     'objectives.risks',
                     'objectives.activities.timeframes',
                     'sustainabilities',
-                    'budgets'
+                    'budgets',
+                    'user'
                 ])->firstOrFail();
 
             $user = Auth::user();
@@ -408,28 +403,20 @@ class ExportController extends Controller
                 'coordinator' => $project->coordinator_india_name
             ];
 
-            Log::info('ExportController@downloadDoc - Starting Word document generation', ['project_id' => $project_id]);
-
             $phpWord = new PhpWord();
-            $section = $phpWord->addSection();
 
-            // 1. General Information Section
+            // Order as per show.blade.php
+            // 1. General Information
             $this->addGeneralInfoSection($phpWord, $project, $projectRoles);
 
-            // 2. Key Information Section
+            // 2. Key Information
             $this->addKeyInformationSection($phpWord, $project);
 
-            // 3. CCI Specific Partials
-            if ($project->project_type === 'CHILD CARE INSTITUTION') {
-                $this->addCCISections($phpWord, $project);
-            }
+            // 3. CCI Specific Partials (commented out for now)
+            // $this->addCCISections($phpWord, $project);
 
-            // 4. RST Specific Partials (Residential Skill Training Proposal 2, Development Projects, NEXT PHASE - DEVELOPMENT PROPOSAL)
-            if (in_array($project->project_type, [
-                'Residential Skill Training Proposal 2',
-                'Development Projects',
-                'NEXT PHASE - DEVELOPMENT PROPOSAL'
-            ])) {
+            // 4. RST Specific Partials
+            if (in_array($project->project_type, ['Residential Skill Training Proposal 2', 'Development Projects', 'NEXT PHASE - DEVELOPMENT PROPOSAL'])) {
                 $this->addRSTSections($phpWord, $project);
             }
 
@@ -450,7 +437,7 @@ class ExportController extends Controller
 
             // 7. IGE Specific Partials
             if ($project->project_type === 'Institutional Ongoing Group Educational proposal') {
-                $this->addIGESpecificSections($phpWord, $project);
+                $this->addIGESections($phpWord, $project);
             }
 
             // 8. LDP Specific Partials
@@ -1074,7 +1061,7 @@ private function addTargetGroupSection(PhpWord $phpWord, $project)
     $section->addText("Target Group", ['bold' => true, 'size' => 14]);
 
     // Check if the collection has data
-    if ($project->RSTTargetGroup && $project->RSTTargetGroup->isNotEmpty()) {
+    if ($project->RSTTargetGroup->isNotEmpty()) {
         // Add table style
         $tableStyle = [
             'borderSize' => 6,
@@ -1465,7 +1452,7 @@ private function addIGEOngoingBeneficiariesSection(PhpWord $phpWord, $project)
     $section = $phpWord->addSection();
     $section->addText("Ongoing Beneficiaries", ['bold' => true, 'size' => 14]);
 
-    if ($project->ongoing_beneficiaries && $project->ongoing_beneficiaries->isNotEmpty()) {
+    if ($project->ongoing_beneficiaries->isNotEmpty()) {
         // Define table style
         $tableStyle = [
             'borderSize' => 6,
@@ -1510,7 +1497,7 @@ private function addIGENewBeneficiariesSection(PhpWord $phpWord, $project)
     $section->addText("New Beneficiaries", ['bold' => true, 'size' => 14]);
 
     // Check if there are new beneficiaries
-    if ($project->new_beneficiaries && $project->new_beneficiaries->isNotEmpty()) {
+    if ($project->new_beneficiaries->isNotEmpty()) {
         $tableStyle = [
             'borderSize' => 6,
             'borderColor' => '000000',
@@ -1811,7 +1798,7 @@ private function addLogicalFrameworkSection(PhpWord $phpWord, $project)
         $section->addTextBreak(0.5);
 
         // Risks Section
-        if ($objective->risks && $objective->risks->isNotEmpty()) {
+        if ($objective->risks->isNotEmpty()) {
             $section->addText("Risks:", ['bold' => true, 'size' => 12]);
             foreach ($objective->risks as $risk) {
                 $section->addText("- {$risk->risk}");
@@ -2156,89 +2143,6 @@ private function addSignatureAndApprovalSections(PhpWord $phpWord, $project, $pr
     $table->addRow();
     $table->addCell(5000)->addText("Date");
     $table->addCell(5000)->addText('');
-}
-
-// Individual Project Types Sections
-private function addIndividualProjectSections(PhpWord $phpWord, $project)
-{
-    // Add a new section for individual project types
-    $section = $phpWord->addSection();
-
-    // Add header based on project type
-    $section->addText("Individual Project Details", ['bold' => true, 'size' => 16]);
-    $section->addText("Project Type: {$project->project_type}", ['bold' => true, 'size' => 14]);
-    $section->addTextBreak(1);
-
-    // Handle different individual project types
-    switch ($project->project_type) {
-        case 'Individual - Ongoing Educational support':
-            $this->addIESections($phpWord, $project);
-            break;
-
-        case 'Individual - Livelihood Application':
-            $this->addILPSections($phpWord, $project);
-            break;
-
-        case 'Individual - Access to Health':
-            $this->addIAHSections($phpWord, $project);
-            break;
-
-        case 'Individual - Initial - Educational support':
-            $this->addIIESSections($phpWord, $project);
-            break;
-
-        default:
-            $section->addText("Individual project type not yet implemented for Word export.", ['italic' => true]);
-            break;
-    }
-}
-
-// IES - Individual - Ongoing Educational support
-private function addIESections(PhpWord $phpWord, $project)
-{
-    $section = $phpWord->addSection();
-    $section->addText("Individual - Ongoing Educational Support", ['bold' => true, 'size' => 14]);
-    $section->addTextBreak(1);
-
-    // Add basic information
-    $section->addText("This is an individual educational support project.", ['italic' => true]);
-    $section->addText("Note: Detailed individual project sections are not yet implemented in Word export.", ['italic' => true]);
-}
-
-// ILP - Individual - Livelihood Application
-private function addILPSections(PhpWord $phpWord, $project)
-{
-    $section = $phpWord->addSection();
-    $section->addText("Individual - Livelihood Application", ['bold' => true, 'size' => 14]);
-    $section->addTextBreak(1);
-
-    // Add basic information
-    $section->addText("This is an individual livelihood application project.", ['italic' => true]);
-    $section->addText("Note: Detailed individual project sections are not yet implemented in Word export.", ['italic' => true]);
-}
-
-// IAH - Individual - Access to Health
-private function addIAHSections(PhpWord $phpWord, $project)
-{
-    $section = $phpWord->addSection();
-    $section->addText("Individual - Access to Health", ['bold' => true, 'size' => 14]);
-    $section->addTextBreak(1);
-
-    // Add basic information
-    $section->addText("This is an individual access to health project.", ['italic' => true]);
-    $section->addText("Note: Detailed individual project sections are not yet implemented in Word export.", ['italic' => true]);
-}
-
-// IIES - Individual - Initial - Educational support
-private function addIIESSections(PhpWord $phpWord, $project)
-{
-    $section = $phpWord->addSection();
-    $section->addText("Individual - Initial - Educational Support", ['bold' => true, 'size' => 14]);
-    $section->addTextBreak(1);
-
-    // Add basic information
-    $section->addText("This is an individual initial educational support project.", ['italic' => true]);
-    $section->addText("Note: Detailed individual project sections are not yet implemented in Word export.", ['italic' => true]);
 }
 
 }

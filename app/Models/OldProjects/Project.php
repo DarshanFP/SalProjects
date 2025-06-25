@@ -244,7 +244,7 @@ public static $statusLabels = [
     }
     public function ldpTargetGroup()
     {
-        return $this->hasOne(ProjectLDPTargetGroup::class, 'project_id', 'project_id');
+        return $this->hasMany(ProjectLDPTargetGroup::class, 'project_id', 'project_id');
     }
     public function ldpInterventionLogic()
     {

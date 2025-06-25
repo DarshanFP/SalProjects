@@ -107,16 +107,44 @@ class IIESImmediateFamilyDetailsController extends Controller
         try {
             Log::info('Updating IIES Immediate Family Details', ['project_id' => $projectId]);
 
-            // Validate incoming data
-            $validatedData = $request->validate($this->validationRules());
+            // Get all boolean fields that should be handled
+            $booleanFields = [
+                'iies_mother_expired',
+                'iies_father_expired',
+                'iies_grandmother_support',
+                'iies_grandfather_support',
+                'iies_father_deserted',
+                'iies_father_sick',
+                'iies_father_hiv_aids',
+                'iies_father_disabled',
+                'iies_father_alcoholic',
+                'iies_mother_sick',
+                'iies_mother_hiv_aids',
+                'iies_mother_disabled',
+                'iies_mother_alcoholic',
+                'iies_own_house',
+                'iies_rented_house',
+                'iies_received_support',
+                'iies_employed_with_stanns'
+            ];
 
-            // Find existing record
-            $familyDetails = ProjectIIESImmediateFamilyDetails::where('project_id', $projectId)->first();
-            if (!$familyDetails) {
-                throw new \Exception('No IIES Immediate Family Details found for update.');
+            // Prepare data with explicit false values for unchecked checkboxes
+            $data = $request->all();
+            foreach ($booleanFields as $field) {
+                $data[$field] = $request->has($field) ? true : false;
             }
 
-            $familyDetails->update($validatedData);
+            // Validate incoming data
+            $validatedData = $this->validate($request, $this->validationRules());
+
+            // Merge the validated data with our checkbox handling
+            $validatedData = array_merge($validatedData, $data);
+
+            // Find existing record or create new one
+            $familyDetails = ProjectIIESImmediateFamilyDetails::updateOrCreate(
+                ['project_id' => $projectId],
+                $validatedData
+            );
 
             DB::commit();
             return response()->json(['message' => 'IIES Immediate Family Details updated successfully.'], 200);

@@ -55,13 +55,5 @@
     function removeRSTAnnexureRow(button) {
         const row = button.closest('tr');
         row.remove();
-        updateRSTAnnexureRowNumbers();
-    }
-
-    function updateRSTAnnexureRowNumbers() {
-        const rows = document.querySelectorAll('#RST-annexure-rows tr');
-        rows.forEach((row, index) => {
-            row.children[0].textContent = index + 1;
-        });
     }
 </script>
