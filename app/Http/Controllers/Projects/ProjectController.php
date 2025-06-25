@@ -1022,7 +1022,7 @@ public function show($project_id)
                 $data['beneficiariesSupported'] = $this->igeBeneficiariesSupportedController->show($project->project_id);
                 $data['newBeneficiaries'] = $this->igeNewBeneficiariesController->show($project->project_id);
                 $data['ongoingBeneficiaries'] = $this->igeOngoingBeneficiariesController->show($project->project_id);
-                $data['budget'] = $this->igeBudgetController->show($project->project_id);
+                $data['IGEbudget'] = $this->igeBudgetController->show($project->project_id);
                 $data['developmentMonitoring'] = $this->igeDevelopmentMonitoringController->show($project->project_id);
                 break;
 
