@@ -20,6 +20,150 @@ class CoordinatorController extends Controller
     {
         $coordinator = Auth::user();
 
+        // Debug: Log the request parameters
+        \Log::info('Coordinator Dashboard Request', [
+            'province' => $request->get('province'),
+            'center' => $request->get('center'),
+            'role' => $request->get('role'),
+            'parent_id' => $request->get('parent_id')
+        ]);
+
+        // First, get approved projects with comprehensive filtering
+        $projectsQuery = Project::where('status', 'approved_by_coordinator')->with('user');
+
+        // Apply comprehensive filters based on user attributes
+        if ($request->filled('province')) {
+            $projectsQuery->whereHas('user', function($query) use ($request) {
+                $query->where('province', $request->province);
+            });
+        }
+        if ($request->filled('center')) {
+            $projectsQuery->whereHas('user', function($query) use ($request) {
+                $query->where('center', $request->center);
+            });
+        }
+        if ($request->filled('role')) {
+            $projectsQuery->whereHas('user', function($query) use ($request) {
+                $query->where('role', $request->role);
+            });
+        }
+        if ($request->filled('parent_id')) {
+            $projectsQuery->whereHas('user', function($query) use ($request) {
+                $query->where('parent_id', $request->parent_id);
+            });
+        }
+
+        $projects = $projectsQuery->with(['user.parent', 'reports.accountDetails'])->get();
+
+        // Calculate budget summaries from projects and their reports
+        $budgetSummaries = $this->calculateBudgetSummariesFromProjects($projects, $request);
+
+        // Get comprehensive filter options
+        $provinces = User::whereIn('role', ['provincial', 'executor', 'applicant'])
+                        ->distinct()
+                        ->pluck('province')
+                        ->filter()
+                        ->values();
+
+        $centers = User::whereIn('role', ['provincial', 'executor', 'applicant'])
+                      ->whereNotNull('center')
+                      ->where('center', '!=', '')
+                      ->distinct()
+                      ->pluck('center')
+                      ->filter()
+                      ->values();
+
+        $roles = ['provincial', 'executor', 'applicant'];
+
+        // Get parent options (provincials only)
+        $parents = User::where('role', 'provincial')
+                      ->select('id', 'name', 'province')
+                      ->get();
+
+        $projectTypes = Project::where('status', 'approved_by_coordinator')->distinct()->pluck('project_type');
+
+        // Debug: Log the filter options
+        \Log::info('Coordinator Dashboard Filter Options', [
+            'selected_province' => $request->get('province'),
+            'selected_center' => $request->get('center'),
+            'selected_role' => $request->get('role'),
+            'selected_parent_id' => $request->get('parent_id'),
+            'available_provinces_count' => $provinces->count(),
+            'available_centers_count' => $centers->count(),
+            'available_parents_count' => $parents->count(),
+            'total_projects' => $projects->count(),
+            'projects_by_province' => $projects->groupBy('user.province')->map->count()->toArray()
+        ]);
+
+        return view('coordinator.index', compact('budgetSummaries', 'provinces', 'centers', 'roles', 'parents', 'projectTypes'));
+    }
+
+    private function calculateBudgetSummariesFromProjects($projects, $request)
+    {
+        $budgetSummaries = [
+            'by_project_type' => [],
+            'by_province' => [],
+            'total' => [
+                'total_budget' => 0,
+                'total_expenses' => 0,
+                'total_remaining' => 0
+            ]
+        ];
+
+        foreach ($projects as $project) {
+            // Get project's sanctioned amount as base budget
+            $projectBudget = $project->amount_sanctioned ?? 0;
+            $projectForwarded = $project->amount_forwarded ?? 0;
+
+            // Calculate expenses from reports if they exist
+            $totalExpenses = 0;
+            if ($project->reports->count() > 0) {
+                foreach ($project->reports as $report) {
+                    $totalExpenses += $report->accountDetails->sum('total_expenses');
+                }
+            }
+
+            // Calculate remaining budget
+            $remainingBudget = $projectBudget - $totalExpenses;
+
+            // Update project type summary
+            if (!isset($budgetSummaries['by_project_type'][$project->project_type])) {
+                $budgetSummaries['by_project_type'][$project->project_type] = [
+                    'total_budget' => 0,
+                    'total_expenses' => 0,
+                    'total_remaining' => 0
+                ];
+            }
+            $budgetSummaries['by_project_type'][$project->project_type]['total_budget'] += $projectBudget;
+            $budgetSummaries['by_project_type'][$project->project_type]['total_expenses'] += $totalExpenses;
+            $budgetSummaries['by_project_type'][$project->project_type]['total_remaining'] += $remainingBudget;
+
+            // Update province summary
+            $province = $project->user->province;
+            if (!isset($budgetSummaries['by_province'][$province])) {
+                $budgetSummaries['by_province'][$province] = [
+                    'total_budget' => 0,
+                    'total_expenses' => 0,
+                    'total_remaining' => 0
+                ];
+            }
+            $budgetSummaries['by_province'][$province]['total_budget'] += $projectBudget;
+            $budgetSummaries['by_province'][$province]['total_expenses'] += $totalExpenses;
+            $budgetSummaries['by_province'][$province]['total_remaining'] += $remainingBudget;
+
+            // Update total summary
+            $budgetSummaries['total']['total_budget'] += $projectBudget;
+            $budgetSummaries['total']['total_expenses'] += $totalExpenses;
+            $budgetSummaries['total']['total_remaining'] += $remainingBudget;
+        }
+
+        return $budgetSummaries;
+    }
+
+    public function ReportList(Request $request)
+    {
+        $coordinator = Auth::user();
+
         // Base query for projects - coordinators can see all project types
         $projectsQuery = Project::with('user');
 
@@ -29,20 +173,30 @@ class CoordinatorController extends Controller
                 $query->where('province', $request->province);
             });
         }
+        if ($request->filled('user_id')) {
+            $projectsQuery->where('user_id', $request->user_id);
+        }
         if ($request->filled('project_type')) {
             $projectsQuery->where('project_type', $request->project_type);
         }
 
+        // Fetch the allowed projects
         $projects = $projectsQuery->get();
 
-        // Calculate budget summaries
-        $budgetSummaries = $this->calculateBudgetSummaries($projects, $request);
+        // Fetch reports for these filtered projects
+        $reports = DPReport::with(['user', 'accountDetails'])
+            ->whereIn('project_id', $projects->pluck('project_id'))
+            ->get();
 
-        // Get filter options
+        // Fetch provinces and users for filtering options
         $provinces = User::distinct()->pluck('province');
+        $users = User::all();
+
+        // Fetch distinct project types
         $projectTypes = Project::distinct()->pluck('project_type');
 
-        return view('coordinator.budgets', compact('budgetSummaries', 'provinces', 'projectTypes'));
+        // Return the ReportList view with the filtered reports, project types, etc.
+        return view('coordinator.ReportList', compact('reports', 'coordinator', 'provinces', 'users', 'projectTypes'));
     }
 
     private function calculateBudgetSummaries($projects, $request)
@@ -103,45 +257,6 @@ class CoordinatorController extends Controller
         return $budgetSummaries;
     }
 
-    public function ReportList(Request $request)
-    {
-        $coordinator = Auth::user();
-
-        // Base query for projects - coordinators can see all project types
-        $projectsQuery = Project::with('user');
-
-        // Apply filters
-        if ($request->filled('province')) {
-            $projectsQuery->whereHas('user', function($query) use ($request) {
-                $query->where('province', $request->province);
-            });
-        }
-        if ($request->filled('user_id')) {
-            $projectsQuery->where('user_id', $request->user_id);
-        }
-        if ($request->filled('project_type')) {
-            $projectsQuery->where('project_type', $request->project_type);
-        }
-
-        // Fetch the allowed projects
-        $projects = $projectsQuery->get();
-
-        // Fetch reports for these filtered projects
-        $reports = DPReport::with(['user', 'accountDetails'])
-            ->whereIn('project_id', $projects->pluck('project_id'))
-            ->get();
-
-        // Fetch provinces and users for filtering options
-        $provinces = User::distinct()->pluck('province');
-        $users = User::all();
-
-        // Fetch distinct project types
-        $projectTypes = Project::distinct()->pluck('project_type');
-
-        // Return the ReportList view with the filtered reports, project types, etc.
-        return view('coordinator.ReportList', compact('reports', 'coordinator', 'provinces', 'users', 'projectTypes'));
-    }
-
     public function ProjectList(Request $request)
     {
         $coordinator = Auth::user();
@@ -190,21 +305,6 @@ class CoordinatorController extends Controller
         $users = $usersQuery->get();
 
         return view('coordinator.ProjectList', compact('projects', 'coordinator', 'projectTypes', 'users', 'provinces'));
-    }
-
-    public function getExecutorsByProvince(Request $request)
-    {
-        $province = $request->get('province');
-        // Only executors
-        $usersQuery = User::where('role', 'executor');
-
-        if ($province) {
-            $usersQuery->where('province', $province);
-        }
-
-        $executors = $usersQuery->get(['id', 'name']);
-
-        return response()->json($executors);
     }
 
     public function showProject($project_id)
@@ -325,13 +425,62 @@ class CoordinatorController extends Controller
     }
 
     // List of Users (Provincials, Executors, Applicants)
-    public function listProvincials()
+    public function listProvincials(Request $request)
     {
         $coordinator = auth()->user();
-        $provincials = User::where('parent_id', $coordinator->id)
-                          ->whereIn('role', ['coordinator', 'provincial', 'executor', 'applicant'])
-                          ->get();
-        return view('coordinator.provincials', compact('provincials'));
+
+        // Base query for all users - coordinators can see all users in the system
+        $usersQuery = User::whereIn('role', ['coordinator', 'provincial', 'executor', 'applicant']);
+
+        // Apply filters based on the three main columns: province, center, role
+        if ($request->filled('province')) {
+            $usersQuery->where('province', $request->province);
+        }
+        if ($request->filled('center')) {
+            $usersQuery->where('center', $request->center);
+        }
+        if ($request->filled('role')) {
+            $usersQuery->where('role', $request->role);
+        }
+        if ($request->filled('parent_id')) {
+            $usersQuery->where('parent_id', $request->parent_id);
+        }
+
+        $users = $usersQuery->with('parent')->get();
+
+        // Get filter options based on the three main columns - for all users
+        $provinces = User::whereIn('role', ['coordinator', 'provincial', 'executor', 'applicant'])
+                        ->distinct()
+                        ->pluck('province')
+                        ->filter() // Remove empty values
+                        ->values();
+
+        $centers = User::whereIn('role', ['coordinator', 'provincial', 'executor', 'applicant'])
+                      ->whereNotNull('center')
+                      ->where('center', '!=', '')
+                      ->distinct()
+                      ->pluck('center')
+                      ->filter() // Remove empty values
+                      ->values();
+
+        $roles = ['coordinator', 'provincial', 'executor', 'applicant'];
+
+        // Get parent options (provincials only)
+        $parents = User::where('role', 'provincial')
+                      ->select('id', 'name', 'province')
+                      ->get();
+
+        // Debug logging
+        \Log::info('Users Management Filtering', [
+            'request_filters' => $request->only(['province', 'center', 'role']),
+            'available_provinces' => $provinces->toArray(),
+            'available_centers' => $centers->toArray(),
+            'total_users' => $users->count(),
+            'users_by_role' => $users->groupBy('role')->map->count()->toArray(),
+            'users_by_province' => $users->groupBy('province')->map->count()->toArray()
+        ]);
+
+        return view('coordinator.provincials', compact('users', 'provinces', 'centers', 'roles', 'parents'));
     }
 
     public function editProvincial($id)
@@ -486,81 +635,52 @@ public function projectBudgets(Request $request)
 {
     $coordinator = Auth::user();
 
-    // Base query for reports with their account details - coordinators can see all project types
-    $reportsQuery = DPReport::with(['user', 'accountDetails']);
+    // First, get approved projects (coordinators can see all approved projects)
+    $projectsQuery = Project::where('status', 'approved_by_coordinator')->with('user');
 
-    // Apply filters if provided
+    // Apply filters
     if ($request->filled('province')) {
-        $reportsQuery->whereHas('user', function($query) use ($request) {
+        $projectsQuery->whereHas('user', function($query) use ($request) {
             $query->where('province', $request->province);
         });
     }
-
+    if ($request->filled('place')) {
+        $projectsQuery->whereHas('user', function($query) use ($request) {
+            $query->where('center', $request->place);
+        });
+    }
+    if ($request->filled('user_id')) {
+        $projectsQuery->where('user_id', $request->user_id);
+    }
     if ($request->filled('project_type')) {
-        $reportsQuery->where('project_type', $request->project_type);
+        $projectsQuery->where('project_type', $request->project_type);
     }
 
-    // Get all reports
-    $reports = $reportsQuery->get();
+    $projects = $projectsQuery->with(['user', 'reports.accountDetails'])->get();
 
-    // Calculate budget summaries
-    $budgetSummaries = [
-        'by_project_type' => [],
-        'by_province' => [],
-        'total' => [
-            'total_budget' => 0,
-            'total_expenses' => 0,
-            'total_remaining' => 0
-        ]
-    ];
+    // Calculate budget summaries from projects and their reports
+    $budgetSummaries = $this->calculateBudgetSummariesFromProjects($projects, $request);
 
-    foreach ($reports as $report) {
-        // Calculate totals for this report
-        $reportTotal = $report->accountDetails->sum('total_amount');
-        $reportExpenses = $report->accountDetails->sum('total_expenses');
-        $reportRemaining = $report->accountDetails->sum('balance_amount');
-
-        // Update project type summary
-        if (!isset($budgetSummaries['by_project_type'][$report->project_type])) {
-            $budgetSummaries['by_project_type'][$report->project_type] = [
-                'total_budget' => 0,
-                'total_expenses' => 0,
-                'total_remaining' => 0
-            ];
-        }
-        $budgetSummaries['by_project_type'][$report->project_type]['total_budget'] += $reportTotal;
-        $budgetSummaries['by_project_type'][$report->project_type]['total_expenses'] += $reportExpenses;
-        $budgetSummaries['by_project_type'][$report->project_type]['total_remaining'] += $reportRemaining;
-
-        // Update province summary
-        $province = $report->user->province;
-        if (!isset($budgetSummaries['by_province'][$province])) {
-            $budgetSummaries['by_province'][$province] = [
-                'total_budget' => 0,
-                'total_expenses' => 0,
-                'total_remaining' => 0
-            ];
-        }
-        $budgetSummaries['by_province'][$province]['total_budget'] += $reportTotal;
-        $budgetSummaries['by_province'][$province]['total_expenses'] += $reportExpenses;
-        $budgetSummaries['by_province'][$province]['total_remaining'] += $reportRemaining;
-
-        // Update total summary
-        $budgetSummaries['total']['total_budget'] += $reportTotal;
-        $budgetSummaries['total']['total_expenses'] += $reportExpenses;
-        $budgetSummaries['total']['total_remaining'] += $reportRemaining;
-    }
-
-    // Get distinct provinces and project types for filters
+    // Get filter options
     $provinces = User::distinct()->pluck('province');
-    $projectTypes = DPReport::distinct()->pluck('project_type');
 
-    return view('coordinator.budgets', compact(
-        'budgetSummaries',
-        'provinces',
-        'projectTypes',
-        'coordinator'
-    ));
+    // Get centers based on selected province
+    $placesQuery = User::whereNotNull('center')->where('center', '!=', '');
+    if ($request->filled('province')) {
+        $placesQuery->where('province', $request->province);
+    }
+    $places = $placesQuery->distinct()->pluck('center');
+
+    // Get executors based on selected province (exclude applicants)
+    $usersQuery = User::where('role', 'executor');
+    if ($request->filled('province')) {
+        $usersQuery->where('province', $request->province);
+    }
+    $users = $usersQuery->get();
+
+    $projectTypes = Project::where('status', 'approved_by_coordinator')->distinct()->pluck('project_type');
+
+    return view('coordinator.index', compact('budgetSummaries', 'provinces', 'places', 'users', 'projectTypes'));
 }
 
 public function budgetOverview()

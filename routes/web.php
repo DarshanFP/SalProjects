@@ -94,8 +94,6 @@ Route::middleware(['auth', 'role:coordinator'])->group(function () {
     Route::get('/coordinator/projects-list', [CoordinatorController::class, 'ProjectList'])->name('coordinator.projects.list');
     // Approved Projects
     Route::get('/coordinator/approved-projects', [CoordinatorController::class, 'approvedProjects'])->name('coordinator.approved.projects');
-    // Routes for executors filtered by that province to show in projects list
-    Route::get('/coordinator/executors-by-province', [CoordinatorController::class, 'getExecutorsByProvince'])->name('coordinator.executors.byProvince');
 
     // Add this route for coordinator to show a project
     Route::get('/coordinator/projects/show/{project_id}', [CoordinatorController::class, 'showProject'])->name('coordinator.projects.show');
