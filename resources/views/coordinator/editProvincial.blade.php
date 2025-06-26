@@ -42,6 +42,7 @@
                                 <option value="coordinator" {{ $provincial->role == 'coordinator' ? 'selected' : '' }}>Coordinator</option>
                                 <option value="provincial" {{ $provincial->role == 'provincial' ? 'selected' : '' }}>Provincial</option>
                                 <option value="executor" {{ $provincial->role == 'executor' ? 'selected' : '' }}>Executor</option>
+                                <option value="applicant" {{ $provincial->role == 'applicant' ? 'selected' : '' }}>Applicant</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -56,7 +57,7 @@
                         </div>
                         <div class="form-group">
                             <label for="status">Status</label>
-                            <select name="status" class="form-control">
+                            <select name="status" class="form-control" required>
                                 <option value="" disabled selected>Choose one</option>
                                 <option value="active" {{ $provincial->status == 'active' ? 'selected' : '' }}>Active</option>
                                 <option value="inactive" {{ $provincial->status == 'inactive' ? 'selected' : '' }}>Inactive</option>
@@ -64,9 +65,53 @@
                         </div>
                         <button type="submit" class="btn btn-primary">Update</button>
                     </form>
+
+                    <h4 class="mt-4 fp-text-center1">Reset Password</h4>
+                    <form action="{{ route('coordinator.resetUserPassword', $provincial->id) }}" method="POST" id="resetPasswordForm">
+                        @csrf
+                        <div class="form-group">
+                            <label for="password">New Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <small id="passwordHelp" class="form-text text-muted"></small>
+                        </div>
+                        <div class="form-group">
+                            <label for="password_confirmation">Confirm New Password</label>
+                            <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required>
+                            <small id="confirmPasswordHelp" class="form-text"></small>
+                        </div>
+                        <button type="submit" class="btn btn-warning">Reset Password</button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('password_confirmation');
+    const passwordHelp = document.getElementById('passwordHelp');
+    const confirmPasswordHelp = document.getElementById('confirmPasswordHelp');
+
+    password.onkeyup = function () {
+        if (password.value.length < 8) {
+            passwordHelp.textContent = 'Password must be at least 8 characters long.';
+            passwordHelp.style.color = 'red';
+        } else {
+            passwordHelp.textContent = '';
+        }
+    };
+
+    confirmPassword.onkeyup = function () {
+        if (confirmPassword.value !== password.value) {
+            confirmPasswordHelp.textContent = 'Passwords do not match.';
+            confirmPasswordHelp.style.color = 'red';
+        } else {
+            confirmPasswordHelp.textContent = 'Passwords match.';
+            confirmPasswordHelp.style.color = 'green';
+        }
+    };
+});
+</script>
 @endsection

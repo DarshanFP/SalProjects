@@ -76,7 +76,6 @@
                                         @if($project->status == 'draft' || $project->status == 'reverted_by_provincial' || $project->status == 'reverted_by_coordinator')
                                             <a href="{{ route('projects.edit', $project->project_id) }}" class="btn btn-primary">Edit</a>
                                         @endif
-                                        <a href="{{ route('monthly.report.create', ['project_id' => $project->project_id]) }}" class="btn btn-success">Write Report</a>
                                     </td>
                                 </tr>
                             @endforeach

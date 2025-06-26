@@ -7,7 +7,7 @@
         <div class="col-md-12 col-xl-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="fp-text-center1">Edit Project</h4>
+                    <h4 class="fp-text-center1">Edit my Project</h4>
                 </div>
                 <div class="card-body">
                     <form action="{{ route('projects.update', $project->project_id) }}" method="POST" enctype="multipart/form-data">

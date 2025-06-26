@@ -11,8 +11,8 @@
                 <div class="card-body">
                     <!-- Filters -->
                     <div class="mb-4">
-                        <form method="GET" action="{{ route('coordinator.budgets') }}" class="row g-3">
-                            <div class="col-md-4">
+                        <form method="GET" action="{{ route('coordinator.dashboard') }}" class="row g-3">
+                            <div class="col-md-3">
                                 <label for="province" class="form-label">Province</label>
                                 <select name="province" id="province" class="form-select">
                                     <option value="">All Provinces</option>
@@ -23,7 +23,29 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
+                                <label for="place" class="form-label">Center</label>
+                                <select name="place" id="place" class="form-select">
+                                    <option value="">All Centers</option>
+                                    @foreach($places as $place)
+                                        <option value="{{ $place }}" {{ request('place') == $place ? 'selected' : '' }}>
+                                            {{ $place }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="user_id" class="form-label">Executor</label>
+                                <select name="user_id" id="user_id" class="form-select">
+                                    <option value="">All Executors</option>
+                                    @foreach($users as $user)
+                                        <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>
+                                            {{ $user->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
                                 <label for="project_type" class="form-label">Project Type</label>
                                 <select name="project_type" id="project_type" class="form-select">
                                     <option value="">All Project Types</option>
@@ -34,9 +56,9 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-4 d-flex align-items-end">
+                            <div class="col-12 d-flex justify-content-end">
                                 <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
-                                <a href="{{ route('coordinator.budgets') }}" class="btn btn-secondary">Reset</a>
+                                <a href="{{ route('coordinator.dashboard') }}" class="btn btn-secondary">Reset</a>
                             </div>
                         </form>
                     </div>
@@ -129,4 +151,85 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const provinceSelect = document.getElementById('province');
+    const centerSelect = document.getElementById('place');
+    const executorSelect = document.getElementById('user_id');
+
+    // Function to update centers based on selected province
+    function updateCenters() {
+        const selectedProvince = provinceSelect.value;
+
+        // Clear current centers
+        centerSelect.innerHTML = '<option value="">All Centers</option>';
+
+        if (selectedProvince) {
+            fetch(`/coordinator/centers-by-province?province=${encodeURIComponent(selectedProvince)}`)
+                .then(response => response.json())
+                .then(centers => {
+                    centers.forEach(center => {
+                        const option = document.createElement('option');
+                        option.value = center;
+                        option.textContent = center;
+                        centerSelect.appendChild(option);
+                    });
+
+                    // Restore selected value if it exists
+                    const currentPlace = '{{ request("place") }}';
+                    if (currentPlace) {
+                        centerSelect.value = currentPlace;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching centers:', error);
+                });
+        }
+    }
+
+    // Function to update executors based on selected province
+    function updateExecutors() {
+        const selectedProvince = provinceSelect.value;
+
+        // Clear current executors
+        executorSelect.innerHTML = '<option value="">All Executors</option>';
+
+        if (selectedProvince) {
+            fetch(`/coordinator/executors-by-province?province=${encodeURIComponent(selectedProvince)}`)
+                .then(response => response.json())
+                .then(executors => {
+                    executors.forEach(executor => {
+                        const option = document.createElement('option');
+                        option.value = executor.id;
+                        option.textContent = executor.name;
+                        executorSelect.appendChild(option);
+                    });
+
+                    // Restore selected value if it exists
+                    const currentUserId = '{{ request("user_id") }}';
+                    if (currentUserId) {
+                        executorSelect.value = currentUserId;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching executors:', error);
+                });
+        }
+    }
+
+    // Event listeners
+    provinceSelect.addEventListener('change', function() {
+        updateCenters();
+        updateExecutors();
+    });
+
+    // Run on page load if province is already selected
+    if (provinceSelect.value) {
+        updateCenters();
+        updateExecutors();
+    }
+});
+</script>
+
 @endsection

@@ -6,7 +6,7 @@
         <div class="col-md-8 col-xl-6">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="fp-text-center1">Create Provincial</h4>
+                    <h4 class="fp-text-center1">Create Provincial or Executor</h4>
                 </div>
                 <div class="card-body">
                     <form action="{{ route('coordinator.storeProvincial') }}" method="POST">
@@ -65,7 +65,7 @@
                         </div>
                         <div class="form-group">
                             <label for="status">Status</label>
-                            <select name="status" class="form-control">
+                            <select name="status" class="form-control" required>
                                 <option value="" disabled selected>Choose one</option>
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>

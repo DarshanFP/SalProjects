@@ -728,6 +728,7 @@ class ComposerStaticInit9c491b8531eec05ba41a11d9276a5749
         'App\\Http\\Controllers\\Projects\\IAH\\IAHHealthConditionController' => __DIR__ . '/../..' . '/app/Http/Controllers/Projects/IAH/IAHHealthConditionController.php',
         'App\\Http\\Controllers\\Projects\\IAH\\IAHPersonalInfoController' => __DIR__ . '/../..' . '/app/Http/Controllers/Projects/IAH/IAHPersonalInfoController.php',
         'App\\Http\\Controllers\\Projects\\IAH\\IAHSupportDetailsController' => __DIR__ . '/../..' . '/app/Http/Controllers/Projects/IAH/IAHSupportDetailsController.php',
+        'App\\Http\\Controllers\\Projects\\IEG_Budget_IssueProjectController' => __DIR__ . '/../..' . '/app/Http/Controllers/Projects/IEG_Budget_IssueProjectController.php',
         'App\\Http\\Controllers\\Projects\\IES\\IESAttachmentsController' => __DIR__ . '/../..' . '/app/Http/Controllers/Projects/IES/IESAttachmentsController.php',
         'App\\Http\\Controllers\\Projects\\IES\\IESEducationBackgroundController' => __DIR__ . '/../..' . '/app/Http/Controllers/Projects/IES/IESEducationBackgroundController.php',
         'App\\Http\\Controllers\\Projects\\IES\\IESExpensesController' => __DIR__ . '/../..' . '/app/Http/Controllers/Projects/IES/IESExpensesController.php',

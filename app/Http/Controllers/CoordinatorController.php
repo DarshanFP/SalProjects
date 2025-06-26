@@ -53,7 +53,7 @@ class CoordinatorController extends Controller
             });
         }
 
-        $projects = $projectsQuery->with(['user.parent', 'reports.accountDetails'])->get();
+        $projects = $projectsQuery->with(['user.parent', 'reports.accountDetails', 'budgets'])->get();
 
         // Calculate budget summaries from projects and their reports
         $budgetSummaries = $this->calculateBudgetSummariesFromProjects($projects, $request);
@@ -92,7 +92,11 @@ class CoordinatorController extends Controller
             'available_centers_count' => $centers->count(),
             'available_parents_count' => $parents->count(),
             'total_projects' => $projects->count(),
-            'projects_by_province' => $projects->groupBy('user.province')->map->count()->toArray()
+            'projects_by_province' => $projects->groupBy('user.province')->map->count()->toArray(),
+            'projects_with_amount_sanctioned' => $projects->where('amount_sanctioned', '>', 0)->count(),
+            'projects_with_overall_budget' => $projects->where('overall_project_budget', '>', 0)->count(),
+            'projects_with_budgets' => $projects->filter(function($p) { return $p->budgets && $p->budgets->count() > 0; })->count(),
+            'projects_with_reports' => $projects->filter(function($p) { return $p->reports && $p->reports->count() > 0; })->count()
         ]);
 
         return view('coordinator.index', compact('budgetSummaries', 'provinces', 'centers', 'roles', 'parents', 'projectTypes'));
@@ -111,20 +115,57 @@ class CoordinatorController extends Controller
         ];
 
         foreach ($projects as $project) {
-            // Get project's sanctioned amount as base budget
-            $projectBudget = $project->amount_sanctioned ?? 0;
-            $projectForwarded = $project->amount_forwarded ?? 0;
+            // Calculate project budget from multiple sources
+            $projectBudget = 0;
+
+            // First, try to get from overall_project_budget (this should be the primary source)
+            if ($project->overall_project_budget && $project->overall_project_budget > 0) {
+                $projectBudget = $project->overall_project_budget;
+            }
+            // If not available, try to get from amount_sanctioned
+            elseif ($project->amount_sanctioned && $project->amount_sanctioned > 0) {
+                $projectBudget = $project->amount_sanctioned;
+            }
+            // If neither is available, calculate from budget details
+            elseif ($project->budgets && $project->budgets->count() > 0) {
+                $projectBudget = $project->budgets->sum('this_phase');
+            }
+
+            // If still no budget, try to get from reports
+            if ($projectBudget == 0 && $project->reports && $project->reports->count() > 0) {
+                foreach ($project->reports as $report) {
+                    if ($report->accountDetails && $report->accountDetails->count() > 0) {
+                        $projectBudget = $report->accountDetails->sum('total_amount');
+                        break; // Use the first report's total amount
+                    }
+                }
+            }
 
             // Calculate expenses from reports if they exist
             $totalExpenses = 0;
-            if ($project->reports->count() > 0) {
+            if ($project->reports && $project->reports->count() > 0) {
                 foreach ($project->reports as $report) {
-                    $totalExpenses += $report->accountDetails->sum('total_expenses');
+                    if ($report->accountDetails && $report->accountDetails->count() > 0) {
+                        $totalExpenses += $report->accountDetails->sum('total_expenses');
+                    }
                 }
             }
 
             // Calculate remaining budget
             $remainingBudget = $projectBudget - $totalExpenses;
+
+            // Debug logging for this project
+            \Log::info('Project Budget Calculation', [
+                'project_id' => $project->project_id,
+                'project_title' => $project->project_title,
+                'amount_sanctioned' => $project->amount_sanctioned,
+                'overall_project_budget' => $project->overall_project_budget,
+                'budgets_count' => $project->budgets ? $project->budgets->count() : 0,
+                'reports_count' => $project->reports ? $project->reports->count() : 0,
+                'calculated_project_budget' => $projectBudget,
+                'total_expenses' => $totalExpenses,
+                'remaining_budget' => $remainingBudget
+            ]);
 
             // Update project type summary
             if (!isset($budgetSummaries['by_project_type'][$project->project_type])) {
@@ -156,6 +197,15 @@ class CoordinatorController extends Controller
             $budgetSummaries['total']['total_expenses'] += $totalExpenses;
             $budgetSummaries['total']['total_remaining'] += $remainingBudget;
         }
+
+        // Debug logging for final summaries
+        \Log::info('Final Budget Summaries', [
+            'total_budget' => $budgetSummaries['total']['total_budget'],
+            'total_expenses' => $budgetSummaries['total']['total_expenses'],
+            'total_remaining' => $budgetSummaries['total']['total_remaining'],
+            'by_project_type' => $budgetSummaries['by_project_type'],
+            'by_province' => $budgetSummaries['by_province']
+        ]);
 
         return $budgetSummaries;
     }
@@ -404,6 +454,7 @@ class CoordinatorController extends Controller
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'role' => 'required|in:coordinator,provincial,executor,applicant',
+            'province' => 'required|in:Bangalore,Vijayawada,Visakhapatnam,Generalate',
             'status' => 'required|string|max:50',
         ]);
 
@@ -417,6 +468,7 @@ class CoordinatorController extends Controller
             'center' => $request->center,
             'address' => $request->address,
             'role' => $request->role,
+            'province' => $request->province,
             'status' => $request->status,
         ]);
 
@@ -499,6 +551,7 @@ class CoordinatorController extends Controller
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'role' => 'required|in:coordinator,provincial,executor,applicant',
+            'province' => 'required|in:Bangalore,Vijayawada,Visakhapatnam,Generalate',
             'status' => 'required|string|max:50',
         ]);
 
@@ -511,6 +564,7 @@ class CoordinatorController extends Controller
             'center' => $request->center,
             'address' => $request->address,
             'role' => $request->role,
+            'province' => $request->province,
             'status' => $request->status,
         ]);
 
@@ -518,19 +572,28 @@ class CoordinatorController extends Controller
         return redirect()->route('coordinator.provincials')->with('success', $roleName . ' updated successfully.');
     }
 
-    public function resetProvincialPassword(Request $request, $id)
+    public function resetUserPassword(Request $request, $id)
     {
         $request->validate([
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        $provincial = User::findOrFail($id);
-        $provincial->update([
+        $user = User::findOrFail($id);
+        $coordinator = auth()->user();
+
+        // Check if the user belongs to this coordinator or if coordinator has permission
+        // Coordinators can reset passwords for all users in the system
+        // If you want to restrict this, you can add additional checks here
+        // For example: if ($user->parent_id !== $coordinator->id) { abort(403, 'Unauthorized action.'); }
+
+        $user->update([
             'password' => Hash::make($request->password),
         ]);
 
-        return redirect()->route('coordinator.provincials')->with('success', 'Provincial password reset successfully.');
+        $roleName = ucfirst($user->role);
+        return redirect()->route('coordinator.provincials')->with('success', $roleName . ' password reset successfully.');
     }
+
     public function addProjectComment(Request $request, $project_id)
     {
         $coordinator = auth()->user();
@@ -603,17 +666,46 @@ public function revertToProvincial($project_id)
 
 public function approveProject($project_id)
 {
-    $project = Project::where('project_id', $project_id)->firstOrFail();
+    $project = Project::where('project_id', $project_id)->with('budgets')->firstOrFail();
     $coordinator = auth()->user();
 
     if($coordinator->role !== 'coordinator' || $project->status !== 'forwarded_to_coordinator') {
         abort(403, 'Unauthorized action.');
     }
 
+    // Calculate the total amount sanctioned from budget details
+    $totalAmountSanctioned = 0;
+
+    // First, try to get from overall_project_budget (this should be the primary source)
+    if ($project->overall_project_budget && $project->overall_project_budget > 0) {
+        $totalAmountSanctioned = $project->overall_project_budget;
+    }
+    // If not available, try to get from existing amount_sanctioned if it's already set
+    elseif ($project->amount_sanctioned && $project->amount_sanctioned > 0) {
+        $totalAmountSanctioned = $project->amount_sanctioned;
+    }
+    // If still not available, calculate from budget details
+    elseif ($project->budgets && $project->budgets->count() > 0) {
+        $totalAmountSanctioned = $project->budgets->sum('this_phase');
+    }
+
+    // Update the project with approved status and amount_sanctioned
     $project->status = 'approved_by_coordinator';
+    $project->amount_sanctioned = $totalAmountSanctioned;
     $project->save();
 
-    return redirect()->back()->with('success', 'Project approved successfully.');
+    // Log the approval action
+    \Log::info('Project Approved by Coordinator', [
+        'project_id' => $project->project_id,
+        'project_title' => $project->project_title,
+        'coordinator_id' => $coordinator->id,
+        'coordinator_name' => $coordinator->name,
+        'amount_sanctioned' => $totalAmountSanctioned,
+        'budgets_count' => $project->budgets ? $project->budgets->count() : 0,
+        'overall_project_budget' => $project->overall_project_budget
+    ]);
+
+    return redirect()->back()->with('success', 'Project approved successfully with sanctioned amount: Rs. ' . number_format($totalAmountSanctioned, 2));
 }
 
 public function rejectProject($project_id)
@@ -656,7 +748,7 @@ public function projectBudgets(Request $request)
         $projectsQuery->where('project_type', $request->project_type);
     }
 
-    $projects = $projectsQuery->with(['user', 'reports.accountDetails'])->get();
+    $projects = $projectsQuery->with(['user', 'reports.accountDetails', 'budgets'])->get();
 
     // Calculate budget summaries from projects and their reports
     $budgetSummaries = $this->calculateBudgetSummariesFromProjects($projects, $request);
@@ -799,10 +891,9 @@ public function budgetOverview()
         $user = User::findOrFail($id);
         $coordinator = auth()->user();
 
-        // Check if the user belongs to this coordinator
-        if ($user->parent_id !== $coordinator->id) {
-            abort(403, 'Unauthorized action.');
-        }
+        // Coordinators can activate any user in the system
+        // If you want to restrict this, you can add additional checks here
+        // For example: if ($user->parent_id !== $coordinator->id) { abort(403, 'Unauthorized action.'); }
 
         $user->update(['status' => 'active']);
 
@@ -815,10 +906,9 @@ public function budgetOverview()
         $user = User::findOrFail($id);
         $coordinator = auth()->user();
 
-        // Check if the user belongs to this coordinator
-        if ($user->parent_id !== $coordinator->id) {
-            abort(403, 'Unauthorized action.');
-        }
+        // Coordinators can deactivate any user in the system
+        // If you want to restrict this, you can add additional checks here
+        // For example: if ($user->parent_id !== $coordinator->id) { abort(403, 'Unauthorized action.'); }
 
         $user->update(['status' => 'inactive']);
 
@@ -875,6 +965,22 @@ public function budgetOverview()
         $users = $usersQuery->get();
 
         return view('coordinator.approvedProjects', compact('projects', 'coordinator', 'projectTypes', 'users', 'provinces'));
+    }
+
+    // Get executors by province for AJAX request
+    public function getExecutorsByProvince(Request $request)
+    {
+        $province = $request->get('province');
+
+        $query = User::where('role', 'executor');
+
+        if ($province) {
+            $query->where('province', $province);
+        }
+
+        $executors = $query->select('id', 'name', 'province')->get();
+
+        return response()->json($executors);
     }
 
 }

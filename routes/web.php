@@ -84,7 +84,7 @@ Route::middleware(['auth', 'role:coordinator'])->group(function () {
     Route::get('/coordinator/provincials', [CoordinatorController::class, 'listProvincials'])->name('coordinator.provincials');
     Route::get('/coordinator/provincial/{id}/edit', [CoordinatorController::class, 'editProvincial'])->name('coordinator.editProvincial');
     Route::post('/coordinator/provincial/{id}/update', [CoordinatorController::class, 'updateProvincial'])->name('coordinator.updateProvincial');
-    Route::post('/coordinator/provincial/{id}/reset-password', [CoordinatorController::class, 'resetProvincialPassword'])->name('coordinator.resetProvincialPassword');
+    Route::post('/coordinator/user/{id}/reset-password', [CoordinatorController::class, 'resetUserPassword'])->name('coordinator.resetUserPassword');
     Route::post('/coordinator/user/{id}/activate', [CoordinatorController::class, 'activateUser'])->name('coordinator.activateUser');
     Route::post('/coordinator/user/{id}/deactivate', [CoordinatorController::class, 'deactivateUser'])->name('coordinator.deactivateUser');
 
@@ -109,6 +109,8 @@ Route::middleware(['auth', 'role:coordinator'])->group(function () {
     // reports list
     Route::get('/coordinator/report-list', [CoordinatorController::class, 'ReportList'])->name('coordinator.report.list');
 
+    // Add the missing route for getting executors by province
+    Route::get('/coordinator/executors/by-province', [CoordinatorController::class, 'getExecutorsByProvince'])->name('coordinator.executors.byProvince');
 
     Route::get('/coordinator/reports/{type}/{id}', [CoordinatorController::class, 'showReport'])->name('coordinator.reports.show');
 
@@ -121,6 +123,9 @@ Route::middleware(['auth', 'role:coordinator'])->group(function () {
 
     // Budget Overview
     Route::get('/coordinator/budget-overview', [CoordinatorController::class, 'budgetOverview'])->name('coordinator.budget-overview');
+
+    Route::get('/coordinator/projects/{project_id}/download-pdf', [ExportController::class, 'downloadPdf'])->name('coordinator.projects.downloadPdf');
+    Route::get('/coordinator/projects/{project_id}/download-doc', [ExportController::class, 'downloadDoc'])->name('coordinator.projects.downloadDoc');
 });
 
 // Provincial routes
@@ -143,6 +148,11 @@ Route::middleware(['auth', 'role:provincial'])->group(function () {
     Route::get('/provincial/approved-projects', [ProvincialController::class, 'approvedProjects'])->name('provincial.approved.projects');
     // Add this route to allow provincial to view a project
     Route::get('/provincial/projects/show/{project_id}', [ProvincialController::class, 'showProject'])->name('provincial.projects.show');
+
+    // Provincial-specific download routes
+    Route::get('/provincial/projects/{project_id}/download-pdf', [ExportController::class, 'downloadPdf'])->name('provincial.projects.downloadPdf');
+    Route::get('/provincial/projects/{project_id}/download-doc', [ExportController::class, 'downloadDoc'])->name('provincial.projects.downloadDoc');
+
     // routes for Project Comments
     Route::post('/provincial/projects/{project_id}/add-comment', [ProvincialController::class, 'addProjectComment'])->name('provincial.projects.addComment');
     Route::get('/provincial/projects/comment/{id}/edit', [ProvincialController::class, 'editProjectComment'])->name('provincial.projects.editComment');
@@ -252,10 +262,11 @@ Route::prefix('reports/monthly')->group(function () {
 Route::middleware(['auth', 'role:executor,provincial,coordinator'])->group(function () {
     Route::get('/projects-list', [ProjectController::class, 'listProjects'])->name('projects.list');
 
-    // Project download routes accessible to all roles
+    // Project download routes accessible to all roles - ORDER MATTERS!
+    // More specific routes must come before generic ones
     Route::get('/projects/{project_id}/download-pdf', [ExportController::class, 'downloadPdf'])->name('projects.downloadPdf');
     Route::get('/projects/{project_id}/download-doc', [ExportController::class, 'downloadDoc'])->name('projects.downloadDoc');
-    Route::get('/projects/download/{id}', [AttachmentController::class, 'downloadAttachment'])->name('download.attachment');
+    Route::get('/projects/attachments/download/{id}', [AttachmentController::class, 'downloadAttachment'])->name('download.attachment');
 });
 
 
@@ -355,4 +366,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::any('{all}', function () {
         return view('admin.dashboard');
     })->where('all', '.*');
+});
+
+// Test route for debugging middleware
+Route::middleware(['auth', 'role:executor,provincial,coordinator'])->group(function () {
+    Route::get('/test-middleware', function () {
+        return response()->json(['message' => 'Middleware passed', 'user_role' => auth()->user()->role]);
+    })->name('test.middleware');
 });

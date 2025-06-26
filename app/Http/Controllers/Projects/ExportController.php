@@ -4,6 +4,66 @@ namespace App\Http\Controllers\Projects;
 
 use App\Http\Controllers\Controller;
 use App\Models\OldProjects\Project;
+use App\Models\OldProjects\RST\ProjectDPRSTBeneficiariesArea;
+use App\Models\OldProjects\RST\ProjectRSTInstitutionInfo;
+use App\Models\OldProjects\RST\ProjectRSTTargetGroup;
+use App\Models\OldProjects\RST\ProjectRSTTargetGroupAnnexure;
+use App\Models\OldProjects\RST\ProjectRSTGeographicalArea;
+// CCI Models
+use App\Models\OldProjects\CCI\ProjectCCIAchievements;
+use App\Models\OldProjects\CCI\ProjectCCIAgeProfile;
+use App\Models\OldProjects\CCI\ProjectCCIAnnexedTargetGroup;
+use App\Models\OldProjects\CCI\ProjectCCIEconomicBackground;
+use App\Models\OldProjects\CCI\ProjectCCIPersonalSituation;
+use App\Models\OldProjects\CCI\ProjectCCIPresentSituation;
+use App\Models\OldProjects\CCI\ProjectCCIRationale;
+use App\Models\OldProjects\CCI\ProjectCCIStatistics;
+// IGE Models
+use App\Models\OldProjects\IGE\ProjectIGEInstitutionInfo;
+use App\Models\OldProjects\IGE\ProjectIGEBeneficiariesSupported;
+use App\Models\OldProjects\IGE\ProjectIGENewBeneficiaries;
+use App\Models\OldProjects\IGE\ProjectIGEOngoingBeneficiaries;
+use App\Models\OldProjects\IGE\ProjectIGEBudget;
+use App\Models\OldProjects\IGE\ProjectIGEDevelopmentMonitoring;
+// LDP Models
+use App\Models\OldProjects\LDP\ProjectLDPInterventionLogic;
+use App\Models\OldProjects\LDP\ProjectLDPNeedAnalysis;
+use App\Models\OldProjects\LDP\ProjectLDPTargetGroup;
+// IES Models
+use App\Models\OldProjects\IES\ProjectIESPersonalInfo;
+use App\Models\OldProjects\IES\ProjectIESFamilyWorkingMembers;
+use App\Models\OldProjects\IES\ProjectIESImmediateFamilyDetails;
+use App\Models\OldProjects\IES\ProjectIESEducationBackground;
+use App\Models\OldProjects\IES\ProjectIESExpenses;
+use App\Models\OldProjects\IES\ProjectIESAttachments;
+// ILP Models
+use App\Models\OldProjects\ILP\ProjectILPPersonalInfo;
+use App\Models\OldProjects\ILP\ProjectILPRevenueGoals;
+use App\Models\OldProjects\ILP\ProjectILPBusinessStrengthWeakness;
+use App\Models\OldProjects\ILP\ProjectILPRiskAnalysis;
+use App\Models\OldProjects\ILP\ProjectILPAttachedDocuments;
+use App\Models\OldProjects\ILP\ProjectILPBudget;
+// IAH Models
+use App\Models\OldProjects\IAH\ProjectIAHPersonalInfo;
+use App\Models\OldProjects\IAH\ProjectIAHEarningMembers;
+use App\Models\OldProjects\IAH\ProjectIAHHealthCondition;
+use App\Models\OldProjects\IAH\ProjectIAHSupportDetails;
+use App\Models\OldProjects\IAH\ProjectIAHBudgetDetails;
+use App\Models\OldProjects\IAH\ProjectIAHDocuments;
+// IIES Models
+use App\Models\OldProjects\IIES\ProjectIIESPersonalInfo;
+use App\Models\OldProjects\IIES\ProjectIIESFamilyWorkingMembers;
+use App\Models\OldProjects\IIES\ProjectIIESImmediateFamilyDetails;
+use App\Models\OldProjects\IIES\ProjectIIESEducationBackground;
+use App\Models\OldProjects\IIES\ProjectIIESScopeFinancialSupport;
+use App\Models\OldProjects\IIES\ProjectIIESAttachments;
+use App\Models\OldProjects\IIES\ProjectIIESExpenses;
+// EduRUT Models
+use App\Models\OldProjects\ProjectEduRUTBasicInfo;
+use App\Models\OldProjects\ProjectEduRUTTargetGroup;
+use App\Models\OldProjects\ProjectEduRUTAnnexedTargetGroup;
+// CIC Models
+use App\Models\OldProjects\ProjectCICBasicInfo;
 use App\Models\User;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Style\Table;
@@ -11,9 +71,229 @@ use PhpOffice\PhpWord\IOFactory;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Mpdf\Mpdf;
+// Controller imports
+use App\Http\Controllers\Projects\ProjectEduRUTBasicInfoController;
+use App\Http\Controllers\Projects\EduRUTTargetGroupController;
+use App\Http\Controllers\Projects\EduRUTAnnexedTargetGroupController;
+use App\Http\Controllers\Projects\CICBasicInfoController;
+use App\Http\Controllers\Projects\CCI\AchievementsController as CCIAchievementsController;
+use App\Http\Controllers\Projects\CCI\AgeProfileController as CCIAgeProfileController;
+use App\Http\Controllers\Projects\CCI\AnnexedTargetGroupController as CCIAnnexedTargetGroupController;
+use App\Http\Controllers\Projects\CCI\EconomicBackgroundController as CCIEconomicBackgroundController;
+use App\Http\Controllers\Projects\CCI\PersonalSituationController as CCIPersonalSituationController;
+use App\Http\Controllers\Projects\CCI\PresentSituationController as CCIPresentSituationController;
+use App\Http\Controllers\Projects\CCI\RationaleController as CCIRationaleController;
+use App\Http\Controllers\Projects\CCI\StatisticsController as CCIStatisticsController;
+use App\Http\Controllers\Projects\IGE\InstitutionInfoController as IGEInstitutionInfoController;
+use App\Http\Controllers\Projects\IGE\IGEBeneficiariesSupportedController as IGEBeneficiariesSupportedController;
+use App\Http\Controllers\Projects\IGE\NewBeneficiariesController as IGENewBeneficiariesController;
+use App\Http\Controllers\Projects\IGE\OngoingBeneficiariesController as IGEOngoingBeneficiariesController;
+use App\Http\Controllers\Projects\IGE\IGEBudgetController as IGEBudgetController;
+use App\Http\Controllers\Projects\IGE\DevelopmentMonitoringController as IGEDevelopmentMonitoringController;
+use App\Http\Controllers\Projects\LDP\InterventionLogicController as LDPInterventionLogicController;
+use App\Http\Controllers\Projects\LDP\NeedAnalysisController as LDPNeedAnalysisController;
+use App\Http\Controllers\Projects\LDP\TargetGroupController as LDPTargetGroupController;
+use App\Http\Controllers\Projects\RST\BeneficiariesAreaController as RSTBeneficiariesAreaController;
+use App\Http\Controllers\Projects\RST\GeographicalAreaController as RSTGeographicalAreaController;
+use App\Http\Controllers\Projects\RST\InstitutionInfoController as RSTInstitutionInfoController;
+use App\Http\Controllers\Projects\RST\TargetGroupAnnexureController as RSTTargetGroupAnnexureController;
+use App\Http\Controllers\Projects\RST\TargetGroupController as RSTTargetGroupController;
+use App\Http\Controllers\Projects\IES\IESPersonalInfoController;
+use App\Http\Controllers\Projects\IES\IESFamilyWorkingMembersController;
+use App\Http\Controllers\Projects\IES\IESImmediateFamilyDetailsController;
+use App\Http\Controllers\Projects\IES\IESEducationBackgroundController;
+use App\Http\Controllers\Projects\IES\IESExpensesController;
+use App\Http\Controllers\Projects\IES\IESAttachmentsController;
+use App\Http\Controllers\Projects\ILP\PersonalInfoController as ILPPersonalInfoController;
+use App\Http\Controllers\Projects\ILP\RevenueGoalsController as ILPRevenueGoalsController;
+use App\Http\Controllers\Projects\ILP\StrengthWeaknessController as ILPStrengthWeaknessController;
+use App\Http\Controllers\Projects\ILP\RiskAnalysisController as ILPRiskAnalysisController;
+use App\Http\Controllers\Projects\ILP\AttachedDocumentsController as ILPAttachedDocumentsController;
+use App\Http\Controllers\Projects\ILP\BudgetController as ILPBudgetController;
+use App\Http\Controllers\Projects\IAH\IAHPersonalInfoController;
+use App\Http\Controllers\Projects\IAH\IAHEarningMembersController;
+use App\Http\Controllers\Projects\IAH\IAHHealthConditionController;
+use App\Http\Controllers\Projects\IAH\IAHSupportDetailsController;
+use App\Http\Controllers\Projects\IAH\IAHBudgetDetailsController;
+use App\Http\Controllers\Projects\IAH\IAHDocumentsController;
+use App\Http\Controllers\Projects\IIES\IIESPersonalInfoController;
+use App\Http\Controllers\Projects\IIES\IIESFamilyWorkingMembersController;
+use App\Http\Controllers\Projects\IIES\IIESImmediateFamilyDetailsController;
+use App\Http\Controllers\Projects\IIES\EducationBackgroundController as IIESEducationBackgroundController;
+use App\Http\Controllers\Projects\IIES\FinancialSupportController as IIESFinancialSupportController;
+use App\Http\Controllers\Projects\IIES\IIESAttachmentsController;
+use App\Http\Controllers\Projects\IIES\IIESExpensesController;
 
 class ExportController extends Controller
 {
+    // Controller dependencies (same as ProjectController)
+    protected $eduRUTBasicInfoController;
+    protected $eduRUTTargetGroupController;
+    protected $eduRUTAnnexedTargetGroupController;
+    protected $cicBasicInfoController;
+    protected $cciAchievementsController;
+    protected $cciAgeProfileController;
+    protected $cciAnnexedTargetGroupController;
+    protected $cciEconomicBackgroundController;
+    protected $cciPersonalSituationController;
+    protected $cciPresentSituationController;
+    protected $cciRationaleController;
+    protected $cciStatisticsController;
+    protected $igeInstitutionInfoController;
+    protected $igeBeneficiariesSupportedController;
+    protected $igeNewBeneficiariesController;
+    protected $igeOngoingBeneficiariesController;
+    protected $igeBudgetController;
+    protected $igeDevelopmentMonitoringController;
+    protected $ldpInterventionLogicController;
+    protected $ldpNeedAnalysisController;
+    protected $ldpTargetGroupController;
+    protected $rstBeneficiariesAreaController;
+    protected $rstGeographicalAreaController;
+    protected $rstInstitutionInfoController;
+    protected $rstTargetGroupAnnexureController;
+    protected $rstTargetGroupController;
+    protected $iesPersonalInfoController;
+    protected $iesFamilyWorkingMembersController;
+    protected $iesImmediateFamilyDetailsController;
+    protected $iesEducationBackgroundController;
+    protected $iesExpensesController;
+    protected $iesAttachmentsController;
+    protected $ilpPersonalInfoController;
+    protected $ilpRevenueGoalsController;
+    protected $ilpStrengthWeaknessController;
+    protected $ilpRiskAnalysisController;
+    protected $ilpAttachedDocumentsController;
+    protected $ilpBudgetController;
+    protected $iahPersonalInfoController;
+    protected $iahEarningMembersController;
+    protected $iahHealthConditionController;
+    protected $iahSupportDetailsController;
+    protected $iahBudgetDetailsController;
+    protected $iahDocumentsController;
+    protected $iiesPersonalInfoController;
+    protected $iiesFamilyWorkingMembersController;
+    protected $iiesImmediateFamilyDetailsController;
+    protected $iiesEducationBackgroundController;
+    protected $iiesFinancialSupportController;
+    protected $iiesAttachmentsController;
+    protected $iiesExpensesController;
+
+    public function __construct(
+        // Edu-RUT
+        ProjectEduRUTBasicInfoController $eduRUTBasicInfoController,
+        EduRUTTargetGroupController $eduRUTTargetGroupController,
+        EduRUTAnnexedTargetGroupController $eduRUTAnnexedTargetGroupController,
+        // CIC
+        CICBasicInfoController $cicBasicInfoController,
+        // CCI
+        CCIAchievementsController $cciAchievementsController,
+        CCIAgeProfileController $cciAgeProfileController,
+        CCIAnnexedTargetGroupController $cciAnnexedTargetGroupController,
+        CCIEconomicBackgroundController $cciEconomicBackgroundController,
+        CCIPersonalSituationController $cciPersonalSituationController,
+        CCIPresentSituationController $cciPresentSituationController,
+        CCIRationaleController $cciRationaleController,
+        CCIStatisticsController $cciStatisticsController,
+        // IGE controllers
+        IGEInstitutionInfoController $igeInstitutionInfoController,
+        IGEBeneficiariesSupportedController $igeBeneficiariesSupportedController,
+        IGENewBeneficiariesController $igeNewBeneficiariesController,
+        IGEOngoingBeneficiariesController $igeOngoingBeneficiariesController,
+        IGEBudgetController $igeBudgetController,
+        IGEDevelopmentMonitoringController $igeDevelopmentMonitoringController,
+        // LDP controllers
+        LDPInterventionLogicController $ldpInterventionLogicController,
+        LDPNeedAnalysisController $ldpNeedAnalysisController,
+        LDPTargetGroupController $ldpTargetGroupController,
+        // RST controllers
+        RSTBeneficiariesAreaController $rstBeneficiariesAreaController,
+        RSTGeographicalAreaController $rstGeographicalAreaController,
+        RSTInstitutionInfoController $rstInstitutionInfoController,
+        RSTTargetGroupAnnexureController $rstTargetGroupAnnexureController,
+        RSTTargetGroupController $rstTargetGroupController,
+        // IES controllers
+        IESAttachmentsController $iesAttachmentsController,
+        IESEducationBackgroundController $iesEducationBackgroundController,
+        IESExpensesController $iesExpensesController,
+        IESFamilyWorkingMembersController $iesFamilyWorkingMembersController,
+        IESImmediateFamilyDetailsController $iesImmediateFamilyDetailsController,
+        IESPersonalInfoController $iesPersonalInfoController,
+        // ILP controllers
+        ILPPersonalInfoController $ilpPersonalInfoController,
+        ILPRevenueGoalsController $ilpRevenueGoalsController,
+        ILPStrengthWeaknessController $ilpStrengthWeaknessController,
+        ILPRiskAnalysisController $ilpRiskAnalysisController,
+        ILPAttachedDocumentsController $ilpAttachedDocumentsController,
+        ILPBudgetController $ilpBudgetController,
+        // IAH controllers
+        IAHBudgetDetailsController $iahBudgetDetailsController,
+        IAHDocumentsController $iahDocumentsController,
+        IAHEarningMembersController $iahEarningMembersController,
+        IAHHealthConditionController $iahHealthConditionController,
+        IAHPersonalInfoController $iahPersonalInfoController,
+        IAHSupportDetailsController $iahSupportDetailsController,
+        // IIES controllers
+        IIESEducationBackgroundController $iiesEducationBackgroundController,
+        IIESFinancialSupportController $iiesFinancialSupportController,
+        IIESAttachmentsController $iiesAttachmentsController,
+        IIESFamilyWorkingMembersController $iiesFamilyWorkingMembersController,
+        IIESImmediateFamilyDetailsController $iiesImmediateFamilyDetailsController,
+        IIESPersonalInfoController $iiesPersonalInfoController,
+        IIESExpensesController $iiesExpensesController
+    ) {
+        $this->eduRUTBasicInfoController = $eduRUTBasicInfoController;
+        $this->eduRUTTargetGroupController = $eduRUTTargetGroupController;
+        $this->eduRUTAnnexedTargetGroupController = $eduRUTAnnexedTargetGroupController;
+        $this->cicBasicInfoController = $cicBasicInfoController;
+        $this->cciAchievementsController = $cciAchievementsController;
+        $this->cciAgeProfileController = $cciAgeProfileController;
+        $this->cciAnnexedTargetGroupController = $cciAnnexedTargetGroupController;
+        $this->cciEconomicBackgroundController = $cciEconomicBackgroundController;
+        $this->cciPersonalSituationController = $cciPersonalSituationController;
+        $this->cciPresentSituationController = $cciPresentSituationController;
+        $this->cciRationaleController = $cciRationaleController;
+        $this->cciStatisticsController = $cciStatisticsController;
+        $this->igeInstitutionInfoController = $igeInstitutionInfoController;
+        $this->igeBeneficiariesSupportedController = $igeBeneficiariesSupportedController;
+        $this->igeNewBeneficiariesController = $igeNewBeneficiariesController;
+        $this->igeOngoingBeneficiariesController = $igeOngoingBeneficiariesController;
+        $this->igeBudgetController = $igeBudgetController;
+        $this->igeDevelopmentMonitoringController = $igeDevelopmentMonitoringController;
+        $this->ldpInterventionLogicController = $ldpInterventionLogicController;
+        $this->ldpNeedAnalysisController = $ldpNeedAnalysisController;
+        $this->ldpTargetGroupController = $ldpTargetGroupController;
+        $this->rstBeneficiariesAreaController = $rstBeneficiariesAreaController;
+        $this->rstGeographicalAreaController = $rstGeographicalAreaController;
+        $this->rstInstitutionInfoController = $rstInstitutionInfoController;
+        $this->rstTargetGroupAnnexureController = $rstTargetGroupAnnexureController;
+        $this->rstTargetGroupController = $rstTargetGroupController;
+        $this->iesPersonalInfoController = $iesPersonalInfoController;
+        $this->iesFamilyWorkingMembersController = $iesFamilyWorkingMembersController;
+        $this->iesImmediateFamilyDetailsController = $iesImmediateFamilyDetailsController;
+        $this->iesEducationBackgroundController = $iesEducationBackgroundController;
+        $this->iesExpensesController = $iesExpensesController;
+        $this->iesAttachmentsController = $iesAttachmentsController;
+        $this->ilpPersonalInfoController = $ilpPersonalInfoController;
+        $this->ilpRevenueGoalsController = $ilpRevenueGoalsController;
+        $this->ilpStrengthWeaknessController = $ilpStrengthWeaknessController;
+        $this->ilpRiskAnalysisController = $ilpRiskAnalysisController;
+        $this->ilpAttachedDocumentsController = $ilpAttachedDocumentsController;
+        $this->ilpBudgetController = $ilpBudgetController;
+        $this->iahPersonalInfoController = $iahPersonalInfoController;
+        $this->iahEarningMembersController = $iahEarningMembersController;
+        $this->iahHealthConditionController = $iahHealthConditionController;
+        $this->iahSupportDetailsController = $iahSupportDetailsController;
+        $this->iahBudgetDetailsController = $iahBudgetDetailsController;
+        $this->iahDocumentsController = $iahDocumentsController;
+        $this->iiesPersonalInfoController = $iiesPersonalInfoController;
+        $this->iiesFamilyWorkingMembersController = $iiesFamilyWorkingMembersController;
+        $this->iiesImmediateFamilyDetailsController = $iiesImmediateFamilyDetailsController;
+        $this->iiesEducationBackgroundController = $iiesEducationBackgroundController;
+        $this->iiesFinancialSupportController = $iiesFinancialSupportController;
+        $this->iiesAttachmentsController = $iiesAttachmentsController;
+        $this->iiesExpensesController = $iiesExpensesController;
+    }
 
     public function downloadPdf($project_id)
     {
@@ -66,7 +346,11 @@ class ExportController extends Controller
                 'coordinator' => $project->coordinator_india_name
             ];
 
-            $html = view('projects.Oldprojects.pdf', compact('project', 'projectRoles'))->render();
+            // Load all project data using the same approach as ProjectController show method
+            $data = $this->loadAllProjectData($project_id);
+            $data['projectRoles'] = $projectRoles;
+
+            $html = view('projects.Oldprojects.pdf', $data)->render();
             $mpdf = new Mpdf();
             $mpdf->WriteHTML($html);
             return response($mpdf->Output('', 'S'), 200)
@@ -78,274 +362,336 @@ class ExportController extends Controller
         }
     }
 
+    /**
+     * Load all project data using the same approach as ProjectController show method
+     */
+    private function loadAllProjectData($project_id)
+    {
+        $project = Project::where('project_id', $project_id)
+            ->with('budgets', 'attachments', 'objectives', 'sustainabilities', 'user')
+            ->firstOrFail();
 
+        $user = Auth::user();
 
-    // Additional methods as required...
+        // Initialize data array with defaults (same as ProjectController show method)
+        $data = [
+            'project' => $project,
+            'user' => $user,
+            'basicInfo' => null,
+            'targetGroups' => null,
+            'annexedTargetGroups' => null,
+            'achievements' => null,
+            'ageProfile' => null,
+            'annexedTargetGroup' => null,
+            'economicBackground' => null,
+            'personalSituation' => null,
+            'presentSituation' => null,
+            'rationale' => null,
+            'statistics' => null,
+            'interventionLogic' => null,
+            'needAnalysis' => null,
+            'LDPtargetGroups' => null,
+            'IGEInstitutionInfo' => null,
+            'beneficiariesSupported' => null,
+            'newBeneficiaries' => null,
+            'ongoingBeneficiaries' => null,
+            'budget' => null,
+            'developmentMonitoring' => null,
+            'RSTBeneficiariesArea' => null,
+            'RSTGeographicalArea' => null,
+            'RSTInstitutionInfo' => null,
+            'RSTTargetGroupAnnexure' => null,
+            'RSTTargetGroup' => null,
+            'IESpersonalInfo' => null,
+            'IESfamilyWorkingMembers' => null,
+            'IESimmediateFamilyDetails' => null,
+            'IESEducationBackground' => null,
+            'IESExpenses' => null,
+            'IESAttachments' => null,
+            'ILPPersonalInfo' => null,
+            'ILPRevenueGoals' => null,
+            'ILPStrengthWeakness' => null,
+            'ILPRiskAnalysis' => null,
+            'ILPAttachedDocuments' => null,
+            'ILPBudgets' => null,
+            'IAHPersonalInfo' => null,
+            'IAHEarningMembers' => null,
+            'IAHHealthCondition' => null,
+            'IAHSupportDetails' => null,
+            'IAHBudgetDetails' => null,
+            'IAHDocuments' => null,
+            'IIESPersonalInfo' => null,
+            'IIESFamilyWorkingMembers' => null,
+            'IIESImmediateFamilyDetails' => null,
+            'IIESEducationBackground' => null,
+            'IIESFinancialSupport' => null,
+            'IIESAttachments' => null,
+            'IIESExpenses' => null,
+        ];
 
+        // Handle project-specific data (same logic as ProjectController show method)
+        switch ($project->project_type) {
+            case 'Rural-Urban-Tribal':
+                $data['basicInfo'] = $this->eduRUTBasicInfoController->show($project_id);
+                $data['RUTtargetGroups'] = $this->eduRUTTargetGroupController->show($project_id);
+                $data['annexedTargetGroups'] = $this->eduRUTAnnexedTargetGroupController->show($project_id);
+                break;
 
+            case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
+                $data['basicInfo'] = $this->cicBasicInfoController->show($project->project_id);
+                break;
 
-    //     public function downloadDoc($project_id)
-    // {
-    //     try {
-    //         $project = Project::where('project_id', $project_id)
-    //             ->with([
-    //                 'attachments',
-    //                 'objectives.risks',
-    //                 'objectives.activities.timeframes',
-    //                 'sustainabilities',
-    //                 'budgets'
-    //             ])->firstOrFail();
+            case 'CHILD CARE INSTITUTION':
+                $data['achievements'] = $this->cciAchievementsController->show($project->project_id);
+                $data['ageProfile'] = $this->cciAgeProfileController->show($project->project_id);
+                $data['annexedTargetGroup'] = $this->cciAnnexedTargetGroupController->show($project->project_id);
+                $data['economicBackground'] = $this->cciEconomicBackgroundController->show($project->project_id);
+                $data['personalSituation'] = $this->cciPersonalSituationController->show($project->project_id);
+                $data['presentSituation'] = $this->cciPresentSituationController->show($project->project_id);
+                $data['rationale'] = $this->cciRationaleController->show($project->project_id);
+                $data['statistics'] = $this->cciStatisticsController->show($project->project_id);
+                break;
 
-    //         $generalUser = User::where('role', 'general')->first();
+            case 'Institutional Ongoing Group Educational proposal':
+                $data['IGEInstitutionInfo'] = $this->igeInstitutionInfoController->show($project->project_id);
+                $data['beneficiariesSupported'] = $this->igeBeneficiariesSupportedController->show($project->project_id);
+                $data['newBeneficiaries'] = $this->igeNewBeneficiariesController->show($project->project_id);
+                $data['ongoingBeneficiaries'] = $this->igeOngoingBeneficiariesController->show($project->project_id);
+                $data['budget'] = $this->igeBudgetController->show($project->project_id);
+                $data['developmentMonitoring'] = $this->igeDevelopmentMonitoringController->show($project->project_id);
+                break;
 
-    //         $projectRoles = [
-    //             'executor' => $project->executor_name,
-    //             'incharge' => $project->in_charge_name, // Replacing 'applicant' with 'incharge'
-    //             'president' => $project->president_name,
-    //             'authorizedBy' => $generalUser ? $generalUser->name : 'N/A',
-    //             'coordinator' => $project->coordinator_india_name // Fetching the Project Coordinator's name
-    //         ];
+            case 'Livelihood Development Projects':
+                $data['interventionLogic'] = $this->ldpInterventionLogicController->show($project_id);
+                $data['needAnalysis'] = $this->ldpNeedAnalysisController->show($project_id);
+                $data['LDPtargetGroups'] = $this->ldpTargetGroupController->show($project_id);
+                break;
 
-    //         $phpWord = new PhpWord();
-    //         $section = $phpWord->addSection();
+            case 'Residential Skill Training Proposal 2':
+                $data['RSTBeneficiariesArea'] = $this->rstBeneficiariesAreaController->show($project->project_id);
+                $data['RSTGeographicalArea'] = $this->rstGeographicalAreaController->show($project->project_id);
+                $data['RSTInstitutionInfo'] = $this->rstInstitutionInfoController->show($project->project_id);
+                $data['RSTTargetGroupAnnexure'] = $this->rstTargetGroupAnnexureController->show($project->project_id);
+                $data['RSTTargetGroup'] = $this->rstTargetGroupController->show($project->project_id);
+                break;
 
-    //         // General Information
-    //         $section->addText("Project Details", ['bold' => true, 'size' => 16]);
-    //         $section->addText("Project ID: {$project->project_id}");
-    //         $section->addText("Project Title: {$project->project_title}");
-    //         $section->addText("Project Type: {$project->project_type}");
-    //         $section->addText("Society Name: {$project->society_name}");
-    //         $section->addText("President Name: {$project->president_name}");
-    //         $section->addText("In Charge Name: {$project->in_charge_name}");
-    //         $section->addText("Executor Name: {$project->executor_name}");
-    //         $section->addText("Executor Phone: {$project->executor_mobile}");
-    //         $section->addText("Executor Email: {$project->executor_email}");
-    //         $section->addText("Full Address: {$project->full_address}");
-    //         $section->addText("Overall Project Period: {$project->overall_project_period} years");
-    //         $section->addText("Overall Project Budget: Rs. " . number_format($project->overall_project_budget, 2));
-    //         $section->addText("Amount Forwarded: Rs. " . number_format($project->amount_forwarded, 2));
-    //         $section->addText("Amount Sanctioned: Rs. " . number_format($project->amount_sanctioned, 2));
-    //         $section->addText("Opening Balance: Rs. " . number_format($project->opening_balance, 2));
-    //         $section->addText("Coordinator India Name: {$project->coordinator_india_name}");
-    //         $section->addText("Coordinator India Phone: {$project->coordinator_india_phone}");
-    //         $section->addText("Coordinator India Email: {$project->coordinator_india_email}");
-    //         $section->addText("Coordinator Luzern Name: {$project->coordinator_luzern_name}");
-    //         $section->addText("Coordinator Luzern Phone: {$project->coordinator_luzern_phone}");
-    //         $section->addText("Coordinator Luzern Email: {$project->coordinator_luzern_email}");
-    //         $section->addText("Status: " . ucfirst($project->status));
+            case 'Development Projects':
+                $data['RSTBeneficiariesArea'] = $this->rstBeneficiariesAreaController->show($project->project_id);
+                break;
 
-    //         // Add spacing between sections
-    //         $section->addTextBreak(1);
+            case 'NEXT PHASE - DEVELOPMENT PROPOSAL':
+                $data['RSTBeneficiariesArea'] = $this->rstBeneficiariesAreaController->show($project->project_id);
+                break;
 
-    //         // Goal of the Project
-    //         $section->addText("Goal of the Project:", ['bold' => true]);
-    //         $section->addText($project->goal);
+            case 'Individual - Ongoing Educational support':
+                $data['IESpersonalInfo'] = $this->loadIESPersonalInfo($project_id);
+                $data['IESfamilyWorkingMembers'] = $this->loadIESFamilyWorkingMembers($project_id);
+                $data['IESimmediateFamilyDetails'] = $this->loadIESImmediateFamilyDetails($project_id);
+                $data['IESEducationBackground'] = $this->loadIESEducationBackground($project_id);
+                $data['IESExpenses'] = $this->loadIESExpenses($project_id);
+                $data['IESAttachments'] = $this->loadIESAttachments($project_id);
+                break;
 
-    //         // Add spacing between sections
-    //         $section->addTextBreak(1);
+            case 'Individual - Livelihood Application':
+                $data['ILPPersonalInfo'] = $this->loadILPPersonalInfo($project_id);
+                $data['ILPRevenueGoals'] = $this->loadILPRevenueGoals($project_id);
+                $data['ILPStrengthWeakness'] = $this->loadILPStrengthWeakness($project_id);
+                $data['ILPRiskAnalysis'] = $this->loadILPRiskAnalysis($project_id);
+                $data['ILPAttachedDocuments'] = $this->loadILPAttachedDocuments($project_id);
+                $data['ILPBudgets'] = $this->loadILPBudget($project_id);
+                break;
 
-    //         // Logical Framework Section
-    //         foreach ($project->objectives as $objective) {
-    //             $section->addText("Objective: {$objective->objective}", ['bold' => true]);
-    //             $section->addTextBreak(0.5);
+            case 'Individual - Access to Health':
+                $data['IAHPersonalInfo'] = $this->loadIAHPersonalInfo($project_id);
+                $data['IAHEarningMembers'] = $this->loadIAHEarningMembers($project_id);
+                $data['IAHHealthCondition'] = $this->loadIAHHealthCondition($project_id);
+                $data['IAHSupportDetails'] = $this->loadIAHSupportDetails($project_id);
+                $data['IAHBudgetDetails'] = $this->loadIAHBudgetDetails($project_id);
+                $data['IAHDocuments'] = $this->loadIAHDocuments($project_id);
+                break;
 
-    //             // Results / Outcomes
-    //             $section->addText("Results / Outcomes:", ['bold' => true]);
-    //             foreach ($objective->results as $result) {
-    //                 $section->addText($result->result);
-    //             }
-    //             $section->addTextBreak(0.5);
+            case 'Individual - Initial - Educational support':
+                $data['IIESPersonalInfo'] = $this->loadIIESPersonalInfo($project_id);
+                $data['IIESFamilyWorkingMembers'] = $this->loadIIESFamilyWorkingMembers($project_id);
+                $data['IIESImmediateFamilyDetails'] = $this->loadIIESImmediateFamilyDetails($project_id);
+                $data['IIESEducationBackground'] = $this->loadIIESEducationBackground($project_id);
+                $data['IIESFinancialSupport'] = $this->loadIIESFinancialSupport($project_id);
+                $data['IIESAttachments'] = $this->loadIIESAttachments($project_id);
+                $data['IIESExpenses'] = $this->loadIIESExpenses($project_id);
+                break;
+        }
 
-    //            // Risks
-    //            $section->addText("Risks:", ['bold' => true]);
-    //            foreach ($objective->risks as $risk) {
-    //                $section->addText($risk->risk);
-    //            }
-    //            $section->addTextBreak(0.5);
+        return $data;
+    }
 
-    //             // Activities and Means of Verification
-    //             $section->addText("Activities and Means of Verification:", ['bold' => true]);
+    // Helper methods to load specific data (these would need to be implemented or injected)
+    private function loadRSTBeneficiariesArea($project_id)
+    {
+        return ProjectDPRSTBeneficiariesArea::where('project_id', $project_id)->get();
+    }
 
-    //             // Define table style
-    //             $tableStyle = [
-    //                 'borderSize' => 6, // 1pt = 8 twips, 0.75pt ≈ 6 twips
-    //                 'borderColor' => '000000', // Black border
-    //                 'cellMargin' => 80 // Adds padding inside cells
-    //             ];
-    //             $phpWord->addTableStyle('TableStyle', $tableStyle);
-    //             $table = $section->addTable('TableStyle');
-    //             $table->addRow();
-    //             $table->addCell(5000)->addText("Activities");
-    //             $table->addCell(5000)->addText("Means of Verification");
-    //             foreach ($objective->activities as $activity) {
-    //                 $table->addRow();
-    //                 $table->addCell(5000)->addText($activity->activity);
-    //                 $table->addCell(5000)->addText($activity->verification);
-    //             }
-    //             $section->addTextBreak(0.5);
+    private function loadRSTGeographicalArea($project_id)
+    {
+        return ProjectRSTGeographicalArea::where('project_id', $project_id)->get();
+    }
 
-    //             // Time Frame for Activities
-    //             $section->addText("Time Frame for Activities:", ['bold' => true]);
-    //             $table = $section->addTable('TableStyle');
-    //             $table->addRow();
-    //             $table->addCell(5000)->addText("Activities");
-    //             foreach (['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as $month) {
-    //                 $table->addCell(500)->addText($month);
-    //             }
-    //             foreach ($objective->activities as $activity) {
-    //                 $table->addRow();
-    //                 $table->addCell(5000)->addText($activity->activity);
-    //                 foreach (range(1, 12) as $month) {
-    //                     $isChecked = $activity->timeframes->contains(function($timeframe) use ($month) {
-    //                         return $timeframe->month == $month && $timeframe->is_active == 1;
-    //                     });
-    //                     $table->addCell(500)->addText($isChecked ? '✔' : '');
-    //                 }
-    //             }
-    //         }
+    private function loadRSTInstitutionInfo($project_id)
+    {
+        return ProjectRSTInstitutionInfo::where('project_id', $project_id)->first();
+    }
 
-    //         // Add spacing between sections
-    //         $section->addTextBreak(1);
+    private function loadRSTTargetGroupAnnexure($project_id)
+    {
+        // Implement based on your model structure
+        return collect();
+    }
 
-    //         // Sustainability Section
-    //         $section->addText("Project Sustainability, Monitoring and Methodologies", ['bold' => true, 'size' => 14]);
-    //         foreach ($project->sustainabilities as $sustainability) {
-    //             $section->addText("Explain the Sustainability of the Project:", ['bold' => true]);
-    //             $section->addText($sustainability->sustainability ?? 'N/A');
-    //             $section->addTextBreak(0.5);
+    private function loadRSTTargetGroup($project_id)
+    {
+        // Implement based on your model structure
+        return collect();
+    }
 
-    //             $section->addText("Explain the Monitoring Process of the Project:", ['bold' => true]);
-    //             $section->addText($sustainability->monitoring_process ?? 'N/A');
-    //             $section->addTextBreak(0.5);
+    // Add other helper methods as needed...
+    private function loadEduRUTBasicInfo($project_id) {
+        return ProjectEduRUTBasicInfo::where('project_id', $project_id)->first();
+    }
+    private function loadEduRUTTargetGroup($project_id) {
+        return ProjectEduRUTTargetGroup::where('project_id', $project_id)->get();
+    }
+    private function loadEduRUTAnnexedTargetGroup($project_id) {
+        return ProjectEduRUTAnnexedTargetGroup::where('project_id', $project_id)->get();
+    }
+    private function loadCICBasicInfo($project_id) {
+        return ProjectCICBasicInfo::where('project_id', $project_id)->first();
+    }
+    private function loadCCIAchievements($project_id) {
+        return ProjectCCIAchievements::where('project_id', $project_id)->first();
+    }
+    private function loadCCIAgeProfile($project_id) {
+        return ProjectCCIAgeProfile::where('project_id', $project_id)->first();
+    }
+    private function loadCCIAnnexedTargetGroup($project_id) {
+        return ProjectCCIAnnexedTargetGroup::where('project_id', $project_id)->get();
+    }
+    private function loadCCIEconomicBackground($project_id) {
+        return ProjectCCIEconomicBackground::where('project_id', $project_id)->first();
+    }
+    private function loadCCIPersonalSituation($project_id) {
+        return ProjectCCIPersonalSituation::where('project_id', $project_id)->first();
+    }
+    private function loadCCIPresentSituation($project_id) {
+        return ProjectCCIPresentSituation::where('project_id', $project_id)->first();
+    }
+    private function loadCCIRationale($project_id) {
+        return ProjectCCIRationale::where('project_id', $project_id)->first();
+    }
+    private function loadCCIStatistics($project_id) {
+        return ProjectCCIStatistics::where('project_id', $project_id)->first();
+    }
+    private function loadIGEInstitutionInfo($project_id) {
+        return ProjectIGEInstitutionInfo::where('project_id', $project_id)->first();
+    }
+    private function loadIGEBeneficiariesSupported($project_id) {
+        return ProjectIGEBeneficiariesSupported::where('project_id', $project_id)->first();
+    }
+    private function loadIGENewBeneficiaries($project_id) {
+        return ProjectIGENewBeneficiaries::where('project_id', $project_id)->first();
+    }
+    private function loadIGEOngoingBeneficiaries($project_id) {
+        return ProjectIGEOngoingBeneficiaries::where('project_id', $project_id)->first();
+    }
+    private function loadIGEBudget($project_id) {
+        return ProjectIGEBudget::where('project_id', $project_id)->first();
+    }
+    private function loadIGEDevelopmentMonitoring($project_id) {
+        return ProjectIGEDevelopmentMonitoring::where('project_id', $project_id)->first();
+    }
+    private function loadLDPInterventionLogic($project_id) {
+        return ProjectLDPInterventionLogic::where('project_id', $project_id)->first();
+    }
+    private function loadLDPNeedAnalysis($project_id) {
+        return ProjectLDPNeedAnalysis::where('project_id', $project_id)->first();
+    }
+    private function loadLDPTargetGroup($project_id) {
+        return ProjectLDPTargetGroup::where('project_id', $project_id)->get();
+    }
+    private function loadIESPersonalInfo($project_id) {
+        return ProjectIESPersonalInfo::where('project_id', $project_id)->first();
+    }
+    private function loadIESFamilyWorkingMembers($project_id) {
+        return ProjectIESFamilyWorkingMembers::where('project_id', $project_id)->get();
+    }
+    private function loadIESImmediateFamilyDetails($project_id) {
+        return ProjectIESImmediateFamilyDetails::where('project_id', $project_id)->first();
+    }
+    private function loadIESEducationBackground($project_id) {
+        return ProjectIESEducationBackground::where('project_id', $project_id)->first();
+    }
+    private function loadIESExpenses($project_id) {
+        return ProjectIESExpenses::where('project_id', $project_id)->first();
+    }
+    private function loadIESAttachments($project_id) {
+        return ProjectIESAttachments::where('project_id', $project_id)->first();
+    }
+    private function loadILPPersonalInfo($project_id) {
+        return ProjectILPPersonalInfo::where('project_id', $project_id)->first();
+    }
+    private function loadILPRevenueGoals($project_id) {
+        return ProjectILPRevenueGoals::where('project_id', $project_id)->first();
+    }
+    private function loadILPStrengthWeakness($project_id) {
+        return ProjectILPBusinessStrengthWeakness::where('project_id', $project_id)->first();
+    }
+    private function loadILPRiskAnalysis($project_id) {
+        return ProjectILPRiskAnalysis::where('project_id', $project_id)->first();
+    }
+    private function loadILPAttachedDocuments($project_id) {
+        return ProjectILPAttachedDocuments::where('project_id', $project_id)->first();
+    }
+    private function loadILPBudget($project_id) {
+        return ProjectILPBudget::where('project_id', $project_id)->first();
+    }
+    private function loadIAHPersonalInfo($project_id) {
+        return ProjectIAHPersonalInfo::where('project_id', $project_id)->first();
+    }
+    private function loadIAHEarningMembers($project_id) {
+        return ProjectIAHEarningMembers::where('project_id', $project_id)->get();
+    }
+    private function loadIAHHealthCondition($project_id) {
+        return ProjectIAHHealthCondition::where('project_id', $project_id)->first();
+    }
+    private function loadIAHSupportDetails($project_id) {
+        return ProjectIAHSupportDetails::where('project_id', $project_id)->first();
+    }
+    private function loadIAHBudgetDetails($project_id) {
+        return ProjectIAHBudgetDetails::where('project_id', $project_id)->first();
+    }
+    private function loadIAHDocuments($project_id) {
+        return ProjectIAHDocuments::where('project_id', $project_id)->first();
+    }
+    private function loadIIESPersonalInfo($project_id) {
+        return ProjectIIESPersonalInfo::where('project_id', $project_id)->first();
+    }
+    private function loadIIESFamilyWorkingMembers($project_id) {
+        return ProjectIIESFamilyWorkingMembers::where('project_id', $project_id)->get();
+    }
+    private function loadIIESImmediateFamilyDetails($project_id) {
+        return ProjectIIESImmediateFamilyDetails::where('project_id', $project_id)->first();
+    }
+    private function loadIIESEducationBackground($project_id) {
+        return ProjectIIESEducationBackground::where('project_id', $project_id)->first();
+    }
+    private function loadIIESFinancialSupport($project_id) {
+        return ProjectIIESScopeFinancialSupport::where('project_id', $project_id)->first();
+    }
+    private function loadIIESAttachments($project_id) {
+        return ProjectIIESAttachments::where('project_id', $project_id)->first();
+    }
+    private function loadIIESExpenses($project_id) {
+        return ProjectIIESExpenses::where('project_id', $project_id)->first();
+    }
 
-    //             $section->addText("Explain the Methodology of Reporting:", ['bold' => true]);
-    //             $section->addText($sustainability->reporting_methodology ?? 'N/A');
-    //             $section->addTextBreak(0.5);
-
-    //             $section->addText("Explain the Methodology of Evaluation:", ['bold' => true]);
-    //             $section->addText($sustainability->evaluation_methodology ?? 'N/A');
-    //         }
-
-    //         // Add spacing between sections
-    //         $section->addTextBreak(1);
-
-    //         // Budget Details
-    //         $groupedBudgets = $project->budgets->groupBy('phase');
-    //         foreach ($groupedBudgets as $phase => $budgets) {
-    //             $section->addText("Phase $phase", ['bold' => true, 'size' => 14]);
-    //             $section->addText("Amount Sanctioned in Phase $phase: Rs. " . number_format($budgets->sum('this_phase'), 2));
-    //             $section->addTextBreak(0.5);
-
-    //             $table = $section->addTable('TableStyle');
-    //             $table->addRow();
-    //             $table->addCell(4000)->addText("Particular");
-    //             $table->addCell(1000)->addText("Costs");
-    //             $table->addCell(1000)->addText("Rate Multiplier");
-    //             $table->addCell(1000)->addText("Rate Duration");
-    //             $table->addCell(1000)->addText("Rate Increase (next phase)");
-    //             $table->addCell(1000)->addText("This Phase (Auto)");
-    //             $table->addCell(1000)->addText("Next Phase (Auto)");
-
-    //             foreach ($budgets as $budget) {
-    //                 $table->addRow();
-    //                 $table->addCell(4000)->addText($budget->particular);
-    //                 $table->addCell(1000)->addText(number_format($budget->rate_quantity, 2));
-    //                 $table->addCell(1000)->addText(number_format($budget->rate_multiplier, 2));
-    //                 $table->addCell(1000)->addText(number_format($budget->rate_duration, 2));
-    //                 $table->addCell(1000)->addText(number_format($budget->rate_increase, 2));
-    //                 $table->addCell(1000)->addText(number_format($budget->this_phase, 2));
-    //                 $table->addCell(1000)->addText(number_format($budget->next_phase, 2));
-    //             }
-
-    //             $table->addRow();
-    //             $table->addCell(4000)->addText("Total");
-    //             $table->addCell(1000)->addText(number_format($budgets->sum('rate_quantity'), 2));
-    //             $table->addCell(1000)->addText(number_format($budgets->sum('rate_multiplier'), 2));
-    //             $table->addCell(1000)->addText(number_format($budgets->sum('rate_duration'), 2));
-    //             $table->addCell(1000)->addText(number_format($budgets->sum('rate_increase'), 2));
-    //             $table->addCell(1000)->addText(number_format($budgets->sum('this_phase'), 2));
-    //             $table->addCell(1000)->addText(number_format($budgets->sum('next_phase'), 2));
-    //         }
-
-    //         // Add spacing between sections
-    //         $section->addTextBreak(1);
-
-    //         // Attachment Details
-    //         $section->addText("Attachments", ['bold' => true, 'size' => 14]);
-    //         foreach ($project->attachments as $attachment) {
-    //             $section->addText("Attachment: " . $attachment->file_name);
-    //             $section->addText("Description: " . $attachment->description);
-    //             $section->addTextBreak(0.5);
-    //         }
-
-    //         // Signature and Approval Sections with page break control
-    //         $section = $phpWord->addSection(['breakType' => 'continuous']);
-    //         $section->addTextBreak(1);
-    //         $section->addText("Signatures", ['bold' => true, 'size' => 16]);
-
-    //         $table = $section->addTable('TableStyle');
-    //         $table->addRow();
-    //         $table->addCell(5000)->addText("Person");
-    //         $table->addCell(3000)->addText("Signature");
-    //         $table->addCell(2000)->addText("Date");
-
-    //         $table->addRow();
-    //         $table->addCell(5000)->addText("Project Executor\n" . ($projectRoles['executor'] ?? 'N/A'));
-    //         $table->addCell(3000)->addText('');
-    //         $table->addCell(2000)->addText('');
-
-    //         $table->addRow();
-    //         $table->addCell(5000)->addText("Project Incharge\n" . ($projectRoles['incharge'] ?? 'N/A'));
-    //         $table->addCell(3000)->addText('');
-    //         $table->addCell(2000)->addText('');
-
-    //         $table->addRow();
-    //         $table->addCell(5000)->addText("President of the Society / Chair Person of the Trust\n" . ($projectRoles['president'] ?? 'N/A'));
-    //         $table->addCell(3000)->addText('');
-    //         $table->addCell(2000)->addText('');
-
-    //         $table->addRow();
-    //         $table->addCell(5000)->addText("Project Sanctioned / Authorised by\n" . ($projectRoles['authorizedBy'] ?? 'N/A'));
-    //         $table->addCell(3000)->addText('');
-    //         $table->addCell(2000)->addText('');
-
-    //         $section->addTextBreak(1);
-    //         $section->addText("APPROVAL - To be filled by the Project Coordinator:", ['bold' => true, 'size' => 14]);
-
-    //         $table = $section->addTable('TableStyle');
-    //         $table->addRow();
-    //         $table->addCell(5000)->addText("Amount approved");
-    //         $table->addCell(5000)->addText('');
-
-    //         $table->addRow();
-    //         $table->addCell(5000)->addText("Remarks if any");
-    //         $table->addCell(5000)->addText('');
-
-    //         $table->addRow();
-    //         $table->addCell(5000)->addText("Project Coordinator\n" . ($projectRoles['coordinator'] ?? 'N/A'));
-    //         $table->addCell(5000)->addText('');
-
-    //         $table->addRow();
-    //         $table->addCell(5000)->addText("Signature");
-    //         $table->addCell(5000)->addText('');
-
-    //         $table->addRow();
-    //         $table->addCell(5000)->addText("Date");
-    //         $table->addCell(5000)->addText('');
-
-    //         // Save and download the DOCX file
-    //         $objWriter = IOFactory::createWriter($phpWord, 'Word2007');
-    //         $filePath = storage_path("app/public/Project_{$project->project_id}.docx");
-    //         $objWriter->save($filePath);
-
-    //         Log::info('ExportController@downloadDoc - DOC generated', ['project_id' => $project_id]);
-
-    //         return response()->download($filePath)->deleteFileAfterSend(true);
-    //     } catch (\Exception $e) {
-    //         Log::error('ExportController@downloadDoc - Error', ['error' => $e->getMessage(), 'project_id' => $project_id]);
-    //         throw $e;
-    //     }
-    // }
     public function downloadDoc($project_id)
     {
         try {
@@ -418,7 +764,7 @@ class ExportController extends Controller
             }
 
             // 4. RST Specific Partials
-            if (in_array($project->project_type, ['Residential Skill Training Proposal 2', 'Development Projects', 'NEXT PHASE - DEVELOPMENT PROPOSAL'])) {
+            if (in_array($project->project_type, ['Residential Skill Training Proposal 2', 'Development Projects'])) {
                 $this->addRSTSections($phpWord, $project);
             }
 

@@ -43,6 +43,7 @@ return array(
     'App\\Http\\Controllers\\Projects\\IAH\\IAHHealthConditionController' => $baseDir . '/app/Http/Controllers/Projects/IAH/IAHHealthConditionController.php',
     'App\\Http\\Controllers\\Projects\\IAH\\IAHPersonalInfoController' => $baseDir . '/app/Http/Controllers/Projects/IAH/IAHPersonalInfoController.php',
     'App\\Http\\Controllers\\Projects\\IAH\\IAHSupportDetailsController' => $baseDir . '/app/Http/Controllers/Projects/IAH/IAHSupportDetailsController.php',
+    'App\\Http\\Controllers\\Projects\\IEG_Budget_IssueProjectController' => $baseDir . '/app/Http/Controllers/Projects/IEG_Budget_IssueProjectController.php',
     'App\\Http\\Controllers\\Projects\\IES\\IESAttachmentsController' => $baseDir . '/app/Http/Controllers/Projects/IES/IESAttachmentsController.php',
     'App\\Http\\Controllers\\Projects\\IES\\IESEducationBackgroundController' => $baseDir . '/app/Http/Controllers/Projects/IES/IESEducationBackgroundController.php',
     'App\\Http\\Controllers\\Projects\\IES\\IESExpensesController' => $baseDir . '/app/Http/Controllers/Projects/IES/IESExpensesController.php',

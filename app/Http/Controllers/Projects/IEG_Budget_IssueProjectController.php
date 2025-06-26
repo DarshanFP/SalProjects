@@ -69,7 +69,7 @@ use App\Http\Controllers\Projects\IIES\IIESExpensesController as IIESExpensesCon
 use App\Models\OldProjects\IIES\ProjectIIESExpenses;
 use App\Models\OldProjects\IIES\ProjectIIESEducationBackground;
 
-class ProjectController extends Controller
+class IEG_Budget_IssueProjectController extends Controller
 {
     protected $logicalFrameworkController;
     protected $sustainabilityController;

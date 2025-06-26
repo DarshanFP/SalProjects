@@ -366,7 +366,7 @@ class ProvincialController extends Controller
             'VIJAYAWADA' => [
                 'Ajitsingh Nagar', 'Nunna', 'Jaggayyapeta', 'Beed', 'Mangalagiri',
                 'S.A.Peta', 'Thiruvur', 'Chakan', 'Megalaya', 'Rajavaram',
-                'Avanigadda', 'Darjeeling', 'Sarvajan Sneha Charitable Trust, Vijayawada'
+                'Avanigadda', 'Darjeeling', 'Sarvajan Sneha Charitable Trust, Vijayawada', 'St. Anns Hospital Vijayawada'
             ],
             'VISAKHAPATNAM' => [
                 'Arilova', 'Malkapuram', 'Madugula', 'Rajam', 'Kapileswarapuram',
@@ -640,7 +640,7 @@ class ProvincialController extends Controller
         $project->status = 'reverted_by_provincial';
         $project->save();
 
-        return redirect()->back()->with('success', 'Project reverted to Executor.');
+        return redirect()->route('provincial.projects.list')->with('success', 'Project reverted to Executor.');
     }
 
     public function forwardToCoordinator($project_id)
@@ -655,7 +655,7 @@ class ProvincialController extends Controller
         $project->status = 'forwarded_to_coordinator';
         $project->save();
 
-        return redirect()->back()->with('success', 'Project forwarded to Coordinator.');
+        return redirect()->route('provincial.projects.list')->with('success', 'Project forwarded to Coordinator.');
     }
 
     // Approved Projects for Provincials

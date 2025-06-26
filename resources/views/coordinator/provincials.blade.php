@@ -128,29 +128,45 @@
                         </div>
                     </div>
 
-                    <div class="table-responsive">
+                    <div class="table-responsive" style="position: relative;">
+                        <style>
+                            .table thead th {
+                                position: sticky;
+                                top: 0;
+                                background: inherit;
+                                z-index: 2;
+                                font-weight: bold;
+                            }
+                            .table th:first-child,
+                            .table td:first-child {
+                                position: sticky;
+                                left: 0;
+                                background: #181c2f; /* Solid background for dark theme */
+                                z-index: 1;
+                                font-weight: bold;
+                            }
+                            .table thead th:first-child {
+                                z-index: 3;
+                            }
+                        </style>
                         <table class="table table-bordered table-striped">
                             <thead>
                                 <tr>
-                                    <th>Province</th>
-                                    <th>Role</th>
-                                    <th>Name</th>
-                                    <th>Username</th>
-                                    <th>Email</th>
-                                    <th>Phone</th>
-                                    <th>Center</th>
-                                    <th>Society Name</th>
-                                    <th>Parent</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th>NAME</th>
+                                    <th>USERNAME</th>
+                                    <th>ROLE</th>
+                                    <th>EMAIL</th>
+                                    <th>PHONE</th>
+                                    <th>PROVINCE</th>
+                                    <th>STATUS</th>
+                                    <th>ACTIONS</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($users as $user)
                                 <tr>
-                                    <td>
-                                        <span class="badge badge-info">{{ $user->province }}</span>
-                                    </td>
+                                    <td>{{ $user->name }}</td>
+                                    <td>{{ $user->username ?: 'N/A' }}</td>
                                     <td>
                                         @if($user->role === 'coordinator')
                                             <span class="badge badge-primary">{{ ucfirst($user->role) }}</span>
@@ -162,19 +178,9 @@
                                             <span class="badge badge-secondary">{{ ucfirst($user->role) }}</span>
                                         @endif
                                     </td>
-                                    <td>{{ $user->name }}</td>
-                                    <td>{{ $user->username ?: 'N/A' }}</td>
                                     <td>{{ $user->email }}</td>
                                     <td>{{ $user->phone ?: 'N/A' }}</td>
-                                    <td>{{ $user->center ?: 'N/A' }}</td>
-                                    <td>{{ $user->society_name ?: 'N/A' }}</td>
-                                    <td>
-                                        @if($user->parent)
-                                            <span class="badge badge-light">{{ $user->parent->name }}</span>
-                                        @else
-                                            <span class="text-muted">None</span>
-                                        @endif
-                                    </td>
+                                    <td><span class="badge badge-info">{{ $user->province }}</span></td>
                                     <td>
                                         @if($user->status === 'active')
                                             <span class="badge badge-success">Active</span>
@@ -188,15 +194,15 @@
                                             @if($user->status === 'active')
                                                 <form action="{{ route('coordinator.deactivateUser', $user->id) }}" method="POST" style="display: inline;">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Are you sure you want to deactivate this user?')">Deactivate</button>
+                                                    <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Are you sure you want to deactivate this user?')">Deactivate</button>
                                                 </form>
                                             @else
                                                 <form action="{{ route('coordinator.activateUser', $user->id) }}" method="POST" style="display: inline;">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Are you sure you want to activate this user?')">Activate</button>
+                                                    <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Are you sure you want to activate this user?')">Activate</button>
                                                 </form>
                                             @endif
-                                            <form action="{{ route('coordinator.resetProvincialPassword', $user->id) }}" method="POST" style="display:inline;">
+                                            <form action="{{ route('coordinator.resetUserPassword', $user->id) }}" method="POST" style="display:inline;">
                                                 @csrf
                                                 <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to reset the password?')">Reset Password</button>
                                             </form>

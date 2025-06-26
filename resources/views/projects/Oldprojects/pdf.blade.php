@@ -408,8 +408,8 @@
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-header">
+        <div class="card">
+            <div class="card-header">
                     Immediate Family Details
                 </div>
                 <div class="card-body">
@@ -420,8 +420,8 @@
             <div class="card">
                 <div class="card-header">
                     Scope of Financial Support
-                </div>
-                <div class="card-body">
+            </div>
+            <div class="card-body">
                     @include('projects.partials.show.IIES.scope_financial_support')
                 </div>
             </div>
@@ -432,8 +432,8 @@
                 </div>
                 <div class="card-body">
                     @include('projects.partials.show.IIES.estimated_expenses')
-                </div>
-            </div>
+                        </div>
+                    </div>
 
             <div class="card">
                 <div class="card-header">
@@ -442,8 +442,8 @@
                 <div class="card-body">
                     @include('projects.partials.show.IIES.attachments')
                 </div>
-            </div>
-        @endif
+                            </div>
+                        @endif
 
         <!-- Individual - Livelihood Application Partials -->
         @if ($project->project_type === 'Individual - Livelihood Application')
@@ -490,7 +490,7 @@
                 <div class="card-body">
                     @include('projects.partials.show.ILP.attached_docs')
                 </div>
-            </div>
+                    </div>
 
             <div class="card">
                 <div class="card-header">
@@ -511,12 +511,12 @@
                 <div class="card-body">
                     @include('projects.partials.show.IAH.personal_info')
                 </div>
-            </div>
+                    </div>
 
             <div class="card">
                 <div class="card-header">
                     Health Conditions
-                </div>
+                    </div>
                 <div class="card-body">
                     @include('projects.partials.show.IAH.health_conditions')
                 </div>
@@ -528,11 +528,11 @@
                 </div>
                 <div class="card-body">
                     @include('projects.partials.show.IAH.earning_members')
-                </div>
             </div>
+        </div>
 
-            <div class="card">
-                <div class="card-header">
+        <div class="card">
+            <div class="card-header">
                     Support Details
                 </div>
                 <div class="card-body">
@@ -543,11 +543,11 @@
             <div class="card">
                 <div class="card-header">
                     Budget Details
-                </div>
-                <div class="card-body">
+            </div>
+            <div class="card-body">
                     @include('projects.partials.show.IAH.budget_details')
                 </div>
-            </div>
+                    </div>
 
             <div class="card">
                 <div class="card-header">
@@ -568,7 +568,7 @@
                 <div class="card-body">
                     @include('projects.partials.show.IGE.institution_info')
                 </div>
-            </div>
+                    </div>
 
             <div class="card">
                 <div class="card-header">
@@ -577,7 +577,7 @@
                 <div class="card-body">
                     @include('projects.partials.show.IGE.beneficiaries_supported')
                 </div>
-            </div>
+                    </div>
 
             <div class="card">
                 <div class="card-header">
@@ -585,7 +585,7 @@
                 </div>
                 <div class="card-body">
                     @include('projects.partials.show.IGE.ongoing_beneficiaries')
-                </div>
+                    </div>
             </div>
 
             <div class="card">
@@ -594,14 +594,14 @@
                 </div>
                 <div class="card-body">
                     @include('projects.partials.show.IGE.new_beneficiaries')
-                </div>
             </div>
+        </div>
 
-            <div class="card">
-                <div class="card-header">
-                    Budget
-                </div>
-                <div class="card-body">
+        <div class="card">
+            <div class="card-header">
+                Budget
+            </div>
+            <div class="card-body">
                     @include('projects.partials.show.IGE.budget')
                 </div>
             </div>
@@ -666,7 +666,7 @@
                 </div>
                 <div class="card-body">
                     @include('projects.partials.show.sustainability')
-                </div>
+                    </div>
             </div>
 
             <div class="card">
@@ -675,16 +675,16 @@
                 </div>
                 <div class="card-body">
                     @include('projects.partials.show.budget')
-                </div>
             </div>
+        </div>
 
-            <div class="card">
-                <div class="card-header">
-                    Attachments
-                </div>
-                <div class="card-body">
+        <div class="card">
+            <div class="card-header">
+                Attachments
+            </div>
+            <div class="card-body">
                     @include('projects.partials.show.attachments')
-                </div>
+                    </div>
             </div>
         @endif
     </div>

@@ -153,8 +153,14 @@
 
     <!-- Action Buttons -->
     <a href="{{ route('projects.index') }}" class="btn btn-primary">Back to Projects</a>
-    <a href="{{ route('projects.downloadPdf', $project->project_id) }}" class="btn btn-secondary">Download PDF</a>
-    <a href="{{ route('projects.downloadDoc', $project->project_id) }}" class="btn btn-secondary">Download Word</a>
+
+    @if(auth()->user()->role === 'provincial')
+        <a href="{{ route('provincial.projects.downloadPdf', $project->project_id) }}" class="btn btn-secondary">Download PDF</a>
+    @elseif(auth()->user()->role === 'coordinator')
+        <a href="{{ route('coordinator.projects.downloadPdf', $project->project_id) }}" class="btn btn-secondary">Download PDF</a>
+    @else
+        <a href="{{ route('projects.downloadPdf', $project->project_id) }}" class="btn btn-secondary">Download PDF</a>
+    @endif
 
     <!-- Status Action Buttons -->
     <div>
