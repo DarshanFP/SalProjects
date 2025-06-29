@@ -69,7 +69,7 @@ class MonthlyDevelopmentProjectController extends Controller
             'amount_forwarded_overview' => 'nullable|numeric',
             'amount_in_hand' => 'nullable|numeric',
             'photos' => 'nullable|array',
-            'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:3072',
+            'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'photo_descriptions' => 'nullable|array',
             'objective' => 'nullable|array',
             'objective.*' => 'nullable|string',
@@ -141,7 +141,20 @@ class MonthlyDevelopmentProjectController extends Controller
             foreach ($request->file('photos') as $index => $file) {
                 Log::info('File Upload:', ['original_name' => $file->getClientOriginalName(), 'size' => $file->getSize()]);
 
-                $path = $file->store('ReportImages/Monthly', 'public');
+                // Check file size (2MB limit)
+                if ($file->getSize() > 2097152) { // 2MB in bytes
+                    Log::error('Photo file too large', [
+                        'file_name' => $file->getClientOriginalName(),
+                        'size' => $file->getSize(),
+                    ]);
+                    continue;
+                }
+
+                // Create folder structure: REPORTS/{project_id}/{report_id}/photos/{month_year}/
+                $monthYear = date('m_Y', strtotime($validatedData['reporting_period_from']));
+                $folderPath = "REPORTS/{$request->project_id}/{$report->report_id}/photos/{$monthYear}";
+
+                $path = $file->storeAs($folderPath, $file->getClientOriginalName(), 'public');
                 Log::info('File Path:', ['path' => $path]);
 
                 $photoData = [

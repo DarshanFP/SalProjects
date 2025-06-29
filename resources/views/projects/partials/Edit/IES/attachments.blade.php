@@ -18,11 +18,11 @@
                         <input type="file" name="{{ $name }}" class="form-control">
                         @if(!empty($IESAttachments->$name))
                             <p>Currently Attached:</p>
-                            <a href="{{ asset('storage/' . str_replace('public/', '', $IESAttachments->$name)) }}" target="_blank">
+                            <a href="{{ Storage::url($IESAttachments->$name) }}" target="_blank">
                                 {{ basename($IESAttachments->$name) }}
                             </a>
                             <br>
-                            <a href="{{ asset('storage/' . str_replace('public/', '', $IESAttachments->$name)) }}" download class="btn btn-green">
+                            <a href="{{ Storage::url($IESAttachments->$name) }}" download class="btn btn-green">
                                 Download
                             </a>
                         @endif
@@ -43,11 +43,11 @@
                         <input type="file" name="{{ $name }}" class="form-control">
                         @if(!empty($IESAttachments->$name))
                             <p>Currently Attached:</p>
-                            <a href="{{ asset('storage/' . str_replace('public/', '', $IESAttachments->$name)) }}" target="_blank">
+                            <a href="{{ Storage::url($IESAttachments->$name) }}" target="_blank">
                                 {{ basename($IESAttachments->$name) }}
                             </a>
                             <br>
-                            <a href="{{ asset('storage/' . str_replace('public/', '', $IESAttachments->$name)) }}" download class="btn btn-green">
+                            <a href="{{ Storage::url($IESAttachments->$name) }}" download class="btn btn-green">
                                 Download
                             </a>
                         @endif

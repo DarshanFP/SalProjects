@@ -6,6 +6,37 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\OldProjects\Project;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $CCI_eco_bg_id
+ * @property string $project_id
+ * @property int|null $agricultural_labour_number
+ * @property int|null $marginal_farmers_number
+ * @property int|null $self_employed_parents_number
+ * @property int|null $informal_sector_parents_number
+ * @property int|null $any_other_number
+ * @property string|null $general_remarks
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIEconomicBackground newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIEconomicBackground newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIEconomicBackground query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIEconomicBackground whereAgriculturalLabourNumber($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIEconomicBackground whereAnyOtherNumber($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIEconomicBackground whereCCIEcoBgId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIEconomicBackground whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIEconomicBackground whereGeneralRemarks($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIEconomicBackground whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIEconomicBackground whereInformalSectorParentsNumber($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIEconomicBackground whereMarginalFarmersNumber($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIEconomicBackground whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIEconomicBackground whereSelfEmployedParentsNumber($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIEconomicBackground whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class ProjectCCIEconomicBackground extends Model
 {
     use HasFactory;

@@ -52,6 +52,14 @@
                         td, th {
                             padding: 8px;
                         }
+
+                        /* Status badge styles */
+                        .status-badge {
+                            font-size: 11px;
+                            padding: 4px 8px;
+                            border-radius: 12px;
+                            font-weight: 500;
+                        }
                     </style>
 
                     @if (session('success'))
@@ -59,14 +67,22 @@
                             {{ session('success') }}
                         </div>
                     @endif
+
+                    @if (session('error'))
+                        <div class="alert alert-danger">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
                     <table class="table table-bordered monthly-reports-table">
                         <thead>
                             <tr>
-                                <th style="width: 15%;">Project ID</th>
-                                <th style="width: 15%;">Report ID</th>
-                                <th style="width: 20%;">Report Month Year</th>
-                                <th style="width: 30%;">Project Title</th>
-                                <th style="width: 20%;">Actions</th>
+                                <th style="width: 12%;">Project ID</th>
+                                <th style="width: 12%;">Report ID</th>
+                                <th style="width: 15%;">Report Month Year</th>
+                                <th style="width: 25%;">Project Title</th>
+                                <th style="width: 15%;">Status</th>
+                                <th style="width: 21%;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -74,16 +90,76 @@
                                 <tr>
                                     <td>{{ $report->project_id }}</td>
                                     <td>{{ $report->report_id }}</td>
-                                    <td>{{ $report->report_month_year }}</td>
+                                    <td>{{ $report->report_month_year ? \Carbon\Carbon::parse($report->report_month_year)->format('M Y') : 'N/A' }}</td>
                                     <td>{{ $report->project_title }}</td>
                                     <td>
-                                        <a href="{{ route('monthly.report.edit', $report->report_id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                        @php
+                                            $statusClass = '';
+                                            switch($report->status) {
+                                                case 'draft':
+                                                    $statusClass = 'bg-secondary';
+                                                    break;
+                                                case 'submitted_to_provincial':
+                                                    $statusClass = 'bg-info';
+                                                    break;
+                                                case 'reverted_by_provincial':
+                                                    $statusClass = 'bg-warning';
+                                                    break;
+                                                case 'forwarded_to_coordinator':
+                                                    $statusClass = 'bg-primary';
+                                                    break;
+                                                case 'reverted_by_coordinator':
+                                                    $statusClass = 'bg-warning';
+                                                    break;
+                                                case 'approved_by_coordinator':
+                                                    $statusClass = 'bg-success';
+                                                    break;
+                                                case 'rejected_by_coordinator':
+                                                    $statusClass = 'bg-danger';
+                                                    break;
+                                                default:
+                                                    $statusClass = 'bg-secondary';
+                                            }
+                                        @endphp
+                                        <span class="badge {{ $statusClass }} status-badge">
+                                            {{ \App\Models\Reports\Monthly\DPReport::$statusLabels[$report->status] ?? $report->status }}
+                                        </span>
+                                    </td>
+                                    <td>
                                         <a href="{{ route('monthly.report.show', $report->report_id) }}" class="btn btn-info btn-sm">View</a>
-                                        <form action="#" method="POST" style="display: inline-block;">
-                                        {{-- <form action="{{ route('monthly.report.submit', $report->report_id) }}" method="POST" style="display: inline-block;"> --}}
-                                            @csrf
-                                            <button type="submit" class="btn btn-success btn-sm">Submit</button>
-                                        </form>
+
+                                        @if(auth()->user()->role === 'executor')
+                                            @if(in_array($report->status, ['draft', 'reverted_by_provincial', 'reverted_by_coordinator']))
+                                                <a href="{{ route('monthly.report.edit', $report->report_id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                                <form action="{{ route('monthly.report.submit', $report->report_id) }}" method="POST" style="display: inline-block;">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Are you sure you want to submit this report?')">Submit</button>
+                                                </form>
+                                            @endif
+                                        @endif
+
+                                        @if(auth()->user()->role === 'provincial')
+                                            @if($report->status === 'submitted_to_provincial')
+                                                <form action="{{ route('monthly.report.forward', $report->report_id) }}" method="POST" style="display: inline-block;">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Forward to Coordinator?')">Forward</button>
+                                                </form>
+                                                <button type="button" class="btn btn-warning btn-sm" onclick="showRevertModal('{{ $report->report_id }}')">Revert</button>
+                                            @endif
+                                            @if($report->status === 'reverted_by_coordinator')
+                                                <button type="button" class="btn btn-warning btn-sm" onclick="showRevertModal('{{ $report->report_id }}')">Revert to Executor</button>
+                                            @endif
+                                        @endif
+
+                                        @if(auth()->user()->role === 'coordinator')
+                                            @if($report->status === 'forwarded_to_coordinator')
+                                                <form action="{{ route('monthly.report.approve', $report->report_id) }}" method="POST" style="display: inline-block;">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Approve this report?')">Approve</button>
+                                                </form>
+                                                <button type="button" class="btn btn-warning btn-sm" onclick="showRevertModal('{{ $report->report_id }}')">Revert</button>
+                                            @endif
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -94,4 +170,38 @@
         </div>
     </div>
 </div>
+
+<!-- Revert Modal -->
+<div class="modal fade" id="revertModal" tabindex="-1" aria-labelledby="revertModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="revertModalLabel">Revert Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="revertForm" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="revert_reason" class="form-label">Reason for Reverting</label>
+                        <textarea class="form-control" id="revert_reason" name="revert_reason" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Revert Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function showRevertModal(reportId) {
+    const modal = new bootstrap.Modal(document.getElementById('revertModal'));
+    const form = document.getElementById('revertForm');
+    form.action = `/reports/monthly/revert/${reportId}`;
+    modal.show();
+}
+</script>
 @endsection

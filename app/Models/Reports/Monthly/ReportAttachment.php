@@ -5,6 +5,33 @@ namespace App\Models\Reports\Monthly;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $attachment_id
+ * @property string $report_id
+ * @property string|null $file_path
+ * @property string|null $file_name
+ * @property string|null $description
+ * @property string|null $public_url
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \App\Models\Reports\Monthly\DPReport $report
+ * @method static \Illuminate\Database\Eloquent\Builder|ReportAttachment newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ReportAttachment newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ReportAttachment query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ReportAttachment whereAttachmentId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ReportAttachment whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ReportAttachment whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ReportAttachment whereFileName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ReportAttachment whereFilePath($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ReportAttachment whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ReportAttachment wherePublicUrl($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ReportAttachment whereReportId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ReportAttachment whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class ReportAttachment extends Model
 {
     use HasFactory;

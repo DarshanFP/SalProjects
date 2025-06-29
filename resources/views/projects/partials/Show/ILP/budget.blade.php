@@ -16,26 +16,24 @@
                 </tr>
             </thead>
             <tbody id="ilp-budget">
-                @if (!empty($ILPBudgets['budgets']) && count($ILPBudgets['budgets']) > 0)
+                @if (!empty($ILPBudgets['budgets']) && is_countable($ILPBudgets['budgets']) && count($ILPBudgets['budgets']) > 0)
                     @foreach ($ILPBudgets['budgets'] as $index => $budget)
                         <tr>
                             <td>
-                                <input type="text" name="budget_desc[{{ $index }}]" class="form-control"
-                                    value="{{ $budget->budget_desc ?? '' }}" placeholder="Enter description">
+                                <div class="form-control">{{ $budget->budget_desc ?? '' }}</div>
                             </td>
                             <td>
-                                <input type="number" step="0.01" name="cost[{{ $index }}]" class="form-control"
-                                    value="{{ $budget->cost ?? 0 }}" placeholder="Enter cost">
+                                <div class="form-control">{{ $budget->cost ?? 0 }}</div>
                             </td>
                         </tr>
                     @endforeach
                 @else
                     <tr>
                         <td>
-                            <input type="text" name="budget_desc[0]" class="form-control" placeholder="Enter description">
+                            <div class="form-control">No description</div>
                         </td>
                         <td>
-                            <input type="number" step="0.01" name="cost[0]" class="form-control" placeholder="Enter cost">
+                            <div class="form-control">0</div>
                         </td>
                     </tr>
                 @endif
@@ -49,22 +47,19 @@
         <!-- Total Amount -->
         <div class="mt-4 mb-3">
             <label for="total_amount" class="form-label">Total amount:</label>
-            <input type="number" step="0.01" name="total_amount" class="form-control"
-                value="{{ $ILPBudgets['total_amount'] ?? 0 }}" placeholder="Enter total amount">
+            <div class="form-control">{{ $ILPBudgets['total_amount'] ?? 0 }}</div>
         </div>
 
         <!-- Beneficiary's Contribution -->
         <div class="mb-3">
-            <label for="beneficiary_contribution" class="form-label">Beneficiary’s contribution:</label>
-            <input type="number" step="0.01" name="beneficiary_contribution" class="form-control"
-                value="{{ $ILPBudgets['beneficiary_contribution'] ?? 0 }}" placeholder="Enter beneficiary's contribution">
+            <label for="beneficiary_contribution" class="form-label">Beneficiary's contribution:</label>
+            <div class="form-control">{{ $ILPBudgets['beneficiary_contribution'] ?? 0 }}</div>
         </div>
 
         <!-- Amount Requested -->
         <div class="mb-3">
             <label for="amount_requested" class="form-label">Amount requested:</label>
-            <input type="number" step="0.01" name="amount_requested" class="form-control"
-                value="{{ $ILPBudgets['amount_requested'] ?? 0 }}" placeholder="Enter amount requested">
+            <div class="form-control">{{ $ILPBudgets['amount_requested'] ?? 0 }}</div>
         </div>
 
     </div>
@@ -76,7 +71,7 @@
         const budgetBody = document.getElementById('ilp-budget');
         const addBudgetItemBtn = document.getElementById('add-budget-item');
         const removeBudgetItemBtn = document.getElementById('remove-budget-item');
-        let itemIndex = {{ count($ILPBudgets['budgets'] ?? []) }};
+        let itemIndex = {{ is_countable($ILPBudgets['budgets'] ?? null) ? count($ILPBudgets['budgets']) : 0 }};
 
         addBudgetItemBtn.addEventListener('click', function () {
             const row = document.createElement('tr');

@@ -11,15 +11,21 @@
                     <label class="form-label">Photos ({{ $description }})</label>
                     <div class="photos-preview" style="display: flex; flex-wrap: wrap;">
                         @foreach ($photoGroup as $photo)
-                            <div class="image-preview-item" style="margin: 5px; display: flex; align-items: center;">
+                            <div class="image-preview-item" style="margin: 5px; display: flex; align-items: center;" data-photo-id="{{ $photo->photo_id }}">
                                 <img src="{{ asset('storage/' . $photo->photo_path) }}" alt="Photo" style="width: 100px; height: 100px; margin-right: 10px;">
-                                <button type="button" class="btn btn-danger btn-sm" onclick="removeExistingPhoto('{{ $photo->photo_id }}')">Remove</button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="removeExistingPhoto('{{ $photo->photo_id }}', '{{ $photo->photo_path }}')">Remove</button>
                             </div>
                         @endforeach
                     </div>
                     <textarea name="photo_descriptions[{{ $description }}]" class="mt-2 form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $description }}</textarea>
                 </div>
             @endforeach
+
+            @if(empty($groupedPhotos))
+                <div class="alert alert-info no-photos-message">
+                    <i class="fas fa-info-circle"></i> No photos found for this report.
+                </div>
+            @endif
 
             <!-- New Photo Uploads -->
             <div id="new-photos-container">
@@ -105,24 +111,68 @@
     }
 
     // Remove existing photo via AJAX
-    function removeExistingPhoto(photoId) {
+    function removeExistingPhoto(photoId, photoPath) {
         if (confirm('Are you sure you want to remove this photo?')) {
+            // Show loading state
+            const button = event.target;
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Removing...';
+
             // Send AJAX request to remove photo from database
-            fetch(`/photos/${photoId}`, {
+            fetch(`/reports/monthly/photos/${photoId}`, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                 }
-            }).then(response => response.json())
-              .then(data => {
-                  if (data.success) {
-                      alert('Photo removed successfully.');
-                      document.querySelector(`[data-photo-id="${photoId}"]`).remove();
-                  } else {
-                      alert('Error removing photo.');
-                  }
-              });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove the photo element from the DOM
+                    const photoElement = document.querySelector(`[data-photo-id="${photoId}"]`);
+                    if (photoElement) {
+                        photoElement.remove();
+                    }
+
+                    // Show success message
+                    alert('Photo removed successfully!');
+
+                    // Check if this was the last photo in the group
+                    const photoGroup = document.querySelector(`[data-photo-id="${photoId}"]`)?.closest('.photo-group');
+                    if (photoGroup) {
+                        const remainingPhotos = photoGroup.querySelectorAll('.image-preview-item');
+                        if (remainingPhotos.length === 0) {
+                            // If no photos left, hide the group
+                            photoGroup.style.display = 'none';
+                        }
+                    }
+
+                    // Check if there are any photos left at all
+                    const allPhotos = document.querySelectorAll('.image-preview-item');
+                    if (allPhotos.length === 0) {
+                        // Show the "no photos" message
+                        const noPhotosMessage = document.querySelector('.no-photos-message');
+                        if (noPhotosMessage) {
+                            noPhotosMessage.style.display = 'block';
+                        }
+                    }
+                } else {
+                    alert('Error removing photo: ' + (data.message || 'Unknown error'));
+                    // Reset button state
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error removing photo:', error);
+                alert('An error occurred while removing the photo. Please try again.');
+                // Reset button state
+                button.disabled = false;
+                button.textContent = originalText;
+            });
         }
     }
 

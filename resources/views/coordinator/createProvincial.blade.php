@@ -36,8 +36,20 @@
                             <input type="text" name="phone" class="form-control">
                         </div>
                         <div class="form-group">
+                            <label for="province">Province</label>
+                            <select name="province" class="form-control" required id="province">
+                                <option value="" disabled selected>Choose one</option>
+                                <option value="Bangalore">Bangalore</option>
+                                <option value="Vijayawada">Vijayawada</option>
+                                <option value="Visakhapatnam">Visakhapatnam</option>
+                                <option value="Generalate">Generalate</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label for="center">Center</label>
-                            <input type="text" name="center" class="form-control">
+                            <select name="center" class="form-control" id="center">
+                                <option value="" disabled selected>Choose province first</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="address">Address</label>
@@ -51,16 +63,6 @@
                                 <option value="provincial">Provincial</option>
                                 <option value="executor">Executor</option>
                                 <option value="applicant">Applicant</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="province">Province</label>
-                            <select name="province" class="form-control" required>
-                                <option value="" disabled selected>Choose one</option>
-                                <option value="Bangalore">Bangalore</option>
-                                <option value="Vijayawada">Vijayawada</option>
-                                <option value="Visakhapatnam">Visakhapatnam</option>
-                                <option value="Generalate">Generalate</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -78,4 +80,28 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const provinceSelect = document.getElementById('province');
+    const centerSelect = document.getElementById('center');
+
+    // Centers mapping
+    const centersMap = @json($centersMap);
+
+    provinceSelect.addEventListener('change', function() {
+        const selectedProvince = this.value;
+        centerSelect.innerHTML = '<option value="" disabled selected>Choose center</option>';
+
+        if (selectedProvince && centersMap[selectedProvince.toUpperCase()]) {
+            centersMap[selectedProvince.toUpperCase()].forEach(function(center) {
+                const option = document.createElement('option');
+                option.value = center;
+                option.textContent = center;
+                centerSelect.appendChild(option);
+            });
+        }
+    });
+});
+</script>
 @endsection

@@ -6,6 +6,29 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\OldProjects\Project;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $IGE_bnfcry_supprtd_id
+ * @property string $project_id
+ * @property string|null $class
+ * @property int|null $total_number
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEBeneficiariesSupported newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEBeneficiariesSupported newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEBeneficiariesSupported query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEBeneficiariesSupported whereClass($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEBeneficiariesSupported whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEBeneficiariesSupported whereIGEBnfcrySupprtdId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEBeneficiariesSupported whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEBeneficiariesSupported whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEBeneficiariesSupported whereTotalNumber($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEBeneficiariesSupported whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class ProjectIGEBeneficiariesSupported extends Model
 {
     use HasFactory;

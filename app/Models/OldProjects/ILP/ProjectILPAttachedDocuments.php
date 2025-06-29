@@ -8,6 +8,33 @@ use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $ILP_doc_id
+ * @property string $project_id
+ * @property string|null $aadhar_doc
+ * @property string|null $request_letter_doc
+ * @property string|null $purchase_quotation_doc
+ * @property string|null $other_doc
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPAttachedDocuments newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPAttachedDocuments newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPAttachedDocuments query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPAttachedDocuments whereAadharDoc($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPAttachedDocuments whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPAttachedDocuments whereILPDocId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPAttachedDocuments whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPAttachedDocuments whereOtherDoc($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPAttachedDocuments whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPAttachedDocuments wherePurchaseQuotationDoc($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPAttachedDocuments whereRequestLetterDoc($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPAttachedDocuments whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class ProjectILPAttachedDocuments extends Model
 {
     use HasFactory;

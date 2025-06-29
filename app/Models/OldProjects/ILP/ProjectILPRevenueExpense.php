@@ -6,6 +6,35 @@ use App\Models\OldProjects\Project;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $ILP_revenue_expenses_id
+ * @property string $project_id
+ * @property string $description
+ * @property string|null $year_1
+ * @property string|null $year_2
+ * @property string|null $year_3
+ * @property string|null $year_4
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueExpense newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueExpense newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueExpense query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueExpense whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueExpense whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueExpense whereILPRevenueExpensesId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueExpense whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueExpense whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueExpense whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueExpense whereYear1($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueExpense whereYear2($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueExpense whereYear3($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueExpense whereYear4($value)
+ * @mixin \Eloquent
+ */
 class ProjectILPRevenueExpense extends Model
 {
     use HasFactory;

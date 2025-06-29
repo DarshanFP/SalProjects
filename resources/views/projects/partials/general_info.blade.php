@@ -119,7 +119,7 @@
     </div>
     <div class="mb-3">
         <label for="overall_project_budget" class="form-label">Overall Project Budget</label>
-        <input type="number" name="overall_project_budget" id="overall_project_budget" class="form-control select-input" value="{{ old('overall_project_budget') }}">
+        <input type="number" name="overall_project_budget" id="overall_project_budget" class="form-control select-input" value="{{ old('overall_project_budget') }}" readonly>
     </div>
     <div class="mb-3">
         @php $coordinator_india = $users->firstWhere('role', 'coordinator')->firstWhere('province', 'Generalate'); @endphp

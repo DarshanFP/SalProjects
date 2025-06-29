@@ -38,7 +38,9 @@ use App\Models\OldProjects\IES\ProjectIESExpenses;
 use App\Models\OldProjects\IES\ProjectIESAttachments;
 // ILP Models
 use App\Models\OldProjects\ILP\ProjectILPPersonalInfo;
-use App\Models\OldProjects\ILP\ProjectILPRevenueGoals;
+use App\Models\OldProjects\ILP\ProjectILPRevenuePlanItem;
+use App\Models\OldProjects\ILP\ProjectILPRevenueIncome;
+use App\Models\OldProjects\ILP\ProjectILPRevenueExpense;
 use App\Models\OldProjects\ILP\ProjectILPBusinessStrengthWeakness;
 use App\Models\OldProjects\ILP\ProjectILPRiskAnalysis;
 use App\Models\OldProjects\ILP\ProjectILPAttachedDocuments;
@@ -70,6 +72,7 @@ use PhpOffice\PhpWord\Style\Table;
 use PhpOffice\PhpWord\IOFactory;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Mpdf\Mpdf;
 // Controller imports
 use App\Http\Controllers\Projects\ProjectEduRUTBasicInfoController;
@@ -368,7 +371,7 @@ class ExportController extends Controller
     private function loadAllProjectData($project_id)
     {
         $project = Project::where('project_id', $project_id)
-            ->with('budgets', 'attachments', 'objectives', 'sustainabilities', 'user')
+            ->with(['budgets', 'attachments', 'objectives.risks', 'objectives.activities.timeframes', 'sustainabilities', 'user'])
             ->firstOrFail();
 
         $user = Auth::user();
@@ -638,19 +641,96 @@ class ExportController extends Controller
         return ProjectILPPersonalInfo::where('project_id', $project_id)->first();
     }
     private function loadILPRevenueGoals($project_id) {
-        return ProjectILPRevenueGoals::where('project_id', $project_id)->first();
+        try {
+            return [
+                'business_plan_items' => ProjectILPRevenuePlanItem::where('project_id', $project_id)->get()->toArray(),
+                'annual_income' => ProjectILPRevenueIncome::where('project_id', $project_id)->get()->toArray(),
+                'annual_expenses' => ProjectILPRevenueExpense::where('project_id', $project_id)->get()->toArray(),
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error loading ILP Revenue Goals', ['project_id' => $project_id, 'error' => $e->getMessage()]);
+            return [
+                'business_plan_items' => [],
+                'annual_income' => [],
+                'annual_expenses' => [],
+            ];
+        }
     }
     private function loadILPStrengthWeakness($project_id) {
-        return ProjectILPBusinessStrengthWeakness::where('project_id', $project_id)->first();
+        try {
+            $strengthWeakness = ProjectILPBusinessStrengthWeakness::where('project_id', $project_id)->first();
+
+            return [
+                'strengths' => $strengthWeakness ? json_decode($strengthWeakness->strengths, true) : [],
+                'weaknesses' => $strengthWeakness ? json_decode($strengthWeakness->weaknesses, true) : [],
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error loading ILP Strength Weakness', ['project_id' => $project_id, 'error' => $e->getMessage()]);
+            return [
+                'strengths' => [],
+                'weaknesses' => [],
+            ];
+        }
     }
     private function loadILPRiskAnalysis($project_id) {
-        return ProjectILPRiskAnalysis::where('project_id', $project_id)->first();
+        try {
+            $riskAnalysis = ProjectILPRiskAnalysis::where('project_id', $project_id)->first();
+
+            return [
+                'identified_risks' => $riskAnalysis ? $riskAnalysis->identified_risks : '',
+                'mitigation_measures' => $riskAnalysis ? $riskAnalysis->mitigation_measures : '',
+                'business_sustainability' => $riskAnalysis ? $riskAnalysis->business_sustainability : '',
+                'expected_profits' => $riskAnalysis ? $riskAnalysis->expected_profits : '',
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error loading ILP Risk Analysis', ['project_id' => $project_id, 'error' => $e->getMessage()]);
+            return [
+                'identified_risks' => '',
+                'mitigation_measures' => '',
+                'business_sustainability' => '',
+                'expected_profits' => '',
+            ];
+        }
     }
     private function loadILPAttachedDocuments($project_id) {
-        return ProjectILPAttachedDocuments::where('project_id', $project_id)->first();
+        try {
+            $documents = ProjectILPAttachedDocuments::where('project_id', $project_id)->first();
+
+            return [
+                'aadhar_doc' => $documents && $documents->aadhar_doc ? Storage::url($documents->aadhar_doc) : null,
+                'request_letter_doc' => $documents && $documents->request_letter_doc ? Storage::url($documents->request_letter_doc) : null,
+                'purchase_quotation_doc' => $documents && $documents->purchase_quotation_doc ? Storage::url($documents->purchase_quotation_doc) : null,
+                'other_doc' => $documents && $documents->other_doc ? Storage::url($documents->other_doc) : null,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error loading ILP Attached Documents', ['project_id' => $project_id, 'error' => $e->getMessage()]);
+            return [
+                'aadhar_doc' => null,
+                'request_letter_doc' => null,
+                'purchase_quotation_doc' => null,
+                'other_doc' => null,
+            ];
+        }
     }
     private function loadILPBudget($project_id) {
-        return ProjectILPBudget::where('project_id', $project_id)->first();
+        try {
+            $budgets = ProjectILPBudget::where('project_id', $project_id)->get();
+
+            return [
+                'budgets' => $budgets,
+                'total_amount' => $budgets->sum('cost'),
+                'beneficiary_contribution' => $budgets->first()->beneficiary_contribution ?? 0,
+                'amount_requested' => $budgets->first()->amount_requested ?? 0,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error loading ILP Budget', ['project_id' => $project_id, 'error' => $e->getMessage()]);
+            return [
+                'budgets' => collect([]),
+                'total_amount' => 0,
+                'beneficiary_contribution' => 0,
+                'amount_requested' => 0,
+            ];
+        }
     }
     private function loadIAHPersonalInfo($project_id) {
         return ProjectIAHPersonalInfo::where('project_id', $project_id)->first();
@@ -2644,21 +2724,97 @@ private function addILPSections(PhpWord $phpWord, $project)
     $section->addTextBreak(1);
 
     if ($project->ilpPersonalInfo) {
-        $section->addText("Applicant Name: " . ($project->ilpPersonalInfo->applicant_name ?? 'N/A'));
+        $section->addText("Applicant Name: " . ($project->ilpPersonalInfo->name ?? 'N/A'));
         $section->addText("Age: " . ($project->ilpPersonalInfo->age ?? 'N/A'));
         $section->addText("Gender: " . ($project->ilpPersonalInfo->gender ?? 'N/A'));
         $section->addText("Address: " . ($project->ilpPersonalInfo->address ?? 'N/A'));
     }
     $section->addTextBreak(1);
 
-    // Revenue Goals
-    $section->addText("Revenue Goals", ['bold' => true, 'size' => 14]);
+    // Revenue Goals - Business Plan Items
+    $section->addText("Revenue Goals - Business Plan Items", ['bold' => true, 'size' => 14]);
     $section->addTextBreak(1);
 
-    if ($project->ilpRevenueGoals) {
-        $section->addText("Business Type: " . ($project->ilpRevenueGoals->business_type ?? 'N/A'));
-        $section->addText("Expected Monthly Revenue: Rs. " . number_format($project->ilpRevenueGoals->expected_revenue ?? 0, 2));
-        $section->addText("Target Market: " . ($project->ilpRevenueGoals->target_market ?? 'N/A'));
+    if ($project->revenuePlanItems && $project->revenuePlanItems->count() > 0) {
+        $tableStyle = ['borderSize' => 6, 'borderColor' => '000000', 'cellMargin' => 80];
+        $phpWord->addTableStyle('ILPBusinessPlanTable', $tableStyle);
+        $table = $section->addTable('ILPBusinessPlanTable');
+
+        $table->addRow();
+        $table->addCell(4000)->addText("Business Plan Item", ['bold' => true]);
+        $table->addCell(2000)->addText("Year 1", ['bold' => true]);
+        $table->addCell(2000)->addText("Year 2", ['bold' => true]);
+        $table->addCell(2000)->addText("Year 3", ['bold' => true]);
+        $table->addCell(2000)->addText("Year 4", ['bold' => true]);
+
+        foreach ($project->revenuePlanItems as $item) {
+            $table->addRow();
+            $table->addCell(4000)->addText($item->item ?? 'N/A');
+            $table->addCell(2000)->addText("Rs. " . number_format($item->year_1 ?? 0, 2));
+            $table->addCell(2000)->addText("Rs. " . number_format($item->year_2 ?? 0, 2));
+            $table->addCell(2000)->addText("Rs. " . number_format($item->year_3 ?? 0, 2));
+            $table->addCell(2000)->addText("Rs. " . number_format($item->year_4 ?? 0, 2));
+        }
+    } else {
+        $section->addText("No Business Plan Items available.");
+    }
+    $section->addTextBreak(1);
+
+    // Revenue Goals - Annual Income
+    $section->addText("Revenue Goals - Annual Income", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->revenueIncomes && $project->revenueIncomes->count() > 0) {
+        $tableStyle = ['borderSize' => 6, 'borderColor' => '000000', 'cellMargin' => 80];
+        $phpWord->addTableStyle('ILPIncomeTable', $tableStyle);
+        $table = $section->addTable('ILPIncomeTable');
+
+        $table->addRow();
+        $table->addCell(4000)->addText("Income Description", ['bold' => true]);
+        $table->addCell(2000)->addText("Year 1", ['bold' => true]);
+        $table->addCell(2000)->addText("Year 2", ['bold' => true]);
+        $table->addCell(2000)->addText("Year 3", ['bold' => true]);
+        $table->addCell(2000)->addText("Year 4", ['bold' => true]);
+
+        foreach ($project->revenueIncomes as $income) {
+            $table->addRow();
+            $table->addCell(4000)->addText($income->description ?? 'N/A');
+            $table->addCell(2000)->addText("Rs. " . number_format($income->year_1 ?? 0, 2));
+            $table->addCell(2000)->addText("Rs. " . number_format($income->year_2 ?? 0, 2));
+            $table->addCell(2000)->addText("Rs. " . number_format($income->year_3 ?? 0, 2));
+            $table->addCell(2000)->addText("Rs. " . number_format($income->year_4 ?? 0, 2));
+        }
+    } else {
+        $section->addText("No Annual Income data available.");
+    }
+    $section->addTextBreak(1);
+
+    // Revenue Goals - Annual Expenses
+    $section->addText("Revenue Goals - Annual Expenses", ['bold' => true, 'size' => 14]);
+    $section->addTextBreak(1);
+
+    if ($project->revenueExpenses && $project->revenueExpenses->count() > 0) {
+        $tableStyle = ['borderSize' => 6, 'borderColor' => '000000', 'cellMargin' => 80];
+        $phpWord->addTableStyle('ILPExpensesTable', $tableStyle);
+        $table = $section->addTable('ILPExpensesTable');
+
+        $table->addRow();
+        $table->addCell(4000)->addText("Expense Description", ['bold' => true]);
+        $table->addCell(2000)->addText("Year 1", ['bold' => true]);
+        $table->addCell(2000)->addText("Year 2", ['bold' => true]);
+        $table->addCell(2000)->addText("Year 3", ['bold' => true]);
+        $table->addCell(2000)->addText("Year 4", ['bold' => true]);
+
+        foreach ($project->revenueExpenses as $expense) {
+            $table->addRow();
+            $table->addCell(4000)->addText($expense->description ?? 'N/A');
+            $table->addCell(2000)->addText("Rs. " . number_format($expense->year_1 ?? 0, 2));
+            $table->addCell(2000)->addText("Rs. " . number_format($expense->year_2 ?? 0, 2));
+            $table->addCell(2000)->addText("Rs. " . number_format($expense->year_3 ?? 0, 2));
+            $table->addCell(2000)->addText("Rs. " . number_format($expense->year_4 ?? 0, 2));
+        }
+    } else {
+        $section->addText("No Annual Expenses data available.");
     }
     $section->addTextBreak(1);
 
@@ -2668,7 +2824,7 @@ private function addILPSections(PhpWord $phpWord, $project)
 
     if ($project->ilpRiskAnalysis) {
         $section->addText("Identified Risks: " . ($project->ilpRiskAnalysis->identified_risks ?? 'N/A'));
-        $section->addText("Mitigation Strategies: " . ($project->ilpRiskAnalysis->mitigation_strategies ?? 'N/A'));
+        $section->addText("Mitigation Measures: " . ($project->ilpRiskAnalysis->mitigation_measures ?? 'N/A'));
     }
     $section->addTextBreak(1);
 
@@ -2687,8 +2843,8 @@ private function addILPSections(PhpWord $phpWord, $project)
 
         foreach ($project->ilpBudget as $budget) {
             $table->addRow();
-            $table->addCell(5000)->addText($budget->item ?? 'N/A');
-            $table->addCell(5000)->addText("Rs. " . number_format($budget->amount ?? 0, 2));
+            $table->addCell(5000)->addText($budget->budget_desc ?? 'N/A');
+            $table->addCell(5000)->addText("Rs. " . number_format($budget->cost ?? 0, 2));
         }
     }
 }
@@ -2714,10 +2870,10 @@ private function addIAHSections(PhpWord $phpWord, $project)
     $section->addText("Health Conditions", ['bold' => true, 'size' => 14]);
     $section->addTextBreak(1);
 
-    if ($project->iahHealthConditions) {
-        $section->addText("Medical Condition: " . ($project->iahHealthConditions->medical_condition ?? 'N/A'));
-        $section->addText("Diagnosis: " . ($project->iahHealthConditions->diagnosis ?? 'N/A'));
-        $section->addText("Treatment Required: " . ($project->iahHealthConditions->treatment_required ?? 'N/A'));
+    if ($project->iahHealthCondition) {
+        $section->addText("Medical Condition: " . ($project->iahHealthCondition->medical_condition ?? 'N/A'));
+        $section->addText("Diagnosis: " . ($project->iahHealthCondition->diagnosis ?? 'N/A'));
+        $section->addText("Treatment Required: " . ($project->iahHealthCondition->treatment_required ?? 'N/A'));
     }
     $section->addTextBreak(1);
 

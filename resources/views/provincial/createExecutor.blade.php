@@ -42,7 +42,14 @@
                 </div>
                 <div class="form-group">
                     <label for="society_name">Society Name</label>
-                    <input type="text" class="form-control" id="society_name" name="society_name" required>
+                    <select class="form-control" id="society_name" name="society_name" required>
+                        <option value="" disabled selected>Select Society / Trust</option>
+                        <option value="ST. ANN'S EDUCATIONAL SOCIETY">ST. ANN'S EDUCATIONAL SOCIETY</option>
+                        <option value="SARVAJANA SNEHA CHARITABLE TRUST">SARVAJANA SNEHA CHARITABLE TRUST</option>
+                        <option value="WILHELM MEYERS DEVELOPMENTAL SOCIETY">WILHELM MEYERS DEVELOPMENTAL SOCIETY</option>
+                        <option value="ST. ANNS'S SOCIETY, VISAKHAPATNAM">ST. ANNS'S SOCIETY, VISAKHAPATNAM</option>
+                        <option value="ST.ANN'S SOCIETY, SOUTHERN REGION">ST.ANN'S SOCIETY, SOUTHERN REGION</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="role">Role</label>

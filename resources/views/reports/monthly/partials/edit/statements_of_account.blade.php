@@ -41,16 +41,25 @@
             </thead>
             <tbody id="account-rows">
                 @foreach ($report->accountDetails as $index => $accountDetail)
-                    <tr>
+                    <tr data-budget-row="{{ $accountDetail->is_budget_row ? 'true' : 'false' }}">
+                        <input type="hidden" name="account_detail_id[{{$index}}]" value="{{ $accountDetail->account_detail_id }}">
+                        <input type="hidden" name="is_budget_row[{{$index}}]" value="{{ $accountDetail->is_budget_row }}">
                         <td><input type="text" name="particulars[]" class="form-control" value="{{ old('particulars.' . $index, $accountDetail->particulars) }}" readonly></td>
                         <td><input type="number" name="amount_forwarded[]" class="form-control" value="{{ old('amount_forwarded.' . $index, $accountDetail->amount_forwarded) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
                         <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ old('amount_sanctioned.' . $index, $accountDetail->amount_sanctioned) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
                         <td><input type="number" name="total_amount[]" class="form-control" value="{{ old('total_amount.' . $index, $accountDetail->amount_forwarded + $accountDetail->amount_sanctioned) }}" readonly></td>
-                        <td><input type="number" name="expenses_last_month[]" class="form-control" value="{{ old('expenses_last_month.' . $index, $accountDetail->expenses_last_month) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly 202ba3></td>
+                        <td><input type="number" name="expenses_last_month[]" class="form-control" value="{{ old('expenses_last_month.' . $index, $accountDetail->expenses_last_month) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
                         <td><input type="number" name="expenses_this_month[]" class="form-control" value="{{ old('expenses_this_month.' . $index, $accountDetail->expenses_this_month) }}" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
                         <td><input type="number" name="total_expenses[]" class="form-control" value="{{ old('total_expenses.' . $index, $accountDetail->total_expenses) }}" readonly></td>
                         <td><input type="number" name="balance_amount[]" class="form-control" value="{{ old('balance_amount.' . $index, $accountDetail->balance_amount) }}" readonly></td>
-                        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button></td>
+                        <td>
+                            @if($accountDetail->is_budget_row)
+                                {{-- Hide remove button for budget rows from project budget --}}
+                                <span class="text-muted">Budget Row</span>
+                            @else
+                                <button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button>
+                            @endif
+                        </td>
                     </tr>
                 @endforeach
             </tbody>
@@ -92,6 +101,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     prjctAmountSanctioned.addEventListener('input', calculateTotalAmount);
     lyAmountForwarded.addEventListener('input', calculateTotalAmount);
+
+    // Initialize calculations on page load
+    calculateAllRowTotals();
+    calculateTotal();
+    calculateTotalAmount();
 });
 
 // Function to calculate totals for a single row
@@ -110,6 +124,14 @@ function calculateRowTotals(row) {
     row.querySelector('[name="balance_amount[]"]').value = balanceAmount.toFixed(2);
 
     calculateTotal(); // Update overall totals
+}
+
+// Function to calculate all row totals on page load
+function calculateAllRowTotals() {
+    const rows = document.querySelectorAll('#account-rows tr');
+    rows.forEach(row => {
+        calculateRowTotals(row);
+    });
 }
 
 // Function to calculate the overall totals
@@ -158,19 +180,20 @@ function calculateTotalAmount() {
 function addAccountRow() {
     const tableBody = document.getElementById('account-rows');
     const newRow = document.createElement('tr');
-
+    const currentRowCount = tableBody.querySelectorAll('tr').length;
     newRow.innerHTML = `
+        <input type="hidden" name="account_detail_id[${currentRowCount}]" value="">
+        <input type="hidden" name="is_budget_row[${currentRowCount}]" value="0">
         <td><input type="text" name="particulars[]" class="form-control" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="amount_forwarded[]" class="form-control" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="amount_sanctioned[]" class="form-control" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
+        <td><input type="number" name="amount_forwarded[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
+        <td><input type="number" name="amount_sanctioned[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
         <td><input type="number" name="total_amount[]" class="form-control" readonly></td>
-        <td><input type="number" name="expenses_last_month[]" class="form-control" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="expenses_this_month[]" class="form-control" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
+        <td><input type="number" name="expenses_last_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
+        <td><input type="number" name="expenses_this_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
         <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
         <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>
         <td><button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button></td>
     `;
-
     newRow.querySelectorAll('input').forEach(input => {
         input.addEventListener('input', function () {
             const row = input.closest('tr');
@@ -178,8 +201,8 @@ function addAccountRow() {
             calculateTotal();
         });
     });
-
     tableBody.appendChild(newRow);
+    calculateRowTotals(newRow);
 }
 
 // Function to remove a row from the account table

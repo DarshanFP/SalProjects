@@ -97,6 +97,7 @@
                                     <th>Expenses This Month</th>
                                     <th>Balance Amount</th>
                                     <th>Type</th>
+                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -108,6 +109,10 @@
                                         $totalExpenses = $report->accountDetails->sum('total_expenses');
                                         $expensesThisMonth = $report->accountDetails->sum('expenses_this_month');
                                         $balanceAmount = $report->accountDetails->sum('balance_amount');
+
+                                        // Get status label and badge class
+                                        $statusLabel = $report->getStatusLabel();
+                                        $statusBadgeClass = $report->getStatusBadgeClass();
                                     @endphp
                                     <tr>
                                         <td>{{ $report->report_id }}</td>
@@ -120,9 +125,80 @@
                                         <td>{{ number_format($balanceAmount, 2) }}</td>
                                         <td>{{ $report->project_type }}</td>
                                         <td>
+                                            <span class="badge {{ $statusBadgeClass }}">{{ $statusLabel }}</span>
+                                        </td>
+                                        <td>
                                             <a href="{{ route('provincial.monthly.report.show', $report->report_id) }}" class="btn btn-primary btn-sm">View</a>
+
+                                            @if($report->status === 'submitted_to_provincial')
+                                                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#forwardModal{{ $report->report_id }}">
+                                                    Forward to Coordinator
+                                                </button>
+                                                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#revertModal{{ $report->report_id }}">
+                                                    Revert to Executor
+                                                </button>
+                                            @endif
+
+                                            @if($report->status === 'reverted_by_coordinator' && $report->revert_reason)
+                                                <button type="button" class="btn btn-info btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Revert Reason: {{ $report->revert_reason }}">
+                                                    View Reason
+                                                </button>
+                                            @endif
                                         </td>
                                     </tr>
+
+                                    <!-- Forward Modal -->
+                                    @if($report->status === 'submitted_to_provincial')
+                                    <div class="modal fade" id="forwardModal{{ $report->report_id }}" tabindex="-1" aria-labelledby="forwardModalLabel{{ $report->report_id }}" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="forwardModalLabel{{ $report->report_id }}">Forward Report to Coordinator</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <form method="POST" action="{{ route('provincial.report.forward', $report->report_id) }}">
+                                                    @csrf
+                                                    <div class="modal-body">
+                                                        <p>Are you sure you want to forward this report to the coordinator?</p>
+                                                        <p><strong>Report ID:</strong> {{ $report->report_id }}</p>
+                                                        <p><strong>Project:</strong> {{ $report->project_title }}</p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-success">Forward to Coordinator</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Revert Modal -->
+                                    <div class="modal fade" id="revertModal{{ $report->report_id }}" tabindex="-1" aria-labelledby="revertModalLabel{{ $report->report_id }}" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="revertModalLabel{{ $report->report_id }}">Revert Report to Executor</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <form method="POST" action="{{ route('provincial.report.revert', $report->report_id) }}">
+                                                    @csrf
+                                                    <div class="modal-body">
+                                                        <p><strong>Report ID:</strong> {{ $report->report_id }}</p>
+                                                        <p><strong>Project:</strong> {{ $report->project_title }}</p>
+                                                        <div class="mb-3">
+                                                            <label for="revert_reason{{ $report->report_id }}" class="form-label">Reason for Revert *</label>
+                                                            <textarea class="form-control" id="revert_reason{{ $report->report_id }}" name="revert_reason" rows="3" required></textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-warning">Revert to Executor</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
                                 @endforeach
                             </tbody>
                         </table>
@@ -132,4 +208,14 @@
         </div>
     </div>
 </div>
+
+<script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 @endsection

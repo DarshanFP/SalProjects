@@ -81,8 +81,14 @@
                 </a>
                 <div class="collapse" id="quarterlyReports">
                     <ul class="nav sub-menu">
+                        {{-- <li class="nav-item">
+                            <a href="{{ route('provincial.report.list') }}" class="nav-link">All Project Reports</a>
+                        </li> --}}
                         <li class="nav-item">
-                            <a href="{{ route('provincial.report.list') }}" class="nav-link">Monthly Project Reports</a>
+                            <a href="{{ route('provincial.report.pending') }}" class="nav-link">Pending Reports</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('provincial.report.approved') }}" class="nav-link">Approved Reports</a>
                         </li>
                         {{-- Uncomment or add more reports as needed
                         <li class="nav-item">

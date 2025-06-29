@@ -17,11 +17,11 @@
 
                         @if(!empty($attachedDocs->$name))
                             <p>Currently Attached:</p>
-                            <a href="{{ asset('storage/' . str_replace('public/', '', $attachedDocs->$name)) }}" target="_blank">
+                            <a href="{{ Storage::url($attachedDocs->$name) }}" target="_blank">
                                 {{ basename($attachedDocs->$name) }}
                             </a>
                             <br>
-                            <a href="{{ asset('storage/' . str_replace('public/', '', $attachedDocs->$name)) }}" download class="btn btn-green">
+                            <a href="{{ Storage::url($attachedDocs->$name) }}" download class="btn btn-green">
                                 Download
                             </a>
                             {{-- <button type="button" class="btn btn-danger delete-file-btn" data-field="{{ $name }}" data-url="{{ route('projects.ilp.attachments.delete', ['projectId' => $attachedDocs->project_id, 'field' => $name]) }}">
@@ -44,11 +44,11 @@
 
                         @if(!empty($attachedDocs->$name))
                             <p>Currently Attached:</p>
-                            <a href="{{ asset('storage/' . str_replace('public/', '', $attachedDocs->$name)) }}" target="_blank">
+                            <a href="{{ Storage::url($attachedDocs->$name) }}" target="_blank">
                                 {{ basename($attachedDocs->$name) }}
                             </a>
                             <br>
-                            <a href="{{ asset('storage/' . str_replace('public/', '', $attachedDocs->$name)) }}" download class="btn btn-green">
+                            <a href="{{ Storage::url($attachedDocs->$name) }}" download class="btn btn-green">
                                 Download
                             </a>
                             {{-- <button type="button" class="btn btn-danger delete-file-btn" data-field="{{ $name }}" data-url="{{ route('projects.ilp.attachments.delete', ['projectId' => $attachedDocs->project_id, 'field' => $name]) }}">

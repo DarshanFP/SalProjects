@@ -6,6 +6,33 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\OldProjects\Project;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $IGE_dvlpmnt_mntrng_id
+ * @property string $project_id
+ * @property string|null $proposed_activities
+ * @property string|null $monitoring_methods
+ * @property string|null $evaluation_process
+ * @property string|null $conclusion
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEDevelopmentMonitoring newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEDevelopmentMonitoring newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEDevelopmentMonitoring query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEDevelopmentMonitoring whereConclusion($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEDevelopmentMonitoring whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEDevelopmentMonitoring whereEvaluationProcess($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEDevelopmentMonitoring whereIGEDvlpmntMntrngId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEDevelopmentMonitoring whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEDevelopmentMonitoring whereMonitoringMethods($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEDevelopmentMonitoring whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEDevelopmentMonitoring whereProposedActivities($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEDevelopmentMonitoring whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class ProjectIGEDevelopmentMonitoring extends Model
 {
     use HasFactory;

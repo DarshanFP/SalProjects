@@ -6,6 +6,31 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\OldProjects\Project;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $IAH_earning_id
+ * @property string $project_id
+ * @property string|null $member_name
+ * @property string|null $work_type
+ * @property string|null $monthly_income
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHEarningMembers newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHEarningMembers newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHEarningMembers query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHEarningMembers whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHEarningMembers whereIAHEarningId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHEarningMembers whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHEarningMembers whereMemberName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHEarningMembers whereMonthlyIncome($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHEarningMembers whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHEarningMembers whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHEarningMembers whereWorkType($value)
+ * @mixin \Eloquent
+ */
 class ProjectIAHEarningMembers extends Model
 {
     use HasFactory;

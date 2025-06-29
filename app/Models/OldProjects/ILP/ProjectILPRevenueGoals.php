@@ -5,6 +5,14 @@ namespace App\Models\OldProjects\ILP;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * 
+ *
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueGoals newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueGoals newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueGoals query()
+ * @mixin \Eloquent
+ */
 class ProjectILPRevenueGoals extends Model
 {
     use HasFactory;

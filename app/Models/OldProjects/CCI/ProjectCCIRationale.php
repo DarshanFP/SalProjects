@@ -6,6 +6,27 @@ use App\Models\OldProjects\Project;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $CCI_rationale_id
+ * @property string $project_id
+ * @property string|null $description
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIRationale newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIRationale newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIRationale query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIRationale whereCCIRationaleId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIRationale whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIRationale whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIRationale whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIRationale whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectCCIRationale whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class ProjectCCIRationale extends Model
 {
     use HasFactory;

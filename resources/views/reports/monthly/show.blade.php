@@ -101,10 +101,14 @@
     </div>
     <!-- Download Buttons -->
     <div class="card-footer">
-        <a href="{{ route('monthly.report.downloadDoc', $report->report_id) }}" class="btn btn-primary">
-            Download Word File
-        </a>
-        <a href="{{ route('monthly.report.downloadPdf', $report->report_id) }}" class="btn btn-secondary">
+        @php
+            $downloadRoute = match ($userRole) {
+                'coordinator' => route('coordinator.monthly.report.downloadPdf', $report->report_id),
+                'provincial' => route('provincial.monthly.report.downloadPdf', $report->report_id),
+                default => route('monthly.report.downloadPdf', $report->report_id),
+            };
+        @endphp
+        <a href="{{ $downloadRoute }}" class="btn btn-secondary">
             Download PDF
         </a>
     </div>

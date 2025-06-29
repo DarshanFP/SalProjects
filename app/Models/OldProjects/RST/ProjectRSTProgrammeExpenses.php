@@ -6,6 +6,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\OldProjects\Project;
 
+/**
+ * 
+ *
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectRSTProgrammeExpenses newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectRSTProgrammeExpenses newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectRSTProgrammeExpenses query()
+ * @mixin \Eloquent
+ */
 class ProjectRSTProgrammeExpenses extends Model
 {
     use HasFactory;

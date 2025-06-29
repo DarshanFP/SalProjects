@@ -78,7 +78,13 @@
                             <a href="{{ route('monthly.report.index') }}" class="nav-link">My Reports List</a>
                         </li>
                         <li class="nav-item">
-                            <a href="{{ route('executor.report.list') }}" class="nav-link">Reports Overview</a>
+                            <a href="{{ route('executor.report.list') }}" class="nav-link">All Reports Overview</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('executor.report.pending') }}" class="nav-link">Pending Reports</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('executor.report.approved') }}" class="nav-link">Approved Reports</a>
                         </li>
                         {{-- <li class="nav-item">
                             <a href="{{ route('quarterly.developmentLivelihood.index') }}" class="nav-link">Development Livelihood</a>

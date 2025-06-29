@@ -46,7 +46,7 @@
             </thead>
             <tbody id="account-rows">
                 @foreach($budgets as $index => $budget)
-                <tr>
+                <tr data-budget-row="true">
                     <td><input type="text" name="particulars[]" class="form-control" value="{{ old('particulars.'.$index, $budget->particular) }}" readonly></td>
                     <td><input type="number" name="amount_forwarded[]" class="form-control" value="{{ old('amount_forwarded.'.$index, 0.00) }}" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #6571ff;"></td>
                     <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ old('amount_sanctioned.'.$index, $budget->this_phase ?? 0.00) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
@@ -55,7 +55,11 @@
                     <td><input type="number" name="expenses_this_month[]" class="form-control" value="{{ old('expenses_this_month.'.$index, 0.00) }}" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
                     <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
                     <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>
-                    <td><button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button></td>
+                    <td>
+                        {{-- Hide remove button for budget rows from project budget --}}
+                        <input type="hidden" name="is_budget_row[]" value="1">
+                        <span class="text-muted">Budget Row</span>
+                    </td>
                 </tr>
                 @endforeach
             </tbody>
@@ -148,8 +152,21 @@ function calculateTotal() {
     document.getElementById('total_expenses_total').value = totalExpensesTotal.toFixed(2);
     document.getElementById('total_balance').value = totalBalance.toFixed(2);
 
-    // if avalilable balance is negative, change the background color to red
-    function updateBalanceColor(inputElement) {
+    document.querySelector('[name="total_balance_forwarded"]').value = totalBalance.toFixed(2);
+
+    console.log('Total calculations completed:', {
+        totalForwarded,
+        totalSanctioned,
+        totalAmountTotal,
+        totalExpensesLastMonth,
+        totalExpensesThisMonth,
+        totalExpensesTotal,
+        totalBalance
+    });
+}
+
+// if available balance is negative, change the background color to red
+function updateBalanceColor(inputElement) {
     const value = parseFloat(inputElement.value) || 0;
     console.log('Checking balance:', value);
 
@@ -167,20 +184,6 @@ function updateAllBalanceColors() {
     });
 }
 
-
-    document.querySelector('[name="total_balance_forwarded"]').value = totalBalance.toFixed(2);
-
-    console.log('Total calculations completed:', {
-        totalForwarded,
-        totalSanctioned,
-        totalAmountTotal,
-        totalExpensesLastMonth,
-        totalExpensesThisMonth,
-        totalExpensesTotal,
-        totalBalance
-    });
-}
-
 function addAccountRow() {
     const tableBody = document.getElementById('account-rows');
     const newRow = document.createElement('tr');
@@ -194,7 +197,10 @@ function addAccountRow() {
         <td><input type="number" name="expenses_this_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
         <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
         <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>
-        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button></td>
+        <td>
+            <input type="hidden" name="is_budget_row[]" value="0">
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button>
+        </td>
     `;
 
     newRow.querySelectorAll('input').forEach(input => {

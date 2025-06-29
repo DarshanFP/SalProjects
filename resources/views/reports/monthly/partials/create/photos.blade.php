@@ -14,11 +14,12 @@
             @foreach ($photoGroups as $groupIndex => $group)
                 <div class="mb-3 photo-group" data-index="{{ $groupIndex }}">
                     <label class="form-label">Upload up to 3 Photos</label>
-                    <label class="form-label"><i>(Each photo size should be less than 5 MB)</i></label>
+                    <label class="form-label"><i>(Each photo size should be less than 2 MB)</i></label>
                     <div class="file-upload">
                         <button type="button" class="btn btn-primary" onclick="document.getElementById('photos_{{ $groupIndex }}').click()">Choose up to 3 photos</button>
                         <input type="file" name="photos[{{ $groupIndex }}][]" id="photos_{{ $groupIndex }}" class="mb-2 form-control" accept="image/*" multiple onchange="previewImages(this, {{ $groupIndex }})" style="display: none;">
                         <div id="file-text-{{ $groupIndex }}" class="file-text">No files selected</div>
+                        <p id="file-size-warning-{{ $groupIndex }}" style="color: red; display: none;">Each photo must be less than 2 MB!</p>
                         @if($errors->has("photos.$groupIndex"))
                             @foreach($errors->get("photos.$groupIndex.*") as $errorMessages)
                                 @foreach($errorMessages as $error)
@@ -48,10 +49,31 @@
     function previewImages(input, index) {
         const files = Array.from(input.files);
         const fileText = document.getElementById(`file-text-${index}`);
-        fileText.textContent = `${files.length} file(s) selected`; // Update text based on number of files selected
+        const sizeWarning = document.getElementById(`file-size-warning-${index}`);
+
+        // Check file sizes
+        const validFiles = [];
+        let hasSizeError = false;
+
+        files.forEach((file, i) => {
+            if (file.size > 2097152) { // 2 MB in bytes
+                hasSizeError = true;
+                sizeWarning.style.display = 'block';
+            } else {
+                validFiles.push(file);
+            }
+        });
+
+        if (hasSizeError) {
+            input.value = ''; // Reset the file input
+            return;
+        } else {
+            sizeWarning.style.display = 'none';
+        }
 
         // Limit to 3 files per group
-        photoGroups[index] = files.slice(0, 3);
+        photoGroups[index] = validFiles.slice(0, 3);
+        fileText.textContent = `${photoGroups[index].length} file(s) selected`; // Update text based on number of files selected
 
         updatePhotosPreview(index);
     }
@@ -105,11 +127,12 @@
         const newGroupHtml = `
             <div class="mb-3 photo-group" data-index="${newGroupIndex}">
                 <label class="form-label">Upload up to 3 Photos</label>
-                <label class="form-label"><i>(Each photo size should be less than 5 MB)</i></label>
+                <label class="form-label"><i>(Each photo size should be less than 2 MB)</i></label>
                 <div class="file-upload">
                     <button type="button" class="btn btn-primary" onclick="document.getElementById('photos_${newGroupIndex}').click()">Choose up to 3 photos</button>
                     <input type="file" name="photos[${newGroupIndex}][]" id="photos_${newGroupIndex}" class="mb-2 form-control" accept="image/*" multiple onchange="previewImages(this, ${newGroupIndex})" style="display: none;">
                     <div id="file-text-${newGroupIndex}" class="file-text">No files selected</div>
+                    <p id="file-size-warning-${newGroupIndex}" style="color: red; display: none;">Each photo must be less than 2 MB!</p>
                 </div>
                 <div id="photos-preview_${newGroupIndex}" class="photos-preview" style="display: flex; flex-wrap: wrap;"></div>
                 <textarea name="photo_descriptions[${newGroupIndex}]" class="mt-2 form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>

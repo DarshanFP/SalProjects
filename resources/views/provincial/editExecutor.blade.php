@@ -28,7 +28,14 @@
                 </div>
                 <div class="form-group">
                     <label for="society_name">Society Name</label>
-                    <input type="text" class="form-control" id="society_name" name="society_name" value="{{ $executor->society_name }}" required>
+                    <select class="form-control" id="society_name" name="society_name" required>
+                        <option value="" disabled>Select Society / Trust</option>
+                        <option value="ST. ANN'S EDUCATIONAL SOCIETY" {{ $executor->society_name == "ST. ANN'S EDUCATIONAL SOCIETY" ? 'selected' : '' }}>ST. ANN'S EDUCATIONAL SOCIETY</option>
+                        <option value="SARVAJANA SNEHA CHARITABLE TRUST" {{ $executor->society_name == "SARVAJANA SNEHA CHARITABLE TRUST" ? 'selected' : '' }}>SARVAJANA SNEHA CHARITABLE TRUST</option>
+                        <option value="WILHELM MEYERS DEVELOPMENTAL SOCIETY" {{ $executor->society_name == "WILHELM MEYERS DEVELOPMENTAL SOCIETY" ? 'selected' : '' }}>WILHELM MEYERS DEVELOPMENTAL SOCIETY</option>
+                        <option value="ST. ANNS'S SOCIETY, VISAKHAPATNAM" {{ $executor->society_name == "ST. ANNS'S SOCIETY, VISAKHAPATNAM" ? 'selected' : '' }}>ST. ANNS'S SOCIETY, VISAKHAPATNAM</option>
+                        <option value="ST.ANN'S SOCIETY, SOUTHERN REGION" {{ $executor->society_name == "ST.ANN'S SOCIETY, SOUTHERN REGION" ? 'selected' : '' }}>ST.ANN'S SOCIETY, SOUTHERN REGION</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="center">Center</label>

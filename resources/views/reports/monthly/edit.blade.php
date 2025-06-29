@@ -5,6 +5,32 @@
 <div class="page-content">
     <div class="row justify-content-center">
         <div class="col-md-12 col-xl-12">
+            <!-- Display any validation errors -->
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <h5>Please fix the following errors:</h5>
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <!-- Display any success messages -->
+            @if (session('success'))
+                <div class="alert alert-success">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            <!-- Display any error messages -->
+            @if (session('error'))
+                <div class="alert alert-danger">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             <form action="{{ route('monthly.report.update', $report->report_id) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT') <!-- Use PUT method for updating -->
@@ -119,7 +145,20 @@
                 <button type="button" class="btn btn-primary" onclick="addOutlook()">Add More Outlook</button>
 
                 <!-- Statements of Account Section -->
-                @include('reports.monthly.partials.edit.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                @if($project->project_type === 'Individual - Initial - Educational support')
+                    @include('reports.monthly.partials.edit.statements_of_account.individual_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                @elseif($project->project_type === 'Individual - Livelihood Application')
+                    @include('reports.monthly.partials.edit.statements_of_account.individual_livelihood', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                @elseif($project->project_type === 'Individual - Access to Health')
+                    @include('reports.monthly.partials.edit.statements_of_account.individual_health', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                @elseif($project->project_type === 'Institutional - Initial - Educational support')
+                    @include('reports.monthly.partials.edit.statements_of_account.institutional_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                @elseif($project->project_type === 'Development Projects')
+                    @include('reports.monthly.partials.edit.statements_of_account.development_projects', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                @else
+                    {{-- Fallback to generic for other project types --}}
+                    @include('reports.monthly.partials.edit.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                @endif
 
                 <!-- Photos Section -->
                 @include('reports.monthly.partials.edit.photos', ['report' => $report])

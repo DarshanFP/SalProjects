@@ -1,7 +1,7 @@
 {{-- <pre>{{ print_r($ILPStrengthWeakness, true) }}</pre> --}}
 @php
-    $strengths = $ILPStrengthWeakness['strengths'] ?? [];
-    $weaknesses = $ILPStrengthWeakness['weaknesses'] ?? [];
+    $strengths = is_array($ILPStrengthWeakness['strengths'] ?? null) ? $ILPStrengthWeakness['strengths'] : [];
+    $weaknesses = is_array($ILPStrengthWeakness['weaknesses'] ?? null) ? $ILPStrengthWeakness['weaknesses'] : [];
 @endphp
 
 
@@ -15,7 +15,7 @@
         <div class="mb-3">
             <label for="strengths" class="form-label">Strengths:</label>
             <div id="strengths-container">
-                @if(isset($strengths) && count($strengths) > 0)
+                @if(is_array($strengths) && count($strengths) > 0)
                     @foreach($strengths as $index => $strength)
                         <textarea name="strengths[{{ $index }}]" class="mt-2 form-control" rows="3" style="background-color: #202ba3;">{{ $strength }}</textarea>
                     @endforeach
@@ -32,7 +32,7 @@
         <div class="mt-4 mb-3">
             <label for="weaknesses" class="form-label">Weaknesses:</label>
             <div id="weaknesses-container">
-                @if(isset($weaknesses) && count($weaknesses) > 0)
+                @if(is_array($weaknesses) && count($weaknesses) > 0)
                     @foreach($weaknesses as $index => $weakness)
                         <textarea name="weaknesses[{{ $index }}]" class="mt-2 form-control" rows="3" style="background-color: #202ba3;">{{ $weakness }}</textarea>
                     @endforeach
@@ -51,8 +51,8 @@
 <script>
     (function(){
     document.addEventListener('DOMContentLoaded', function () {
-        let strengthIndex = {{ isset($strengths) ? count($strengths) : 1 }};
-        let weaknessIndex = {{ isset($weaknesses) ? count($weaknesses) : 1 }};
+        let strengthIndex = {{ is_array($strengths) ? count($strengths) : 1 }};
+        let weaknessIndex = {{ is_array($weaknesses) ? count($weaknesses) : 1 }};
 
         // Strengths Add/Remove functionality
         const strengthsContainer = document.getElementById('strengths-container');

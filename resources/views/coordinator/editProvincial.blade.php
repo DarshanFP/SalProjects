@@ -28,8 +28,20 @@
                             <input type="text" name="phone" class="form-control" value="{{ $provincial->phone }}">
                         </div>
                         <div class="form-group">
+                            <label for="province">Province</label>
+                            <select name="province" class="form-control" required id="province">
+                                <option value="" disabled selected>Choose one</option>
+                                <option value="Bangalore" {{ $provincial->province == 'Bangalore' ? 'selected' : '' }}>Bangalore</option>
+                                <option value="Vijayawada" {{ $provincial->province == 'Vijayawada' ? 'selected' : '' }}>Vijayawada</option>
+                                <option value="Visakhapatnam" {{ $provincial->province == 'Visakhapatnam' ? 'selected' : '' }}>Visakhapatnam</option>
+                                <option value="Generalate" {{ $provincial->province == 'Generalate' ? 'selected' : '' }}>Generalate</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label for="center">Center</label>
-                            <input type="text" name="center" class="form-control" value="{{ $provincial->center }}">
+                            <select name="center" class="form-control" id="center">
+                                <option value="" disabled selected>Choose province first</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="address">Address</label>
@@ -43,16 +55,6 @@
                                 <option value="provincial" {{ $provincial->role == 'provincial' ? 'selected' : '' }}>Provincial</option>
                                 <option value="executor" {{ $provincial->role == 'executor' ? 'selected' : '' }}>Executor</option>
                                 <option value="applicant" {{ $provincial->role == 'applicant' ? 'selected' : '' }}>Applicant</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="province">Province</label>
-                            <select name="province" class="form-control" required>
-                                <option value="" disabled selected>Choose one</option>
-                                <option value="Bangalore" {{ $provincial->province == 'Bangalore' ? 'selected' : '' }}>Bangalore</option>
-                                <option value="Vijayawada" {{ $provincial->province == 'Vijayawada' ? 'selected' : '' }}>Vijayawada</option>
-                                <option value="Visakhapatnam" {{ $provincial->province == 'Visakhapatnam' ? 'selected' : '' }}>Visakhapatnam</option>
-                                <option value="Generalate" {{ $provincial->province == 'Generalate' ? 'selected' : '' }}>Generalate</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -112,6 +114,42 @@ document.addEventListener('DOMContentLoaded', function () {
             confirmPasswordHelp.style.color = 'green';
         }
     };
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const provinceSelect = document.getElementById('province');
+    const centerSelect = document.getElementById('center');
+    const currentCenter = '{{ $provincial->center }}';
+
+    // Centers mapping
+    const centersMap = @json($centersMap);
+
+    // Function to populate centers
+    function populateCenters(province) {
+        centerSelect.innerHTML = '<option value="" disabled selected>Choose center</option>';
+
+        if (province && centersMap[province.toUpperCase()]) {
+            centersMap[province.toUpperCase()].forEach(function(center) {
+                const option = document.createElement('option');
+                option.value = center;
+                option.textContent = center;
+                if (center === currentCenter) {
+                    option.selected = true;
+                }
+                centerSelect.appendChild(option);
+            });
+        }
+    }
+
+    // Initialize centers based on current province
+    populateCenters(provinceSelect.value);
+
+    // Handle province change
+    provinceSelect.addEventListener('change', function() {
+        populateCenters(this.value);
+    });
 });
 </script>
 @endsection

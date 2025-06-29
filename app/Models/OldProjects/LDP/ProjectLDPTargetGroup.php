@@ -6,6 +6,33 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\OldProjects\Project;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $LDP_target_group_id
+ * @property string $project_id
+ * @property string|null $L_beneficiary_name
+ * @property string|null $L_family_situation
+ * @property string|null $L_nature_of_livelihood
+ * @property int|null $L_amount_requested
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPTargetGroup newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPTargetGroup newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPTargetGroup query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPTargetGroup whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPTargetGroup whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPTargetGroup whereLAmountRequested($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPTargetGroup whereLBeneficiaryName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPTargetGroup whereLDPTargetGroupId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPTargetGroup whereLFamilySituation($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPTargetGroup whereLNatureOfLivelihood($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPTargetGroup whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPTargetGroup whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class ProjectLDPTargetGroup extends Model
 {
     use HasFactory;

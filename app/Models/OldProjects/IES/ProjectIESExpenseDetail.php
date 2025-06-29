@@ -5,6 +5,27 @@ namespace App\Models\OldProjects\IES;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $IES_expense_id
+ * @property string $particular
+ * @property string $amount
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \App\Models\OldProjects\IES\ProjectIESExpenses $projectIESExpense
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIESExpenseDetail newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIESExpenseDetail newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIESExpenseDetail query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIESExpenseDetail whereAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIESExpenseDetail whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIESExpenseDetail whereIESExpenseId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIESExpenseDetail whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIESExpenseDetail whereParticular($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIESExpenseDetail whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class ProjectIESExpenseDetail extends Model
 {
     use HasFactory;

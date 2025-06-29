@@ -5,13 +5,13 @@
     </div>
     <div class="card-body">
         @foreach($project->objectives as $objective)
-        <div class="p-3 mb-4 border rounded objective-card">
+        <div class="p-3 mb-4 rounded border objective-card">
             <h5 class="mb-3">Objective: {{ $objective->objective }}</h5>
 
             <div class="mb-4 results-container">
                 <h6 class="mb-3">Results / Outcomes</h6>
                 @foreach($objective->results as $result)
-                <div class="p-2 mb-3 border rounded result-section">
+                <div class="p-2 mb-3 rounded border result-section">
                     <p>{{ $result->result }}</p>
                 </div>
                 @endforeach
@@ -21,7 +21,7 @@
             <div class="mb-4 risks-container">
                 <h6 class="mb-3">Risks</h6>
                 @if($objective->risks->isNotEmpty())
-                    <div class="p-2 mb-3 border rounded">
+                    <div class="p-2 mb-3 rounded border">
                         @foreach($objective->risks as $risk)
                             <p>{{ $risk->risk }}</p>
                         @endforeach
@@ -68,13 +68,17 @@
                         <tr class="activity-timeframe-row">
                             <td>{{ $activity->activity }}</td>
                             @foreach(range(1, 12) as $month)
-                            <td>
+                            <td class="text-center">
                                 @php
                                 $isChecked = $activity->timeframes->contains(function($timeframe) use ($month) {
                                     return $timeframe->month == $month && $timeframe->is_active == 1;
                                 });
                                 @endphp
-                                <input type="checkbox" class="custom-checkbox" {{ $isChecked ? 'checked' : '' }} >
+                                @if($isChecked)
+                                    <span class="checkmark-icon" style="font-size: 16px; font-weight: bold; color: #ccc;">✓</span>
+                                @else
+                                    <span style="font-size: 16px; color: #ccc;">○</span>
+                                @endif
                             </td>
                             @endforeach
                         </tr>

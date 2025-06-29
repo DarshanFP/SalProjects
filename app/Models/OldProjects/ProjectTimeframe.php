@@ -5,6 +5,30 @@ namespace App\Models\OldProjects;
 use App\Models\Reports\Monthly\DPActivity;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $timeframe_id
+ * @property string $activity_id
+ * @property string $month
+ * @property int $is_active
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read DPActivity $DPactivity
+ * @property-read \App\Models\OldProjects\ProjectActivity $activity
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectTimeframe newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectTimeframe newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectTimeframe query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectTimeframe whereActivityId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectTimeframe whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectTimeframe whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectTimeframe whereIsActive($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectTimeframe whereMonth($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectTimeframe whereTimeframeId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectTimeframe whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class ProjectTimeframe extends Model
 {
     protected $fillable = ['timeframe_id', 'activity_id', 'month', 'is_active'];

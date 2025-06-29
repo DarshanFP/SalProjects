@@ -102,22 +102,17 @@ class ProvincialController extends Controller
         ];
 
         foreach ($projects as $project) {
-            // Get project's sanctioned amount as base budget
             $projectBudget = $project->amount_sanctioned ?? 0;
             $projectForwarded = $project->amount_forwarded ?? 0;
-
-            // Calculate expenses from reports if they exist
             $totalExpenses = 0;
             if ($project->reports->count() > 0) {
                 foreach ($project->reports as $report) {
-                    $totalExpenses += $report->accountDetails->sum('total_expenses');
+                    if ($report->status === 'approved_by_coordinator') {
+                        $totalExpenses += $report->accountDetails->sum('total_expenses');
+                    }
                 }
             }
-
-            // Calculate remaining budget
             $remainingBudget = $projectBudget - $totalExpenses;
-
-            // Update project type summary
             if (!isset($budgetSummaries['by_project_type'][$project->project_type])) {
                 $budgetSummaries['by_project_type'][$project->project_type] = [
                     'total_budget' => 0,
@@ -128,8 +123,6 @@ class ProvincialController extends Controller
             $budgetSummaries['by_project_type'][$project->project_type]['total_budget'] += $projectBudget;
             $budgetSummaries['by_project_type'][$project->project_type]['total_expenses'] += $totalExpenses;
             $budgetSummaries['by_project_type'][$project->project_type]['total_remaining'] += $remainingBudget;
-
-            // Update center summary
             $center = $project->user->center ?? 'Unknown Center';
             if (!isset($budgetSummaries['by_center'][$center])) {
                 $budgetSummaries['by_center'][$center] = [
@@ -141,13 +134,10 @@ class ProvincialController extends Controller
             $budgetSummaries['by_center'][$center]['total_budget'] += $projectBudget;
             $budgetSummaries['by_center'][$center]['total_expenses'] += $totalExpenses;
             $budgetSummaries['by_center'][$center]['total_remaining'] += $remainingBudget;
-
-            // Update total summary
             $budgetSummaries['total']['total_budget'] += $projectBudget;
             $budgetSummaries['total']['total_expenses'] += $totalExpenses;
             $budgetSummaries['total']['total_remaining'] += $remainingBudget;
         }
-
         return $budgetSummaries;
     }
 
@@ -155,47 +145,46 @@ class ProvincialController extends Controller
     {
         $provincial = auth()->user();
 
-        // First, get approved projects for executors under this provincial
-        $projectsQuery = Project::whereHas('user', function ($query) use ($provincial) {
+        // Fetch reports for executors under this provincial
+        $reportsQuery = DPReport::whereHas('user', function ($query) use ($provincial) {
             $query->where('parent_id', $provincial->id);
-        })->where('status', 'approved_by_coordinator');
+        });
 
         // Apply filtering if provided in the request
         if ($request->filled('place')) {
-            $projectsQuery->whereHas('user', function ($query) use ($request) {
+            $reportsQuery->whereHas('user', function ($query) use ($request) {
                 $query->where('center', $request->place);
             });
         }
         if ($request->filled('user_id')) {
-            $projectsQuery->where('user_id', $request->user_id);
+            $reportsQuery->where('user_id', $request->user_id);
         }
         if ($request->filled('project_type')) {
-            $projectsQuery->where('project_type', $request->project_type);
+            $reportsQuery->where('project_type', $request->project_type);
         }
 
-        $projects = $projectsQuery->with(['user', 'reports.accountDetails'])->get();
+        $reports = $reportsQuery->with(['user', 'accountDetails'])->get();
 
-        // Calculate budget summaries from projects and their reports
-        $budgetSummaries = $this->calculateBudgetSummariesFromProjects($projects, $request);
+        // Calculate budget summaries from reports
+        $budgetSummaries = $this->calculateBudgetSummaries($reports, $request);
 
-        // Fetch unique centers from users of approved projects
-        $places = User::whereHas('projects', function ($query) use ($provincial) {
-            $query->whereHas('user', function ($subQuery) use ($provincial) {
-                $subQuery->where('parent_id', $provincial->id);
-            })->where('status', 'approved_by_coordinator');
-        })->distinct()->pluck('center');
+        // Fetch unique centers from users under this provincial
+        $places = User::where('parent_id', $provincial->id)
+                     ->whereNotNull('center')
+                     ->distinct()
+                     ->pluck('center');
 
         $users = User::where('parent_id', $provincial->id)->get();
 
         // Fetch distinct project types for filters
-        $projectTypes = Project::whereHas('user', function ($query) use ($provincial) {
+        $projectTypes = DPReport::whereHas('user', function ($query) use ($provincial) {
             $query->where('parent_id', $provincial->id);
-        })->where('status', 'approved_by_coordinator')->distinct()->pluck('project_type');
+        })->distinct()->pluck('project_type');
 
-        return view('provincial.ReportList', compact('projects', 'budgetSummaries', 'places', 'users', 'projectTypes'));
+        return view('provincial.ReportList', compact('reports', 'budgetSummaries', 'places', 'users', 'projectTypes'));
     }
 
-    private function calculateBudgetSummaries($reports, $request)
+    private function calculateBudgetSummaries($reports, $request, $onlyApproved = true)
     {
         $budgetSummaries = [
             'by_project_type' => [],
@@ -208,12 +197,12 @@ class ProvincialController extends Controller
         ];
 
         foreach ($reports as $report) {
-            // Calculate totals for this report
+            // Skip non-approved reports if onlyApproved is true
+            if ($onlyApproved && $report->status !== 'approved_by_coordinator') continue;
+
             $reportTotal = $report->accountDetails->sum('total_amount');
             $reportExpenses = $report->accountDetails->sum('total_expenses');
             $reportRemaining = $report->accountDetails->sum('balance_amount');
-
-            // Update project type summary
             if (!isset($budgetSummaries['by_project_type'][$report->project_type])) {
                 $budgetSummaries['by_project_type'][$report->project_type] = [
                     'total_budget' => 0,
@@ -224,8 +213,6 @@ class ProvincialController extends Controller
             $budgetSummaries['by_project_type'][$report->project_type]['total_budget'] += $reportTotal;
             $budgetSummaries['by_project_type'][$report->project_type]['total_expenses'] += $reportExpenses;
             $budgetSummaries['by_project_type'][$report->project_type]['total_remaining'] += $reportRemaining;
-
-            // Update center summary
             $center = $report->user->center ?? 'Unknown Center';
             if (!isset($budgetSummaries['by_center'][$center])) {
                 $budgetSummaries['by_center'][$center] = [
@@ -237,13 +224,10 @@ class ProvincialController extends Controller
             $budgetSummaries['by_center'][$center]['total_budget'] += $reportTotal;
             $budgetSummaries['by_center'][$center]['total_expenses'] += $reportExpenses;
             $budgetSummaries['by_center'][$center]['total_remaining'] += $reportRemaining;
-
-            // Update total summary
             $budgetSummaries['total']['total_budget'] += $reportTotal;
             $budgetSummaries['total']['total_expenses'] += $reportExpenses;
             $budgetSummaries['total']['total_remaining'] += $reportRemaining;
         }
-
         return $budgetSummaries;
     }
 
@@ -366,7 +350,7 @@ class ProvincialController extends Controller
             'VIJAYAWADA' => [
                 'Ajitsingh Nagar', 'Nunna', 'Jaggayyapeta', 'Beed', 'Mangalagiri',
                 'S.A.Peta', 'Thiruvur', 'Chakan', 'Megalaya', 'Rajavaram',
-                'Avanigadda', 'Darjeeling', 'Sarvajan Sneha Charitable Trust, Vijayawada', 'St. Anns Hospital Vijayawada'
+                'Avanigadda', 'Darjeeling', 'Sarvajan Sneha Charitable Trust, Vijayawada'
             ],
             'VISAKHAPATNAM' => [
                 'Arilova', 'Malkapuram', 'Madugula', 'Rajam', 'Kapileswarapuram',
@@ -374,11 +358,16 @@ class ProvincialController extends Controller
                 'Wilhelm Meyer\'s Developmental Society, Visakhapatnam.',
                 'Edavalli', 'Megalaya', 'Nalgonda', 'Shanthi Niwas, Madugula',
                 'Malkapuram College', 'Malkapuram Hospital', 'Arilova School',
-                'Morning Star, Eluru'
+                'Morning Star, Eluru', 'Butchirajaupalem', 'Malakapuram (Hospital)',
+                'Shalom', 'Berhampur, Odisha', 'Beemunipatnam', 'Mandapeta',
+                'Malkapuram School', 'Bheemunipatnam', 'Arunodaya', 'Pathapatnam',
+                'Paderu', 'Meyers Villa', 'Nalkonda'
             ],
             'BANGALORE' => [
                 'Prajyothi Welfare Centre', 'Gadag', 'Kurnool', 'Madurai',
-                'Madhavaram', 'Belgaum', 'Kadirepalli', 'Munambam', 'Kuderu'
+                'Madhavaram', 'Belgaum', 'Kadirepalli', 'Munambam', 'Kuderu',
+                'Tuticorin', 'Palakkad', 'Thejas', 'Sannenahalli', 'Solavidhyapuram',
+                'Kozhenchery', 'Nadavayal', 'Kodaikanal', 'PWC Bangalore', 'Taragarh', 'Chennai'
             ],
         ];
 
@@ -478,11 +467,16 @@ class ProvincialController extends Controller
                 'Wilhelm Meyer\'s Developmental Society, Visakhapatnam.',
                 'Edavalli', 'Megalaya', 'Nalgonda', 'Shanthi Niwas, Madugula',
                 'Malkapuram College', 'Malkapuram Hospital', 'Arilova School',
-                'Morning Star, Eluru'
+                'Morning Star, Eluru', 'Butchirajaupalem', 'Malakapuram (Hospital)',
+                'Shalom', 'Berhampur, Odisha', 'Beemunipatnam', 'Mandapeta',
+                'Malkapuram School', 'Bheemunipatnam', 'Arunodaya', 'Pathapatnam',
+                'Paderu', 'Meyers Villa', 'Nalkonda'
             ],
             'BANGALORE' => [
                 'Prajyothi Welfare Centre', 'Gadag', 'Kurnool', 'Madurai',
-                'Madhavaram', 'Belgaum', 'Kadirepalli', 'Munambam', 'Kuderu'
+                'Madhavaram', 'Belgaum', 'Kadirepalli', 'Munambam', 'Kuderu',
+                'Tuticorin', 'Palakkad', 'Thejas', 'Sannenahalli', 'Solavidhyapuram',
+                'Kozhenchery', 'Nadavayal', 'Kodaikanal', 'PWC Bangalore', 'Taragarh', 'Chennai'
             ],
         ];
 
@@ -663,35 +657,179 @@ class ProvincialController extends Controller
     {
         $provincial = auth()->user();
 
-        // Fetch approved projects for all executors under this provincial
-        // Use a subquery to get unique project IDs first, then fetch the full records
-        $projectIds = \App\Models\OldProjects\Project::whereHas('user', function($query) use ($provincial) {
+        // Get approved projects for executors under this provincial
+        $projectsQuery = Project::whereHas('user', function ($query) use ($provincial) {
             $query->where('parent_id', $provincial->id);
-        })
-        ->where('status', 'approved_by_coordinator')
-        ->distinct()
-        ->pluck('project_id');
+        })->where('status', 'approved_by_coordinator');
 
-        $projectsQuery = \App\Models\OldProjects\Project::whereIn('project_id', $projectIds)
-            ->with('user');
-
-        // Apply optional filters
+        // Apply filtering if provided in the request
+        if ($request->filled('place')) {
+            $projectsQuery->whereHas('user', function ($query) use ($request) {
+                $query->where('center', $request->place);
+            });
+        }
+        if ($request->filled('user_id')) {
+            $projectsQuery->where('user_id', $request->user_id);
+        }
         if ($request->filled('project_type')) {
             $projectsQuery->where('project_type', $request->project_type);
         }
 
-        if ($request->filled('user_id')) {
-            $projectsQuery->where('user_id', $request->user_id);
+        $projects = $projectsQuery->with(['user', 'reports.accountDetails'])->get();
+
+        // Fetch unique centers from users of approved projects
+        $places = User::whereHas('projects', function ($query) use ($provincial) {
+            $query->whereHas('user', function ($subQuery) use ($provincial) {
+                $subQuery->where('parent_id', $provincial->id);
+            })->where('status', 'approved_by_coordinator');
+        })->distinct()->pluck('center');
+
+        $users = User::where('parent_id', $provincial->id)->get();
+
+        // Fetch distinct project types for filters
+        $projectTypes = Project::whereHas('user', function ($query) use ($provincial) {
+            $query->where('parent_id', $provincial->id);
+        })->where('status', 'approved_by_coordinator')->distinct()->pluck('project_type');
+
+        return view('provincial.approvedProjects', compact('projects', 'places', 'users', 'projectTypes'));
+    }
+
+    public function forwardReport(Request $request, $report_id)
+    {
+        $report = DPReport::where('report_id', $report_id)->firstOrFail();
+
+        // Check if the report belongs to an executor under this provincial
+        $provincial = auth()->user();
+        if ($report->user->parent_id !== $provincial->id) {
+            return redirect()->back()->with('error', 'You are not authorized to forward this report.');
         }
 
-        $projects = $projectsQuery->orderBy('project_id')->orderBy('user_id')->get();
+        // Check if report is in submitted_to_provincial status
+        if ($report->status !== 'submitted_to_provincial') {
+            return redirect()->back()->with('error', 'Report can only be forwarded when in submitted to provincial status.');
+        }
 
-        // Fetch distinct executors under this provincial for filtering
-        $users = \App\Models\User::where('parent_id', $provincial->id)->get();
+        // Update report status to forwarded_to_coordinator
+        $report->update([
+            'status' => 'forwarded_to_coordinator'
+        ]);
 
-        // Distinct project types
-        $projectTypes = \App\Models\OldProjects\Project::distinct()->pluck('project_type');
+        return redirect()->route('provincial.report.list')->with('success', 'Report forwarded to coordinator successfully.');
+    }
 
-        return view('provincial.approvedProjects', compact('projects', 'users', 'projectTypes'));
+    public function revertReport(Request $request, $report_id)
+    {
+        $request->validate([
+            'revert_reason' => 'required|string|max:1000'
+        ]);
+
+        $report = DPReport::where('report_id', $report_id)->firstOrFail();
+
+        // Check if the report belongs to an executor under this provincial
+        $provincial = auth()->user();
+        if ($report->user->parent_id !== $provincial->id) {
+            return redirect()->back()->with('error', 'You are not authorized to revert this report.');
+        }
+
+        // Check if report is in submitted_to_provincial status
+        if ($report->status !== 'submitted_to_provincial') {
+            return redirect()->back()->with('error', 'Report can only be reverted when in submitted to provincial status.');
+        }
+
+        // Update report status to reverted_by_provincial
+        $report->update([
+            'status' => 'reverted_by_provincial',
+            'revert_reason' => $request->revert_reason
+        ]);
+
+        return redirect()->route('provincial.report.list')->with('success', 'Report reverted to executor successfully.');
+    }
+
+    public function pendingReports(Request $request)
+    {
+        $provincial = auth()->user();
+
+        // Fetch pending reports for executors under this provincial (submitted_to_provincial, reverted_by_coordinator)
+        $reportsQuery = DPReport::whereHas('user', function ($query) use ($provincial) {
+            $query->where('parent_id', $provincial->id);
+        })->whereIn('status', ['submitted_to_provincial', 'reverted_by_coordinator']);
+
+        // Apply filtering if provided in the request
+        if ($request->filled('place')) {
+            $reportsQuery->whereHas('user', function ($query) use ($request) {
+                $query->where('center', $request->place);
+            });
+        }
+        if ($request->filled('user_id')) {
+            $reportsQuery->where('user_id', $request->user_id);
+        }
+        if ($request->filled('project_type')) {
+            $reportsQuery->where('project_type', $request->project_type);
+        }
+
+        $reports = $reportsQuery->with(['user', 'accountDetails'])->get();
+
+        // Calculate budget summaries from reports (include all reports for pending)
+        $budgetSummaries = $this->calculateBudgetSummaries($reports, $request, false);
+
+        // Fetch unique centers from users under this provincial
+        $places = User::where('parent_id', $provincial->id)
+                     ->whereNotNull('center')
+                     ->distinct()
+                     ->pluck('center');
+
+        $users = User::where('parent_id', $provincial->id)->get();
+
+        // Fetch distinct project types for filters
+        $projectTypes = DPReport::whereHas('user', function ($query) use ($provincial) {
+            $query->where('parent_id', $provincial->id);
+        })->whereIn('status', ['submitted_to_provincial', 'reverted_by_coordinator'])
+        ->distinct()->pluck('project_type');
+
+        return view('provincial.pendingReports', compact('reports', 'budgetSummaries', 'places', 'users', 'projectTypes'));
+    }
+
+    public function approvedReports(Request $request)
+    {
+        $provincial = auth()->user();
+
+        // Fetch approved reports for executors under this provincial
+        $reportsQuery = DPReport::whereHas('user', function ($query) use ($provincial) {
+            $query->where('parent_id', $provincial->id);
+        })->where('status', 'approved_by_coordinator');
+
+        // Apply filtering if provided in the request
+        if ($request->filled('place')) {
+            $reportsQuery->whereHas('user', function ($query) use ($request) {
+                $query->where('center', $request->place);
+            });
+        }
+        if ($request->filled('user_id')) {
+            $reportsQuery->where('user_id', $request->user_id);
+        }
+        if ($request->filled('project_type')) {
+            $reportsQuery->where('project_type', $request->project_type);
+        }
+
+        $reports = $reportsQuery->with(['user', 'accountDetails'])->get();
+
+        // Calculate budget summaries from reports (only approved reports)
+        $budgetSummaries = $this->calculateBudgetSummaries($reports, $request, true);
+
+        // Fetch unique centers from users under this provincial
+        $places = User::where('parent_id', $provincial->id)
+                     ->whereNotNull('center')
+                     ->distinct()
+                     ->pluck('center');
+
+        $users = User::where('parent_id', $provincial->id)->get();
+
+        // Fetch distinct project types for filters
+        $projectTypes = DPReport::whereHas('user', function ($query) use ($provincial) {
+            $query->where('parent_id', $provincial->id);
+        })->where('status', 'approved_by_coordinator')
+        ->distinct()->pluck('project_type');
+
+        return view('provincial.approvedReports', compact('reports', 'budgetSummaries', 'places', 'users', 'projectTypes'));
     }
 }

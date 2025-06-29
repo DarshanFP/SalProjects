@@ -6,6 +6,33 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\OldProjects\Project;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $IGE_institution_id
+ * @property string $project_id
+ * @property string|null $institutional_type
+ * @property string|null $age_group
+ * @property int|null $previous_year_beneficiaries
+ * @property string|null $outcome_impact
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEInstitutionInfo newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEInstitutionInfo newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEInstitutionInfo query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEInstitutionInfo whereAgeGroup($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEInstitutionInfo whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEInstitutionInfo whereIGEInstitutionId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEInstitutionInfo whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEInstitutionInfo whereInstitutionalType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEInstitutionInfo whereOutcomeImpact($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEInstitutionInfo wherePreviousYearBeneficiaries($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEInstitutionInfo whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIGEInstitutionInfo whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class ProjectIGEInstitutionInfo extends Model
 {
     use HasFactory;

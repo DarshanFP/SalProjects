@@ -80,8 +80,14 @@
                 </a>
                 <div class="collapse" id="reportsMenu">
                     <ul class="nav sub-menu">
-                        <li class="nav-item">
+                        {{-- <li class="nav-item">
                             <a href="{{ route('coordinator.report.list') }}" class="nav-link">All Project Reports</a>
+                        </li> --}}
+                        <li class="nav-item">
+                            <a href="{{ route('coordinator.report.pending') }}" class="nav-link">Pending Reports</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('coordinator.report.approved') }}" class="nav-link">Approved Reports</a>
                         </li>
                     </ul>
                 </div>

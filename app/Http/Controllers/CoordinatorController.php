@@ -102,7 +102,7 @@ class CoordinatorController extends Controller
         return view('coordinator.index', compact('budgetSummaries', 'provinces', 'centers', 'roles', 'parents', 'projectTypes'));
     }
 
-    private function calculateBudgetSummariesFromProjects($projects, $request)
+    private function calculateBudgetSummaries($reports, $request, $onlyApproved = true)
     {
         $budgetSummaries = [
             'by_project_type' => [],
@@ -114,60 +114,78 @@ class CoordinatorController extends Controller
             ]
         ];
 
-        foreach ($projects as $project) {
-            // Calculate project budget from multiple sources
-            $projectBudget = 0;
+        foreach ($reports as $report) {
+            // Skip non-approved reports if onlyApproved is true
+            if ($onlyApproved && $report->status !== 'approved_by_coordinator') continue;
 
-            // First, try to get from overall_project_budget (this should be the primary source)
+            $reportTotal = $report->accountDetails->sum('total_amount');
+            $reportExpenses = $report->accountDetails->sum('total_expenses');
+            $reportRemaining = $report->accountDetails->sum('balance_amount');
+            if (!isset($budgetSummaries['by_project_type'][$report->project_type])) {
+                $budgetSummaries['by_project_type'][$report->project_type] = [
+                    'total_budget' => 0,
+                    'total_expenses' => 0,
+                    'total_remaining' => 0
+                ];
+            }
+            $budgetSummaries['by_project_type'][$report->project_type]['total_budget'] += $reportTotal;
+            $budgetSummaries['by_project_type'][$report->project_type]['total_expenses'] += $reportExpenses;
+            $budgetSummaries['by_project_type'][$report->project_type]['total_remaining'] += $reportRemaining;
+            $province = $report->user->province;
+            if (!isset($budgetSummaries['by_province'][$province])) {
+                $budgetSummaries['by_province'][$province] = [
+                    'total_budget' => 0,
+                    'total_expenses' => 0,
+                    'total_remaining' => 0
+                ];
+            }
+            $budgetSummaries['by_province'][$province]['total_budget'] += $reportTotal;
+            $budgetSummaries['by_province'][$province]['total_expenses'] += $reportExpenses;
+            $budgetSummaries['by_province'][$province]['total_remaining'] += $reportRemaining;
+            $budgetSummaries['total']['total_budget'] += $reportTotal;
+            $budgetSummaries['total']['total_expenses'] += $reportExpenses;
+            $budgetSummaries['total']['total_remaining'] += $reportRemaining;
+        }
+        return $budgetSummaries;
+    }
+
+    private function calculateBudgetSummariesFromProjects($projects, $request)
+    {
+        $budgetSummaries = [
+            'by_project_type' => [],
+            'by_province' => [],
+            'total' => [
+                'total_budget' => 0,
+                'total_expenses' => 0,
+                'total_remaining' => 0
+            ]
+        ];
+        foreach ($projects as $project) {
+            $projectBudget = 0;
             if ($project->overall_project_budget && $project->overall_project_budget > 0) {
                 $projectBudget = $project->overall_project_budget;
-            }
-            // If not available, try to get from amount_sanctioned
-            elseif ($project->amount_sanctioned && $project->amount_sanctioned > 0) {
+            } elseif ($project->amount_sanctioned && $project->amount_sanctioned > 0) {
                 $projectBudget = $project->amount_sanctioned;
-            }
-            // If neither is available, calculate from budget details
-            elseif ($project->budgets && $project->budgets->count() > 0) {
+            } elseif ($project->budgets && $project->budgets->count() > 0) {
                 $projectBudget = $project->budgets->sum('this_phase');
             }
-
-            // If still no budget, try to get from reports
             if ($projectBudget == 0 && $project->reports && $project->reports->count() > 0) {
                 foreach ($project->reports as $report) {
-                    if ($report->accountDetails && $report->accountDetails->count() > 0) {
+                    if ($report->status === 'approved_by_coordinator' && $report->accountDetails && $report->accountDetails->count() > 0) {
                         $projectBudget = $report->accountDetails->sum('total_amount');
-                        break; // Use the first report's total amount
+                        break;
                     }
                 }
             }
-
-            // Calculate expenses from reports if they exist
             $totalExpenses = 0;
             if ($project->reports && $project->reports->count() > 0) {
                 foreach ($project->reports as $report) {
-                    if ($report->accountDetails && $report->accountDetails->count() > 0) {
+                    if ($report->status === 'approved_by_coordinator' && $report->accountDetails && $report->accountDetails->count() > 0) {
                         $totalExpenses += $report->accountDetails->sum('total_expenses');
                     }
                 }
             }
-
-            // Calculate remaining budget
             $remainingBudget = $projectBudget - $totalExpenses;
-
-            // Debug logging for this project
-            \Log::info('Project Budget Calculation', [
-                'project_id' => $project->project_id,
-                'project_title' => $project->project_title,
-                'amount_sanctioned' => $project->amount_sanctioned,
-                'overall_project_budget' => $project->overall_project_budget,
-                'budgets_count' => $project->budgets ? $project->budgets->count() : 0,
-                'reports_count' => $project->reports ? $project->reports->count() : 0,
-                'calculated_project_budget' => $projectBudget,
-                'total_expenses' => $totalExpenses,
-                'remaining_budget' => $remainingBudget
-            ]);
-
-            // Update project type summary
             if (!isset($budgetSummaries['by_project_type'][$project->project_type])) {
                 $budgetSummaries['by_project_type'][$project->project_type] = [
                     'total_budget' => 0,
@@ -178,8 +196,6 @@ class CoordinatorController extends Controller
             $budgetSummaries['by_project_type'][$project->project_type]['total_budget'] += $projectBudget;
             $budgetSummaries['by_project_type'][$project->project_type]['total_expenses'] += $totalExpenses;
             $budgetSummaries['by_project_type'][$project->project_type]['total_remaining'] += $remainingBudget;
-
-            // Update province summary
             $province = $project->user->province;
             if (!isset($budgetSummaries['by_province'][$province])) {
                 $budgetSummaries['by_province'][$province] = [
@@ -191,22 +207,10 @@ class CoordinatorController extends Controller
             $budgetSummaries['by_province'][$province]['total_budget'] += $projectBudget;
             $budgetSummaries['by_province'][$province]['total_expenses'] += $totalExpenses;
             $budgetSummaries['by_province'][$province]['total_remaining'] += $remainingBudget;
-
-            // Update total summary
             $budgetSummaries['total']['total_budget'] += $projectBudget;
             $budgetSummaries['total']['total_expenses'] += $totalExpenses;
             $budgetSummaries['total']['total_remaining'] += $remainingBudget;
         }
-
-        // Debug logging for final summaries
-        \Log::info('Final Budget Summaries', [
-            'total_budget' => $budgetSummaries['total']['total_budget'],
-            'total_expenses' => $budgetSummaries['total']['total_expenses'],
-            'total_remaining' => $budgetSummaries['total']['total_remaining'],
-            'by_project_type' => $budgetSummaries['by_project_type'],
-            'by_province' => $budgetSummaries['by_province']
-        ]);
-
         return $budgetSummaries;
     }
 
@@ -247,64 +251,6 @@ class CoordinatorController extends Controller
 
         // Return the ReportList view with the filtered reports, project types, etc.
         return view('coordinator.ReportList', compact('reports', 'coordinator', 'provinces', 'users', 'projectTypes'));
-    }
-
-    private function calculateBudgetSummaries($projects, $request)
-    {
-        // Get reports for these projects
-        $reports = DPReport::with(['user', 'accountDetails'])
-            ->whereIn('project_id', $projects->pluck('project_id'))
-            ->get();
-
-        // Calculate budget summaries
-        $budgetSummaries = [
-            'by_project_type' => [],
-            'by_province' => [],
-            'total' => [
-                'total_budget' => 0,
-                'total_expenses' => 0,
-                'total_remaining' => 0
-            ]
-        ];
-
-        foreach ($reports as $report) {
-            // Calculate totals for this report
-            $reportTotal = $report->accountDetails->sum('total_amount');
-            $reportExpenses = $report->accountDetails->sum('total_expenses');
-            $reportRemaining = $report->accountDetails->sum('balance_amount');
-
-            // Update project type summary
-            if (!isset($budgetSummaries['by_project_type'][$report->project_type])) {
-                $budgetSummaries['by_project_type'][$report->project_type] = [
-                    'total_budget' => 0,
-                    'total_expenses' => 0,
-                    'total_remaining' => 0
-                ];
-            }
-            $budgetSummaries['by_project_type'][$report->project_type]['total_budget'] += $reportTotal;
-            $budgetSummaries['by_project_type'][$report->project_type]['total_expenses'] += $reportExpenses;
-            $budgetSummaries['by_project_type'][$report->project_type]['total_remaining'] += $reportRemaining;
-
-            // Update province summary
-            $province = $report->user->province;
-            if (!isset($budgetSummaries['by_province'][$province])) {
-                $budgetSummaries['by_province'][$province] = [
-                    'total_budget' => 0,
-                    'total_expenses' => 0,
-                    'total_remaining' => 0
-                ];
-            }
-            $budgetSummaries['by_province'][$province]['total_budget'] += $reportTotal;
-            $budgetSummaries['by_province'][$province]['total_expenses'] += $reportExpenses;
-            $budgetSummaries['by_province'][$province]['total_remaining'] += $reportRemaining;
-
-            // Update total summary
-            $budgetSummaries['total']['total_budget'] += $reportTotal;
-            $budgetSummaries['total']['total_expenses'] += $reportExpenses;
-            $budgetSummaries['total']['total_remaining'] += $reportRemaining;
-        }
-
-        return $budgetSummaries;
     }
 
     public function ProjectList(Request $request)
@@ -440,7 +386,33 @@ class CoordinatorController extends Controller
 
     public function createProvincial()
     {
-        return view('coordinator.createProvincial');
+        // Define the mapping of provinces to their centers
+        $centersMap = [
+            'VIJAYAWADA' => [
+                'Ajitsingh Nagar', 'Nunna', 'Jaggayyapeta', 'Beed', 'Mangalagiri',
+                'S.A.Peta', 'Thiruvur', 'Chakan', 'Megalaya', 'Rajavaram',
+                'Avanigadda', 'Darjeeling', 'Sarvajan Sneha Charitable Trust, Vijayawada', 'St. Anns Hospital Vijayawada'
+            ],
+            'VISAKHAPATNAM' => [
+                'Arilova', 'Malkapuram', 'Madugula', 'Rajam', 'Kapileswarapuram',
+                'Erukonda', 'Navajara, Jharkhand', 'Jalaripeta',
+                'Wilhelm Meyer\'s Developmental Society, Visakhapatnam.',
+                'Edavalli', 'Megalaya', 'Nalgonda', 'Shanthi Niwas, Madugula',
+                'Malkapuram College', 'Malkapuram Hospital', 'Arilova School',
+                'Morning Star, Eluru', 'Butchirajaupalem', 'Malakapuram (Hospital)',
+                'Shalom', 'Berhampur, Odisha', 'Beemunipatnam', 'Mandapeta',
+                'Malkapuram School', 'Bheemunipatnam', 'Arunodaya', 'Pathapatnam',
+                'Paderu', 'Meyers Villa', 'Nalkonda'
+            ],
+            'BANGALORE' => [
+                'Prajyothi Welfare Centre', 'Gadag', 'Kurnool', 'Madurai',
+                'Madhavaram', 'Belgaum', 'Kadirepalli', 'Munambam', 'Kuderu',
+                'Tuticorin', 'Palakkad', 'Thejas', 'Sannenahalli', 'Solavidhyapuram',
+                'Kozhenchery', 'Nadavayal', 'Kodaikanal', 'PWC Bangalore', 'Taragarh', 'Chennai'
+            ],
+        ];
+
+        return view('coordinator.createProvincial', compact('centersMap'));
     }
 
     public function storeProvincial(Request $request)
@@ -538,7 +510,34 @@ class CoordinatorController extends Controller
     public function editProvincial($id)
     {
         $provincial = User::findOrFail($id);
-        return view('coordinator.editProvincial', compact('provincial'));
+
+        // Define the mapping of provinces to their centers
+        $centersMap = [
+            'VIJAYAWADA' => [
+                'Ajitsingh Nagar', 'Nunna', 'Jaggayyapeta', 'Beed', 'Mangalagiri',
+                'S.A.Peta', 'Thiruvur', 'Chakan', 'Megalaya', 'Rajavaram',
+                'Avanigadda', 'Darjeeling', 'Sarvajan Sneha Charitable Trust, Vijayawada', 'St. Anns Hospital Vijayawada'
+            ],
+            'VISAKHAPATNAM' => [
+                'Arilova', 'Malkapuram', 'Madugula', 'Rajam', 'Kapileswarapuram',
+                'Erukonda', 'Navajara, Jharkhand', 'Jalaripeta',
+                'Wilhelm Meyer\'s Developmental Society, Visakhapatnam.',
+                'Edavalli', 'Megalaya', 'Nalgonda', 'Shanthi Niwas, Madugula',
+                'Malkapuram College', 'Malkapuram Hospital', 'Arilova School',
+                'Morning Star, Eluru', 'Butchirajaupalem', 'Malakapuram (Hospital)',
+                'Shalom', 'Berhampur, Odisha', 'Beemunipatnam', 'Mandapeta',
+                'Malkapuram School', 'Bheemunipatnam', 'Arunodaya', 'Pathapatnam',
+                'Paderu', 'Meyers Villa', 'Nalkonda'
+            ],
+            'BANGALORE' => [
+                'Prajyothi Welfare Centre', 'Gadag', 'Kurnool', 'Madurai',
+                'Madhavaram', 'Belgaum', 'Kadirepalli', 'Munambam', 'Kuderu',
+                'Tuticorin', 'Palakkad', 'Thejas', 'Sannenahalli', 'Solavidhyapuram',
+                'Kozhenchery', 'Nadavayal', 'Kodaikanal', 'PWC Bangalore', 'Taragarh', 'Chennai'
+            ],
+        ];
+
+        return view('coordinator.editProvincial', compact('provincial', 'centersMap'));
     }
 
     public function updateProvincial(Request $request, $id)
@@ -972,15 +971,127 @@ public function budgetOverview()
     {
         $province = $request->get('province');
 
-        $query = User::where('role', 'executor');
-
-        if ($province) {
-            $query->where('province', $province);
+        if (!$province) {
+            return response()->json([]);
         }
 
-        $executors = $query->select('id', 'name', 'province')->get();
+        $executors = User::where('role', 'executor')
+                        ->where('province', $province)
+                        ->select('id', 'name', 'center')
+                        ->get();
 
         return response()->json($executors);
+    }
+
+    public function approveReport(Request $request, $report_id)
+    {
+        $report = DPReport::where('report_id', $report_id)->firstOrFail();
+
+        // Check if report is in forwarded_to_coordinator status
+        if ($report->status !== 'forwarded_to_coordinator') {
+            return redirect()->back()->with('error', 'Report can only be approved when in forwarded to coordinator status.');
+        }
+
+        // Update report status to approved_by_coordinator
+        $report->update([
+            'status' => 'approved_by_coordinator'
+        ]);
+
+        return redirect()->route('coordinator.report.list')->with('success', 'Report approved successfully.');
+    }
+
+    public function revertReport(Request $request, $report_id)
+    {
+        $request->validate([
+            'revert_reason' => 'required|string|max:1000'
+        ]);
+
+        $report = DPReport::where('report_id', $report_id)->firstOrFail();
+
+        // Check if report is in forwarded_to_coordinator status
+        if ($report->status !== 'forwarded_to_coordinator') {
+            return redirect()->back()->with('error', 'Report can only be reverted when in forwarded to coordinator status.');
+        }
+
+        // Update report status to reverted_by_coordinator
+        $report->update([
+            'status' => 'reverted_by_coordinator',
+            'revert_reason' => $request->revert_reason
+        ]);
+
+        return redirect()->route('coordinator.report.list')->with('success', 'Report reverted to provincial successfully.');
+    }
+
+    public function pendingReports(Request $request)
+    {
+        $coordinator = Auth::user();
+
+        // Fetch pending reports (forwarded_to_coordinator)
+        $reportsQuery = DPReport::where('status', 'forwarded_to_coordinator')
+                               ->with(['user', 'accountDetails']);
+
+        // Apply filters
+        if ($request->filled('province')) {
+            $reportsQuery->whereHas('user', function($query) use ($request) {
+                $query->where('province', $request->province);
+            });
+        }
+        if ($request->filled('user_id')) {
+            $reportsQuery->where('user_id', $request->user_id);
+        }
+        if ($request->filled('project_type')) {
+            $reportsQuery->where('project_type', $request->project_type);
+        }
+
+        $reports = $reportsQuery->get();
+
+        // Calculate budget summaries
+        $budgetSummaries = $this->calculateBudgetSummaries($reports, $request, false);
+
+        // Fetch provinces and users for filtering options
+        $provinces = User::distinct()->pluck('province');
+        $users = User::all();
+
+        // Fetch distinct project types
+        $projectTypes = DPReport::where('status', 'forwarded_to_coordinator')->distinct()->pluck('project_type');
+
+        return view('coordinator.pendingReports', compact('reports', 'coordinator', 'provinces', 'users', 'projectTypes'));
+    }
+
+    public function approvedReports(Request $request)
+    {
+        $coordinator = Auth::user();
+
+        // Fetch approved reports
+        $reportsQuery = DPReport::where('status', 'approved_by_coordinator')
+                               ->with(['user', 'accountDetails']);
+
+        // Apply filters
+        if ($request->filled('province')) {
+            $reportsQuery->whereHas('user', function($query) use ($request) {
+                $query->where('province', $request->province);
+            });
+        }
+        if ($request->filled('user_id')) {
+            $reportsQuery->where('user_id', $request->user_id);
+        }
+        if ($request->filled('project_type')) {
+            $reportsQuery->where('project_type', $request->project_type);
+        }
+
+        $reports = $reportsQuery->get();
+
+        // Calculate budget summaries
+        $budgetSummaries = $this->calculateBudgetSummaries($reports, $request, true);
+
+        // Fetch provinces and users for filtering options
+        $provinces = User::distinct()->pluck('province');
+        $users = User::all();
+
+        // Fetch distinct project types
+        $projectTypes = DPReport::where('status', 'approved_by_coordinator')->distinct()->pluck('project_type');
+
+        return view('coordinator.approvedReports', compact('reports', 'coordinator', 'provinces', 'users', 'projectTypes'));
     }
 
 }

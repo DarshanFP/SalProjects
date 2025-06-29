@@ -91,10 +91,10 @@ class AttachedDocumentsController extends Controller
         $documents = ProjectILPAttachedDocuments::where('project_id', $projectId)->first();
 
         return [
-            'aadhar_doc' => $documents ? $documents->aadhar_doc : null,
-            'request_letter_doc' => $documents ? $documents->request_letter_doc : null,
-            'purchase_quotation_doc' => $documents ? $documents->purchase_quotation_doc : null,
-            'other_doc' => $documents ? $documents->other_doc : null,
+            'aadhar_doc' => $documents && $documents->aadhar_doc ? Storage::url($documents->aadhar_doc) : null,
+            'request_letter_doc' => $documents && $documents->request_letter_doc ? Storage::url($documents->request_letter_doc) : null,
+            'purchase_quotation_doc' => $documents && $documents->purchase_quotation_doc ? Storage::url($documents->purchase_quotation_doc) : null,
+            'other_doc' => $documents && $documents->other_doc ? Storage::url($documents->other_doc) : null,
         ];
     } catch (\Exception $e) {
         Log::error('Error fetching ILP Attached Documents', ['error' => $e->getMessage()]);

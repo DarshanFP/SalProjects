@@ -6,133 +6,469 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Reports\Monthly\ReportAttachment;
 use App\Models\Reports\Monthly\DPReport;
+use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use App\Models\Reports\Monthly\DPPhoto;
 
 class ReportAttachmentController extends Controller
 {
+    // Allowed file types and their MIME types
+    private const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx'];
+    private const ALLOWED_MIME_TYPES = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+    private const MAX_FILE_SIZE = 2097152; // 2MB in bytes
+
     public function store(Request $request, DPReport $report)
     {
-        Log::info('ReportAttachmentController@store - Data received', ['data' => $request->all()]);
+        Log::info('=== ReportAttachmentController@store START ===');
 
-        if (!$request->hasFile('file') || !$request->file('file')->isValid()) {
-            Log::error('ReportAttachmentController@store - Invalid file upload');
-            return response()->json(['error' => 'Invalid file upload'], 400);
+        // Validate request data
+        $validator = Validator::make($request->all(), [
+            'file' => 'required|file|max:2048', // 2MB max
+            'file_name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000'
+        ]);
+
+        if ($validator->fails()) {
+            Log::error('ReportAttachmentController@store - Validation failed', ['errors' => $validator->errors()]);
+            return response()->json(['error' => 'Validation failed', 'details' => $validator->errors()], 422);
         }
 
         $file = $request->file('file');
-        $filename = $request->input('file_name', 'default_filename') . '.' . $file->getClientOriginalExtension();
-        $filename = str_replace(' ', '_', $filename);
 
-        $path = $file->storeAs('public/report_attachments', $filename);
-        if (!$path) {
-            Log::error('ReportAttachmentController@store - File storage failed');
-            return response()->json(['error' => 'File storage failed'], 500);
+        // Validate file type
+        if (!$this->isValidFileType($file)) {
+            Log::error('ReportAttachmentController@store - Invalid file type', [
+                'mime_type' => $file->getMimeType(),
+                'extension' => $file->getClientOriginalExtension()
+            ]);
+            return response()->json(['error' => 'Invalid file type. Only PDF, DOC, DOCX, XLS, and XLSX files are allowed.'], 400);
         }
 
-        $publicUrl = Storage::url($path);
+        // Sanitize filename
+        $filename = $this->sanitizeFilename($request->input('file_name'), $file->getClientOriginalExtension());
 
-
-        $attachment = new ReportAttachment([
-            'report_id' => $report->report_id,
-            'file_name' => $filename,
-            'file_path' => $path,
-            'description' => $request->input('description', ''),
-            'public_url' => $publicUrl,
-        ]);
-
-        if (!$attachment->save()) {
-            Log::error('ReportAttachmentController@store - Database insertion failed');
-            return response()->json(['error' => 'Database insertion failed'], 500);
+        // Get project
+        $project = Project::where('project_id', $report->project_id)->first();
+        if (!$project) {
+            Log::error('ReportAttachmentController@store - Project not found', ['project_id' => $report->project_id]);
+            return response()->json(['error' => 'Project not found'], 404);
         }
 
-        Log::info('ReportAttachmentController@store - File uploaded and database updated', ['file_name' => $filename, 'report_id' => $report->report_id]);
-        return $attachment;
+        // Create folder structure
+        $monthYear = date('m_Y', strtotime($report->report_month_year));
+        $folderPath = "REPORTS/{$project->project_id}/{$report->report_id}/attachments/{$monthYear}";
+
+        // Ensure directory exists
+        if (!Storage::disk('public')->exists($folderPath)) {
+            Storage::disk('public')->makeDirectory($folderPath, 0755, true);
+        }
+
+        // Store file with transaction
+        try {
+            DB::beginTransaction();
+
+            $path = $file->storeAs($folderPath, $filename, 'public');
+            if (!$path) {
+                throw new \Exception('File storage failed');
+            }
+
+            $publicUrl = Storage::url($path);
+
+            $attachment = new ReportAttachment([
+                'report_id' => $report->report_id,
+                'file_name' => $filename,
+                'file_path' => $path,
+                'description' => $request->input('description', ''),
+                'public_url' => $publicUrl,
+            ]);
+
+            if (!$attachment->save()) {
+                throw new \Exception('Database insertion failed');
+            }
+
+            DB::commit();
+
+            Log::info('ReportAttachmentController@store - Success', [
+                'file_name' => $filename,
+                'attachment_id' => $attachment->attachment_id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'attachment' => $attachment,
+                'message' => 'File uploaded successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            // Clean up uploaded file if it exists
+            if (isset($path) && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+
+            Log::error('ReportAttachmentController@store - Error', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to upload file: ' . $e->getMessage()], 500);
+        }
     }
 
     public function downloadAttachment($id)
     {
         try {
             $attachment = ReportAttachment::findOrFail($id);
-            $path = $attachment->file_path;
 
-            if (!Storage::exists($path)) {
-                abort(404, 'File not found.');
+            // Check if file exists in storage
+            if (!Storage::disk('public')->exists($attachment->file_path)) {
+                Log::error('ReportAttachmentController@downloadAttachment - File not found', [
+                    'attachment_id' => $id,
+                    'file_path' => $attachment->file_path
+                ]);
+                return response()->json(['error' => 'File not found'], 404);
             }
 
-            return Storage::download($path, $attachment->file_name);
+            // Log download for audit
+            Log::info('ReportAttachmentController@downloadAttachment - File downloaded', [
+                'attachment_id' => $id,
+                'file_name' => $attachment->file_name
+            ]);
+
+            return Storage::disk('public')->download($attachment->file_path, $attachment->file_name);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('ReportAttachmentController@downloadAttachment - Attachment not found', ['attachment_id' => $id]);
+            return response()->json(['error' => 'Attachment not found'], 404);
         } catch (\Exception $e) {
-            Log::error('Failed to download report attachment', ['error' => $e->getMessage()]);
-            return back()->withErrors('Failed to download the file.');
+            Log::error('ReportAttachmentController@downloadAttachment - Error', [
+                'attachment_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['error' => 'Failed to download file'], 500);
         }
     }
 
     public function update(Request $request, $report_id)
     {
-        Log::info('ReportAttachmentController@update - Data received', ['data' => $request->all(), 'report_id' => $report_id]);
+        Log::info('ReportAttachmentController@update - Data received', ['report_id' => $report_id]);
 
         $report = DPReport::where('report_id', $report_id)->firstOrFail();
 
         if (!$request->hasFile('file')) {
-            Log::info('ReportAttachmentController@update - No new file uploaded');
             return response()->json(['message' => 'No new file uploaded, existing files retained'], 200);
         }
 
-        if (!$request->file('file')->isValid()) {
-            Log::error('ReportAttachmentController@update - Invalid file upload');
-            return response()->json(['error' => 'Invalid file upload'], 400);
+        // Validate request data
+        $validator = Validator::make($request->all(), [
+            'file' => 'required|file|max:2048',
+            'file_name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Validation failed', 'details' => $validator->errors()], 422);
         }
 
         $file = $request->file('file');
-        $filename = $request->input('file_name', 'default_filename') . '.' . $file->getClientOriginalExtension();
-        $filename = str_replace(' ', '_', $filename);
 
-        $path = $file->storeAs('public/report_attachments', $filename);
-        if (!$path) {
-            Log::error('ReportAttachmentController@update - File storage failed');
-            return response()->json(['error' => 'File storage failed'], 500);
+        // Validate file type
+        if (!$this->isValidFileType($file)) {
+            return response()->json(['error' => 'Invalid file type. Only PDF, DOC, DOCX, XLS, and XLSX files are allowed.'], 400);
         }
 
-        $publicUrl = Storage::url($path);
+        // Sanitize filename
+        $filename = $this->sanitizeFilename($request->input('file_name'), $file->getClientOriginalExtension());
 
-        $attachment = new ReportAttachment([
-            'report_id' => $report->report_id,
-            'file_name' => $filename,
-            'file_path' => $path,
-            'description' => $request->input('description', ''),
-            'public_url' => $publicUrl,
-        ]);
-
-        if (!$attachment->save()) {
-            Log::error('ReportAttachmentController@update - Database insertion failed');
-            return response()->json(['error' => 'Database insertion failed'], 500);
+        // Get project
+        $project = Project::where('project_id', $report->project_id)->first();
+        if (!$project) {
+            return response()->json(['error' => 'Project not found'], 404);
         }
 
-        Log::info('ReportAttachmentController@update - New attachment added and database updated', ['file_name' => $filename, 'report_id' => $report->report_id]);
-        return $attachment;
+        // Create folder structure
+        $monthYear = date('m_Y', strtotime($report->report_month_year));
+        $folderPath = "REPORTS/{$project->project_id}/{$report->report_id}/attachments/{$monthYear}";
+
+        // Ensure directory exists
+        if (!Storage::disk('public')->exists($folderPath)) {
+            Storage::disk('public')->makeDirectory($folderPath, 0755, true);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $path = $file->storeAs($folderPath, $filename, 'public');
+            if (!$path) {
+                throw new \Exception('File storage failed');
+            }
+
+            $publicUrl = Storage::url($path);
+
+            $attachment = new ReportAttachment([
+                'report_id' => $report->report_id,
+                'file_name' => $filename,
+                'file_path' => $path,
+                'description' => $request->input('description', ''),
+                'public_url' => $publicUrl,
+            ]);
+
+            if (!$attachment->save()) {
+                throw new \Exception('Database insertion failed');
+            }
+
+            DB::commit();
+
+            Log::info('ReportAttachmentController@update - Success', ['file_name' => $filename]);
+            return response()->json([
+                'success' => true,
+                'attachment' => $attachment,
+                'message' => 'New attachment added successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            if (isset($path) && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+
+            Log::error('ReportAttachmentController@update - Error', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to add attachment: ' . $e->getMessage()], 500);
+        }
     }
 
     public function remove($id)
-{
-    try {
-        $attachment = ReportAttachment::findOrFail($id);
-        $filePath = $attachment->file_path;
+    {
+        try {
+            Log::info('Starting attachment removal', ['attachment_id' => $id]);
 
-        // Delete the file from storage
-        if (Storage::exists($filePath)) {
-            Storage::delete($filePath);
+            $attachment = ReportAttachment::findOrFail($id);
+            $filePath = $attachment->file_path;
+
+            // Delete the file from storage first (faster operation)
+            $fileDeleted = false;
+            if (Storage::disk('public')->exists($filePath)) {
+                $fileDeleted = Storage::disk('public')->delete($filePath);
+                Log::info('Attachment file deletion attempt', [
+                    'attachment_id' => $id,
+                    'file_path' => $filePath,
+                    'deleted' => $fileDeleted
+                ]);
+            } else {
+                Log::warning('Attachment file not found in storage', [
+                    'attachment_id' => $id,
+                    'file_path' => $filePath
+                ]);
+            }
+
+            // Delete the record from the database
+            $attachment->delete();
+            Log::info('Attachment record deleted from database', ['attachment_id' => $id]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Attachment removed successfully',
+                'file_deleted' => $fileDeleted
+            ]);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('Attachment not found for removal', ['attachment_id' => $id]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Attachment not found'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Failed to remove attachment', [
+                'attachment_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to remove the attachment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Validate file type
+     */
+    private function isValidFileType($file)
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $mimeType = $file->getMimeType();
+
+        return in_array($extension, self::ALLOWED_EXTENSIONS) &&
+               in_array($mimeType, self::ALLOWED_MIME_TYPES);
+    }
+
+    /**
+     * Sanitize filename to prevent path traversal
+     */
+    private function sanitizeFilename($filename, $extension)
+    {
+        // Remove any path separators and dangerous characters
+        $filename = preg_replace('/[^a-zA-Z0-9\-\_\.]/', '_', $filename);
+        $filename = trim($filename, '._');
+
+        // Ensure filename is not empty
+        if (empty($filename)) {
+            $filename = 'attachment';
         }
 
-        // Delete the record from the database
-        $attachment->delete();
-
-        Log::info('Attachment removed successfully', ['attachment_id' => $id]);
-        return response()->json(['success' => true, 'message' => 'Attachment removed successfully']);
-    } catch (\Exception $e) {
-        Log::error('Failed to remove attachment', ['error' => $e->getMessage()]);
-        return response()->json(['success' => false, 'message' => 'Failed to remove the attachment'], 500);
+        return $filename . '.' . $extension;
     }
-}
 
+    /**
+     * Check if a file exists in storage
+     */
+    public function checkFileExists($id)
+    {
+        try {
+            $attachment = ReportAttachment::findOrFail($id);
+            $exists = Storage::disk('public')->exists($attachment->file_path);
+
+            return response()->json([
+                'exists' => $exists,
+                'file_path' => $attachment->file_path,
+                'file_name' => $attachment->file_name
+            ]);
+        } catch (\Exception $e) {
+            Log::error('ReportAttachmentController@checkFileExists - Error checking file', [
+                'attachment_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['exists' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Test method to verify file structure and paths
+     */
+    public function testFileStructure($report_id)
+    {
+        try {
+            $report = DPReport::where('report_id', $report_id)->firstOrFail();
+            $project = Project::where('project_id', $report->project_id)->firstOrFail();
+
+            $monthYear = date('m_Y', strtotime($report->report_month_year));
+            $attachmentsPath = "REPORTS/{$project->project_id}/{$report_id}/attachments/{$monthYear}";
+            $photosPath = "REPORTS/{$project->project_id}/{$report_id}/photos/{$monthYear}";
+
+            $attachments = ReportAttachment::where('report_id', $report_id)->get();
+            $photos = DPPhoto::where('report_id', $report_id)->get();
+
+            $result = [
+                'report_id' => $report_id,
+                'project_id' => $project->project_id,
+                'month_year' => $monthYear,
+                'attachments_path' => $attachmentsPath,
+                'photos_path' => $photosPath,
+                'attachments' => [],
+                'photos' => [],
+                'storage_exists' => [
+                    'attachments_dir' => Storage::disk('public')->exists($attachmentsPath),
+                    'photos_dir' => Storage::disk('public')->exists($photosPath)
+                ]
+            ];
+
+            foreach ($attachments as $attachment) {
+                $result['attachments'][] = [
+                    'id' => $attachment->id,
+                    'file_name' => $attachment->file_name,
+                    'file_path' => $attachment->file_path,
+                    'exists_in_storage' => Storage::disk('public')->exists($attachment->file_path),
+                    'full_url' => asset('storage/' . $attachment->file_path)
+                ];
+            }
+
+            foreach ($photos as $photo) {
+                $result['photos'][] = [
+                    'photo_id' => $photo->photo_id,
+                    'photo_name' => $photo->photo_name,
+                    'photo_path' => $photo->photo_path,
+                    'exists_in_storage' => Storage::disk('public')->exists($photo->photo_path),
+                    'full_url' => asset('storage/' . $photo->photo_path)
+                ];
+            }
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            Log::error('ReportAttachmentController@testFileStructure - Error', [
+                'report_id' => $report_id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Test method to create a sample attachment for testing
+     */
+    public function testCreateAttachment($report_id)
+    {
+        try {
+            $report = DPReport::where('report_id', $report_id)->firstOrFail();
+            $project = Project::where('project_id', $report->project_id)->firstOrFail();
+
+            // Create a test file
+            $testContent = "This is a test attachment file created at " . now();
+            $filename = "test_attachment_" . date('Y-m-d_H-i-s') . ".txt";
+
+            // Create folder structure: REPORTS/{project_id}/{report_id}/attachments/{month_year}/
+            $monthYear = date('m_Y', strtotime($report->report_month_year));
+            $folderPath = "REPORTS/{$project->project_id}/{$report->report_id}/attachments/{$monthYear}";
+
+            // Store the test file
+            $path = Storage::disk('public')->put($folderPath . '/' . $filename, $testContent);
+
+            if (!$path) {
+                return response()->json(['error' => 'Failed to create test file'], 500);
+            }
+
+            $fullPath = $folderPath . '/' . $filename;
+            $publicUrl = Storage::url($fullPath);
+
+            // Create database record
+            $attachment = new ReportAttachment([
+                'report_id' => $report->report_id,
+                'file_name' => $filename,
+                'file_path' => $fullPath,
+                'description' => 'Test attachment created for system verification',
+                'public_url' => $publicUrl,
+            ]);
+
+            if (!$attachment->save()) {
+                return response()->json(['error' => 'Failed to save attachment record'], 500);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Test attachment created successfully',
+                'attachment' => [
+                    'id' => $attachment->id,
+                    'attachment_id' => $attachment->attachment_id,
+                    'file_name' => $attachment->file_name,
+                    'file_path' => $attachment->file_path,
+                    'exists_in_storage' => Storage::disk('public')->exists($attachment->file_path),
+                    'full_url' => $publicUrl
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('ReportAttachmentController@testCreateAttachment - Error', [
+                'report_id' => $report_id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }
 

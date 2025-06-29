@@ -30,7 +30,7 @@ class CreateDpReportsTable extends Migration
             $table->decimal('amount_forwarded_overview', 15, 2)->nullable()->default(0.00);
             $table->decimal('amount_in_hand', 15, 2)->nullable()->default(0.00);
             $table->decimal('total_balance_forwarded', 15, 2)->nullable()->default(0.00);
-            $table->string('status')->default("underwriting"); // Added the status column
+            $table->string('status')->default("draft"); // Added the status column
             $table->timestamps();
         });
     }

@@ -62,6 +62,180 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $project_id
+ * @property int $user_id
+ * @property string $project_type
+ * @property string|null $project_title
+ * @property string|null $society_name
+ * @property string|null $president_name
+ * @property int $in_charge
+ * @property string|null $in_charge_name
+ * @property string|null $in_charge_mobile
+ * @property string|null $in_charge_email
+ * @property string|null $executor_name
+ * @property string|null $executor_mobile
+ * @property string|null $executor_email
+ * @property string|null $full_address
+ * @property int|null $overall_project_period
+ * @property int|null $current_phase
+ * @property string|null $commencement_month_year
+ * @property string $overall_project_budget
+ * @property string|null $amount_forwarded
+ * @property string|null $amount_sanctioned
+ * @property string|null $opening_balance
+ * @property string|null $coordinator_india_name
+ * @property string|null $coordinator_india_phone
+ * @property string|null $coordinator_india_email
+ * @property string|null $coordinator_luzern_name
+ * @property string|null $coordinator_luzern_phone
+ * @property string|null $coordinator_luzern_email
+ * @property string $status
+ * @property string $goal
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectDPRSTBeneficiariesArea> $DPRSTBeneficiariesAreas
+ * @property-read int|null $d_p_r_s_t_beneficiaries_areas_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectEduRUTAnnexedTargetGroup> $annexed_target_groups
+ * @property-read int|null $annexed_target_groups_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\OldProjects\ProjectAttachment> $attachments
+ * @property-read int|null $attachments_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\OldProjects\ProjectBudget> $budgets
+ * @property-read int|null $budgets_count
+ * @property-read ProjectCCIAchievements|null $cciAchievements
+ * @property-read ProjectCCIAgeProfile|null $cciAgeProfile
+ * @property-read ProjectCCIAnnexedTargetGroup|null $cciAnnexedTargetGroup
+ * @property-read ProjectCCIEconomicBackground|null $cciEconomicBackground
+ * @property-read ProjectCCIPersonalSituation|null $cciPersonalSituation
+ * @property-read ProjectCCIPresentSituation|null $cciPresentSituation
+ * @property-read ProjectCCIRationale|null $cciRationale
+ * @property-read ProjectCCIStatistics|null $cciStatistics
+ * @property-read \App\Models\OldProjects\ProjectCICBasicInfo|null $cicBasicInfo
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectComment> $comments
+ * @property-read int|null $comments_count
+ * @property-read ProjectEduRUTBasicInfo|null $eduRUTBasicInfo
+ * @property-read mixed $commencement_month
+ * @property-read mixed $commencement_year
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectIAHBudgetDetails> $iahBudgetDetails
+ * @property-read int|null $iah_budget_details_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectIAHDocuments> $iahDocuments
+ * @property-read int|null $iah_documents_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectIAHEarningMembers> $iahEarningMembers
+ * @property-read int|null $iah_earning_members_count
+ * @property-read ProjectIAHHealthCondition|null $iahHealthCondition
+ * @property-read ProjectIAHPersonalInfo|null $iahPersonalInfo
+ * @property-read ProjectIAHSupportDetails|null $iahSupportDetails
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectIESAttachments> $iesAttachements
+ * @property-read int|null $ies_attachements_count
+ * @property-read ProjectIESEducationBackground|null $iesEducationBackground
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectIESExpenses> $iesExpenses
+ * @property-read int|null $ies_expenses_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectIESFamilyWorkingMembers> $iesFamilyWorkingMembers
+ * @property-read int|null $ies_family_working_members_count
+ * @property-read ProjectIESImmediateFamilyDetails|null $iesImmediateFamilyDetails
+ * @property-read ProjectIESPersonalInfo|null $iesPersonalInfo
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectIGEBeneficiariesSupported> $igeBeneficiariesSupported
+ * @property-read int|null $ige_beneficiaries_supported_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectIGEBudget> $igeBudget
+ * @property-read int|null $ige_budget_count
+ * @property-read ProjectIGEDevelopmentMonitoring|null $igeDevelopmentMonitoring
+ * @property-read ProjectIGEInstitutionInfo|null $igeInstitutionInfo
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectIGENewBeneficiaries> $igeNewBeneficiaries
+ * @property-read int|null $ige_new_beneficiaries_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectIGEOngoingBeneficiaries> $igeOngoingBeneficiaries
+ * @property-read int|null $ige_ongoing_beneficiaries_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectIIESAttachments> $iiesAttachments
+ * @property-read int|null $iies_attachments_count
+ * @property-read ProjectIIESEducationBackground|null $iiesEducationBackground
+ * @property-read ProjectIIESExpenses|null $iiesExpenses
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectIIESFamilyWorkingMembers> $iiesFamilyWorkingMembers
+ * @property-read int|null $iies_family_working_members_count
+ * @property-read ProjectIIESScopeFinancialSupport|null $iiesFinancialSupport
+ * @property-read ProjectIIESImmediateFamilyDetails|null $iiesImmediateFamilyDetails
+ * @property-read ProjectIIESPersonalInfo|null $iiesPersonalInfo
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectILPAttachedDocuments> $ilpAttachedDocuments
+ * @property-read int|null $ilp_attached_documents_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectILPBudget> $ilpBudget
+ * @property-read int|null $ilp_budget_count
+ * @property-read ProjectILPBusinessStrengthWeakness|null $ilpBusinessStrengthWeakness
+ * @property-read ProjectILPPersonalInfo|null $ilpPersonalInfo
+ * @property-read ProjectILPRiskAnalysis|null $ilpRiskAnalysis
+ * @property-read ProjectLDPInterventionLogic|null $ldpInterventionLogic
+ * @property-read ProjectLDPNeedAnalysis|null $ldpNeedAnalysis
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectLDPTargetGroup> $ldpTargetGroup
+ * @property-read int|null $ldp_target_group_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\OldProjects\ProjectObjective> $logical_frameworks
+ * @property-read int|null $logical_frameworks_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\OldProjects\ProjectObjective> $objectives
+ * @property-read int|null $objectives_count
+ * @property-read Project|null $predecessor
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Reports\Monthly\DPReport> $reports
+ * @property-read int|null $reports_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectILPRevenueExpense> $revenueExpenses
+ * @property-read int|null $revenue_expenses_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectILPRevenueIncome> $revenueIncomes
+ * @property-read int|null $revenue_incomes_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectILPRevenuePlanItem> $revenuePlanItems
+ * @property-read int|null $revenue_plan_items_count
+ * @property-read ProjectRSTFinancialSummary|null $rstFinancialSummaries
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectRSTGeographicalArea> $rstGeographicalAreas
+ * @property-read int|null $rst_geographical_areas_count
+ * @property-read ProjectRSTInstitutionInfo|null $rstInstitutionInfo
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectRSTPersonalCost> $rstPersonalCosts
+ * @property-read int|null $rst_personal_costs_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectRSTProgrammeExpenses> $rstProgrammeExpenses
+ * @property-read int|null $rst_programme_expenses_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectRSTTargetGroup> $rstTargetGroup
+ * @property-read int|null $rst_target_group_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectRSTTargetGroupAnnexure> $rstTargetGroupAnnexure
+ * @property-read int|null $rst_target_group_annexure_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, Project> $successors
+ * @property-read int|null $successors_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\OldProjects\ProjectSustainability> $sustainabilities
+ * @property-read int|null $sustainabilities_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectEduRUTTargetGroup> $target_groups
+ * @property-read int|null $target_groups_count
+ * @property-read User $user
+ * @method static \Illuminate\Database\Eloquent\Builder|Project newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|Project newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|Project query()
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereAmountForwarded($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereAmountSanctioned($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereCommencementMonthYear($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereCoordinatorIndiaEmail($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereCoordinatorIndiaName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereCoordinatorIndiaPhone($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereCoordinatorLuzernEmail($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereCoordinatorLuzernName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereCoordinatorLuzernPhone($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereCurrentPhase($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereExecutorEmail($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereExecutorMobile($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereExecutorName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereFullAddress($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereGoal($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereInCharge($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereInChargeEmail($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereInChargeMobile($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereInChargeName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereOpeningBalance($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereOverallProjectBudget($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereOverallProjectPeriod($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project wherePresidentName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereProjectTitle($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereProjectType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereSocietyName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereStatus($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Project whereUserId($value)
+ * @mixin \Eloquent
+ */
 class Project extends Model
 {
     use HasFactory;

@@ -6,6 +6,27 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\OldProjects\Project;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $LDP_need_analysis_id
+ * @property string $project_id
+ * @property string|null $document_path
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPNeedAnalysis newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPNeedAnalysis newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPNeedAnalysis query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPNeedAnalysis whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPNeedAnalysis whereDocumentPath($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPNeedAnalysis whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPNeedAnalysis whereLDPNeedAnalysisId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPNeedAnalysis whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectLDPNeedAnalysis whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class ProjectLDPNeedAnalysis extends Model
 {
     use HasFactory;

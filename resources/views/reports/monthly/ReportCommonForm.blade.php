@@ -4,7 +4,25 @@
 <div class="page-content">
     <div class="row justify-content-center">
         <div class="col-md-12 col-xl-12">
-            <form action="{{ route('monthly.report.store') }}" method="POST" enctype="multipart/form-data">
+            <!-- Display any validation errors -->
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <!-- Display any success messages -->
+            @if (session('success'))
+                <div class="alert alert-success">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            <form action="{{ route('monthly.report.store') }}" method="POST" enctype="multipart/form-data" id="reportForm">
                 @csrf
                 <input type="hidden" name="project_id" value="{{ $project->project_id }}">
 
@@ -72,7 +90,7 @@
                 </div>
 
                 <!-- Include Objectives Section Partial -->
-                @include('reports.monthly.partials.objectives')
+                @include('reports.monthly.partials.create.objectives')
 
                 <!-- Outlook Section -->
                 <div id="outlook-container">
@@ -98,7 +116,7 @@
                 <button type="button" class="btn btn-primary" onclick="addOutlook()">Add More Outlook</button>
 
                 <!-- Statements of Account Section -->
-                @include('reports.monthly.partials.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                @include('reports.monthly.partials.create.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
 
 
                 @if($project->project_type === 'Livelihood Development Projects')
@@ -124,6 +142,10 @@
                         <button type="button" class="mt-3 btn btn-primary" onclick="addPhoto()">Add More Photo</button>
                     </div>
                 </div>
+
+                <!-- Attachments Section -->
+                @include('reports.monthly.partials.create.attachments')
+
                 <button type="submit" class="btn btn-primary me-2">Submit Report</button>
             </form>
         </div>
@@ -133,54 +155,6 @@
 <!-- Include Objectives Section JavaScript Partial -->
 
 <script>
-    // Outlook Section
-    function addOutlook() {
-        const outlookContainer = document.getElementById('outlook-container');
-        const index = outlookContainer.children.length;
-        const newOutlookHtml = `
-            <div class="mb-3 card outlook" data-index="${index}">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    Outlook ${index + 1}
-                    <button type="button" class="btn btn-danger btn-sm remove-outlook" onclick="removeOutlook(this)">Remove</button>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label for="date[${index}]" class="form-label">Date</label>
-                        <input type="date" name="date[${index}]" class="form-control" style="background-color: #202ba3;">
-                    </div>
-                    <div class="mb-3">
-                        <label for="plan_next_month[${index}]" class="form-label">Action Plan for Next Month</label>
-                        <textarea name="plan_next_month[${index}]" class="form-control" rows="3" style="background-color: #202ba3;"></textarea>
-                    </div>
-                </div>
-            </div>
-        `;
-        outlookContainer.insertAdjacentHTML('beforeend', newOutlookHtml);
-        updateOutlookRemoveButtons();
-    }
-
-    function removeOutlook(button) {
-        const outlook = button.closest('.outlook');
-        outlook.remove();
-        updateOutlookRemoveButtons();
-    }
-
-    function updateOutlookRemoveButtons() {
-        const outlooks = document.querySelectorAll('.outlook');
-        outlooks.forEach((outlook, index) => {
-            const removeButton = outlook.querySelector('.remove-outlook');
-            if (index === 0) {
-                removeButton.classList.add('d-none');
-            } else {
-                removeButton.classList.remove('d-none');
-            }
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        updateOutlookRemoveButtons();
-    });
-
     // Photo and Description Section
     function addPhoto() {
         const photosContainer = document.getElementById('photos-container');
@@ -225,9 +199,103 @@
         }
     }
 
+    // Form submission debugging
     document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('#reportForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                console.log('Form submission attempted');
+
+                // Check form data size
+                const formData = new FormData(form);
+                let totalSize = 0;
+                for (let [key, value] of formData.entries()) {
+                    if (value instanceof File) {
+                        totalSize += value.size;
+                    }
+                }
+                console.log('Total form data size:', totalSize, 'bytes');
+
+                // Check if required fields are present
+                const projectObjectiveIds = document.querySelectorAll('input[name^="project_objective_id"]');
+                const projectActivityIds = document.querySelectorAll('input[name^="project_activity_id"]');
+
+                console.log('Project objective IDs found:', projectObjectiveIds.length);
+                console.log('Project activity IDs found:', projectActivityIds.length);
+
+                // Log all form fields for debugging
+                console.log('Form fields:', Array.from(formData.keys()));
+
+                if (projectObjectiveIds.length === 0) {
+                    e.preventDefault();
+                    alert('Error: No project objectives found. Please refresh the page and try again.');
+                    return false;
+                }
+
+                if (projectActivityIds.length === 0) {
+                    e.preventDefault();
+                    alert('Error: No project activities found. Please refresh the page and try again.');
+                    return false;
+                }
+
+                // Show loading state
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Submitting...';
+                }
+
+                console.log('Form validation passed, proceeding with submission');
+            });
+        }
+
+        updateOutlookRemoveButtons();
         updatePhotoLabels();
     });
+
+    // Outlook Section
+    function addOutlook() {
+        const outlookContainer = document.getElementById('outlook-container');
+        const index = outlookContainer.children.length;
+        const newOutlookHtml = `
+            <div class="mb-3 card outlook" data-index="${index}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    Outlook ${index + 1}
+                    <button type="button" class="btn btn-danger btn-sm remove-outlook" onclick="removeOutlook(this)">Remove</button>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="date[${index}]" class="form-label">Date</label>
+                        <input type="date" name="date[${index}]" class="form-control" style="background-color: #202ba3;">
+                    </div>
+                    <div class="mb-3">
+                        <label for="plan_next_month[${index}]" class="form-label">Action Plan for Next Month</label>
+                        <textarea name="plan_next_month[${index}]" class="form-control" rows="3" style="background-color: #202ba3;"></textarea>
+                    </div>
+                </div>
+            </div>
+        `;
+        outlookContainer.insertAdjacentHTML('beforeend', newOutlookHtml);
+        updateOutlookRemoveButtons();
+    }
+
+    function removeOutlook(button) {
+        const outlook = button.closest('.outlook');
+        outlook.remove();
+        updateOutlookRemoveButtons();
+    }
+
+    function updateOutlookRemoveButtons() {
+        const outlooks = document.querySelectorAll('.outlook');
+        outlooks.forEach((outlook, index) => {
+            const removeButton = outlook.querySelector('.remove-outlook');
+            if (index === 0) {
+                removeButton.classList.add('d-none');
+            } else {
+                removeButton.classList.remove('d-none');
+            }
+        });
+    }
 </script>
 
 <style>

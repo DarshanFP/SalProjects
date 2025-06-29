@@ -148,7 +148,20 @@
                 <button type="button" class="btn btn-primary" onclick="addOutlook()">Add More Outlook</button>
 
                 <!-- Statements of Account Section  -->
-                @include('reports.monthly.partials.create.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                @if($project->project_type === 'Individual - Initial - Educational support')
+                    @include('reports.monthly.partials.statements_of_account.individual_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                @elseif($project->project_type === 'Individual - Livelihood Application')
+                    @include('reports.monthly.partials.statements_of_account.individual_livelihood', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                @elseif($project->project_type === 'Individual - Access to Health')
+                    @include('reports.monthly.partials.statements_of_account.individual_health', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                @elseif($project->project_type === 'Institutional - Initial - Educational support')
+                    @include('reports.monthly.partials.statements_of_account.institutional_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                @elseif($project->project_type === 'Development Projects')
+                    @include('reports.monthly.partials.statements_of_account.development_projects', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                @else
+                    {{-- Fallback to generic for other project types --}}
+                    @include('reports.monthly.partials.create.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                @endif
 
 
                 <!-- Photos Section -->
@@ -475,7 +488,7 @@ function validateFileInput(input) {
 // }
 
 document.addEventListener('DOMContentLoaded', function() {
-    updatePhotoLabels();
+    // updatePhotoLabels(); // Removed - function is commented out and not needed
 });
 
 

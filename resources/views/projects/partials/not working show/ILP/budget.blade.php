@@ -16,7 +16,7 @@
                 </tr>
             </thead>
             <tbody id="ilp-budget">
-                @if (!empty($ILPBudgets['budgets']) && count($ILPBudgets['budgets']) > 0)
+                @if (!empty($ILPBudgets['budgets']) && is_countable($ILPBudgets['budgets']) && count($ILPBudgets['budgets']) > 0)
                     @foreach ($ILPBudgets['budgets'] as $index => $budget)
                         <tr>
                             <td>
@@ -55,7 +55,7 @@
 
         <!-- Beneficiary's Contribution -->
         <div class="mb-3">
-            <label for="beneficiary_contribution" class="form-label">Beneficiary’s contribution:</label>
+            <label for="beneficiary_contribution" class="form-label">Beneficiary's contribution:</label>
             <input type="number" step="0.01" name="beneficiary_contribution" class="form-control"
                 value="{{ $ILPBudgets['beneficiary_contribution'] ?? 0 }}" placeholder="Enter beneficiary's contribution">
         </div>
@@ -76,7 +76,7 @@
         const budgetBody = document.getElementById('ilp-budget');
         const addBudgetItemBtn = document.getElementById('add-budget-item');
         const removeBudgetItemBtn = document.getElementById('remove-budget-item');
-        let itemIndex = {{ count($ILPBudgets['budgets'] ?? []) }};
+        let itemIndex = {{ is_countable($ILPBudgets['budgets'] ?? null) ? count($ILPBudgets['budgets']) : 0 }};
 
         addBudgetItemBtn.addEventListener('click', function () {
             const row = document.createElement('tr');

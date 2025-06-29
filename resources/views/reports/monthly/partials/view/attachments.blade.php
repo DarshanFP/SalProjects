@@ -12,15 +12,31 @@
                     @foreach($report->attachments as $attachment)
                         <div class="card-body att-grp">
                             <li>
-                                <a href="{{ asset('storage/' . $attachment->file_path) }}" target="_blank">{{ $attachment->file_name }}</a><br><br>
-                                <span class="ms-2">({{ $attachment->description ?? 'No description provided' }})</span>
+                                @php
+                                    $fileExists = \Illuminate\Support\Facades\Storage::disk('public')->exists($attachment->file_path);
+                                @endphp
+
+                                @if($fileExists)
+                                    <a href="{{ asset('storage/' . $attachment->file_path) }}" target="_blank" class="text-primary">
+                                        <i class="fas fa-file"></i> {{ $attachment->file_name }}
+                                    </a>
+                                    <a href="{{ route('monthly.report.downloadAttachment', $attachment->id) }}" class="btn btn-sm btn-outline-primary ms-2">
+                                        <i class="fas fa-download"></i> Download
+                                    </a>
+                                @else
+                                    <span class="text-danger">
+                                        <i class="fas fa-exclamation-triangle"></i> {{ $attachment->file_name }} (File not found)
+                                    </span>
+                                @endif
+                                <br><br>
+                                <span class="ms-2 text-muted">({{ $attachment->description ?? 'No description provided' }})</span>
                             </li>
                         </div>
                     @endforeach
                 </ul>
             </div>
         @else
-            <p>No attachments available.</p>
+            <p class="text-muted">No attachments available.</p>
         @endif
     </div>
 </div>
@@ -28,5 +44,9 @@
 .att-grp {
     border-bottom: 1px solid #ddd;
     padding-bottom: 15px;
+}
+
+.att-grp:last-child {
+    border-bottom: none;
 }
 </style>

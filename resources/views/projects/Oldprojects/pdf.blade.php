@@ -5,694 +5,704 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project Details PDF</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #000;
-            margin: 0;
-            padding: 0;
-            background: #fff;
+        /* Force black text color for all elements in PDF */
+        body, div, p, h1, h2, h3, h4, h5, h6, span, td, th, label, input, select, button, a, li, ul, ol {
+            color: black !important;
         }
-
+        /* Structural, print-friendly styles for PDF, matching web view structure but no dark theme */
+        textarea {
+    color: black !important;
+    background: #fff !important;
+}
         .container {
             width: 100%;
-            padding: 20px;
-            box-sizing: border-box;
+            margin: 0 auto;
+            padding: 0 16px;
         }
-
-        h1, h2, h3, h4, h5, h6 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
+        .mb-3 { margin-bottom: 1rem !important; }
+        .mb-4 { margin-bottom: 1.5rem !important; }
         .card {
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            page-break-inside: avoid;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            background: #fff;
+            box-shadow: none;
+            margin-bottom: 1.5rem;
         }
-
         .card-header {
-            background-color: #f5f5f5;
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-            font-size: 1.2em;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ccc;
+            padding: 0.75rem 1.25rem;
             font-weight: bold;
+            font-size: 1.1rem;
         }
-
         .card-body {
-            padding: 10px;
+            padding: 1.25rem;
+        }
+        .form-label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+            background: #fff;
+            color: #222;
+            margin-bottom: 0.5rem;
+        }
+        .btn {
+            display: inline-block;
+            font-weight: 400;
+            text-align: center;
+            vertical-align: middle;
+            user-select: none;
+            border: 1px solid transparent;
+            padding: 0.375rem 0.75rem;
+            font-size: 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+            margin-right: 0.5rem;
+        }
+        .btn-primary {
+            color: #fff;
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-danger {
+            color: #fff;
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+        .btn-secondary {
+            color: #fff;
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        .table, .table-bordered, .general-info-table, #general-info-table,
+        .table th, .table td, .table-bordered th, .table-bordered td,
+        .general-info-table th, .general-info-table td, #general-info-table th, #general-info-table td {
+            border: 1px solid black !important;
+            border-collapse: collapse;
+            padding: 8px 12px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 1rem;
+        }
+        .label {
+            font-weight: bold;
+            width: 35%;
+        }
+        .value {
+            width: 100%;
         }
 
-        .table, .signature-table {
+        /* Ensure tick marks render in PDF */
+        body, .checkmark-icon {
+            font-family: DejaVu Sans, Arial, Helvetica, sans-serif !important;
+        }
+        .checkmark-icon {
+            font-size: 22px !important;
+            font-weight: 900 !important;
+            color: #000 !important;
+            line-height: 1;
+        }
+
+        /* PDF-specific signature table styles (from history, with unique class names) */
+        .pdf-signature-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
             table-layout: fixed;
         }
-
-        .table th, .table td, .signature-table th, .signature-table td {
+        .pdf-signature-table th, .pdf-signature-table td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
             vertical-align: top;
             word-wrap: break-word;
         }
-
-        .signature-table td {
-            padding: 8px;
-            vertical-align: top;
+        .pdf-main-signature-table {
+            table-layout: fixed;
+            height: auto;
+        }
+        .pdf-main-signature-table td {
+            padding: 0 8px;
+            vertical-align: middle;
             text-align: left;
             width: 50%;
+            min-height: 180px;
+            height: 60px;
         }
-
-        .signature-table tr td:nth-child(2) {
-            width: 60%;
+        .pdf-main-signature-table td:first-child {
+            height: 180px;
         }
-
-        .row {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .column {
-            flex: 0 0 48%;
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-gap: 20px;
-        }
-
-        .info-label {
-            font-weight: bold;
-            margin-right: 10px;
-        }
-
-        .info-value {
-            word-wrap: break-word;
-            padding-left: 10px;
-        }
-
-        @page {
-            margin: 20mm;
-            margin-top: 1.6in;
-            margin-bottom: 1.6in;
-            margin-left: 0.6in;
-            margin-right: 0.6in;
-            header: page-header;
-            footer: page-footer;
-        }
-
-        .page-header {
-            text-align: center;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
-            font-size: 0.8em;
-            width: 100%;
-        }
-
-        .page-number:before {
-            content: counter(page);
-        }
-
-        .objective-card {
-            border: 1px solid #ddd;
-            padding: 15px;
+        .pdf-main-signature-table td:first-child br {
             margin-bottom: 20px;
-            page-break-inside: avoid;
         }
-
-        .result-section {
-            border: 1px solid #ddd;
-            padding: 10px;
-            margin-bottom: 10px;
+        .pdf-main-signature-table tbody tr:nth-child(1) td,
+        .pdf-main-signature-table tbody tr:nth-child(2) td,
+        .pdf-main-signature-table tbody tr:nth-child(4) td {
+            padding: 0 2px;
         }
-
-        .custom-checkbox {
-            width: 16px;
-            height: 16px;
+        .pdf-main-signature-table tbody tr:nth-child(3) td {
+            padding: 72px 8px;
         }
     </style>
 </head>
 <body>
 
     <div class="page-header">
-        Project ID: {{ $project->project_id }}  - Downloaded by: {{ auth()->user()->name }}
+        Project ID: {{ $project->project_id }}
+    </div>
+    <div class="card-header">
+        <h4>{{ $project->project_title }}</h4>
     </div>
 
     <div class="container">
-        <h1>Project Details</h1>
-
         <!-- General Information Section -->
-        <div class="card">
-            <div class="card-header">
-                General Information
-            </div>
-            <div class="card-body">
-                @include('projects.partials.show.general_info')
-            </div>
-        </div>
+        <h1 class="mb-4">Project Details</h1>
+        @include('projects.partials.Show.general_info')
 
         <!-- Key Information Section -->
-        <div class="card">
+        <div id="key-info-section" class="mb-3 card">
             <div class="card-header">
-                Key Information
+                <h4>Key Information</h4>
             </div>
             <div class="card-body">
-                @include('projects.partials.show.key_information')
+                @include('projects.partials.Show.key_information')
             </div>
         </div>
 
         <!-- RST Beneficiaries Area for Development Projects -->
         @if ($project->project_type === 'Development Projects')
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Beneficiaries Area
+                    <h4>Beneficiaries Area</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.RST.beneficiaries_area')
+                    @include('projects.partials.Show.RST.beneficiaries_area')
                 </div>
             </div>
         @endif
 
         <!-- CCI Specific Partials -->
         @if ($project->project_type === 'CHILD CARE INSTITUTION')
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Rationale
+                    <h4>Rationale</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.CCI.rationale')
+                    @include('projects.partials.Show.CCI.rationale')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Statistics
+                    <h4>Statistics</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.CCI.statistics')
+                    @include('projects.partials.Show.CCI.statistics')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Annexed Target Group
+                    <h4>Annexed Target Group</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.CCI.annexed_target_group')
+                    @include('projects.partials.Show.CCI.annexed_target_group')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Age Profile
+                    <h4>Age Profile</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.CCI.age_profile')
+                    @include('projects.partials.Show.CCI.age_profile')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Personal Situation
+                    <h4>Personal Situation</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.CCI.personal_situation')
+                    @include('projects.partials.Show.CCI.personal_situation')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Economic Background
+                    <h4>Economic Background</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.CCI.economic_background')
+                    @include('projects.partials.Show.CCI.economic_background')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Achievements
+                    <h4>Achievements</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.CCI.achievements')
+                    @include('projects.partials.Show.CCI.achievements')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Present Situation
+                    <h4>Present Situation</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.CCI.present_situation')
+                    @include('projects.partials.Show.CCI.present_situation')
                 </div>
             </div>
         @endif
 
         <!-- Residential Skill Training Specific Partials -->
         @if ($project->project_type === 'Residential Skill Training Proposal 2')
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Beneficiaries Area
+                    <h4>Beneficiaries Area</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.RST.beneficiaries_area')
+                    @include('projects.partials.Show.RST.beneficiaries_area')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Institution Information
+                    <h4>Institution Information</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.RST.institution_info')
+                    @include('projects.partials.Show.RST.institution_info')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Target Group
+                    <h4>Target Group</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.RST.target_group')
+                    @include('projects.partials.Show.RST.target_group')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Target Group Annexure
+                    <h4>Target Group Annexure</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.RST.target_group_annexure')
+                    @include('projects.partials.Show.RST.target_group_annexure')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Geographical Area
+                    <h4>Geographical Area</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.RST.geographical_area')
+                    @include('projects.partials.Show.RST.geographical_area')
                 </div>
             </div>
         @endif
 
         <!-- Edu-Rural-Urban-Tribal Specific Partials -->
         @if ($project->project_type === 'Rural-Urban-Tribal')
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Basic Information
+                    <h4>Basic Information</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.Edu-RUT.basic_info')
+                    @include('projects.partials.Show.Edu-RUT.basic_info')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Target Group
+                    <h4>Target Group</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.Edu-RUT.target_group')
+                    @include('projects.partials.Show.Edu-RUT.target_group')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Annexed Target Group
+                    <h4>Annexed Target Group</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.Edu-RUT.annexed_target_group')
+                    @include('projects.partials.Show.Edu-RUT.annexed_target_group')
                 </div>
             </div>
         @endif
 
         <!-- Individual - Ongoing Educational Support Partials -->
         @if ($project->project_type === 'Individual - Ongoing Educational support')
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Personal Information
+                    <h4>Personal Information</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IES.personal_info')
+                    @include('projects.partials.Show.IES.personal_info')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Family Working Members
+                    <h4>Family Working Members</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IES.family_working_members')
+                    @include('projects.partials.Show.IES.family_working_members')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Immediate Family Details
+                    <h4>Immediate Family Details</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IES.immediate_family_details')
+                    @include('projects.partials.Show.IES.immediate_family_details')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Educational Background
+                    <h4>Educational Background</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IES.educational_background')
+                    @include('projects.partials.Show.IES.educational_background')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Estimated Expenses
+                    <h4>Estimated Expenses</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IES.estimated_expenses')
+                    @include('projects.partials.Show.IES.estimated_expenses')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Attachments
+                    <h4>Attachments</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IES.attachments')
+                    @include('projects.partials.Show.IES.attachments')
                 </div>
             </div>
         @endif
 
         <!-- Individual - Initial Educational Support Partials -->
         @if ($project->project_type === 'Individual - Initial - Educational support')
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Personal Information
+                    <h4>Personal Information</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IIES.personal_info')
+                    @include('projects.partials.Show.IIES.personal_info')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Family Working Members
+                    <h4>Family Working Members</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IIES.family_working_members')
+                    @include('projects.partials.Show.IIES.family_working_members')
                 </div>
             </div>
 
-        <div class="card">
-            <div class="card-header">
-                    Immediate Family Details
+            <div class="mb-3 card">
+                <div class="card-header">
+                    <h4>Immediate Family Details</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IIES.immediate_family_details')
+                    @include('projects.partials.Show.IIES.immediate_family_details')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Scope of Financial Support
-            </div>
-            <div class="card-body">
-                    @include('projects.partials.show.IIES.scope_financial_support')
+                    <h4>Scope of Financial Support</h4>
+                </div>
+                <div class="card-body">
+                    @include('projects.partials.Show.IIES.scope_financial_support')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Estimated Expenses
+                    <h4>Estimated Expenses</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IIES.estimated_expenses')
-                        </div>
-                    </div>
+                    @include('projects.partials.Show.IIES.estimated_expenses')
+                </div>
+            </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Attachments
+                    <h4>Attachments</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IIES.attachments')
+                    @include('projects.partials.Show.IIES.attachments')
                 </div>
-                            </div>
-                        @endif
+            </div>
+        @endif
 
         <!-- Individual - Livelihood Application Partials -->
         @if ($project->project_type === 'Individual - Livelihood Application')
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Personal Information
+                    <h4>Personal Information</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.ILP.personal_info')
+                    @include('projects.partials.Show.ILP.personal_info')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Revenue Goals
+                    <h4>Revenue Goals</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.ILP.revenue_goals')
+                    @include('projects.partials.Show.ILP.revenue_goals')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Strength and Weakness Analysis
+                    <h4>Strength and Weakness Analysis</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.ILP.strength_weakness')
+                    @include('projects.partials.Show.ILP.strength_weakness')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Risk Analysis
+                    <h4>Risk Analysis</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.ILP.risk_analysis')
+                    @include('projects.partials.Show.ILP.risk_analysis')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Attached Documents
+                    <h4>Attached Documents</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.ILP.attached_docs')
+                    @include('projects.partials.Show.ILP.attached_docs')
                 </div>
-                    </div>
+            </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Budget
+                    <h4>Budget</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.ILP.budget')
+                    @include('projects.partials.Show.ILP.budget')
                 </div>
             </div>
         @endif
 
         <!-- Individual - Access to Health Specific Partials -->
         @if ($project->project_type === 'Individual - Access to Health')
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Personal Information
+                    <h4>Personal Information</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IAH.personal_info')
-                </div>
-                    </div>
-
-            <div class="card">
-                <div class="card-header">
-                    Health Conditions
-                    </div>
-                <div class="card-body">
-                    @include('projects.partials.show.IAH.health_conditions')
+                    @include('projects.partials.Show.IAH.personal_info')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Earning Members
+                    <h4>Health Conditions</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IAH.earning_members')
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                    Support Details
-                </div>
-                <div class="card-body">
-                    @include('projects.partials.show.IAH.support_details')
+                    @include('projects.partials.Show.IAH.health_conditions')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Budget Details
-            </div>
-            <div class="card-body">
-                    @include('projects.partials.show.IAH.budget_details')
-                </div>
-                    </div>
-
-            <div class="card">
-                <div class="card-header">
-                    Documents
+                    <h4>Earning Members</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IAH.documents')
+                    @include('projects.partials.Show.IAH.earning_members')
+                </div>
+            </div>
+
+            <div class="mb-3 card">
+                <div class="card-header">
+                    <h4>Support Details</h4>
+                </div>
+                <div class="card-body">
+                    @include('projects.partials.Show.IAH.support_details')
+                </div>
+            </div>
+
+            <div class="mb-3 card">
+                <div class="card-header">
+                    <h4>Budget Details</h4>
+                </div>
+                <div class="card-body">
+                    @include('projects.partials.Show.IAH.budget_details')
+                </div>
+            </div>
+
+            <div class="mb-3 card">
+                <div class="card-header">
+                    <h4>Documents</h4>
+                </div>
+                <div class="card-body">
+                    @include('projects.partials.Show.IAH.documents')
                 </div>
             </div>
         @endif
 
         <!-- Institutional Ongoing Group Educational Specific Partials -->
         @if ($project->project_type === 'Institutional Ongoing Group Educational proposal')
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Institution Information
+                    <h4>Institution Information</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IGE.institution_info')
-                </div>
-                    </div>
-
-            <div class="card">
-                <div class="card-header">
-                    Beneficiaries Supported
-                </div>
-                <div class="card-body">
-                    @include('projects.partials.show.IGE.beneficiaries_supported')
-                </div>
-                    </div>
-
-            <div class="card">
-                <div class="card-header">
-                    Ongoing Beneficiaries
-                </div>
-                <div class="card-body">
-                    @include('projects.partials.show.IGE.ongoing_beneficiaries')
-                    </div>
-            </div>
-
-            <div class="card">
-                <div class="card-header">
-                    New Beneficiaries
-                </div>
-                <div class="card-body">
-                    @include('projects.partials.show.IGE.new_beneficiaries')
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                Budget
-            </div>
-            <div class="card-body">
-                    @include('projects.partials.show.IGE.budget')
+                    @include('projects.partials.Show.IGE.institution_info')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Development Monitoring
+                    <h4>Beneficiaries Supported</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.IGE.development_monitoring')
+                    @include('projects.partials.Show.IGE.beneficiaries_supported')
+                </div>
+            </div>
+
+            <div class="mb-3 card">
+                <div class="card-header">
+                    <h4>Ongoing Beneficiaries</h4>
+                </div>
+                <div class="card-body">
+                    @include('projects.partials.Show.IGE.ongoing_beneficiaries')
+                </div>
+            </div>
+
+            <div class="mb-3 card">
+                <div class="card-header">
+                    <h4>New Beneficiaries</h4>
+                </div>
+                <div class="card-body">
+                    @include('projects.partials.Show.IGE.new_beneficiaries')
+                </div>
+            </div>
+
+            <div class="mb-3 card">
+                <div class="card-header">
+                    <h4>Budget</h4>
+                </div>
+                <div class="card-body">
+                    @include('projects.partials.Show.IGE.budget')
+                </div>
+            </div>
+
+            <div class="mb-3 card">
+                <div class="card-header">
+                    <h4>Development Monitoring</h4>
+                </div>
+                <div class="card-body">
+                    @include('projects.partials.Show.IGE.development_monitoring')
                 </div>
             </div>
         @endif
 
         <!-- Livelihood Development Project Specific Partials -->
         @if ($project->project_type === 'Livelihood Development Projects')
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Need Analysis
+                    <h4>Need Analysis</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.LDP.need_analysis')
+                    @include('projects.partials.Show.LDP.need_analysis')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Intervention Logic
+                    <h4>Intervention Logic</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.LDP.intervention_logic')
+                    @include('projects.partials.Show.LDP.intervention_logic')
                 </div>
             </div>
         @endif
 
         <!-- CIC Specific Partial -->
         @if ($project->project_type === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER')
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Basic Information
+                    <h4>Basic Information</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.CIC.basic_info')
+                    @include('projects.partials.Show.CIC.basic_info')
                 </div>
             </div>
         @endif
 
         <!-- Default Partial Sections (These should be included for all project types except certain individual types) -->
         @if (!in_array($project->project_type, ['Individual - Ongoing Educational support', 'Individual - Livelihood Application', 'Individual - Access to Health', 'Individual - Initial - Educational support']))
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Logical Framework
+                    <h4>Logical Framework</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.logical_framework')
+                    @include('projects.partials.Show.logical_framework')
                 </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Project Sustainability, Monitoring and Methodologies
+                    <h4>Project Sustainability, Monitoring and Methodologies</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.sustainability')
-                    </div>
+                    @include('projects.partials.Show.sustainability')
+                </div>
             </div>
 
-            <div class="card">
+            <div class="mb-3 card">
                 <div class="card-header">
-                    Budget
+                    <h4>Budget</h4>
                 </div>
                 <div class="card-body">
-                    @include('projects.partials.show.budget')
+                    @include('projects.partials.Show.budget')
+                </div>
             </div>
-        </div>
 
-        <div class="card">
-            <div class="card-header">
-                Attachments
-            </div>
-            <div class="card-body">
-                    @include('projects.partials.show.attachments')
-                    </div>
+            <div class="mb-3 card">
+                <div class="card-header">
+                    <h4>Attachments</h4>
+                </div>
+                <div class="card-body">
+                    @include('projects.partials.Show.attachments')
+                </div>
             </div>
         @endif
     </div>
 
     <!-- Signature and Approval Sections with page break control -->
     <div class="container" style="page-break-before: always;">
-        <h2>Signatures</h2>
-        <table class="signature-table">
+        <h2 class="mb-4">Signatures</h2>
+        <table class="pdf-signature-table pdf-main-signature-table">
             <thead>
                 <tr>
                     <th>Person</th>
@@ -724,12 +734,12 @@
             </tbody>
         </table>
 
-        <h3>APPROVAL - To be filled by the Project Coordinator:</h3>
-        <table class="signature-table">
+        <h3 class="mb-4">APPROVAL - To be filled by the Project Coordinator:</h3>
+        <table class="pdf-signature-table">
             <tbody>
                 <tr>
                     <td>Amount approved</td>
-                    <td></td>
+                    <td>Rs. {{ number_format($project->overall_project_budget, 2) }}</td>
                 </tr>
                 <tr>
                     <td>Remarks if any</td>
@@ -749,6 +759,9 @@
                 </tr>
             </tbody>
         </table>
+    </div>
+    <div class="page-header">
+        Downloaded by: {{ auth()->user()->name }}
     </div>
 
 </body>

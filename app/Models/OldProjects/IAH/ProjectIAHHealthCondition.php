@@ -6,6 +6,39 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\OldProjects\Project;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $IAH_health_id
+ * @property string $project_id
+ * @property string|null $illness
+ * @property int|null $treatment
+ * @property string|null $doctor
+ * @property string|null $hospital
+ * @property string|null $doctor_address
+ * @property string|null $health_situation
+ * @property string|null $family_situation
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition whereDoctor($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition whereDoctorAddress($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition whereFamilySituation($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition whereHealthSituation($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition whereHospital($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition whereIAHHealthId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition whereIllness($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition whereTreatment($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIAHHealthCondition whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class ProjectIAHHealthCondition extends Model
 {
     use HasFactory;

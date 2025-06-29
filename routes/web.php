@@ -28,10 +28,20 @@ use App\Http\Controllers\Reports\Quarterly\WomenInDistressController;
 
 use App\Http\Controllers\TestController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
     return view('auth.login');
 });
+
+Route::get('/login', function () {
+    return view('auth.login');
+})->name('login');
+
+Route::get('/logout', function () {
+    Auth::logout();
+    return redirect('/login');
+})->name('logout');
 
 // Default redirect to dashboard based on role
 Route::get('/dashboard', function () {
@@ -109,6 +119,14 @@ Route::middleware(['auth', 'role:coordinator'])->group(function () {
     // reports list
     Route::get('/coordinator/report-list', [CoordinatorController::class, 'ReportList'])->name('coordinator.report.list');
 
+    // Add routes for coordinator report workflow
+    Route::post('/coordinator/report/{report_id}/approve', [CoordinatorController::class, 'approveReport'])->name('coordinator.report.approve');
+    Route::post('/coordinator/report/{report_id}/revert', [CoordinatorController::class, 'revertReport'])->name('coordinator.report.revert');
+
+    // Add routes for coordinator report lists
+    Route::get('/coordinator/report-list/pending', [CoordinatorController::class, 'pendingReports'])->name('coordinator.report.pending');
+    Route::get('/coordinator/report-list/approved', [CoordinatorController::class, 'approvedReports'])->name('coordinator.report.approved');
+
     // Add the missing route for getting executors by province
     Route::get('/coordinator/executors/by-province', [CoordinatorController::class, 'getExecutorsByProvince'])->name('coordinator.executors.byProvince');
 
@@ -126,6 +144,10 @@ Route::middleware(['auth', 'role:coordinator'])->group(function () {
 
     Route::get('/coordinator/projects/{project_id}/download-pdf', [ExportController::class, 'downloadPdf'])->name('coordinator.projects.downloadPdf');
     Route::get('/coordinator/projects/{project_id}/download-doc', [ExportController::class, 'downloadDoc'])->name('coordinator.projects.downloadDoc');
+
+    // Report download routes for coordinator
+    Route::get('/coordinator/reports/monthly/downloadPdf/{report_id}', [ExportReportController::class, 'downloadPdf'])->name('coordinator.monthly.report.downloadPdf');
+    Route::get('/coordinator/reports/monthly/downloadDoc/{report_id}', [ExportReportController::class, 'downloadDoc'])->name('coordinator.monthly.report.downloadDoc');
 });
 
 // Provincial routes
@@ -165,6 +187,14 @@ Route::middleware(['auth', 'role:provincial'])->group(function () {
     // Route for report list
     Route::get('/provincial/report-list', [ProvincialController::class, 'ReportList'])->name('provincial.report.list');
 
+    // Add routes for provincial report workflow
+    Route::post('/provincial/report/{report_id}/forward', [ProvincialController::class, 'forwardReport'])->name('provincial.report.forward');
+    Route::post('/provincial/report/{report_id}/revert', [ProvincialController::class, 'revertReport'])->name('provincial.report.revert');
+
+    // Add routes for provincial report lists
+    Route::get('/provincial/report-list/pending', [ProvincialController::class, 'pendingReports'])->name('provincial.report.pending');
+    Route::get('/provincial/report-list/approved', [ProvincialController::class, 'approvedReports'])->name('provincial.report.approved');
+
     Route::get('/provincial/reports/{type}/{id}', [ProvincialController::class, 'showReport'])->name('provincial.reports.show');
 
     // To view reports
@@ -178,7 +208,9 @@ Route::middleware(['auth', 'role:provincial'])->group(function () {
      //Comment Routes
      Route::post('/provincial/reports/monthly/{report_id}/add-comment', [ProvincialController::class, 'addComment'])->name('provincial.monthly.report.addComment');
 
-
+    // Report download routes for provincial
+    Route::get('/provincial/reports/monthly/downloadPdf/{report_id}', [ExportReportController::class, 'downloadPdf'])->name('provincial.monthly.report.downloadPdf');
+    Route::get('/provincial/reports/monthly/downloadDoc/{report_id}', [ExportReportController::class, 'downloadDoc'])->name('provincial.monthly.report.downloadDoc');
 });
 
 
@@ -202,6 +234,14 @@ Route::middleware(['auth', 'role:provincial'])->group(function () {
 Route::middleware(['auth', 'role:executor'])->group(function () {
     Route::get('/executor/dashboard', [ExecutorController::class, 'ExecutorDashboard'])->name('executor.dashboard');
     Route::get('/executor/report-list', [ExecutorController::class, 'ReportList'])->name('executor.report.list');
+
+    // Add route for executor to submit reports to provincial
+    Route::post('/executor/report/{report_id}/submit', [ExecutorController::class, 'submitReport'])->name('executor.report.submit');
+
+    // Add routes for executor report lists
+    Route::get('/executor/report-list/pending', [ExecutorController::class, 'pendingReports'])->name('executor.report.pending');
+    Route::get('/executor/report-list/approved', [ExecutorController::class, 'approvedReports'])->name('executor.report.approved');
+
     Route::get('/test-pdf', [TestController::class, 'generatePdf']);
 
     Route::get('/test-expenses/{project_id}', [App\Http\Controllers\Reports\Monthly\ReportController::class, 'testFetchLatestTotalExpenses']);
@@ -242,6 +282,9 @@ Route::prefix('reports/monthly')->group(function () {
     Route::put('update/{report_id}', [ReportController::class, 'update'])->name('monthly.report.update');
     Route::get('review/{report_id}', [ReportController::class, 'review'])->name('monthly.report.review');
     Route::post('revert/{report_id}', [ReportController::class, 'revert'])->name('monthly.report.revert');
+    Route::post('submit/{report_id}', [ReportController::class, 'submit'])->name('monthly.report.submit');
+    Route::post('forward/{report_id}', [ReportController::class, 'forward'])->name('monthly.report.forward');
+    Route::post('approve/{report_id}', [ReportController::class, 'approve'])->name('monthly.report.approve');
 
     // Monthly report download routes moved to shared middleware group
 
@@ -252,6 +295,7 @@ Route::prefix('reports/monthly')->group(function () {
     //Report Attachment Routes
  //   Route::get('reports/monthly/download/{id}', [ReportAttachmentController::class, 'downloadAttachment'])->name('monthly.report.downloadAttachment');
     Route::delete('/attachments/{id}', [ReportAttachmentController::class, 'remove'])->name('attachments.remove');
+    Route::delete('/photos/{id}', [ReportController::class, 'removePhoto'])->name('photos.remove');
 
 
 
@@ -276,6 +320,12 @@ Route::middleware(['auth', 'role:executor,provincial,coordinator'])->group(funct
 Route::middleware(['auth', 'role:executor,provincial,coordinator'])->group(function () {
     //Download Monthly Reports
     Route::get('reports/monthly/download/{id}', [ReportAttachmentController::class, 'downloadAttachment'])->name('monthly.report.downloadAttachment');
+    //Check file existence
+    Route::get('reports/monthly/check-file/{id}', [ReportAttachmentController::class, 'checkFileExists'])->name('monthly.report.checkFile');
+    //Test file structure
+    Route::get('reports/monthly/test-structure/{report_id}', [ReportAttachmentController::class, 'testFileStructure'])->name('monthly.report.testStructure');
+    //Test create attachment
+    Route::get('reports/monthly/test-create-attachment/{report_id}', [ReportAttachmentController::class, 'testCreateAttachment'])->name('monthly.report.testCreateAttachment');
     //View Montly Reports
     Route::get('show/{report_id}', [ReportController::class, 'show'])->name('monthly.report.show');
 

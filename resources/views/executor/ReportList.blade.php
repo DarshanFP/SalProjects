@@ -72,6 +72,7 @@
                                     <th>Total Expenses</th>
                                     <th>Expenses This Month</th>
                                     <th>Balance Amount</th>
+                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -83,6 +84,10 @@
                                         $totalExpenses = $report->accountDetails->sum('total_expenses');
                                         $expensesThisMonth = $report->accountDetails->sum('expenses_this_month');
                                         $balanceAmount = $report->accountDetails->sum('balance_amount');
+
+                                        // Get status label and badge class
+                                        $statusLabel = $report->getStatusLabel();
+                                        $statusBadgeClass = $report->getStatusBadgeClass();
                                     @endphp
                                     <tr>
                                         <td>{{ $report->report_id }}</td>
@@ -93,8 +98,28 @@
                                         <td>{{ number_format($expensesThisMonth, 2) }}</td>
                                         <td>{{ number_format($balanceAmount, 2) }}</td>
                                         <td>
+                                            <span class="badge {{ $statusBadgeClass }}">{{ $statusLabel }}</span>
+                                        </td>
+                                        <td>
                                             <a href="{{ route('monthly.report.show', $report->report_id) }}" class="btn btn-primary btn-sm">View</a>
-                                            <a href="{{ route('monthly.report.edit', $report->report_id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                            @if(in_array($report->status, ['draft', 'reverted_by_provincial', 'reverted_by_coordinator']))
+                                                <a href="{{ route('monthly.report.edit', $report->report_id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                            @endif
+
+                                            @if($report->status === 'underwriting')
+                                                <form method="POST" action="{{ route('executor.report.submit', $report->report_id) }}" class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Are you sure you want to submit this report to provincial?')">
+                                                        Submit to Provincial
+                                                    </button>
+                                                </form>
+                                            @endif
+
+                                            @if($report->status === 'reverted_by_provincial' && $report->revert_reason)
+                                                <button type="button" class="btn btn-info btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Revert Reason: {{ $report->revert_reason }}">
+                                                    View Reason
+                                                </button>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach
@@ -106,4 +131,14 @@
         </div>
     </div>
 </div>
+
+<script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 @endsection

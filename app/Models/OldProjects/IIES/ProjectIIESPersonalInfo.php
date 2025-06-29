@@ -6,6 +6,59 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\OldProjects\Project;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $IIES_personal_id
+ * @property string $project_id
+ * @property string $iies_bname
+ * @property int|null $iies_age
+ * @property string|null $iies_gender
+ * @property string|null $iies_dob
+ * @property string|null $iies_email
+ * @property string|null $iies_contact
+ * @property string|null $iies_aadhar
+ * @property string|null $iies_full_address
+ * @property string|null $iies_father_name
+ * @property string|null $iies_mother_name
+ * @property string|null $iies_mother_tongue
+ * @property string|null $iies_current_studies
+ * @property string|null $iies_bcaste
+ * @property string|null $iies_father_occupation
+ * @property string|null $iies_father_income
+ * @property string|null $iies_mother_occupation
+ * @property string|null $iies_mother_income
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIIESPersonalId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesAadhar($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesAge($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesBcaste($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesBname($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesContact($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesCurrentStudies($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesDob($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesEmail($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesFatherIncome($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesFatherName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesFatherOccupation($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesFullAddress($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesGender($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesMotherIncome($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesMotherName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesMotherOccupation($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereIiesMotherTongue($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESPersonalInfo whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class ProjectIIESPersonalInfo extends Model
 {
     use HasFactory;

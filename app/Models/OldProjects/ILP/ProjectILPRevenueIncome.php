@@ -6,6 +6,35 @@ use App\Models\OldProjects\Project;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $ILP_revenue_income_id
+ * @property string $project_id
+ * @property string $description
+ * @property string|null $year_1
+ * @property string|null $year_2
+ * @property string|null $year_3
+ * @property string|null $year_4
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueIncome newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueIncome newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueIncome query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueIncome whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueIncome whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueIncome whereILPRevenueIncomeId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueIncome whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueIncome whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueIncome whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueIncome whereYear1($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueIncome whereYear2($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueIncome whereYear3($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectILPRevenueIncome whereYear4($value)
+ * @mixin \Eloquent
+ */
 class ProjectILPRevenueIncome extends Model
 {
     use HasFactory;

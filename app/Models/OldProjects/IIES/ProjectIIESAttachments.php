@@ -7,6 +7,41 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use App\Models\OldProjects\Project;
 
+/**
+ * 
+ *
+ * @property int $id
+ * @property string $IIES_attachment_id
+ * @property string $project_id
+ * @property string|null $iies_aadhar_card
+ * @property string|null $iies_fee_quotation
+ * @property string|null $iies_scholarship_proof
+ * @property string|null $iies_medical_confirmation
+ * @property string|null $iies_caste_certificate
+ * @property string|null $iies_self_declaration
+ * @property string|null $iies_death_certificate
+ * @property string|null $iies_request_letter
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read Project|null $project
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments query()
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments whereIIESAttachmentId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments whereIiesAadharCard($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments whereIiesCasteCertificate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments whereIiesDeathCertificate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments whereIiesFeeQuotation($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments whereIiesMedicalConfirmation($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments whereIiesRequestLetter($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments whereIiesScholarshipProof($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments whereIiesSelfDeclaration($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments whereProjectId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|ProjectIIESAttachments whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class ProjectIIESAttachments extends Model
 {
     use HasFactory;

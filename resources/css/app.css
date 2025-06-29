@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom form-control for justified text in display fields */
+.form-control {
+    @apply w-full p-2 border border-gray-300 rounded text-base bg-white text-gray-900 mb-2;
+    text-align: justify;
+}
