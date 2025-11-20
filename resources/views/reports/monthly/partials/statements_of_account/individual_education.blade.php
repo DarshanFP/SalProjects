@@ -85,11 +85,11 @@
                     @foreach($budgets as $index => $budget)
                     <tr data-row-type="budget">
                         <input type="hidden" name="is_budget_row[{{$index}}]" value="1">
-                        <td><input type="text" name="particulars[]" class="form-control" value="{{ old('particulars.'.$index, $budget->name . ' - ' . $budget->study_proposed) }}" readonly></td>
+                        <td><input type="text" name="particulars[]" class="form-control" value="{{ old('particulars.'.$index, $budget->iies_particular) }}" readonly></td>
                         <td><input type="number" name="amount_forwarded[]" class="form-control" value="{{ old('amount_forwarded.'.$index, 0.00) }}" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #6571ff;"></td>
-                        <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ old('amount_sanctioned.'.$index, $budget->amount_requested ?? 0.00) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
-                        <td><input type="number" name="total_amount[]" class="form-control" value="{{ old('total_amount.'.$index, ($budget->amount_forwarded ?? 0.00) + ($budget->amount_requested ?? 0.00)) }}" readonly></td>
-                        <td><input type="number" name="expenses_last_month[]" class="form-control" value="{{ old('expenses_last_month.'.$index, $lastExpenses[$budget->name] ?? 0.00) }}" readonly></td>
+                        <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ old('amount_sanctioned.'.$index, $budget->amount_sanctioned ?? 0.00) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
+                        <td><input type="number" name="total_amount[]" class="form-control" value="{{ old('total_amount.'.$index, ($budget->amount_forwarded ?? 0.00) + ($budget->amount_sanctioned ?? 0.00)) }}" readonly></td>
+                        <td><input type="number" name="expenses_last_month[]" class="form-control" value="{{ old('expenses_last_month.'.$index, $lastExpenses[$budget->iies_particular] ?? 0.00) }}" readonly></td>
                         <td><input type="number" name="expenses_this_month[]" class="form-control" value="{{ old('expenses_this_month.'.$index, 0.00) }}" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
                         <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
                         <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>

@@ -78,60 +78,47 @@ class ProjectIAHDocuments extends Model
     {
         \Log::info("handleDocuments() IAH called for project: {$projectId}");
 
-        if (!$request->has('attachments')) {
-            // No attachments array at all
-            \Log::info("No attachments array found in request for project: {$projectId}");
-            return;
-        }
+        // The list of fields from your form
+        $fields = [
+            'aadhar_copy',
+            'request_letter',
+            'medical_reports',
+            'other_docs',
+        ];
 
-        foreach ($request->file('attachments', []) as $docId => $docFields) {
-            // $docId might be "new" or an existing numeric ID
-            if ($docId === 'new') {
-                \Log::info("Creating new doc row for project: {$projectId}");
-                $documents = new self();
-                $documents->project_id = $projectId;
-                $documents->save();
-            } else {
-                // Find existing doc row
-                $documents = self::find($docId);
-                if (!$documents) {
-                    \Log::warning("No existing doc row with ID=$docId. Creating new row for project=$projectId");
-                    $documents = new self();
-                    $documents->project_id = $projectId;
-                    $documents->save();
-                }
-            }
+        // Ensure directory exists
+        $projectDir = "project_attachments/IAH/{$projectId}";
+        Storage::disk('public')->makeDirectory($projectDir);
 
-            // Now store the files for each column if present
-            $fieldsMap = [
-                'aadhar_copy'     => 'aadhar',
-                'request_letter'  => 'request_letter',
-                'medical_reports' => 'medical_reports',
-                'other_docs'      => 'other_docs',
-            ];
+        // Update or create the row for this project
+        $documents = self::updateOrCreate(['project_id' => $projectId], []);
 
-            $projectDir = "project_attachments/IAH/{$projectId}";
-            Storage::disk('public')->makeDirectory($projectDir);
+        // For each field, if there's a file, store it
+        foreach ($fields as $field) {
+            if ($request->hasFile($field)) {
+                $file = $request->file($field);
 
-            foreach ($fieldsMap as $column => $shortName) {
-                if (isset($docFields[$column]) && $docFields[$column] instanceof \Illuminate\Http\UploadedFile) {
-                    $file      = $docFields[$column];
-                    $extension = $file->getClientOriginalExtension();
-                    $fileName  = "{$projectId}_{$shortName}.{$extension}";
+                $extension = $file->getClientOriginalExtension();
+                $fileName  = "{$projectId}_{$field}.{$extension}";
 
-                    $filePath = $file->storeAs($projectDir, $fileName, 'public');
-                    if ($filePath && Storage::disk('public')->exists($filePath)) {
-                        // Optionally remove old file
-                        if (!empty($documents->{$column}) && $documents->{$column} !== $filePath) {
-                            Storage::disk('public')->delete($documents->{$column});
-                        }
-                        $documents->{$column} = $filePath;
+                // storeAs on the public disk => /storage/project_attachments/IAH/{$projectId}
+                $filePath = $file->storeAs($projectDir, $fileName, 'public');
+
+                // If successful:
+                if ($filePath && Storage::disk('public')->exists($filePath)) {
+                    // Remove old file if different from new path
+                    if (!empty($documents->{$field}) && $documents->{$field} !== $filePath) {
+                        Storage::disk('public')->delete($documents->{$field});
                     }
+
+                    $documents->{$field} = $filePath;
                 }
             }
-
-            $documents->save();
         }
+
+        $documents->save();
+
+        return $documents;
     }
 
     /**

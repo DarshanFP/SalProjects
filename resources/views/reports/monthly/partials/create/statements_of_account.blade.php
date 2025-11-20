@@ -1,7 +1,7 @@
 {{-- resources/views/reports/monthly/partials/create/statements_of_account.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
-        <h4>4. Statements of Account</h4>
+        <h4>4. Statements of Account a</h4>
     </div>
     <div class="card-body">
         <div class="mb-3">

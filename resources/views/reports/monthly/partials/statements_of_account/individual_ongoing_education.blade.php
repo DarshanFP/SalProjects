@@ -1,7 +1,7 @@
-{{-- resources/views/reports/monthly/partials/statements_of_account/individual_health.blade.php --}}
+{{-- resources/views/reports/monthly/partials/statements_of_account/individual_ongoing_education.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
-        <h4>4. Statements of Account</h4>
+        <h4>4. Statements of Account this </h4>
     </div>
     <div class="card-body">
         <div class="mb-3">
@@ -42,6 +42,8 @@
                    value="{{ old('amount_in_hand', ($report->amount_in_hand ?? ($amountSanctioned ?? 0.00) + ($amountForwarded ?? 0.00))) }}" readonly>
         </div>
 
+        {{-- <pre>{{ print_r($budgets, true) }}</pre> --}}
+
         <table class="table table-bordered">
             <thead>
                 <tr>
@@ -81,7 +83,7 @@
                         </tr>
                     @endforeach
                 @elseif(isset($budgets))
-                    {{-- Create Mode: Use IAH project budgets --}}
+                    {{-- Create Mode: Use IES project budgets --}}
                     @foreach($budgets as $index => $budget)
                     <tr data-row-type="budget">
                         <input type="hidden" name="is_budget_row[{{$index}}]" value="1">
@@ -199,69 +201,50 @@ function calculateTotal() {
     });
 }
 
-function updateBalanceColor(inputElement) {
-    const value = parseFloat(inputElement.value) || 0;
-    console.log('Checking balance:', value);
-
-    if (value < 0) {
-        inputElement.style.backgroundColor = 'red';
-    } else {
-        inputElement.style.backgroundColor = '';
-    }
-}
-
-function updateAllBalanceColors() {
-    const balanceFields = document.querySelectorAll('[name="balance_amount[]"], #total_balance');
-    balanceFields.forEach(field => {
-        updateBalanceColor(field);
-    });
-}
-
 function addAccountRow() {
-    const tableBody = document.getElementById('account-rows');
-    const newRow = document.createElement('tr');
-    const currentRowCount = tableBody.querySelectorAll('tr').length;
+    const tbody = document.getElementById('account-rows');
+    const rowCount = tbody.children.length;
 
+    const newRow = document.createElement('tr');
     newRow.setAttribute('data-row-type', 'additional');
     newRow.innerHTML = `
-        <input type="hidden" name="is_budget_row[${currentRowCount}]" value="0">
-        <td><input type="text" name="particulars[]" class="form-control" placeholder="Enter expense description" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="amount_forwarded[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="amount_sanctioned[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="total_amount[]" class="form-control" readonly></td>
-        <td><input type="number" name="expenses_last_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="expenses_this_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
-        <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>
+        <input type="hidden" name="is_budget_row[${rowCount}]" value="0">
+        <td><input type="text" name="particulars[]" class="form-control" placeholder="Enter particulars" style="background-color: #202ba3;"></td>
+        <td><input type="number" name="amount_forwarded[]" class="form-control" value="0.00" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #6571ff;"></td>
+        <td><input type="number" name="amount_sanctioned[]" class="form-control" value="0.00" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
+        <td><input type="number" name="total_amount[]" class="form-control" value="0.00" readonly></td>
+        <td><input type="number" name="expenses_last_month[]" class="form-control" value="0.00" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
+        <td><input type="number" name="expenses_this_month[]" class="form-control" value="0.00" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
+        <td><input type="number" name="total_expenses[]" class="form-control" value="0.00" readonly></td>
+        <td><input type="number" name="balance_amount[]" class="form-control" value="0.00" readonly></td>
         <td><button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button></td>
     `;
 
-    newRow.querySelectorAll('input').forEach(input => {
-        input.addEventListener('input', function() {
-            const row = input.closest('tr');
-            calculateRowTotals(row);
-            calculateTotal();
-        });
-    });
-
-    tableBody.appendChild(newRow);
-    calculateRowTotals(newRow);
-    console.log('New additional expense row added.');
+    tbody.appendChild(newRow);
+    calculateTotal();
 }
 
 function removeAccountRow(button) {
     const row = button.closest('tr');
-    const rowType = row.getAttribute('data-row-type');
-
-    if (rowType === 'budget') {
-        alert('Budget rows cannot be removed. Only additional expense rows can be deleted.');
+    if (row.getAttribute('data-row-type') === 'budget') {
+        alert('Budget rows cannot be removed.');
         return;
     }
+    row.remove();
+    calculateTotal();
+}
 
-    if (confirm('Are you sure you want to remove this additional expense row?')) {
-        row.remove();
-        calculateTotal();
-        console.log('Additional expense row removed.');
-    }
+function updateAllBalanceColors() {
+    const balanceInputs = document.querySelectorAll('[name="balance_amount[]"]');
+    balanceInputs.forEach(input => {
+        const balance = parseFloat(input.value) || 0;
+        if (balance < 0) {
+            input.style.backgroundColor = '#ffebee';
+            input.style.color = '#c62828';
+        } else {
+            input.style.backgroundColor = '#e8f5e8';
+            input.style.color = '#2e7d32';
+        }
+    });
 }
 </script>

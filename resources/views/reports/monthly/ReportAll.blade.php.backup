@@ -150,8 +150,6 @@
                 <!-- Statements of Account Section  -->
                 @if($project->project_type === 'Individual - Initial - Educational support')
                     @include('reports.monthly.partials.statements_of_account.individual_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
-                @elseif($project->project_type === 'Individual - Ongoing Educational support')
-                    @include('reports.monthly.partials.statements_of_account.individual_ongoing_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
                 @elseif($project->project_type === 'Individual - Livelihood Application')
                     @include('reports.monthly.partials.statements_of_account.individual_livelihood', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
                 @elseif($project->project_type === 'Individual - Access to Health')

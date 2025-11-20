@@ -4,147 +4,90 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <!-- LEFT COLUMN -->
-            <div class="col-md-6">
-                @foreach ($project->iahDocuments as $doc)
-                    @foreach ([
-                        'aadhar_copy' => 'Self-attested Aadhar',
-                        'request_letter' => 'Request Letter',
-                    ] as $name => $label)
-                        <div class="mb-3">
-                            <label class="form-label">{{ $label }}:</label>
-                            <input type="file" name="attachments[{{ $doc->id }}][{{ $name }}]" class="form-control" onchange="renameFile(this, '{{ $name }}')">
+            @php
+                $fields = [
+                    'aadhar_copy'     => 'Aadhar Copy',
+                    'request_letter'  => 'Request Letter',
+                    'medical_reports' => 'Medical Reports (Diagnosis)',
+                    'other_docs'      => 'Any Other Supporting Documents',
+                ];
+            @endphp
 
-                            @if(!empty($doc->$name))
-                                <p>Currently Attached:</p>
-                                <a href="{{ Storage::url($doc->$name) }}" target="_blank">
-                                    {{ basename($doc->$name) }}
-                                </a>
-                                <br>
-                                <a href="{{ Storage::url($doc->$name) }}" download class="btn btn-green">
-                                    Download
-                                </a>
-                            @endif
-                        </div>
-                    @endforeach
-                @endforeach
-            </div>
+            @foreach ($fields as $field => $label)
+                <div class="col-md-6 form-group">
+                    <label>{{ $label }}</label>
+                    <input type="file" name="{{ $field }}" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png">
 
-            <!-- RIGHT COLUMN -->
-            <div class="col-md-6">
-                @foreach ($project->iahDocuments as $doc)
-                    @foreach ([
-                        'medical_reports' => 'Medical Reports',
-                        'other_docs' => 'Other Supporting Documents',
-                    ] as $name => $label)
-                        <div class="mb-3">
-                            <label class="form-label">{{ $label }}:</label>
-                            <input type="file" name="attachments[{{ $doc->id }}][{{ $name }}]" class="form-control" onchange="renameFile(this, '{{ $name }}')">
-
-                            @if(!empty($doc->$name))
-                                <p>Currently Attached:</p>
-                                <a href="{{ Storage::url($doc->$name) }}" target="_blank">
-                                    {{ basename($doc->$name) }}
-                                </a>
-                                <br>
-                                <a href="{{ Storage::url($doc->$name) }}" download class="btn btn-green">
-                                    Download
-                                </a>
-                            @endif
-                        </div>
-                    @endforeach
-                @endforeach
-            </div>
+                    @if($IAHDocuments && isset($IAHDocuments->$field) && $IAHDocuments->$field)
+                        <p>Currently Attached:</p>
+                        <a href="{{ Storage::url($IAHDocuments->$field) }}" target="_blank">
+                            {{ basename($IAHDocuments->$field) }}
+                        </a>
+                        <br>
+                        <a href="{{ Storage::url($IAHDocuments->$field) }}" download class="btn btn-success btn-sm">
+                            Download
+                        </a>
+                    @else
+                        <p class="text-warning">No file attached.</p>
+                    @endif
+                </div>
+            @endforeach
         </div>
-
-        <!-- If no documents exist, show upload form -->
-        @if($project->iahDocuments->isEmpty())
-            <div class="row">
-                <div class="col-md-6">
-                    @foreach ([
-                        'aadhar_copy' => 'Self-attested Aadhar',
-                        'request_letter' => 'Request Letter',
-                    ] as $name => $label)
-                        <div class="mb-3">
-                            <label class="form-label">{{ $label }}:</label>
-                            <input type="file" name="attachments[new][{{ $name }}]" class="form-control">
-                        </div>
-                    @endforeach
-                </div>
-                <div class="col-md-6">
-                    @foreach ([
-                        'medical_reports' => 'Medical Reports',
-                        'other_docs' => 'Other Supporting Documents',
-                    ] as $name => $label)
-                        <div class="mb-3">
-                            <label class="form-label">{{ $label }}:</label>
-                            <input type="file" name="attachments[new][{{ $name }}]" class="form-control">
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        @endif
     </div>
 </div>
 
 <!-- Styles -->
 <style>
-.form-control {
-    background-color: #202ba3;
-    color: white;
-}
-.btn {
-    display: inline-block;
-    padding: 5px 10px;
-    font-size: 12px;
-    font-weight: bold;
-    text-align: center;
-    text-decoration: none;
-    border-radius: 4px;
-}
-.btn-green {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    cursor: pointer;
-}
-.btn-green:hover {
-    background-color: #218838;
-}
-.mb-3 {
-    margin-bottom: 20px;
-}
-.mb-3 p {
-    margin-bottom: 5px;
-}
-p a {
-    display: block;
-    margin-bottom: 5px;
-}
-</style>
-
-<!-- JavaScript -->
-<script>
-    function renameFile(input, label) {
-        const projectIdInput = document.querySelector('input[name="project_id"]');
-        if (!projectIdInput) {
-            console.warn("No <input name='project_id'> found in the parent form.");
-            return;
-        }
-
-        const projectId = projectIdInput.value;
-        const file = input.files[0];
-
-        if (!file) {
-            return;
-        }
-
-        const extension = file.name.split('.').pop();
-        const newFileName = `${projectId}_${label}.${extension}`;
-
-        const dataTransfer = new DataTransfer();
-        const renamedFile = new File([file], newFileName, { type: file.type });
-        dataTransfer.items.add(renamedFile);
-        input.files = dataTransfer.files;
+    .form-group {
+        margin-bottom: 20px;
     }
-</script>
+
+    .form-control-file {
+        max-width: 100%;
+        background-color: #202ba3;
+        color: white;
+    }
+
+    label {
+        margin-bottom: 5px;
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .row {
+        margin: 0;
+    }
+
+    .col-md-6 {
+        padding: 10px;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 5px 10px;
+        font-size: 12px;
+        font-weight: bold;
+        text-align: center;
+        text-decoration: none;
+        border-radius: 4px;
+    }
+
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-success:hover {
+        background-color: #218838;
+    }
+
+    .text-warning {
+        color: #856404;
+        font-size: 12px;
+        font-style: italic;
+    }
+</style>

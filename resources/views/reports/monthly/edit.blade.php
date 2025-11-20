@@ -145,13 +145,15 @@
                 <button type="button" class="btn btn-primary" onclick="addOutlook()">Add More Outlook</button>
 
                 <!-- Statements of Account Section -->
-                @if($project->project_type === 'Individual - Initial - Educational support')
-                    @include('reports.monthly.partials.edit.statements_of_account.individual_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
-                @elseif($project->project_type === 'Individual - Livelihood Application')
+                @if($project->project_type === 'Individual - Livelihood Application')
                     @include('reports.monthly.partials.edit.statements_of_account.individual_livelihood', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
                 @elseif($project->project_type === 'Individual - Access to Health')
                     @include('reports.monthly.partials.edit.statements_of_account.individual_health', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
-                @elseif($project->project_type === 'Institutional - Initial - Educational support')
+                @elseif($project->project_type === 'Individual - Ongoing Educational support')
+                    @include('reports.monthly.partials.edit.statements_of_account.individual_ongoing_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                @elseif($project->project_type === 'Individual - Initial - Educational support')
+                    @include('reports.monthly.partials.edit.statements_of_account.individual_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                @elseif($project->project_type === 'Institutional Ongoing Group Educational proposal')
                     @include('reports.monthly.partials.edit.statements_of_account.institutional_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
                 @elseif($project->project_type === 'Development Projects')
                     @include('reports.monthly.partials.edit.statements_of_account.development_projects', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])

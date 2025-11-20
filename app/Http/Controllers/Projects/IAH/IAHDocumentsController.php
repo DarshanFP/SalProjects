@@ -14,187 +14,157 @@ class IAHDocumentsController extends Controller
 {
     /**
      * STORE: handle initial file uploads for IAH Documents.
-     * Uses ProjectIAHDocuments::handleDocuments($request, $projectId).
      */
     public function store(Request $request, $projectId)
     {
         Log::info('IAHDocumentsController@store - Start', [
-            'project_id'   => $projectId,
+            'project_id' => $projectId,
             'request_data' => $request->all(),
         ]);
 
         DB::beginTransaction();
         try {
-            // (Optional) Validate the presence and types of your file inputs.
-            // Make sure the array keys match your Blade: attachments[aadhar_copy], etc.
-            $request->validate([
-                'attachments.aadhar_copy'     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-                'attachments.request_letter'  => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-                'attachments.medical_reports' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-                'attachments.other_docs'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            ]);
+            // Validate file fields (optional).
+            $request->validate($this->validationRules());
 
-            // Ensure the project exists
+            // Ensure project exists
             if (!Project::where('project_id', $projectId)->exists()) {
                 return response()->json(['error' => 'Project not found.'], 404);
             }
 
-            // The model's static handleDocuments(...) does the actual file moving + DB updates
+            // Model's static handleDocuments(...) does the actual file + DB work
             $documents = ProjectIAHDocuments::handleDocuments($request, $projectId);
 
             DB::commit();
             Log::info('IAHDocumentsController@store - Success', [
                 'project_id' => $projectId,
-                'doc_id'     => $documents->IAH_doc_id ?? null,
+                'doc_id' => $documents->IAH_doc_id ?? null,
             ]);
 
             return response()->json([
-                'message'   => 'IAH documents stored successfully.',
+                'message' => 'IAH documents stored successfully.',
                 'documents' => $documents
             ], 200);
+
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('IAHDocumentsController@store - Error', [
                 'project_id' => $projectId,
-                'error'      => $e->getMessage()
+                'error' => $e->getMessage()
             ]);
             return response()->json(['error' => 'Failed to store IAH documents.'], 500);
         }
     }
 
     /**
-     * SHOW: retrieve the existing IAHDocuments row and return file URLs, etc.
+     * SHOW: retrieve existing documents for a project.
      */
     public function show($projectId)
     {
-        Log::info('IAHDocumentsController@show - Start', ['project_id' => $projectId]);
-
         try {
+            Log::info('IAHDocumentsController@show - Fetching documents', ['project_id' => $projectId]);
+
+            // Fetch documents for the given project ID
             $documents = ProjectIAHDocuments::where('project_id', $projectId)->first();
 
-            // Return the model object directly, not a JSON response
+            if (!$documents) {
+                Log::warning('IAHDocumentsController@show - No documents found', ['project_id' => $projectId]);
+                return []; // ✅ Always return an empty array instead of null
+            }
+
+            return [
+                'aadhar_copy'     => $documents->aadhar_copy ? Storage::url($documents->aadhar_copy) : null,
+                'request_letter'  => $documents->request_letter ? Storage::url($documents->request_letter) : null,
+                'medical_reports' => $documents->medical_reports ? Storage::url($documents->medical_reports) : null,
+                'other_docs'      => $documents->other_docs ? Storage::url($documents->other_docs) : null,
+            ];
+        } catch (\Exception $e) {
+            Log::error('IAHDocumentsController@show - Error retrieving documents', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return []; // ✅ Always return an array, even on error
+        }
+    }
+
+    /**
+     * EDIT: return either a Blade view or JSON to allow editing.
+     */
+    public function edit($projectId)
+    {
+        Log::info('IAHDocumentsController@edit - Start', ['project_id' => $projectId]);
+
+        try {
+            // Load the project + its IAH Documents (if any)
+            $documents = ProjectIAHDocuments::where('project_id', $projectId)->first();
+
+            if ($documents) {
+                Log::info('IAHDocumentsController@edit - Documents found', [
+                    'project_id' => $projectId,
+                    'doc_id' => $documents->IAH_doc_id,
+                    'stored_files' => $documents->toArray(), // Logs all stored file paths
+                ]);
+            } else {
+                Log::warning('IAHDocumentsController@edit - No documents found', ['project_id' => $projectId]);
+            }
+
+            // Log what data is being sent to the main controller
+            Log::info('IAHDocumentsController@edit - Data sent to ProjectController', [
+                'documents' => $documents ? $documents->toArray() : null,
+            ]);
+
             return $documents;
         } catch (\Exception $e) {
-            Log::error('IAHDocumentsController@show - Error', [
+            Log::error('IAHDocumentsController@edit - Error', [
                 'project_id' => $projectId,
-                'error'      => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            return null; // Return null instead of JSON error
+            return response()->json(['error' => 'Failed to retrieve IAH documents.'], 500);
         }
     }
 
     /**
-     * EDIT: commonly returns either the raw data or a blade partial for editing.
-     */
-    // public function edit($projectId)
-    // {
-    //     Log::info('IAHDocumentsController@edit - Start', ['project_id' => $projectId]);
-
-    //     try {
-    //         // Eager load the project + doc relationship
-    //         $project = Project::where('project_id', $projectId)
-    //             ->with('iahDocuments')
-    //             ->firstOrFail();
-
-    //         if ($project->iahDocuments) {
-    //             Log::info('IAHDocumentsController@edit - Documents found', [
-    //                 'doc_id' => $project->iahDocuments->IAH_doc_id
-    //             ]);
-    //         } else {
-    //             Log::warning('IAHDocumentsController@edit - No documents found', [
-    //                 'project_id' => $projectId
-    //             ]);
-    //         }
-
-    //         // Return a blade partial or JSON as needed
-    //         return view('projects.partials.Edit.IAH.documents', compact('project'));
-    //     } catch (\Exception $e) {
-    //         Log::error('IAHDocumentsController@edit - Error', [
-    //             'project_id' => $projectId,
-    //             'error'      => $e->getMessage()
-    //         ]);
-    //         return response()->json(['error' => 'Failed to load IAH documents for editing.'], 500);
-    //     }
-    // }
-
-    public function edit($projectId)
-{
-    Log::info('IAHDocumentsController@edit - Start', ['project_id' => $projectId]);
-
-    try {
-        // Load the project + all IAHDocuments (since hasMany)
-        $project = Project::where('project_id', $projectId)
-            ->with('iahDocuments')
-            ->firstOrFail();
-
-        // If we want to see how many doc records exist:
-        if ($project->iahDocuments->isNotEmpty()) {
-            Log::info('IAHDocumentsController@edit - Documents found', [
-                'count' => $project->iahDocuments->count()
-            ]);
-        } else {
-            Log::warning('IAHDocumentsController@edit - No documents found', [
-                'project_id' => $projectId
-            ]);
-        }
-
-        // Return a Blade partial or full view that includes the existing doc paths:
-        return view('projects.partials.Edit.IAH.documents', compact('project'));
-    } catch (\Exception $e) {
-        Log::error('IAHDocumentsController@edit - Error', [
-            'project_id' => $projectId,
-            'error'      => $e->getMessage()
-        ]);
-        return response()->json(['error' => 'Failed to load IAH documents for editing.'], 500);
-    }
-}
-
-
-    /**
-     * UPDATE: handle new file uploads that overwrite existing files, if present.
+     * UPDATE: handle new file uploads that overwrite old files, if present.
      */
     public function update(Request $request, $projectId)
     {
         Log::info('IAHDocumentsController@update - Start', [
-            'project_id'   => $projectId,
+            'project_id' => $projectId,
             'request_data' => $request->all()
         ]);
 
         DB::beginTransaction();
         try {
-            // Validate (optional)
-            $request->validate([
-                'attachments.aadhar_copy'     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-                'attachments.request_letter'  => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-                'attachments.medical_reports' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-                'attachments.other_docs'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            ]);
+            // Validate new files (optional)
+            $request->validate($this->validationRules());
 
-            // Overwrites old files if new ones are uploaded for each field
             $documents = ProjectIAHDocuments::handleDocuments($request, $projectId);
 
             DB::commit();
             Log::info('IAHDocumentsController@update - Success', [
                 'project_id' => $projectId,
-                'doc_id'     => $documents->IAH_doc_id ?? null
+                'doc_id' => $documents->IAH_doc_id ?? null
             ]);
 
+            // If you prefer returning JSON:
             return response()->json([
-                'message'   => 'IAH documents updated successfully.',
+                'message' => 'IAH documents updated successfully.',
                 'documents' => $documents
             ], 200);
+
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('IAHDocumentsController@update - Error', [
                 'project_id' => $projectId,
-                'error'      => $e->getMessage(),
+                'error' => $e->getMessage()
             ]);
             return response()->json(['error' => 'Failed to update IAH documents.'], 500);
         }
     }
 
     /**
-     * DESTROY: remove the IAHDocuments record (and its stored files).
+     * DESTROY: remove the IAH Documents record (and any stored files).
      */
     public function destroy($projectId)
     {
@@ -204,24 +174,37 @@ class IAHDocumentsController extends Controller
         try {
             $documents = ProjectIAHDocuments::where('project_id', $projectId)->firstOrFail();
 
-            Log::info('IAHDocumentsController@destroy - Deleting record', [
+            Log::info('Deleting documents record', [
                 'doc_id' => $documents->IAH_doc_id
             ]);
 
-            // delete() will also call $documents->deleteAttachments() due to the model's boot() method
+            // Remove the directory & files from storage
+            Storage::deleteDirectory("project_attachments/IAH/{$projectId}");
             $documents->delete();
 
             DB::commit();
-            Log::info('IAHDocumentsController@destroy - Success', ['project_id' => $projectId]);
-
             return response()->json(['message' => 'IAH documents deleted successfully.'], 200);
+
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('IAHDocumentsController@destroy - Error', [
                 'project_id' => $projectId,
-                'error'      => $e->getMessage(),
+                'error' => $e->getMessage()
             ]);
             return response()->json(['error' => 'Failed to delete IAH documents.'], 500);
         }
+    }
+
+    /**
+     * Validation rules for each file input.
+     */
+    private function validationRules(): array
+    {
+        return [
+            'aadhar_copy'     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'request_letter'  => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'medical_reports' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'other_docs'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+        ];
     }
 }

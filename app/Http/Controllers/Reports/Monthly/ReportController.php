@@ -56,12 +56,12 @@ class ReportController extends Controller
 
         // Get budget data based on project type
         $budgets = $this->getBudgetDataByProjectType($project);
-        Log::info('Budgets retrieved for project type', ['project_type' => $project->project_type, 'budgets_count' => $budgets->count()]);
+        Log::info('Budgets retrieved for project type', ['project_type' => $project->project_type, 'budgets' => $budgets->toArray()]);
 
         // Retrieve objectives with their results and activities
         $objectives = ProjectObjective::where('project_id', $project_id)
-            ->with(['results', 'activities.timeframes'])
-            ->get();
+    ->with(['results', 'activities.timeframes'])
+    ->get();
 
         Log::info('Objectives retrieved for the project', ['objectives' => $objectives]);
 
@@ -105,9 +105,11 @@ class ReportController extends Controller
             case 'Institutional Ongoing Group Educational proposal':
                 return $this->getIGEBudgets($project);
 
-            case 'Individual - Ongoing Educational support':
             case 'Individual - Initial - Educational support':
                 return $this->getIIESBudgets($project);
+
+            case 'Individual - Ongoing Educational support':
+                return $this->getIESBudgets($project);
 
             default:
                 Log::warning('Unknown project type, using development project budgets as fallback', ['project_type' => $project->project_type]);
@@ -133,7 +135,53 @@ class ReportController extends Controller
      */
     private function getILPBudgets($project)
     {
-        return \App\Models\OldProjects\ILP\ProjectILPBudget::where('project_id', $project->project_id)->get();
+        $budgets = \App\Models\OldProjects\ILP\ProjectILPBudget::where('project_id', $project->project_id)->get();
+
+        if ($budgets->isEmpty()) {
+            return collect();
+        }
+
+        // Get beneficiary contribution from the first row (since it's repeated in all rows)
+        $beneficiaryContribution = $budgets->first()->beneficiary_contribution ?? 0;
+        $totalRows = $budgets->count();
+
+        // Calculate the amount to subtract from each row
+        $contributionPerRow = $totalRows > 0 ? $beneficiaryContribution / $totalRows : 0;
+
+        Log::info('ILP Budget calculation', [
+            'total_rows' => $totalRows,
+            'beneficiary_contribution' => $beneficiaryContribution,
+            'contribution_per_row' => $contributionPerRow
+        ]);
+
+        // Map the budgets to the expected structure with calculated amounts
+        return $budgets->map(function($budget) use ($contributionPerRow) {
+            $cost = $budget->cost ?? 0;
+            $finalAmount = max(0, $cost - $contributionPerRow); // Ensure amount doesn't go negative
+
+            Log::info('ILP Budget row calculation', [
+                'budget_desc' => $budget->budget_desc,
+                'original_cost' => $cost,
+                'contribution_subtracted' => $contributionPerRow,
+                'final_amount' => $finalAmount
+            ]);
+
+            // Create a new object that maintains the original structure but with calculated amount_sanctioned
+            $budgetObject = (object)[
+                'ILP_budget_id' => $budget->ILP_budget_id,
+                'project_id' => $budget->project_id,
+                'budget_desc' => $budget->budget_desc, // Keep original for view compatibility
+                'cost' => $budget->cost,
+                'beneficiary_contribution' => $budget->beneficiary_contribution,
+                'amount_requested' => $budget->amount_requested,
+                'created_at' => $budget->created_at,
+                'updated_at' => $budget->updated_at,
+                // Add the calculated amount_sanctioned for the AMOUNT SANCTIONED CURRENT YEAR column
+                'amount_sanctioned' => $finalAmount
+            ];
+
+            return $budgetObject;
+        });
     }
 
     /**
@@ -141,7 +189,54 @@ class ReportController extends Controller
      */
     private function getIAHBudgets($project)
     {
-        return \App\Models\OldProjects\IAH\ProjectIAHBudgetDetails::where('project_id', $project->project_id)->get();
+        $budgets = \App\Models\OldProjects\IAH\ProjectIAHBudgetDetails::where('project_id', $project->project_id)->get();
+
+        if ($budgets->isEmpty()) {
+            return collect();
+        }
+
+        // Get family contribution from the first row (since it's repeated in all rows)
+        $familyContribution = $budgets->first()->family_contribution ?? 0;
+        $totalRows = $budgets->count();
+
+        // Calculate the amount to subtract from each row
+        $contributionPerRow = $totalRows > 0 ? $familyContribution / $totalRows : 0;
+
+        Log::info('IAH Budget calculation', [
+            'total_rows' => $totalRows,
+            'family_contribution' => $familyContribution,
+            'contribution_per_row' => $contributionPerRow
+        ]);
+
+        // Map the budgets to the expected structure with calculated amounts
+        return $budgets->map(function($budget) use ($contributionPerRow) {
+            $amount = $budget->amount ?? 0;
+            $finalAmount = max(0, $amount - $contributionPerRow); // Ensure amount doesn't go negative
+
+            Log::info('IAH Budget row calculation', [
+                'particular' => $budget->particular,
+                'original_amount' => $amount,
+                'contribution_subtracted' => $contributionPerRow,
+                'final_amount' => $finalAmount
+            ]);
+
+            // Create a new object that maintains the original structure but with calculated amount_sanctioned
+            $budgetObject = (object)[
+                'IAH_budget_id' => $budget->IAH_budget_id,
+                'project_id' => $budget->project_id,
+                'particular' => $budget->particular, // Keep original for view compatibility
+                'amount' => $budget->amount,
+                'total_expenses' => $budget->total_expenses,
+                'family_contribution' => $budget->family_contribution,
+                'amount_requested' => $budget->amount_requested,
+                'created_at' => $budget->created_at,
+                'updated_at' => $budget->updated_at,
+                // Add the calculated amount_sanctioned for the AMOUNT SANCTIONED CURRENT YEAR column
+                'amount_sanctioned' => $finalAmount
+            ];
+
+            return $budgetObject;
+        });
     }
 
     /**
@@ -158,11 +253,135 @@ class ReportController extends Controller
     private function getIIESBudgets($project)
     {
         $iiesExpenses = \App\Models\OldProjects\IIES\ProjectIIESExpenses::where('project_id', $project->project_id)->first();
-        if ($iiesExpenses) {
-            return $iiesExpenses->expenseDetails;
+
+        if (!$iiesExpenses) {
+            return collect();
         }
+
+        // Get the expense details for this project
+        $expenseDetails = $iiesExpenses->expenseDetails;
+
+        if ($expenseDetails->isEmpty()) {
         return collect();
+        }
+
+        // Calculate total contribution from the three sources
+        $expectedScholarshipGovt = $iiesExpenses->iies_expected_scholarship_govt ?? 0;
+        $supportOtherSources = $iiesExpenses->iies_support_other_sources ?? 0;
+        $beneficiaryContribution = $iiesExpenses->iies_beneficiary_contribution ?? 0;
+
+        $totalContribution = $expectedScholarshipGovt + $supportOtherSources + $beneficiaryContribution;
+        $totalRows = $expenseDetails->count();
+
+        // Calculate the amount to subtract from each row
+        $contributionPerRow = $totalRows > 0 ? $totalContribution / $totalRows : 0;
+
+        Log::info('IIES Budget calculation', [
+            'total_rows' => $totalRows,
+            'expected_scholarship_govt' => $expectedScholarshipGovt,
+            'support_other_sources' => $supportOtherSources,
+            'beneficiary_contribution' => $beneficiaryContribution,
+            'total_contribution' => $totalContribution,
+            'contribution_per_row' => $contributionPerRow
+        ]);
+
+        // Map the expense details to the expected structure with calculated amounts
+        return $expenseDetails->map(function($detail) use ($contributionPerRow) {
+            $amount = $detail->iies_amount ?? 0;
+            $finalAmount = max(0, $amount - $contributionPerRow); // Ensure amount doesn't go negative
+
+            Log::info('IIES Budget row calculation', [
+                'iies_particular' => $detail->iies_particular,
+                'original_amount' => $amount,
+                'contribution_subtracted' => $contributionPerRow,
+                'final_amount' => $finalAmount
+            ]);
+
+            // Create a new object that maintains the original structure but with calculated amount_sanctioned
+            $budgetObject = (object)[
+                'IIES_expense_id' => $detail->IIES_expense_id,
+                'iies_particular' => $detail->iies_particular, // Keep original for view compatibility
+                'iies_amount' => $detail->iies_amount,
+                'created_at' => $detail->created_at,
+                'updated_at' => $detail->updated_at,
+                // Add the calculated amount_sanctioned for the AMOUNT SANCTIONED CURRENT YEAR column
+                'amount_sanctioned' => $finalAmount,
+                // Add additional fields for reference
+                'original_amount' => $amount,
+                'contribution_per_row' => $contributionPerRow
+            ];
+
+            return $budgetObject;
+        });
     }
+
+    /**
+     * Get IES (Individual Ongoing Educational Support) budgets
+     */
+    private function getIESBudgets($project)
+    {
+        $iesExpenses = \App\Models\OldProjects\IES\ProjectIESExpenses::where('project_id', $project->project_id)->first();
+
+        if (!$iesExpenses) {
+            return collect();
+        }
+
+        // Get the expense details for this project
+        $expenseDetails = $iesExpenses->expenseDetails;
+
+        if ($expenseDetails->isEmpty()) {
+        return collect();
+        }
+
+        // Calculate total contribution from the three sources
+        $expectedScholarshipGovt = $iesExpenses->expected_scholarship_govt ?? 0;
+        $supportOtherSources = $iesExpenses->support_other_sources ?? 0;
+        $beneficiaryContribution = $iesExpenses->beneficiary_contribution ?? 0;
+
+        $totalContribution = $expectedScholarshipGovt + $supportOtherSources + $beneficiaryContribution;
+        $totalRows = $expenseDetails->count();
+
+        // Calculate the amount to subtract from each row
+        $contributionPerRow = $totalRows > 0 ? $totalContribution / $totalRows : 0;
+
+        Log::info('IES Budget calculation', [
+            'total_rows' => $totalRows,
+            'expected_scholarship_govt' => $expectedScholarshipGovt,
+            'support_other_sources' => $supportOtherSources,
+            'beneficiary_contribution' => $beneficiaryContribution,
+            'total_contribution' => $totalContribution,
+            'contribution_per_row' => $contributionPerRow
+        ]);
+
+        // Map the expense details to the expected structure with calculated amounts
+        return $expenseDetails->map(function($detail) use ($contributionPerRow) {
+            $amount = $detail->amount ?? 0;
+            $finalAmount = max(0, $amount - $contributionPerRow); // Ensure amount doesn't go negative
+
+            Log::info('IES Budget row calculation', [
+                'particular' => $detail->particular,
+                'original_amount' => $amount,
+                'contribution_subtracted' => $contributionPerRow,
+                'final_amount' => $finalAmount
+            ]);
+
+            // Create a new object that maintains the original structure but with calculated amount_sanctioned
+            $budgetObject = (object)[
+                'IES_expense_id' => $detail->IES_expense_id,
+                'particular' => $detail->particular, // Keep original for view compatibility
+                'amount' => $detail->amount,
+                'created_at' => $detail->created_at,
+                'updated_at' => $detail->updated_at,
+                // Add the calculated amount_sanctioned for the AMOUNT SANCTIONED CURRENT YEAR column
+                'amount_sanctioned' => $finalAmount,
+                // Add additional fields for reference
+                'original_amount' => $amount,
+                'contribution_per_row' => $contributionPerRow
+            ];
+
+            return $budgetObject;
+        });
+}
 
     /**
      * Get last expenses for the project
@@ -170,16 +389,16 @@ class ReportController extends Controller
     private function getLastExpenses($project)
     {
         $lastReport = DPReport::where('project_id', $project->project_id)
-            ->orderBy('created_at', 'desc')
-            ->first();
+                              ->orderBy('created_at', 'desc')
+                              ->first();
 
         if ($lastReport) {
             $lastExpenses = DPAccountDetail::where('report_id', $lastReport->report_id)
-                ->get()
-                ->keyBy('particulars')
-                ->map(function ($item) {
-                    return $item->total_expenses;
-                });
+                                           ->get()
+                                           ->keyBy('particulars')
+                                           ->map(function ($item) {
+                                               return $item->total_expenses;
+                                           });
             Log::info('Last expenses retrieved', ['lastExpenses' => $lastExpenses]);
             return $lastExpenses;
         } else {
@@ -416,109 +635,109 @@ class ReportController extends Controller
     }
 
     private function storeObjectivesAndActivities($request, $report_id, $report)
-    {
-        $objectivesInput = $request->input('objective', []);
-        $expectedOutcomesInput = $request->input('expected_outcome', []);
-        $projectObjectiveIds = $request->input('project_objective_id', []);
+{
+    $objectivesInput = $request->input('objective', []);
+    $expectedOutcomesInput = $request->input('expected_outcome', []);
+    $projectObjectiveIds = $request->input('project_objective_id', []);
 
-        foreach ($objectivesInput as $index => $objectiveText) {
-            $objective_id_suffix = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
-            $objective_id = "{$report_id}-{$objective_id_suffix}";
+    foreach ($objectivesInput as $index => $objectiveText) {
+        $objective_id_suffix = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
+        $objective_id = "{$report_id}-{$objective_id_suffix}";
 
-            // Retrieve project_objective_id
-            $projectObjectiveId = $projectObjectiveIds[$index] ?? null;
+        // Retrieve project_objective_id
+        $projectObjectiveId = $projectObjectiveIds[$index] ?? null;
 
-            // Serialize expected_outcome for this objective
-            $expectedOutcomeArray = $expectedOutcomesInput[$index] ?? [];
-            $expectedOutcomeJson = json_encode($expectedOutcomeArray);
+        // Serialize expected_outcome for this objective
+        $expectedOutcomeArray = $expectedOutcomesInput[$index] ?? [];
+        $expectedOutcomeJson = json_encode($expectedOutcomeArray);
 
-            $objectiveData = [
-                'report_id' => $report->report_id,
-                'project_objective_id' => $projectObjectiveId,
-                'objective' => $objectiveText,
-                'expected_outcome' => $expectedOutcomeJson,
-                'not_happened' => $request->input("not_happened.$index"),
-                'why_not_happened' => $request->input("why_not_happened.$index"),
-                'changes' => $request->input("changes.$index") === 'yes',
-                'why_changes' => $request->input("why_changes.$index"),
-                'lessons_learnt' => $request->input("lessons_learnt.$index"),
-                'todo_lessons_learnt' => $request->input("todo_lessons_learnt.$index"),
-            ];
+        $objectiveData = [
+            'report_id' => $report->report_id,
+            'project_objective_id' => $projectObjectiveId,
+            'objective' => $objectiveText,
+            'expected_outcome' => $expectedOutcomeJson,
+            'not_happened' => $request->input("not_happened.$index"),
+            'why_not_happened' => $request->input("why_not_happened.$index"),
+            'changes' => $request->input("changes.$index") === 'yes',
+            'why_changes' => $request->input("why_changes.$index"),
+            'lessons_learnt' => $request->input("lessons_learnt.$index"),
+            'todo_lessons_learnt' => $request->input("todo_lessons_learnt.$index"),
+        ];
 
-            Log::info('Processing objective data:', $objectiveData);
+        Log::info('Processing objective data:', $objectiveData);
 
-            // Check if the objective already exists
-            $objective = DPObjective::where('objective_id', $objective_id)->first();
+        // Check if the objective already exists
+        $objective = DPObjective::where('objective_id', $objective_id)->first();
 
-            if ($objective) {
-                // Update existing objective
-                $objective->update($objectiveData);
-                Log::info('Objective updated:', $objective->toArray());
-            } else {
-                // Create a new objective
-                $objectiveData['objective_id'] = $objective_id;
-                $objective = DPObjective::create($objectiveData);
-                Log::info('Objective created:', $objective->toArray());
-            }
-
-            // Handle activities for this objective
-            $this->storeActivities($request, $objective, $index, $objective_id);
+        if ($objective) {
+            // Update existing objective
+            $objective->update($objectiveData);
+            Log::info('Objective updated:', $objective->toArray());
+        } else {
+            // Create a new objective
+            $objectiveData['objective_id'] = $objective_id;
+            $objective = DPObjective::create($objectiveData);
+            Log::info('Objective created:', $objective->toArray());
         }
 
-        // Remove any objectives not included in the request
-        DPObjective::where('report_id', $report_id)
-            ->whereNotIn('objective_id', array_map(function ($index) use ($report_id) {
-                return "{$report_id}-" . str_pad($index + 1, 3, '0', STR_PAD_LEFT);
-            }, array_keys($objectivesInput)))
-            ->delete();
+        // Handle activities for this objective
+        $this->storeActivities($request, $objective, $index, $objective_id);
     }
 
-    private function storeActivities($request, $objective, $objectiveIndex, $objective_id)
-    {
-        $activitiesInput = $request->input("activity.$objectiveIndex", []);
-        $projectActivityIds = $request->input("project_activity_id.$objectiveIndex", []);
+    // Remove any objectives not included in the request
+    DPObjective::where('report_id', $report_id)
+        ->whereNotIn('objective_id', array_map(function ($index) use ($report_id) {
+            return "{$report_id}-" . str_pad($index + 1, 3, '0', STR_PAD_LEFT);
+        }, array_keys($objectivesInput)))
+        ->delete();
+}
 
-        foreach ($activitiesInput as $activityIndex => $activityText) {
-            $activity_id_suffix = str_pad($activityIndex + 1, 3, '0', STR_PAD_LEFT);
-            $activity_id = "{$objective_id}-{$activity_id_suffix}";
+private function storeActivities($request, $objective, $objectiveIndex, $objective_id)
+{
+    $activitiesInput = $request->input("activity.$objectiveIndex", []);
+    $projectActivityIds = $request->input("project_activity_id.$objectiveIndex", []);
 
-            // Retrieve project_activity_id
-            $projectActivityId = $projectActivityIds[$activityIndex] ?? null;
+    foreach ($activitiesInput as $activityIndex => $activityText) {
+        $activity_id_suffix = str_pad($activityIndex + 1, 3, '0', STR_PAD_LEFT);
+        $activity_id = "{$objective_id}-{$activity_id_suffix}";
 
-            $activityData = [
-                'objective_id' => $objective->objective_id,
-                'project_activity_id' => $projectActivityId,
-                'activity' => $activityText,
-                'month' => $request->input("month.$objectiveIndex.$activityIndex"),
-                'summary_activities' => $request->input("summary_activities.$objectiveIndex.$activityIndex.1"),
-                'qualitative_quantitative_data' => $request->input("qualitative_quantitative_data.$objectiveIndex.$activityIndex.1"),
-                'intermediate_outcomes' => $request->input("intermediate_outcomes.$objectiveIndex.$activityIndex.1"),
-            ];
+        // Retrieve project_activity_id
+        $projectActivityId = $projectActivityIds[$activityIndex] ?? null;
 
-            Log::info('Processing activity data:', $activityData);
+        $activityData = [
+            'objective_id' => $objective->objective_id,
+            'project_activity_id' => $projectActivityId,
+            'activity' => $activityText,
+            'month' => $request->input("month.$objectiveIndex.$activityIndex"),
+            'summary_activities' => $request->input("summary_activities.$objectiveIndex.$activityIndex.1"),
+            'qualitative_quantitative_data' => $request->input("qualitative_quantitative_data.$objectiveIndex.$activityIndex.1"),
+            'intermediate_outcomes' => $request->input("intermediate_outcomes.$objectiveIndex.$activityIndex.1"),
+        ];
 
-            // Check if the activity already exists
-            $activity = DPActivity::where('activity_id', $activity_id)->first();
+        Log::info('Processing activity data:', $activityData);
 
-            if ($activity) {
-                // Update existing activity
-                $activity->update($activityData);
-                Log::info('Activity updated:', $activity->toArray());
-            } else {
-                // Create a new activity
-                $activityData['activity_id'] = $activity_id;
-                $activity = DPActivity::create($activityData);
-                Log::info('Activity created:', $activity->toArray());
-            }
+        // Check if the activity already exists
+        $activity = DPActivity::where('activity_id', $activity_id)->first();
+
+        if ($activity) {
+            // Update existing activity
+            $activity->update($activityData);
+            Log::info('Activity updated:', $activity->toArray());
+        } else {
+            // Create a new activity
+            $activityData['activity_id'] = $activity_id;
+            $activity = DPActivity::create($activityData);
+            Log::info('Activity created:', $activity->toArray());
         }
-
-        // Remove any activities not included in the request
-        DPActivity::where('objective_id', $objective->objective_id)
-            ->whereNotIn('activity_id', array_map(function ($activityIndex) use ($objective_id) {
-                return "{$objective_id}-" . str_pad($activityIndex + 1, 3, '0', STR_PAD_LEFT);
-            }, array_keys($activitiesInput)))
-            ->delete();
     }
+
+    // Remove any activities not included in the request
+    DPActivity::where('objective_id', $objective->objective_id)
+        ->whereNotIn('activity_id', array_map(function ($activityIndex) use ($objective_id) {
+            return "{$objective_id}-" . str_pad($activityIndex + 1, 3, '0', STR_PAD_LEFT);
+        }, array_keys($activitiesInput)))
+        ->delete();
+}
 
     private function handleAccountDetails($request, $report_id, $project_id)
     {
@@ -592,47 +811,47 @@ class ReportController extends Controller
     }
 
     private function handleOutlooks($request, $report_id)
-    {
-        $outlookDates = $request->input('date', []);
-        $planNextMonthInputs = $request->input('plan_next_month', []);
+{
+    $outlookDates = $request->input('date', []);
+    $planNextMonthInputs = $request->input('plan_next_month', []);
 
-        // Track outlook IDs in the current request for deletion later
-        $currentOutlookIds = [];
+    // Track outlook IDs in the current request for deletion later
+    $currentOutlookIds = [];
 
-        foreach ($outlookDates as $index => $date) {
-            $outlook_id_suffix = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
-            $outlook_id = "{$report_id}-{$outlook_id_suffix}";
+    foreach ($outlookDates as $index => $date) {
+        $outlook_id_suffix = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
+        $outlook_id = "{$report_id}-{$outlook_id_suffix}";
 
-            // Collect current outlook IDs
-            $currentOutlookIds[] = $outlook_id;
+        // Collect current outlook IDs
+        $currentOutlookIds[] = $outlook_id;
 
-            $outlookData = [
-                'report_id' => $report_id,
-                'date' => $date,
-                'plan_next_month' => $planNextMonthInputs[$index] ?? null,
-            ];
+        $outlookData = [
+            'report_id' => $report_id,
+            'date' => $date,
+            'plan_next_month' => $planNextMonthInputs[$index] ?? null,
+        ];
 
-            // Check if the outlook already exists
-            $outlook = DPOutlook::where('outlook_id', $outlook_id)->first();
+        // Check if the outlook already exists
+        $outlook = DPOutlook::where('outlook_id', $outlook_id)->first();
 
-            if ($outlook) {
-                // Update existing outlook
-                $outlook->update($outlookData);
-                Log::info("Outlook updated: {$outlook_id}", $outlookData);
-            } else {
-                // Create new outlook
-                $outlookData['outlook_id'] = $outlook_id;
-                DPOutlook::create($outlookData);
-                Log::info("Outlook created: {$outlook_id}", $outlookData);
-            }
+        if ($outlook) {
+            // Update existing outlook
+            $outlook->update($outlookData);
+            Log::info("Outlook updated: {$outlook_id}", $outlookData);
+        } else {
+            // Create new outlook
+            $outlookData['outlook_id'] = $outlook_id;
+            DPOutlook::create($outlookData);
+            Log::info("Outlook created: {$outlook_id}", $outlookData);
         }
-
-        // Remove any outlooks not included in the current request
-        DPOutlook::where('report_id', $report_id)
-            ->whereNotIn('outlook_id', $currentOutlookIds)
-            ->delete();
-        Log::info('Removed outdated outlooks for report_id: ' . $report_id);
     }
+
+    // Remove any outlooks not included in the current request
+    DPOutlook::where('report_id', $report_id)
+        ->whereNotIn('outlook_id', $currentOutlookIds)
+        ->delete();
+    Log::info('Removed outdated outlooks for report_id: ' . $report_id);
+}
 
     private function handlePhotos($request, $report_id)
     {

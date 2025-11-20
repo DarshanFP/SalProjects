@@ -371,9 +371,11 @@ class ExportReportController extends Controller
             case 'Institutional Ongoing Group Educational proposal':
                 return $this->getIGEBudgets($project);
 
-            case 'Individual - Ongoing Educational support':
             case 'Individual - Initial - Educational support':
                 return $this->getIIESBudgets($project);
+
+            case 'Individual - Ongoing Educational support':
+                return $this->getIESBudgets($project);
 
             default:
                 Log::warning('Unknown project type, using development project budgets as fallback', ['project_type' => $project->project_type]);
@@ -426,6 +428,18 @@ class ExportReportController extends Controller
         $iiesExpenses = \App\Models\OldProjects\IIES\ProjectIIESExpenses::where('project_id', $project->project_id)->first();
         if ($iiesExpenses) {
             return $iiesExpenses->expenseDetails;
+        }
+        return collect();
+    }
+
+    /**
+     * Get IES (Individual Ongoing Educational Support) budgets
+     */
+    private function getIESBudgets($project)
+    {
+        $iesExpenses = \App\Models\OldProjects\IES\ProjectIESExpenses::where('project_id', $project->project_id)->first();
+        if ($iesExpenses) {
+            return $iesExpenses->expenseDetails;
         }
         return collect();
     }

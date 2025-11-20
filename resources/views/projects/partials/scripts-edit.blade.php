@@ -73,6 +73,12 @@
 
     // Initialize objectives on page load
     function initializeObjectives() {
+        const container = document.getElementById('objectives-container');
+        if (!container) {
+            // If objectives-container doesn't exist (e.g., for IAH projects), skip initialization
+            return;
+        }
+
         const objectives = document.querySelectorAll('.objective-card');
         if (objectives.length === 0) {
             // If no objectives exist, add one
@@ -91,6 +97,11 @@
     // Add a new objective card
     function addObjective() {
         const container = document.getElementById('objectives-container');
+        if (!container) {
+            console.warn('objectives-container not found. Skipping addObjective.');
+            return;
+        }
+
         const existingObjective = document.querySelector('.objective-card');
 
         let template;
@@ -129,6 +140,11 @@
     function moveAddObjectiveButton() {
         const addObjectiveButton = document.getElementById('addObjectiveButton');
         const container = document.getElementById('objectives-container');
+
+        if (!container || !addObjectiveButton) {
+            return;
+        }
+
         container.appendChild(addObjectiveButton);
     }
 
