@@ -5,7 +5,7 @@
     <div class="card-body">
         <div class="mb-3">
             <label class="form-label">Total Amount Requested: Rs.</label>
-            <p>{{ number_format($project->total_amount_sanctioned, 2) }}</p>
+            <p>{{ number_format(($project->total_amount_sanctioned && $project->total_amount_sanctioned > 0) ? $project->total_amount_sanctioned : $project->budgets->sum('this_phase'), 2) }}</p>
         </div>
         <table class="table table-bordered table-custom">
             <thead>
