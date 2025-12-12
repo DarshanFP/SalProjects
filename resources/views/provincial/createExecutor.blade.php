@@ -47,8 +47,12 @@
                         <option value="ST. ANN'S EDUCATIONAL SOCIETY">ST. ANN'S EDUCATIONAL SOCIETY</option>
                         <option value="SARVAJANA SNEHA CHARITABLE TRUST">SARVAJANA SNEHA CHARITABLE TRUST</option>
                         <option value="WILHELM MEYERS DEVELOPMENTAL SOCIETY">WILHELM MEYERS DEVELOPMENTAL SOCIETY</option>
-                        <option value="ST. ANNS'S SOCIETY, VISAKHAPATNAM">ST. ANNS'S SOCIETY, VISAKHAPATNAM</option>
+                        <option value="ST. ANN'S SOCIETY, VISAKHAPATNAM">ST. ANN'S SOCIETY, VISAKHAPATNAM</option>
                         <option value="ST.ANN'S SOCIETY, SOUTHERN REGION">ST.ANN'S SOCIETY, SOUTHERN REGION</option>
+                        <option value="ST. ANNE'S SOCIETY">ST. ANNE'S SOCIETY</option>
+                        <option value="BIARA SANTA ANNA, MAUSAMBI">BIARA SANTA ANNA, MAUSAMBI</option>
+                        <option value="ST. ANN'S CONVENT, LURO">ST. ANN'S CONVENT, LURO</option>
+                        <option value="MISSIONARY SISTERS OF ST. ANN">MISSIONARY SISTERS OF ST. ANN</option>
                     </select>
                 </div>
                 <div class="form-group">

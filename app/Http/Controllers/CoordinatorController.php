@@ -410,6 +410,20 @@ class CoordinatorController extends Controller
                 'Tuticorin', 'Palakkad', 'Thejas', 'Sannenahalli', 'Solavidhyapuram',
                 'Kozhenchery', 'Nadavayal', 'Kodaikanal', 'PWC Bangalore', 'Taragarh', 'Chennai'
             ],
+            'DIVYODAYA' => [
+                'Divyodaya'
+            ],
+            'INDONESIA' => [
+                'Mausambi'
+            ],
+            'EAST TIMOR' => [
+                'Luro'
+            ],
+            'EAST AFRICA' => [
+                'Tabora', 'Monduli Chini', 'Monduli Juu', 'Maji Ya Chai', 'Kahama',
+                'Kihonda', 'Tungi', 'Kiambu - Kenya', 'Kericho - Kenya', 'Sirimba - Kenya',
+                'Iganga - Uganda'
+            ],
         ];
 
         return view('coordinator.createProvincial', compact('centersMap'));
@@ -426,7 +440,7 @@ class CoordinatorController extends Controller
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'role' => 'required|in:coordinator,provincial,executor,applicant',
-            'province' => 'required|in:Bangalore,Vijayawada,Visakhapatnam,Generalate',
+            'province' => 'required|in:Bangalore,Vijayawada,Visakhapatnam,Generalate,Divyodaya,Indonesia,East Timor,East Africa',
             'status' => 'required|string|max:50',
         ]);
 
@@ -535,6 +549,20 @@ class CoordinatorController extends Controller
                 'Tuticorin', 'Palakkad', 'Thejas', 'Sannenahalli', 'Solavidhyapuram',
                 'Kozhenchery', 'Nadavayal', 'Kodaikanal', 'PWC Bangalore', 'Taragarh', 'Chennai'
             ],
+            'DIVYODAYA' => [
+                'Divyodaya'
+            ],
+            'INDONESIA' => [
+                'Mausambi'
+            ],
+            'EAST TIMOR' => [
+                'Luro'
+            ],
+            'EAST AFRICA' => [
+                'Tabora', 'Monduli Chini', 'Monduli Juu', 'Maji Ya Chai', 'Kahama',
+                'Kihonda', 'Tungi', 'Kiambu - Kenya', 'Kericho - Kenya', 'Sirimba - Kenya',
+                'Iganga - Uganda'
+            ],
         ];
 
         return view('coordinator.editProvincial', compact('provincial', 'centersMap'));
@@ -550,7 +578,7 @@ class CoordinatorController extends Controller
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'role' => 'required|in:coordinator,provincial,executor,applicant',
-            'province' => 'required|in:Bangalore,Vijayawada,Visakhapatnam,Generalate',
+            'province' => 'required|in:Bangalore,Vijayawada,Visakhapatnam,Generalate,Divyodaya,Indonesia,East Timor,East Africa',
             'status' => 'required|string|max:50',
         ]);
 

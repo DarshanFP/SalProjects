@@ -10,7 +10,7 @@
                     <h4 class="fp-text-center1">Edit my Project</h4>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('projects.update', $project->project_id) }}" method="POST" enctype="multipart/form-data">
+                    <form id="editProjectForm" action="{{ route('projects.update', $project->project_id) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
 
@@ -113,7 +113,7 @@
                             @include('projects.partials.Edit.attachement')
                         @endif
 
-                        <button type="submit" class="btn btn-primary me-2">Update Project</button>
+                        <button type="submit" id="updateProjectBtn" class="btn btn-primary me-2">Update Project</button>
                     </form>
                 </div>
             </div>
@@ -122,6 +122,60 @@
 </div>
 
 @include('projects.partials.scripts-edit')
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const updateBtn = document.getElementById('updateProjectBtn');
+    const editForm = document.getElementById('editProjectForm');
+
+    if (updateBtn && editForm) {
+        // Ensure button is clickable and not disabled
+        updateBtn.style.pointerEvents = 'auto';
+        updateBtn.style.cursor = 'pointer';
+        updateBtn.style.position = 'relative';
+        updateBtn.style.zIndex = '1000';
+        updateBtn.disabled = false;
+        updateBtn.removeAttribute('disabled');
+
+        // Add click event listener for debugging
+        updateBtn.addEventListener('click', function(e) {
+            console.log('Update button clicked', e);
+            // Don't prevent default - let form submit naturally
+        }, true); // Use capture phase to catch early
+
+        // Ensure form can submit - don't prevent default unless validation fails
+        editForm.addEventListener('submit', function(e) {
+            console.log('Form submission initiated');
+            // Check HTML5 validation
+            if (!this.checkValidity()) {
+                console.log('Form validation failed - showing browser validation messages');
+                this.reportValidity();
+                e.preventDefault();
+                return false;
+            }
+            console.log('Form is valid, submitting...');
+            // Allow form to submit normally
+        });
+
+        // Check button state on load
+        console.log('Update button initialized:', {
+            disabled: updateBtn.disabled,
+            type: updateBtn.type,
+            form: updateBtn.form ? updateBtn.form.id : 'no form',
+            computedStyle: {
+                pointerEvents: window.getComputedStyle(updateBtn).pointerEvents,
+                cursor: window.getComputedStyle(updateBtn).cursor,
+                zIndex: window.getComputedStyle(updateBtn).zIndex
+            }
+        });
+    } else {
+        console.error('Update button or form not found', {
+            button: updateBtn,
+            form: editForm
+        });
+    }
+});
+</script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -180,6 +234,45 @@
 }
 .table-container {
     overflow-x: auto;
+}
+
+/* Fix text wrapping in Activities and Means of Verification table */
+.activities-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.activities-table td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    max-width: 0;
+}
+
+.activities-table td textarea {
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.activities-table th {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Ensure table doesn't overflow container */
+.activities-container {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.activities-container .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 </style>
 @endsection

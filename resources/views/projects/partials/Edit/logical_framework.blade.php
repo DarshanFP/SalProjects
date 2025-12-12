@@ -13,50 +13,78 @@
 
             <div class="results-container">
                 <h6>Results / Outcomes</h6>
-                @foreach($objective->results as $resultIndex => $result)
-                <div class="mb-3 result-section">
-                    <textarea name="objectives[{{ $objectiveIndex }}][results][{{ $resultIndex }}][result]" class="mb-3 form-control result-outcome" rows="2" >{{ $result->result }}</textarea>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="removeResult(this)">Remove Result</button>
-                </div>
-                @endforeach
+                @if($objective->results->isEmpty())
+                    <div class="mb-3 result-section">
+                        <textarea name="objectives[{{ $objectiveIndex }}][results][0][result]" class="mb-3 form-control result-outcome" rows="2" placeholder="Enter Result"></textarea>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeResult(this)">Remove Result</button>
+                    </div>
+                @else
+                    @foreach($objective->results as $resultIndex => $result)
+                    <div class="mb-3 result-section">
+                        <textarea name="objectives[{{ $objectiveIndex }}][results][{{ $resultIndex }}][result]" class="mb-3 form-control result-outcome" rows="2" >{{ $result->result }}</textarea>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeResult(this)">Remove Result</button>
+                    </div>
+                    @endforeach
+                @endif
                 <button type="button" class="mb-3 btn btn-primary" onclick="addResult(this)">Add Result</button>
             </div>
 
             <div class="risks-container">
                 <h6>Risks</h6>
-                @foreach($objective->risks as $riskIndex => $risk)
-                <div class="mb-3 risk-section">
-                    <textarea name="objectives[{{ $objectiveIndex }}][risks][{{ $riskIndex }}][risk]" class="mb-3 form-control risk-description" rows="2" >{{ $risk->risk }}</textarea>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="removeRisk(this)">Remove Risk</button>
-                </div>
-                @endforeach
+                @if($objective->risks->isEmpty())
+                    <div class="mb-3 risk-section">
+                        <textarea name="objectives[{{ $objectiveIndex }}][risks][0][risk]" class="mb-3 form-control risk-description" rows="2" placeholder="Enter Risk"></textarea>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeRisk(this)">Remove Risk</button>
+                    </div>
+                @else
+                    @foreach($objective->risks as $riskIndex => $risk)
+                    <div class="mb-3 risk-section">
+                        <textarea name="objectives[{{ $objectiveIndex }}][risks][{{ $riskIndex }}][risk]" class="mb-3 form-control risk-description" rows="2" >{{ $risk->risk }}</textarea>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeRisk(this)">Remove Risk</button>
+                    </div>
+                    @endforeach
+                @endif
                 <button type="button" class="mb-3 btn btn-primary" onclick="addRisk(this)">Add Risk</button>
             </div>
 
             <div class="activities-container">
                 <h6>Activities and Means of Verification</h6>
-                <table class="table table-bordered activities-table">
-                    <thead>
-                        <tr>
-                            <th scope="col" style="width: 40%;">Activities</th>
-                            <th scope="col">Means of Verification</th>
-                            <th scope="col" style="width: 10%;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($objective->activities as $activityIndex => $activity)
-                        <tr class="activity-row">
-                            <td>
-                                <textarea name="objectives[{{ $objectiveIndex }}][activities][{{ $activityIndex }}][activity]" class="form-control activity-description" rows="2" >{{ $activity->activity }}</textarea>
-                            </td>
-                            <td>
-                                <textarea name="objectives[{{ $objectiveIndex }}][activities][{{ $activityIndex }}][verification]" class="form-control activity-verification" rows="2" >{{ $activity->verification }}</textarea>
-                            </td>
-                            <td><button type="button" class="btn btn-danger btn-sm" onclick="removeActivity(this)">Remove</button></td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table table-bordered activities-table">
+                        <thead>
+                            <tr>
+                                <th scope="col" style="width: 40%;">Activities</th>
+                                <th scope="col" style="width: 50%;">Means of Verification</th>
+                                <th scope="col" style="width: 10%;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if($objective->activities->isEmpty())
+                                <tr class="activity-row">
+                                    <td style="word-wrap: break-word; overflow-wrap: break-word;">
+                                        <textarea name="objectives[{{ $objectiveIndex }}][activities][0][activity]" class="form-control activity-description" rows="2" placeholder="Enter Activity" style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+                                    </td>
+                                    <td style="word-wrap: break-word; overflow-wrap: break-word;">
+                                        <textarea name="objectives[{{ $objectiveIndex }}][activities][0][verification]" class="form-control activity-verification" rows="2" placeholder="Means of Verification" style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+                                    </td>
+                                    <td><button type="button" class="btn btn-danger btn-sm" onclick="removeActivity(this)">Remove</button></td>
+                                </tr>
+                            @else
+                                @foreach($objective->activities as $activityIndex => $activity)
+                                <tr class="activity-row">
+                                    <td style="word-wrap: break-word; overflow-wrap: break-word;">
+                                        <textarea name="objectives[{{ $objectiveIndex }}][activities][{{ $activityIndex }}][activity]" class="form-control activity-description" rows="2" style="width: 100%; box-sizing: border-box; resize: vertical;">{{ $activity->activity }}</textarea>
+                                    </td>
+                                    <td style="word-wrap: break-word; overflow-wrap: break-word;">
+                                        <textarea name="objectives[{{ $objectiveIndex }}][activities][{{ $activityIndex }}][verification]" class="form-control activity-verification" rows="2" style="width: 100%; box-sizing: border-box; resize: vertical;">{{ $activity->verification }}</textarea>
+                                    </td>
+                                    <td><button type="button" class="btn btn-danger btn-sm" onclick="removeActivity(this)">Remove</button></td>
+                                </tr>
+                                @endforeach
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
                 <button type="button" class="mb-3 btn btn-primary" onclick="addActivity(this)">Add Activity</button>
             </div>
 

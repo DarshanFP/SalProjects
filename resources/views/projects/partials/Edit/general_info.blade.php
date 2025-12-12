@@ -73,11 +73,11 @@
             <div class="mb-3">
                 <label for="predecessor_project" class="form-label">Select Predecessor Project</label>
                 <select name="predecessor_project" id="predecessor_project" class="form-control select-input">
-                    <option value="" disabled>Select Predecessor Project</option>
+                    <option value="" {{ empty($project->predecessor_project) ? 'selected' : '' }}>None</option>
                     @foreach($developmentProjects as $devProject)
                         <option value="{{ $devProject->project_id }}"
                             {{ $devProject->project_id == $project->predecessor_project ? 'selected' : '' }}>
-                            {{ $devProject->project_title }}
+                            {{ $devProject->project_title }} (Phase {{ $devProject->current_phase }}/{{ $devProject->overall_project_period }})
                         </option>
                     @endforeach
                 </select>
@@ -109,13 +109,29 @@
                     {{ $project->society_name == "WILHELM MEYERS DEVELOPMENTAL SOCIETY" ? 'selected' : '' }}>
                     WILHELM MEYERS DEVELOPMENTAL SOCIETY
                 </option>
-                <option value="ST. ANNS'S SOCIETY, VISAKHAPATNAM"
-                    {{ $project->society_name == "ST. ANNS'S SOCIETY, VISAKHAPATNAM" ? 'selected' : '' }}>
+                <option value="ST. ANN'S SOCIETY, VISAKHAPATNAM"
+                    {{ $project->society_name == "ST. ANN'S SOCIETY, VISAKHAPATNAM" ? 'selected' : '' }}>
                     ST. ANNS'S SOCIETY, VISAKHAPATNAM
                 </option>
                 <option value="ST.ANN'S SOCIETY, SOUTHERN REGION"
                     {{ $project->society_name == "ST.ANN'S SOCIETY, SOUTHERN REGION" ? 'selected' : '' }}>
                     ST.ANN'S SOCIETY, SOUTHERN REGION
+                </option>
+                <option value="ST. ANNE'S SOCIETY"
+                    {{ $project->society_name == "ST. ANNE'S SOCIETY" ? 'selected' : '' }}>
+                    ST. ANNE'S SOCIETY
+                </option>
+                <option value="BIARA SANTA ANNA, MAUSAMBI"
+                    {{ $project->society_name == "BIARA SANTA ANNA, MAUSAMBI" ? 'selected' : '' }}>
+                    BIARA SANTA ANNA, MAUSAMBI
+                </option>
+                <option value="ST. ANN'S CONVENT, LURO"
+                    {{ $project->society_name == "ST. ANN'S CONVENT, LURO" ? 'selected' : '' }}>
+                    ST. ANN'S CONVENT, LURO
+                </option>
+                <option value="MISSIONARY SISTERS OF ST. ANN"
+                    {{ $project->society_name == "MISSIONARY SISTERS OF ST. ANN" ? 'selected' : '' }}>
+                    MISSIONARY SISTERS OF ST. ANN
                 </option>
             </select>
         </div>
@@ -444,7 +460,7 @@
             <label for="society_name" class="form-label">Name of the Society / Trust</label>
             <select name="society_name" id="society_name" class="form-select" required>
                 <option value="" disabled>Select Society / Trust</option>
-                @foreach(["ST. ANN'S EDUCATIONAL SOCIETY", "SARVAJANA SNEHA CHARITABLE TRUST", "WILHELM MEYERS DEVELOPMENTAL SOCIETY", "ST. ANNS'S SOCIETY, VISAKHAPATNAM", "ST.ANN'S SOCIETY, SOUTHERN REGION"] as $society)
+                @foreach(["ST. ANN'S EDUCATIONAL SOCIETY", "SARVAJANA SNEHA CHARITABLE TRUST", "WILHELM MEYERS DEVELOPMENTAL SOCIETY", "ST. ANNS'S SOCIETY, VISAKHAPATNAM", "ST.ANN'S SOCIETY, SOUTHERN REGION", "ST. ANNE'S SOCIETY", "BIARA SANTA ANNA, MAUSAMBI", "ST. ANN'S CONVENT, LURO", "MISSIONARY SISTERS OF ST. ANN"] as $society)
                     <option value="{{ $society }}" {{ $project->society_name == $society ? 'selected' : '' }}>{{ $society }}</option>
                 @endforeach
             </select>
@@ -560,6 +576,10 @@
                 <option value="WILHELM MEYERS DEVELOPMENTAL SOCIETY" {{ $project->society_name == "WILHELM MEYERS DEVELOPMENTAL SOCIETY" ? 'selected' : '' }}>WILHELM MEYERS DEVELOPMENTAL SOCIETY</option>
                 <option value="ST. ANNS'S SOCIETY, VISAKHAPATNAM" {{ $project->society_name == "ST. ANNS'S SOCIETY, VISAKHAPATNAM" ? 'selected' : '' }}>ST. ANNS'S SOCIETY, VISAKHAPATNAM</option>
                 <option value="ST.ANN'S SOCIETY, SOUTHERN REGION" {{ $project->society_name == "ST.ANN'S SOCIETY, SOUTHERN REGION" ? 'selected' : '' }}>ST.ANN'S SOCIETY, SOUTHERN REGION</option>
+                <option value="ST. ANNE'S SOCIETY" {{ $project->society_name == "ST. ANNE'S SOCIETY" ? 'selected' : '' }}>ST. ANNE'S SOCIETY</option>
+                <option value="BIARA SANTA ANNA, MAUSAMBI" {{ $project->society_name == "BIARA SANTA ANNA, MAUSAMBI" ? 'selected' : '' }}>BIARA SANTA ANNA, MAUSAMBI</option>
+                <option value="ST. ANN'S CONVENT, LURO" {{ $project->society_name == "ST. ANN'S CONVENT, LURO" ? 'selected' : '' }}>ST. ANN'S CONVENT, LURO</option>
+                <option value="MISSIONARY SISTERS OF ST. ANN" {{ $project->society_name == "MISSIONARY SISTERS OF ST. ANN" ? 'selected' : '' }}>MISSIONARY SISTERS OF ST. ANN</option>
             </select>
         </div>
 

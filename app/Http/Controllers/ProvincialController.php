@@ -369,6 +369,20 @@ class ProvincialController extends Controller
                 'Tuticorin', 'Palakkad', 'Thejas', 'Sannenahalli', 'Solavidhyapuram',
                 'Kozhenchery', 'Nadavayal', 'Kodaikanal', 'PWC Bangalore', 'Taragarh', 'Chennai'
             ],
+            'DIVYODAYA' => [
+                'Divyodaya'
+            ],
+            'INDONESIA' => [
+                'Mausambi'
+            ],
+            'EAST TIMOR' => [
+                'Luro'
+            ],
+            'EAST AFRICA' => [
+                'Tabora', 'Monduli Chini', 'Monduli Juu', 'Maji Ya Chai', 'Kahama',
+                'Kihonda', 'Tungi', 'Kiambu - Kenya', 'Kericho - Kenya', 'Sirimba - Kenya',
+                'Iganga - Uganda'
+            ],
         ];
 
         // Get the centers for the current provincial's province
@@ -477,6 +491,20 @@ class ProvincialController extends Controller
                 'Madhavaram', 'Belgaum', 'Kadirepalli', 'Munambam', 'Kuderu',
                 'Tuticorin', 'Palakkad', 'Thejas', 'Sannenahalli', 'Solavidhyapuram',
                 'Kozhenchery', 'Nadavayal', 'Kodaikanal', 'PWC Bangalore', 'Taragarh', 'Chennai'
+            ],
+            'DIVYODAYA' => [
+                'Divyodaya'
+            ],
+            'INDONESIA' => [
+                'Mausambi'
+            ],
+            'EAST TIMOR' => [
+                'Luro'
+            ],
+            'EAST AFRICA' => [
+                'Tabora', 'Monduli Chini', 'Monduli Juu', 'Maji Ya Chai', 'Kahama',
+                'Kihonda', 'Tungi', 'Kiambu - Kenya', 'Kericho - Kenya', 'Sirimba - Kenya',
+                'Iganga - Uganda'
             ],
         ];
 

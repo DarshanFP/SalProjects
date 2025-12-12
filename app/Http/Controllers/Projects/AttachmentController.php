@@ -28,21 +28,22 @@ class AttachmentController extends Controller
             'project_id' => $project->project_id
         ]);
 
-        // Validate request data
+        // If no file is uploaded, skip attachment processing (attachment is optional)
+        if (!$request->hasFile('file')) {
+            Log::info('AttachmentController@store - No file uploaded, skipping attachment');
+            return; // Return early, attachment is optional
+        }
+
+        // Validate request data (only if file is present)
         $validator = Validator::make($request->all(), [
-            'file' => 'required|file|max:2048', // 2MB max
-            'file_name' => 'required|string|max:255',
+            'file' => 'file|max:2048', // 2MB max, optional
+            'file_name' => 'nullable|string|max:255',
             'attachment_description' => 'nullable|string|max:1000'
         ]);
 
         if ($validator->fails()) {
             Log::error('AttachmentController@store - Validation failed', ['errors' => $validator->errors()]);
             return redirect()->back()->withErrors($validator)->withInput();
-        }
-
-        if (!$request->hasFile('file')) {
-            Log::warning('AttachmentController@store - No file uploaded in request');
-            return redirect()->back()->withErrors(['file' => 'No file uploaded']);
         }
 
         if (!$request->file('file')->isValid()) {
@@ -180,9 +181,10 @@ class AttachmentController extends Controller
         Log::info('AttachmentController@update - Fetching project from database');
         $project = Project::where('project_id', $project_id)->firstOrFail();
 
+        // If no file is uploaded, skip attachment processing (attachment is optional)
         if (!$request->hasFile('file')) {
-            Log::info('AttachmentController@update - No new file uploaded, retaining existing attachment');
-            return redirect()->back()->with('message', 'No new file uploaded, existing attachment retained');
+            Log::info('AttachmentController@update - No new file uploaded, skipping attachment update');
+            return redirect()->back()->with('info', 'No new attachment uploaded.');
         }
 
         if (!$request->file('file')->isValid()) {
@@ -190,10 +192,10 @@ class AttachmentController extends Controller
             return redirect()->back()->withErrors(['file' => 'Invalid file upload']);
         }
 
-        // Validate request data
+        // Validate request data (only if file is present)
         $validator = Validator::make($request->all(), [
-            'file' => 'required|file|max:2048', // 2MB max
-            'file_name' => 'required|string|max:255',
+            'file' => 'file|max:2048', // 2MB max, optional
+            'file_name' => 'nullable|string|max:255',
             'attachment_description' => 'nullable|string|max:1000'
         ]);
 
@@ -209,8 +211,12 @@ class AttachmentController extends Controller
             return redirect()->back()->withErrors(['file' => 'Only PDF, DOC, and DOCX files are allowed'])->withInput();
         }
 
-        // Sanitize filename
-        $filename = $this->sanitizeFilename($request->input('file_name'), $file->getClientOriginalExtension());
+        // Sanitize filename - use provided file_name or fallback to original filename
+        $providedFileName = $request->input('file_name');
+        if (empty($providedFileName)) {
+            $providedFileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        }
+        $filename = $this->sanitizeFilename($providedFileName, $file->getClientOriginalExtension());
 
         // Sanitize project type for folder name
         $projectType = $this->sanitizeProjectType($project->project_type);

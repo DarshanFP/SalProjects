@@ -86,12 +86,36 @@
         } else {
             objectives.forEach((objectiveCard, index) => {
                 updateNameAttributes(objectiveCard, index);
+                // Sync initial activity descriptions to time frame rows
+                syncActivityDescriptionsToTimeFrame(objectiveCard);
+                // Attach event listeners for future changes
                 attachActivityEventListeners(objectiveCard);
             });
         }
 
         // Move the "Add Objective" button to the end
         moveAddObjectiveButton();
+    }
+
+    // Sync activity descriptions to time frame rows on initial load
+    function syncActivityDescriptionsToTimeFrame(objectiveCard) {
+        const activitiesTable = objectiveCard.querySelector('.activities-table tbody');
+        const timeFrameTbody = objectiveCard.querySelector('.time-frame-card tbody');
+        if (!activitiesTable || !timeFrameTbody) return;
+
+        const activityRows = activitiesTable.querySelectorAll('.activity-row');
+        const timeFrameRows = timeFrameTbody.querySelectorAll('.activity-timeframe-row');
+
+        activityRows.forEach((activityRow, index) => {
+            const activityDescription = activityRow.querySelector('textarea.activity-description').value;
+            const timeFrameRow = timeFrameRows[index];
+            if (timeFrameRow && activityDescription) {
+                const descriptionText = timeFrameRow.querySelector('.activity-description-text');
+                if (descriptionText) {
+                    descriptionText.innerText = activityDescription;
+                }
+            }
+        });
     }
 
     // Add a new objective card
@@ -182,27 +206,29 @@
 
             <div class="activities-container">
                 <h6>Activities and Means of Verification</h6>
-                <table class="table table-bordered activities-table">
-                    <thead>
-                        <tr>
-                            <th scope="col" style="width: 40%;">Activities</th>
-                            <th scope="col">Means of Verification</th>
-                            <th scope="col" style="width: 10%;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Activity Row -->
-                        <tr class="activity-row">
-                            <td>
-                                <textarea name="" class="form-control activity-description" rows="2" placeholder="Enter Activity"  ></textarea>
-                            </td>
-                            <td>
-                                <textarea name="" class="form-control activity-verification" rows="2" placeholder="Means of Verification"  ></textarea>
-                            </td>
-                            <td><button type="button" class="btn btn-danger btn-sm" onclick="removeActivity(this)">Remove</button></td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table table-bordered activities-table">
+                        <thead>
+                            <tr>
+                                <th scope="col" style="width: 40%;">Activities</th>
+                                <th scope="col" style="width: 50%;">Means of Verification</th>
+                                <th scope="col" style="width: 10%;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Activity Row -->
+                            <tr class="activity-row">
+                                <td style="word-wrap: break-word; overflow-wrap: break-word;">
+                                    <textarea name="" class="form-control activity-description" rows="2" placeholder="Enter Activity" style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+                                </td>
+                                <td style="word-wrap: break-word; overflow-wrap: break-word;">
+                                    <textarea name="" class="form-control activity-verification" rows="2" placeholder="Means of Verification" style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+                                </td>
+                                <td><button type="button" class="btn btn-danger btn-sm" onclick="removeActivity(this)">Remove</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
                 <button type="button" class="mb-3 btn btn-primary" onclick="addActivity(this)">Add Activity</button>
             </div>
 
@@ -280,11 +306,11 @@
         const activityRow = document.createElement('tr');
         activityRow.className = 'activity-row';
         activityRow.innerHTML = `
-            <td>
-                <textarea name="" class="form-control activity-description" rows="2" placeholder="Enter Activity"  ></textarea>
+            <td style="word-wrap: break-word; overflow-wrap: break-word;">
+                <textarea name="" class="form-control activity-description" rows="2" placeholder="Enter Activity" style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
             </td>
-            <td>
-                <textarea name="" class="form-control activity-verification" rows="2" placeholder="Means of Verification"  ></textarea>
+            <td style="word-wrap: break-word; overflow-wrap: break-word;">
+                <textarea name="" class="form-control activity-verification" rows="2" placeholder="Means of Verification" style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
             </td>
             <td><button type="button" class="btn btn-danger btn-sm" onclick="removeActivity(this)">Remove</button></td>
         `;
@@ -325,14 +351,29 @@
 
         // Update the names for activities and their timeframes
         const activities = objectiveCard.querySelectorAll('.activity-row');
+        const timeFrameRows = objectiveCard.querySelectorAll('.time-frame-card tbody .activity-timeframe-row');
+
         activities.forEach((activityRow, activityIndex) => {
-            activityRow.querySelector('textarea.activity-description').name = `objectives[${objectiveIndex}][activities][${activityIndex}][activity]`;
-            activityRow.querySelector('textarea.activity-verification').name = `objectives[${objectiveIndex}][activities][${activityIndex}][verification]`;
+            const activityDescriptionTextarea = activityRow.querySelector('textarea.activity-description');
+            const activityVerificationTextarea = activityRow.querySelector('textarea.activity-verification');
+
+            if (activityDescriptionTextarea) {
+                activityDescriptionTextarea.name = `objectives[${objectiveIndex}][activities][${activityIndex}][activity]`;
+            }
+            if (activityVerificationTextarea) {
+                activityVerificationTextarea.name = `objectives[${objectiveIndex}][activities][${activityIndex}][verification]`;
+            }
 
             // Update the timeframe for this activity if applicable
-            const timeFrameRow = objectiveCard.querySelectorAll('.time-frame-card tbody .activity-timeframe-row')[activityIndex];
+            const timeFrameRow = timeFrameRows[activityIndex];
             if (timeFrameRow) {
-                timeFrameRow.querySelector('.activity-description-text').innerText = activityRow.querySelector('textarea.activity-description').value;
+                const descriptionText = timeFrameRow.querySelector('.activity-description-text');
+                if (descriptionText && activityDescriptionTextarea) {
+                    // Sync the activity description to the time frame row
+                    descriptionText.innerText = activityDescriptionTextarea.value;
+                }
+
+                // Update checkbox names
                 timeFrameRow.querySelectorAll('.month-checkbox').forEach((checkbox, monthIndex) => {
                     checkbox.name = `objectives[${objectiveIndex}][activities][${activityIndex}][timeframe][months][${monthIndex + 1}]`;
                 });
@@ -344,10 +385,13 @@
     function attachActivityEventListeners(objectiveCard) {
         const activitiesTable = objectiveCard.querySelector('.activities-table tbody');
         const timeFrameTbody = objectiveCard.querySelector('.time-frame-card tbody');
+        if (!activitiesTable || !timeFrameTbody) return;
+
         const activityRows = activitiesTable.querySelectorAll('.activity-row');
 
         activityRows.forEach(function(activityRow, index) {
             const activityDescriptionTextarea = activityRow.querySelector('textarea.activity-description');
+            if (!activityDescriptionTextarea) return;
 
             // Remove existing event listener if any
             if (activityDescriptionTextarea._listener) {
@@ -357,9 +401,13 @@
             // Define the event listener function
             const eventListener = function() {
                 const activityDescription = this.value;
-                const timeFrameRow = timeFrameTbody.querySelectorAll('.activity-timeframe-row')[index];
+                const timeFrameRows = timeFrameTbody.querySelectorAll('.activity-timeframe-row');
+                const timeFrameRow = timeFrameRows[index];
                 if (timeFrameRow) {
-                    timeFrameRow.querySelector('.activity-description-text').innerText = activityDescription;
+                    const descriptionText = timeFrameRow.querySelector('.activity-description-text');
+                    if (descriptionText) {
+                        descriptionText.innerText = activityDescription;
+                    }
                 }
             };
 
@@ -441,24 +489,60 @@
 
     // Add Activity
     function addActivity(button) {
+        const objectiveCard = button.closest('.objective-card');
         const activitiesTableBody = button.closest('.activities-container').querySelector('tbody');
         const lastActivityRow = activitiesTableBody.querySelector('.activity-row:last-of-type');
         const newActivityRow = lastActivityRow.cloneNode(true);
 
-        // Clear the textarea values
-        newActivityRow.querySelector('textarea.activity-description').value = '';
-        newActivityRow.querySelector('textarea.activity-verification').value = '';
+        // Clear the textarea values and apply proper styling
+        const activityDesc = newActivityRow.querySelector('textarea.activity-description');
+        const activityVerif = newActivityRow.querySelector('textarea.activity-verification');
+
+        if (activityDesc) {
+            activityDesc.value = '';
+            activityDesc.style.width = '100%';
+            activityDesc.style.boxSizing = 'border-box';
+            activityDesc.style.resize = 'vertical';
+        }
+
+        if (activityVerif) {
+            activityVerif.value = '';
+            activityVerif.style.width = '100%';
+            activityVerif.style.boxSizing = 'border-box';
+            activityVerif.style.resize = 'vertical';
+        }
+
+        // Ensure table cells have proper wrapping styles
+        const cells = newActivityRow.querySelectorAll('td');
+        cells.forEach(cell => {
+            cell.style.wordWrap = 'break-word';
+            cell.style.overflowWrap = 'break-word';
+            cell.style.wordBreak = 'break-word';
+        });
 
         // Append the new activity row
         activitiesTableBody.appendChild(newActivityRow);
 
         // Add corresponding time frame row
-        const timeFrameTbody = button.closest('.objective-card').querySelector('.time-frame-card tbody');
+        const timeFrameTbody = objectiveCard.querySelector('.time-frame-card tbody');
+        if (!timeFrameTbody) {
+            console.error('Time frame tbody not found');
+            return;
+        }
+
         const lastTimeFrameRow = timeFrameTbody.querySelector('.activity-timeframe-row:last-of-type');
+        if (!lastTimeFrameRow) {
+            console.error('No existing time frame row found to clone');
+            return;
+        }
+
         const newTimeFrameRow = lastTimeFrameRow.cloneNode(true);
 
         // Clear the activity description and checkboxes
-        newTimeFrameRow.querySelector('.activity-description-text').innerText = '';
+        const descriptionText = newTimeFrameRow.querySelector('.activity-description-text');
+        if (descriptionText) {
+            descriptionText.innerText = '';
+        }
         newTimeFrameRow.querySelectorAll('.month-checkbox').forEach(checkbox => {
             checkbox.checked = false;
             checkbox.name = '';
@@ -469,7 +553,6 @@
         timeFrameTbody.appendChild(newTimeFrameRow);
 
         // Update name attributes
-        const objectiveCard = button.closest('.objective-card');
         const objectiveIndex = getObjectiveIndex(objectiveCard);
         updateNameAttributes(objectiveCard, objectiveIndex);
 
@@ -554,6 +637,42 @@
                 updateNameAttributes(objective, index);
             });
         }
+    }
+
+    // Add Time Frame Row
+    function addTimeFrameRow(button) {
+        const objectiveCard = button.closest('.objective-card');
+        const timeFrameTbody = objectiveCard.querySelector('.time-frame-card tbody');
+        if (!timeFrameTbody) {
+            console.error('Time frame tbody not found');
+            return;
+        }
+
+        const lastTimeFrameRow = timeFrameTbody.querySelector('.activity-timeframe-row:last-of-type');
+        if (!lastTimeFrameRow) {
+            console.error('No existing time frame row found to clone');
+            return;
+        }
+
+        const newTimeFrameRow = lastTimeFrameRow.cloneNode(true);
+
+        // Clear the activity description and checkboxes
+        const descriptionText = newTimeFrameRow.querySelector('.activity-description-text');
+        if (descriptionText) {
+            descriptionText.innerText = '';
+        }
+        newTimeFrameRow.querySelectorAll('.month-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+            checkbox.name = '';
+            checkbox.value = '1';
+        });
+
+        // Append the new time frame row
+        timeFrameTbody.appendChild(newTimeFrameRow);
+
+        // Update name attributes
+        const objectiveIndex = getObjectiveIndex(objectiveCard);
+        updateNameAttributes(objectiveCard, objectiveIndex);
     }
 
     // Remove Time Frame Row

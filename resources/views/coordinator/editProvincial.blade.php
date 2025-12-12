@@ -35,6 +35,10 @@
                                 <option value="Vijayawada" {{ $provincial->province == 'Vijayawada' ? 'selected' : '' }}>Vijayawada</option>
                                 <option value="Visakhapatnam" {{ $provincial->province == 'Visakhapatnam' ? 'selected' : '' }}>Visakhapatnam</option>
                                 <option value="Generalate" {{ $provincial->province == 'Generalate' ? 'selected' : '' }}>Generalate</option>
+                                <option value="Divyodaya" {{ $provincial->province == 'Divyodaya' ? 'selected' : '' }}>Divyodaya</option>
+                                <option value="Indonesia" {{ $provincial->province == 'Indonesia' ? 'selected' : '' }}>Indonesia</option>
+                                <option value="East Timor" {{ $provincial->province == 'East Timor' ? 'selected' : '' }}>East Timor</option>
+                                <option value="East Africa" {{ $provincial->province == 'East Africa' ? 'selected' : '' }}>East Africa</option>
                             </select>
                         </div>
                         <div class="form-group">
