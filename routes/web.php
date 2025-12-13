@@ -29,6 +29,7 @@ use App\Http\Controllers\Reports\Quarterly\WomenInDistressController;
 use App\Http\Controllers\TestController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 Route::get('/', function () {
     return view('auth.login');
@@ -45,17 +46,31 @@ Route::get('/logout', function () {
 
 // Default redirect to dashboard based on role
 Route::get('/dashboard', function () {
-    $role = Auth::user()->role;
+    $user = Auth::user();
+    $role = $user->role;
+    
+    Log::info('Dashboard route - Redirecting based on role', [
+        'user_id' => $user->id,
+        'role' => $role,
+        'current_url' => request()->fullUrl(),
+    ]);
+    
     $url = match($role) {
-        'admin' => 'admin/dashboard',
-        'coordinator' => 'coordinator/dashboard',
-        'provincial' => 'provincial/dashboard',
-        'executor' => 'executor/dashboard',
-        default => 'dashboard',
+        'admin' => '/admin/dashboard',
+        'coordinator' => '/coordinator/dashboard',
+        'provincial' => '/provincial/dashboard',
+        'executor' => '/executor/dashboard',
+        'applicant' => '/executor/dashboard', // Applicants get same access as executors
+        default => '/profile', // Fallback to profile for unknown roles instead of login to prevent loops
     };
 
-    return redirect()->intended($url);
-})->middleware(['auth', 'verified'])->name('dashboard');
+    Log::info('Dashboard route - Redirecting to', [
+        'redirect_url' => $url,
+        'role' => $role,
+    ]);
+
+    return redirect($url);
+})->middleware(['auth'])->name('dashboard');
 
 // Profile routes
 Route::middleware('auth')->group(function () {
@@ -231,7 +246,7 @@ Route::middleware(['auth', 'role:provincial'])->group(function () {
 //         Route::get('download/{id}', [ProjectController::class, 'downloadAttachment'])->name('download.attachment');
 //     });
 // Executor routes
-Route::middleware(['auth', 'role:executor'])->group(function () {
+Route::middleware(['auth', 'role:executor,applicant'])->group(function () {
     Route::get('/executor/dashboard', [ExecutorController::class, 'ExecutorDashboard'])->name('executor.dashboard');
     Route::get('/executor/report-list', [ExecutorController::class, 'ReportList'])->name('executor.report.list');
 
@@ -303,7 +318,7 @@ Route::prefix('reports/monthly')->group(function () {
 // Shared route for Executor, Provincial and Coordinator
 
 // for Projects 9122024
-Route::middleware(['auth', 'role:executor,provincial,coordinator'])->group(function () {
+Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator'])->group(function () {
     Route::get('/projects-list', [ProjectController::class, 'listProjects'])->name('projects.list');
 
     // Project download routes accessible to all roles - ORDER MATTERS!
@@ -317,7 +332,7 @@ Route::middleware(['auth', 'role:executor,provincial,coordinator'])->group(funct
 
 
 // for Reports
-Route::middleware(['auth', 'role:executor,provincial,coordinator'])->group(function () {
+Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator'])->group(function () {
     //Download Monthly Reports
     Route::get('reports/monthly/download/{id}', [ReportAttachmentController::class, 'downloadAttachment'])->name('monthly.report.downloadAttachment');
     //Check file existence
@@ -419,7 +434,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
 });
 
 // Test route for debugging middleware
-Route::middleware(['auth', 'role:executor,provincial,coordinator'])->group(function () {
+Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator'])->group(function () {
     Route::get('/test-middleware', function () {
         return response()->json(['message' => 'Middleware passed', 'user_role' => auth()->user()->role]);
     })->name('test.middleware');

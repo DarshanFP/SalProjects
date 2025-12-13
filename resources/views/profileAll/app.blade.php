@@ -44,7 +44,7 @@
             @include('coordinator.sidebar')
         @elseif (auth()->user()->hasRole('provincial'))
             @include('provincial.sidebar')
-        @elseif (auth()->user()->hasRole('executor'))
+        @elseif (auth()->user()->hasRole('executor') || auth()->user()->hasRole('applicant'))
             @include('executor.sidebar')
         @endif
         <!-- partial -->

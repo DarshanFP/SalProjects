@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class Role
@@ -16,7 +17,8 @@ class Role
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
         // Get the user's role
-        $userRole = $request->user()->role;
+        $user = $request->user();
+        $userRole = $user->role;
 
         // Parse roles - handle both comma-separated strings and individual parameters
         $allowedRoles = [];
@@ -28,10 +30,27 @@ class Role
             }
         }
 
+        Log::info('Role middleware - Checking access', [
+            'user_id' => $user->id,
+            'user_role' => $userRole,
+            'allowed_roles' => $allowedRoles,
+            'current_url' => $request->fullUrl(),
+            'has_access' => in_array($userRole, $allowedRoles),
+        ]);
+
         // Check if user's role is in the allowed roles
         if (!in_array($userRole, $allowedRoles)) {
             // Redirect to the appropriate dashboard based on the user's role
-            return redirect($this->getDashboardUrl($userRole));
+            $redirectUrl = $this->getDashboardUrl($userRole);
+            
+            Log::warning('Role middleware - Access denied, redirecting', [
+                'user_id' => $user->id,
+                'user_role' => $userRole,
+                'allowed_roles' => $allowedRoles,
+                'redirect_url' => $redirectUrl,
+            ]);
+            
+            return redirect($redirectUrl);
         }
 
         return $next($request);
@@ -46,11 +65,12 @@ class Role
     protected function getDashboardUrl(string $role): string
     {
         return match($role) {
-            'admin' => 'admin/dashboard',
-            'coordinator' => 'coordinator/dashboard',
-            'provincial' => 'provincial/dashboard',
-            'executor' => 'executor/dashboard',
-            default => 'dashboard',
+            'admin' => '/admin/dashboard',
+            'coordinator' => '/coordinator/dashboard',
+            'provincial' => '/provincial/dashboard',
+            'executor' => '/executor/dashboard',
+            'applicant' => '/executor/dashboard', // Applicants get same access as executors
+            default => '/profile', // Changed to '/profile' to prevent loops with login
         };
     }
 }

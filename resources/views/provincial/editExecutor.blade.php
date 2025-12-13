@@ -55,6 +55,13 @@
                     <input type="text" class="form-control" id="address" name="address" value="{{ $executor->address }}">
                 </div>
                 <div class="form-group">
+                    <label for="role">Role</label>
+                    <select class="form-control" id="role" name="role" required>
+                        <option value="executor" {{ $executor->role == 'executor' ? 'selected' : '' }}>Executor</option>
+                        <option value="applicant" {{ $executor->role == 'applicant' ? 'selected' : '' }}>Applicant</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="status">Status</label>
                     <select class="form-control" id="status" name="status">
                         <option value="active" {{ $executor->status == 'active' ? 'selected' : '' }}>Active</option>

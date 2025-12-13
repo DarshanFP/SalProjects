@@ -527,6 +527,7 @@ class ProvincialController extends Controller
             'society_name' => 'required|string|max:255',
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string',
+            'role' => 'required|in:executor,applicant',
             'status' => 'required|in:active,inactive',
         ]);
 
@@ -538,10 +539,15 @@ class ProvincialController extends Controller
             'society_name' => $request->society_name,
             'center' => $request->center,
             'address' => $request->address,
+            'role' => $request->role,
             'status' => $request->status,
         ]);
 
-        return redirect()->route('provincial.executors')->with('success', 'Executor updated successfully.');
+        // Update Spatie role assignment
+        $executor->syncRoles([$request->role]);
+
+        $roleName = ucfirst($request->role);
+        return redirect()->route('provincial.executors')->with('success', $roleName . ' updated successfully.');
     }
 
     // Reset Executor Password

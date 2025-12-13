@@ -68,7 +68,7 @@
             <select name="in_charge" id="in_charge" class="form-control select-input me-2" style="background-color: #202ba3;">
                 <option value="" disabled selected>Select In-Charge</option>
                 @foreach($users as $potential_in_charge)
-                    @if($potential_in_charge->province == $user->province && $potential_in_charge->role == 'applicant')
+                    @if($potential_in_charge->province == $user->province && ($potential_in_charge->role == 'applicant' || $potential_in_charge->role == 'executor'))
                         <option value="{{ $potential_in_charge->id }}" data-name="{{ $potential_in_charge->name }}" data-mobile="{{ $potential_in_charge->phone }}" data-email="{{ $potential_in_charge->email }}" {{ old('in_charge') == $potential_in_charge->id ? 'selected' : '' }}>
                             {{ $potential_in_charge->name }}
                         </option>

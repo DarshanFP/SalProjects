@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
@@ -44,19 +45,39 @@ class AuthenticatedSessionController extends Controller
 
     public function store(LoginRequest $request): RedirectResponse
 {
+    Log::info('AuthenticatedSessionController@store - Starting login process', [
+        'email' => $request->email,
+        'intended_url' => $request->session()->get('url.intended'),
+    ]);
+
     $request->authenticate();
     $request->session()->regenerate();
 
-    $role = $request->user()->role;
+    $user = $request->user();
+    $role = $user->role;
+
+    Log::info('AuthenticatedSessionController@store - User authenticated', [
+        'user_id' => $user->id,
+        'role' => $role,
+        'email' => $user->email,
+    ]);
+
     $url = match($role) {
-        'admin' => 'admin/dashboard',
-        'coordinator' => 'coordinator/dashboard',
-        'provincial' => 'provincial/dashboard',
-        'executor' => 'executor/dashboard',
-        default => 'dashboard',
+        'admin' => '/admin/dashboard',
+        'coordinator' => '/coordinator/dashboard',
+        'provincial' => '/provincial/dashboard',
+        'executor' => '/executor/dashboard',
+        'applicant' => '/executor/dashboard', // Applicants get same access as executors
+        default => '/profile', // Fallback to profile for unknown roles instead of login to prevent loops
     };
 
-    return redirect()->intended($url);
+    Log::info('AuthenticatedSessionController@store - Redirecting after login', [
+        'role' => $role,
+        'redirect_url' => $url,
+    ]);
+
+    // Use direct redirect instead of intended to avoid redirect loops
+    return redirect($url);
 }
 
 
