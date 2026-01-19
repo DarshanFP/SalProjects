@@ -3,53 +3,91 @@
 namespace App\Http\Controllers\Projects\IGE;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IGE\ProjectIGENewBeneficiaries;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IGE\StoreIGENewBeneficiariesRequest;
+use App\Http\Requests\Projects\IGE\UpdateIGENewBeneficiariesRequest;
 
 class NewBeneficiariesController extends Controller
 {
     // Store or update new beneficiaries for a project
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId, $shouldRedirect = true)
     {
-        DB::beginTransaction();
-        try {
-            Log::info('Storing IGE New Beneficiaries Information', ['project_id' => $projectId]);
+        // Use all() to get all form data including beneficiary_name[], caste[], etc. arrays
+        // These fields are not in StoreProjectRequest validation rules
+        $validated = $request->all();
 
-            // Validate request data (allowing nullable fields)
-            $this->validate($request, [
-                'beneficiary_name.*' => 'nullable|string|max:255',
-                'caste.*' => 'nullable|string|max:255',
-                'address.*' => 'nullable|string|max:500',
-                'group_year_of_study.*' => 'nullable|string|max:255',
-                'family_background_need.*' => 'nullable|string|max:500',
+        // Check if we're already in a transaction (called from ProjectController@update)
+        $inTransaction = DB::transactionLevel() > 0;
+
+        if (!$inTransaction) {
+            DB::beginTransaction();
+        }
+
+        try {
+            Log::info('Storing IGE New Beneficiaries Information', [
+                'project_id' => $projectId,
+                'in_transaction' => $inTransaction,
+                'beneficiary_names_count' => count($validated['beneficiary_name'] ?? []),
+                'request_keys' => array_keys($validated)
             ]);
 
             // Delete existing beneficiaries for the project
             ProjectIGENewBeneficiaries::where('project_id', $projectId)->delete();
 
             // Insert new beneficiaries
-            foreach ($request->beneficiary_name as $index => $name) {
-                if (!is_null($name)) {
+            $beneficiaryNames = $validated['beneficiary_name'] ?? [];
+            $castes = $validated['caste'] ?? [];
+            $addresses = $validated['address'] ?? [];
+            $groupYearOfStudies = $validated['group_year_of_study'] ?? [];
+            $familyBackgroundNeeds = $validated['family_background_need'] ?? [];
+
+            $savedCount = 0;
+            foreach ($beneficiaryNames as $index => $name) {
+                if (!empty(trim($name ?? ''))) {
                     ProjectIGENewBeneficiaries::create([
                         'project_id' => $projectId,
                         'beneficiary_name' => $name,
-                        'caste' => $request->caste[$index] ?? null,
-                        'address' => $request->address[$index] ?? null,
-                        'group_year_of_study' => $request->group_year_of_study[$index] ?? null,
-                        'family_background_need' => $request->family_background_need[$index] ?? null,
+                        'caste' => $castes[$index] ?? null,
+                        'address' => $addresses[$index] ?? null,
+                        'group_year_of_study' => $groupYearOfStudies[$index] ?? null,
+                        'family_background_need' => $familyBackgroundNeeds[$index] ?? null,
                     ]);
+                    $savedCount++;
                 }
             }
 
-            DB::commit();
-            Log::info('IGE New Beneficiaries saved successfully', ['project_id' => $projectId]);
-            return redirect()->route('projects.edit', $projectId)->with('success', 'New Beneficiaries saved successfully.');
+            if (!$inTransaction) {
+                DB::commit();
+            }
+
+            Log::info('IGE New Beneficiaries saved successfully', [
+                'project_id' => $projectId,
+                'saved_count' => $savedCount
+            ]);
+
+            if ($shouldRedirect && !$inTransaction) {
+                return redirect()->route('projects.edit', $projectId)->with('success', 'New Beneficiaries saved successfully.');
+            }
+
+            return true; // Return success when called from update method
         } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error saving IGE New Beneficiaries', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'Failed to save New Beneficiaries.');
+            if (!$inTransaction) {
+                DB::rollBack();
+            }
+            Log::error('Error saving IGE New Beneficiaries', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            if ($shouldRedirect && !$inTransaction) {
+                return redirect()->back()->with('error', 'Failed to save New Beneficiaries.');
+            }
+
+            throw $e; // Re-throw when called from update method so parent can handle
         }
     }
 
@@ -92,9 +130,10 @@ class NewBeneficiariesController extends Controller
             return collect(); // Return an empty collection on error
         }
     }
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
-        return $this->store($request, $projectId);
+        // Reuse store logic but don't redirect (called from ProjectController@update)
+        return $this->store($request, $projectId, false);
     }
 
     // Delete new beneficiaries for a project

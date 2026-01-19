@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Projects;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\ProjectCICBasicInfo;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -78,22 +79,26 @@ class CICBasicInfoController extends Controller
     }
 
     // Update basic info for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Validation and authorization already done by FormRequest
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Updating CIC basic info', ['project_id' => $projectId]);
 
             $basicInfo = ProjectCICBasicInfo::where('project_id', $projectId)->firstOrFail();
-            $basicInfo->number_served_since_inception = $request->input('number_served_since_inception');
-            $basicInfo->number_served_previous_year = $request->input('number_served_previous_year');
-            $basicInfo->beneficiary_categories = $request->input('beneficiary_categories');
-            $basicInfo->sisters_intervention = $request->input('sisters_intervention');
-            $basicInfo->beneficiary_conditions = $request->input('beneficiary_conditions');
-            $basicInfo->beneficiary_problems = $request->input('beneficiary_problems');
-            $basicInfo->institution_challenges = $request->input('institution_challenges');
-            $basicInfo->support_received = $request->input('support_received');
-            $basicInfo->project_need = $request->input('project_need');
+            $basicInfo->number_served_since_inception = $validated['number_served_since_inception'] ?? null;
+            $basicInfo->number_served_previous_year = $validated['number_served_previous_year'] ?? null;
+            $basicInfo->beneficiary_categories = $validated['beneficiary_categories'] ?? null;
+            $basicInfo->sisters_intervention = $validated['sisters_intervention'] ?? null;
+            $basicInfo->beneficiary_conditions = $validated['beneficiary_conditions'] ?? null;
+            $basicInfo->beneficiary_problems = $validated['beneficiary_problems'] ?? null;
+            $basicInfo->institution_challenges = $validated['institution_challenges'] ?? null;
+            $basicInfo->support_received = $validated['support_received'] ?? null;
+            $basicInfo->project_need = $validated['project_need'] ?? null;
             $basicInfo->save();
 
             DB::commit();

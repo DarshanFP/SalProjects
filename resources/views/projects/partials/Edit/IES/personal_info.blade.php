@@ -51,7 +51,7 @@
 
         <div class="form-group">
             <label>Full Address:</label>
-            <textarea name="full_address" class="form-control" rows="3">{{ old('full_address', $personalInfo->full_address) }}</textarea>
+            <textarea name="full_address" class="form-control auto-resize-textarea" rows="3">{{ old('full_address', $personalInfo->full_address) }}</textarea>
         </div>
 
         <div class="form-group">
@@ -110,7 +110,7 @@
 <!-- Styles -->
 <style>
     .form-control {
-        background-color: #202ba3;
+
         color: white;
     }
     .card-header h4 {

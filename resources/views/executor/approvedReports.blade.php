@@ -37,7 +37,7 @@
                                 <div class="text-white card bg-primary">
                                     <div class="card-body">
                                         <h5 class="card-title">Total Budget</h5>
-                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_budget'], 2) }}</h3>
+                                        <h3 class="card-text">{{ format_indian_currency($budgetSummaries['total']['total_budget'], 2) }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -45,7 +45,7 @@
                                 <div class="text-white card bg-success">
                                     <div class="card-body">
                                         <h5 class="card-title">Total Expenses</h5>
-                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_expenses'], 2) }}</h3>
+                                        <h3 class="card-text">{{ format_indian_currency($budgetSummaries['total']['total_expenses'], 2) }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -53,7 +53,7 @@
                                 <div class="text-white card bg-info">
                                     <div class="card-body">
                                         <h5 class="card-title">Total Remaining</h5>
-                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_remaining'], 2) }}</h3>
+                                        <h3 class="card-text">{{ format_indian_currency($budgetSummaries['total']['total_remaining'], 2) }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -93,10 +93,10 @@
                                         <td>{{ $report->report_id }}</td>
                                         <td>{{ $report->project_title }}</td>
                                         <td>{{ $report->project_type }}</td>
-                                        <td>{{ number_format($totalAmount, 2) }}</td>
-                                        <td>{{ number_format($totalExpenses, 2) }}</td>
-                                        <td>{{ number_format($expensesThisMonth, 2) }}</td>
-                                        <td>{{ number_format($balanceAmount, 2) }}</td>
+                                        <td>{{ format_indian($totalAmount, 2) }}</td>
+                                        <td>{{ format_indian($totalExpenses, 2) }}</td>
+                                        <td>{{ format_indian($expensesThisMonth, 2) }}</td>
+                                        <td>{{ format_indian($balanceAmount, 2) }}</td>
                                         <td>
                                             <span class="badge {{ $statusBadgeClass }}">{{ $statusLabel }}</span>
                                         </td>

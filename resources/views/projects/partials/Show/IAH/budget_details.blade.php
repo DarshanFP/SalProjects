@@ -17,7 +17,7 @@
                         @foreach($IAHBudgetDetails as $budget)
                             <tr>
                                 <td>{{ $budget->particular ?? 'Not provided' }}</td>
-                                <td>{{ $budget->amount ? '₹' . number_format($budget->amount, 2) : 'Not provided' }}</td>
+                                <td>{{ $budget->amount ? format_indian_currency($budget->amount, 2) : 'Not provided' }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -28,18 +28,18 @@
                 <div class="info-grid">
                     <div class="mb-3">
                         <span class="info-label">Total Expenses:</span>
-                        <span class="info-value">₹{{ number_format($IAHBudgetDetails->sum('amount'), 2) }}</span>
+                        <span class="info-value">{{ format_indian_currency($IAHBudgetDetails->sum('amount'), 2) }}</span>
                     </div>
 
                     @if($IAHBudgetDetails->first())
                     <div class="mb-3">
                         <span class="info-label">Family Contribution:</span>
-                        <span class="info-value">₹{{ number_format($IAHBudgetDetails->first()->family_contribution ?? 0, 2) }}</span>
+                        <span class="info-value">{{ format_indian_currency($IAHBudgetDetails->first()->family_contribution ?? 0, 2) }}</span>
                     </div>
 
                     <div class="mb-3">
                         <span class="info-label">Total Amount Requested:</span>
-                        <span class="info-value">₹{{ number_format($IAHBudgetDetails->first()->amount_requested ?? 0, 2) }}</span>
+                        <span class="info-value">{{ format_indian_currency($IAHBudgetDetails->first()->amount_requested ?? 0, 2) }}</span>
                     </div>
                     @endif
                 </div>

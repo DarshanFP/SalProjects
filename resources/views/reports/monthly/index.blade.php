@@ -1,6 +1,9 @@
 @extends('executor.dashboard')
 
 @section('content')
+@php
+    use App\Constants\ProjectStatus;
+@endphp
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-12">
@@ -96,25 +99,25 @@
                                         @php
                                             $statusClass = '';
                                             switch($report->status) {
-                                                case 'draft':
+                                                case ProjectStatus::DRAFT:
                                                     $statusClass = 'bg-secondary';
                                                     break;
-                                                case 'submitted_to_provincial':
+                                                case ProjectStatus::SUBMITTED_TO_PROVINCIAL:
                                                     $statusClass = 'bg-info';
                                                     break;
-                                                case 'reverted_by_provincial':
+                                                case ProjectStatus::REVERTED_BY_PROVINCIAL:
                                                     $statusClass = 'bg-warning';
                                                     break;
-                                                case 'forwarded_to_coordinator':
+                                                case ProjectStatus::FORWARDED_TO_COORDINATOR:
                                                     $statusClass = 'bg-primary';
                                                     break;
-                                                case 'reverted_by_coordinator':
+                                                case ProjectStatus::REVERTED_BY_COORDINATOR:
                                                     $statusClass = 'bg-warning';
                                                     break;
-                                                case 'approved_by_coordinator':
+                                                case ProjectStatus::APPROVED_BY_COORDINATOR:
                                                     $statusClass = 'bg-success';
                                                     break;
-                                                case 'rejected_by_coordinator':
+                                                case ProjectStatus::REJECTED_BY_COORDINATOR:
                                                     $statusClass = 'bg-danger';
                                                     break;
                                                 default:
@@ -128,8 +131,11 @@
                                     <td>
                                         <a href="{{ route('monthly.report.show', $report->report_id) }}" class="btn btn-info btn-sm">View</a>
 
+                                        @php
+                                            $editableStatuses = ProjectStatus::getEditableStatuses();
+                                        @endphp
                                         @if(auth()->user()->role === 'executor')
-                                            @if(in_array($report->status, ['draft', 'reverted_by_provincial', 'reverted_by_coordinator']))
+                                            @if(in_array($report->status, $editableStatuses))
                                                 <a href="{{ route('monthly.report.edit', $report->report_id) }}" class="btn btn-warning btn-sm">Edit</a>
                                                 <form action="{{ route('monthly.report.submit', $report->report_id) }}" method="POST" style="display: inline-block;">
                                                     @csrf
@@ -139,20 +145,20 @@
                                         @endif
 
                                         @if(auth()->user()->role === 'provincial')
-                                            @if($report->status === 'submitted_to_provincial')
+                                            @if($report->status === ProjectStatus::SUBMITTED_TO_PROVINCIAL)
                                                 <form action="{{ route('monthly.report.forward', $report->report_id) }}" method="POST" style="display: inline-block;">
                                                     @csrf
                                                     <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Forward to Coordinator?')">Forward</button>
                                                 </form>
                                                 <button type="button" class="btn btn-warning btn-sm" onclick="showRevertModal('{{ $report->report_id }}')">Revert</button>
                                             @endif
-                                            @if($report->status === 'reverted_by_coordinator')
+                                            @if($report->status === ProjectStatus::REVERTED_BY_COORDINATOR)
                                                 <button type="button" class="btn btn-warning btn-sm" onclick="showRevertModal('{{ $report->report_id }}')">Revert to Executor</button>
                                             @endif
                                         @endif
 
                                         @if(auth()->user()->role === 'coordinator')
-                                            @if($report->status === 'forwarded_to_coordinator')
+                                            @if($report->status === ProjectStatus::FORWARDED_TO_COORDINATOR)
                                                 <form action="{{ route('monthly.report.approve', $report->report_id) }}" method="POST" style="display: inline-block;">
                                                     @csrf
                                                     <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Approve this report?')">Approve</button>
@@ -184,7 +190,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="revert_reason" class="form-label">Reason for Reverting</label>
-                        <textarea class="form-control" id="revert_reason" name="revert_reason" rows="3" required></textarea>
+                        <textarea class="form-control auto-resize-textarea" id="revert_reason" name="revert_reason" rows="3" required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">

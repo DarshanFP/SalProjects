@@ -64,6 +64,7 @@ class AuthenticatedSessionController extends Controller
 
     $url = match($role) {
         'admin' => '/admin/dashboard',
+        'general' => '/general/dashboard', // General has own dashboard
         'coordinator' => '/coordinator/dashboard',
         'provincial' => '/provincial/dashboard',
         'executor' => '/executor/dashboard',

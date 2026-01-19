@@ -6,7 +6,7 @@
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-bordered">
-                <thead style="background-color: #101117; color: white;">
+                <thead>
                     <tr>
                         <th style="text-align: center;">S.No.</th>
                         <th>Beneficiary Name</th>

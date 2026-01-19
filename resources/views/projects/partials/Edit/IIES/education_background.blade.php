@@ -104,21 +104,13 @@
         <!-- Educational Aspirations -->
         <div class="form-group">
             <label for="aspiration">What is the educational aspiration and area of interest of the beneficiary?</label>
-            <textarea name="aspiration" id="aspiration" class="form-control" rows="3">{{ old('aspiration', $IIESEducationBackground->aspiration ?? '') }}</textarea>
+            <textarea name="aspiration" id="aspiration" class="form-control sustainability-textarea" rows="3">{{ old('aspiration', $IIESEducationBackground->aspiration ?? '') }}</textarea>
         </div>
 
         <!-- Sustainability of the Support -->
         <div class="form-group">
             <label for="long_term_effect">Sustainability of the support (Impact on beneficiary's life in the long run):</label>
-            <textarea name="long_term_effect" id="long_term_effect" class="form-control" rows="3">{{ old('long_term_effect', $IIESEducationBackground->long_term_effect ?? '') }}</textarea>
+            <textarea name="long_term_effect" id="long_term_effect" class="form-control sustainability-textarea" rows="3">{{ old('long_term_effect', $IIESEducationBackground->long_term_effect ?? '') }}</textarea>
         </div>
     </div>
 </div>
-
-<!-- Styles -->
-<style>
-    .form-control {
-        background-color: #202ba3;
-        color: white;
-    }
-</style>

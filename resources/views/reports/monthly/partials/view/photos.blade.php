@@ -45,8 +45,8 @@
                         @endforeach
                     </div>
                     <div class="mb-2 row">
-                        <div class="col-6"><strong>Description:</strong></div>
-                        <div class="col-6">{{ $description ?: 'No description provided' }}</div>
+                        <div class="col-2 report-label-col"><strong>Description:</strong></div>
+                        <div class="col-10 report-value-col">{{ $description ?: 'No description provided' }}</div>
                     </div>
                 </div>
             @endforeach

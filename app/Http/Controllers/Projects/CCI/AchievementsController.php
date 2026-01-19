@@ -3,16 +3,22 @@
 namespace App\Http\Controllers\Projects\CCI;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\CCI\ProjectCCIAchievements;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\CCI\StoreCCIAchievementsRequest;
+use App\Http\Requests\Projects\CCI\UpdateCCIAchievementsRequest;
 
 class AchievementsController extends Controller
 {
     // Store achievements for a project
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including academic_achievements[], sport_achievements[], other_achievements[] arrays
+        // These fields are not in StoreProjectRequest validation rules
+        $validated = $request->all();
+
         DB::beginTransaction();
         try {
             Log::info('Storing CCI Achievements', ['project_id' => $projectId]);
@@ -20,9 +26,9 @@ class AchievementsController extends Controller
             // Create new instance of ProjectCCIAchievements
             $achievements = new ProjectCCIAchievements();
             $achievements->project_id = $projectId;
-            $achievements->academic_achievements = json_encode($request->input('academic_achievements'));
-            $achievements->sport_achievements = json_encode($request->input('sport_achievements'));
-            $achievements->other_achievements = json_encode($request->input('other_achievements'));
+            $achievements->academic_achievements = json_encode($validated['academic_achievements'] ?? []);
+            $achievements->sport_achievements = json_encode($validated['sport_achievements'] ?? []);
+            $achievements->other_achievements = json_encode($validated['other_achievements'] ?? []);
             $achievements->save();
 
             DB::commit();
@@ -83,24 +89,25 @@ class AchievementsController extends Controller
     }
 
     // Update or create achievements for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including academic_achievements[], sport_achievements[], other_achievements[] arrays
+        // These fields are not in UpdateProjectRequest validation rules
+        $validated = $request->all();
+
         DB::beginTransaction();
         try {
             Log::info('Updating or Creating CCI Achievements', ['project_id' => $projectId]);
-            Log::info('Request data:', $request->all());
 
             // Use updateOrCreate to either update or create a new entry
             $achievements = ProjectCCIAchievements::updateOrCreate(
                 ['project_id' => $projectId], // Condition to check if record exists
                 [
-                    'academic_achievements' => json_encode($request->input('academic_achievements')),
-                    'sport_achievements' => json_encode($request->input('sport_achievements')),
-                    'other_achievements' => json_encode($request->input('other_achievements'))
+                    'academic_achievements' => json_encode($validated['academic_achievements'] ?? []),
+                    'sport_achievements' => json_encode($validated['sport_achievements'] ?? []),
+                    'other_achievements' => json_encode($validated['other_achievements'] ?? [])
                 ]
             );
-
-            Log::info('Achievements data after save:', $achievements->toArray());
 
             DB::commit();
             Log::info('CCI Achievements updated or created successfully', ['project_id' => $projectId]);

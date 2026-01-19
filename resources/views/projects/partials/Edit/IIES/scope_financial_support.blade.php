@@ -57,18 +57,8 @@
 <!-- Reason for No Family Contribution -->
 <div class="form-group">
     <label for="no_contrib_reason">If no contribution from family, mention the reasons:</label>
-    <textarea name="no_contrib_reason" id="no_contrib_reason" class="form-control" rows="3">
-        {{ old('no_contrib_reason', $IIESFinancialSupport->no_contrib_reason ?? '') }}
-    </textarea>
+    <textarea name="no_contrib_reason" id="no_contrib_reason" class="form-control sustainability-textarea" rows="3">{{ old('no_contrib_reason', $IIESFinancialSupport->no_contrib_reason ?? '') }}</textarea>
 </div>
 
     </div>
 </div>
-
-<!-- Styles -->
-<style>
-    .form-control {
-        background-color: #202ba3;
-        color: white;
-    }
-</style>

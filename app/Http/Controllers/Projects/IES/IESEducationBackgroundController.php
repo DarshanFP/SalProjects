@@ -3,17 +3,22 @@
 namespace App\Http\Controllers\Projects\IES;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IES\ProjectIESEducationBackground;
 use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IES\StoreIESEducationBackgroundRequest;
+use App\Http\Requests\Projects\IES\UpdateIESEducationBackgroundRequest;
 
 class IESEducationBackgroundController extends Controller
 {
     // Store or update educational background for a project
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing IES educational background', ['project_id' => $projectId]);
@@ -21,7 +26,8 @@ class IESEducationBackgroundController extends Controller
             // Find or create a new educational background record
             $educationBackground = ProjectIESEducationBackground::where('project_id', $projectId)->first() ?: new ProjectIESEducationBackground();
             $educationBackground->project_id = $projectId;
-            $educationBackground->fill($request->all());
+            // Use validated data instead of all()
+            $educationBackground->fill($validated);
             $educationBackground->save();
 
             DB::commit();
@@ -68,9 +74,10 @@ class IESEducationBackgroundController extends Controller
     }
 
     // Update educational background for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
-        return $this->store($request, $projectId); // Reuse the store logic for update
+        // Reuse store logic
+        return $this->store($request, $projectId);
     }
 
     // Delete educational background for a project

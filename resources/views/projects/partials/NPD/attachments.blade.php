@@ -11,10 +11,10 @@
                         <input type="text" name="attachments[{{ $index }}][file]" class="form-control readonly-input mb-2" value="{{ $attachment['file'] }}" readonly>
 
                         <label for="attachments[{{ $index }}][file_name]" class="form-label">File Name</label>
-                        <input type="text" name="attachments[{{ $index }}][file_name]" class="form-control mb-2" value="{{ $attachment['file_name'] }}" placeholder="Name of File Attached" style="background-color: #202ba3;">
+                        <input type="text" name="attachments[{{ $index }}][file_name]" class="form-control mb-2" value="{{ $attachment['file_name'] }}" placeholder="Name of File Attached">
 
                         <label for="attachments[{{ $index }}][description]" class="form-label">Brief Description</label>
-                        <textarea name="attachments[{{ $index }}][description]" class="form-control" rows="3" placeholder="Describe the file" style="background-color: #202ba3;">{{ $attachment['description'] }}</textarea>
+                        <textarea name="attachments[{{ $index }}][description]" class="form-control sustainability-textarea" rows="3" placeholder="Describe the file">{{ $attachment['description'] }}</textarea>
 
                         <button type="button" class="btn btn-danger btn-sm mt-2" onclick="removeAttachment(this)">Remove</button>
                     </div>
@@ -24,13 +24,13 @@
             <!-- New Attachment Template -->
             <div class="mb-3 attachment-group" data-index="0">
                 <label for="attachments[0][file]" class="form-label">Attachment File</label>
-                <input type="file" name="attachments[0][file]" class="form-control mb-2" accept=".pdf" onchange="checkFileSize(this)" style="background-color: #202ba3;">
+                <input type="file" name="attachments[0][file]" class="form-control mb-2" accept=".pdf" onchange="checkFileSize(this)">
 
                 <label for="attachments[0][file_name]" class="form-label">File Name</label>
-                <input type="text" name="attachments[0][file_name]" class="form-control mb-2" placeholder="Name of File Attached" style="background-color: #202ba3;">
+                <input type="text" name="attachments[0][file_name]" class="form-control mb-2" placeholder="Name of File Attached">
 
                 <label for="attachments[0][description]" class="form-label">Brief Description</label>
-                <textarea name="attachments[0][description]" class="form-control" rows="3" placeholder="Describe the file" style="background-color: #202ba3;"></textarea>
+                <textarea name="attachments[0][description]" class="form-control sustainability-textarea" rows="3" placeholder="Describe the file"></textarea>
 
                 <button type="button" class="btn btn-danger btn-sm mt-2" onclick="removeAttachment(this)">Remove</button>
             </div>
@@ -63,18 +63,25 @@ function addAttachment() {
 
     newAttachment.innerHTML = `
         <label for="attachments[\${attachmentIndex}][file]" class="form-label">Attachment \${attachmentIndex + 1}</label>
-        <input type="file" name="attachments[\${attachmentIndex}][file]" class="form-control mb-2" accept=".pdf" onchange="checkFileSize(this)" style="background-color: #202ba3;">
+        <input type="file" name="attachments[\${attachmentIndex}][file]" class="form-control mb-2" accept=".pdf" onchange="checkFileSize(this)">
 
         <label for="attachments[\${attachmentIndex}][file_name]" class="form-label">File Name</label>
-        <input type="text" name="attachments[\${attachmentIndex}][file_name]" class="form-control mb-2" placeholder="Name of File Attached" style="background-color: #202ba3;">
+        <input type="text" name="attachments[\${attachmentIndex}][file_name]" class="form-control mb-2" placeholder="Name of File Attached">
 
         <label for="attachments[\${attachmentIndex}][description]" class="form-label">Brief Description</label>
-        <textarea name="attachments[\${attachmentIndex}][description]" class="form-control" rows="3" placeholder="Describe the file" style="background-color: #202ba3;"></textarea>
+        <textarea name="attachments[\${attachmentIndex}][description]" class="form-control sustainability-textarea" rows="3" placeholder="Describe the file"></textarea>
 
         <button type="button" class="btn btn-danger btn-sm mt-2" onclick="removeAttachment(this)">Remove</button>
     `;
 
     attachmentsContainer.appendChild(newAttachment);
+
+    // Initialize auto-resize for new attachment textarea using global function
+    const newTextarea = newAttachment.querySelector('.sustainability-textarea');
+    if (newTextarea && typeof window.initTextareaAutoResize === 'function') {
+        window.initTextareaAutoResize(newTextarea);
+    }
+
     attachmentIndex++;
 }
 
@@ -86,8 +93,7 @@ function removeAttachment(button) {
 </script>
 
 <style>
-    .readonly-input {
-        background-color: #e9ecef !important;
-        pointer-events: none;
-    }
+.readonly-input {
+    pointer-events: none;
+}
 </style>

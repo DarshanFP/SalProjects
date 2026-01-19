@@ -187,26 +187,21 @@
         </tr>
         <tr>
             <td class="details-label">Amount Sanctioned:</td>
-            <td>Rs. {{ number_format($report->amount_sanctioned_overview, 2) }}</td>
-        </tr>
-        <tr>
-            <td class="details-label">Amount Forwarded:</td>
-            <td>Rs. {{ number_format($report->amount_forwarded_overview, 2) }}</td>
+            <td>{{ format_indian_currency($report->amount_sanctioned_overview, 2) }}</td>
         </tr>
         <tr>
             <td class="details-label">Total Amount:</td>
-            <td>Rs. {{ number_format($report->amount_in_hand, 2) }}</td>
+            <td>{{ format_indian_currency($report->amount_in_hand, 2) }}</td>
         </tr>
         <tr>
             <td class="details-label">Balance Forwarded:</td>
-            <td>Rs. {{ number_format($report->total_balance_forwarded, 2) }}</td>
+            <td>{{ format_indian_currency($report->total_balance_forwarded, 2) }}</td>
         </tr>
     </table>
     <table class="account-table">
         <thead class="header-row">
             <tr>
                 <th>Particulars</th>
-                <th>Amount Forwarded</th>
                 <th>Amount Sanctioned</th>
                 <th>Total Amount</th>
                 <th>Expenses Last Month</th>
@@ -219,13 +214,12 @@
             @foreach($report->accountDetails as $accountDetail)
                 <tr>
                     <td>{{ $accountDetail->particulars }}</td>
-                    <td>Rs. {{ number_format($accountDetail->amount_forwarded, 2) }}</td>
-                    <td>Rs. {{ number_format($accountDetail->amount_sanctioned, 2) }}</td>
-                    <td>Rs. {{ number_format($accountDetail->total_amount, 2) }}</td>
-                    <td>Rs. {{ number_format($accountDetail->expenses_last_month, 2) }}</td>
-                    <td>Rs. {{ number_format($accountDetail->expenses_this_month, 2) }}</td>
-                    <td>Rs. {{ number_format($accountDetail->total_expenses, 2) }}</td>
-                    <td>Rs. {{ number_format($accountDetail->balance_amount, 2) }}</td>
+                    <td>{{ format_indian_currency($accountDetail->amount_sanctioned, 2) }}</td>
+                    <td>{{ format_indian_currency($accountDetail->total_amount, 2) }}</td>
+                    <td>{{ format_indian_currency($accountDetail->expenses_last_month, 2) }}</td>
+                    <td>{{ format_indian_currency($accountDetail->expenses_this_month, 2) }}</td>
+                    <td>{{ format_indian_currency($accountDetail->total_expenses, 2) }}</td>
+                    <td>{{ format_indian_currency($accountDetail->balance_amount, 2) }}</td>
                 </tr>
             @endforeach
         </tbody>

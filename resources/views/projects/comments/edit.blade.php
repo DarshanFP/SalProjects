@@ -8,7 +8,7 @@
         @csrf
         <div class="mb-3">
             <label for="comment" class="form-label">Comment</label>
-            <textarea name="comment" id="comment" class="form-control" rows="3" required>{{ old('comment', $comment->comment) }}</textarea>
+            <textarea name="comment" id="comment" class="form-control auto-resize-textarea" rows="3" required>{{ old('comment', $comment->comment) }}</textarea>
         </div>
         <button type="submit" class="btn btn-primary">Update Comment</button>
         <a href="{{ url()->previous() }}" class="btn btn-secondary">Cancel</a>

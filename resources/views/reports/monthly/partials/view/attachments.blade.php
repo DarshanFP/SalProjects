@@ -20,7 +20,7 @@
                                     <a href="{{ asset('storage/' . $attachment->file_path) }}" target="_blank" class="text-primary">
                                         <i class="fas fa-file"></i> {{ $attachment->file_name }}
                                     </a>
-                                    <a href="{{ route('monthly.report.downloadAttachment', $attachment->id) }}" class="btn btn-sm btn-outline-primary ms-2">
+                                    <a href="{{ route('reports.attachments.download', $attachment->id) }}" class="btn btn-sm btn-outline-primary ms-2">
                                         <i class="fas fa-download"></i> Download
                                     </a>
                                 @else

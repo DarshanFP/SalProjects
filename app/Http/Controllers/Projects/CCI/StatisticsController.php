@@ -4,15 +4,20 @@ namespace App\Http\Controllers\Projects\CCI;
 
 use App\Http\Controllers\Controller;
 use App\Models\OldProjects\CCI\ProjectCCIStatistics;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\CCI\StoreCCIStatisticsRequest;
+use App\Http\Requests\Projects\CCI\UpdateCCIStatisticsRequest;
 
 class StatisticsController extends Controller
 {
     // Store new statistics entry
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing CCI Statistics', ['project_id' => $projectId]);
@@ -20,20 +25,20 @@ class StatisticsController extends Controller
             // Create new statistics entry
             $statistics = new ProjectCCIStatistics();
             $statistics->project_id = $projectId;
-            $statistics->total_children_previous_year = $request->total_children_previous_year;
-            $statistics->total_children_current_year = $request->total_children_current_year;
-            $statistics->reintegrated_children_previous_year = $request->reintegrated_children_previous_year;
-            $statistics->reintegrated_children_current_year = $request->reintegrated_children_current_year;
-            $statistics->shifted_children_previous_year = $request->shifted_children_previous_year;
-            $statistics->shifted_children_current_year = $request->shifted_children_current_year;
-            $statistics->pursuing_higher_studies_previous_year = $request->pursuing_higher_studies_previous_year;
-            $statistics->pursuing_higher_studies_current_year = $request->pursuing_higher_studies_current_year;
-            $statistics->settled_children_previous_year = $request->settled_children_previous_year;
-            $statistics->settled_children_current_year = $request->settled_children_current_year;
-            $statistics->working_children_previous_year = $request->working_children_previous_year;
-            $statistics->working_children_current_year = $request->working_children_current_year;
-            $statistics->other_category_previous_year = $request->other_category_previous_year;
-            $statistics->other_category_current_year = $request->other_category_current_year;
+            $statistics->total_children_previous_year = $validated['total_children_previous_year'] ?? null;
+            $statistics->total_children_current_year = $validated['total_children_current_year'] ?? null;
+            $statistics->reintegrated_children_previous_year = $validated['reintegrated_children_previous_year'] ?? null;
+            $statistics->reintegrated_children_current_year = $validated['reintegrated_children_current_year'] ?? null;
+            $statistics->shifted_children_previous_year = $validated['shifted_children_previous_year'] ?? null;
+            $statistics->shifted_children_current_year = $validated['shifted_children_current_year'] ?? null;
+            $statistics->pursuing_higher_studies_previous_year = $validated['pursuing_higher_studies_previous_year'] ?? null;
+            $statistics->pursuing_higher_studies_current_year = $validated['pursuing_higher_studies_current_year'] ?? null;
+            $statistics->settled_children_previous_year = $validated['settled_children_previous_year'] ?? null;
+            $statistics->settled_children_current_year = $validated['settled_children_current_year'] ?? null;
+            $statistics->working_children_previous_year = $validated['working_children_previous_year'] ?? null;
+            $statistics->working_children_current_year = $validated['working_children_current_year'] ?? null;
+            $statistics->other_category_previous_year = $validated['other_category_previous_year'] ?? null;
+            $statistics->other_category_current_year = $validated['other_category_current_year'] ?? null;
             $statistics->save();
 
             DB::commit();
@@ -81,31 +86,33 @@ class StatisticsController extends Controller
         }
     }
 
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
 {
+    // Use all() to get all form data including fields not in UpdateProjectRequest validation rules
+    $validated = $request->all();
+    
     DB::beginTransaction();
     try {
         Log::info('Updating CCI Statistics', ['project_id' => $projectId]);
-        Log::info('Request data:', $request->all());
 
         // Find the existing statistics entry or create a new one if it doesn't exist
         $statistics = ProjectCCIStatistics::updateOrCreate(
             ['project_id' => $projectId],
             [
-                'total_children_previous_year' => $request->total_children_previous_year,
-                'total_children_current_year' => $request->total_children_current_year,
-                'reintegrated_children_previous_year' => $request->reintegrated_children_previous_year,
-                'reintegrated_children_current_year' => $request->reintegrated_children_current_year,
-                'shifted_children_previous_year' => $request->shifted_children_previous_year,
-                'shifted_children_current_year' => $request->shifted_children_current_year,
-                'pursuing_higher_studies_previous_year' => $request->pursuing_higher_studies_previous_year,
-                'pursuing_higher_studies_current_year' => $request->pursuing_higher_studies_current_year,
-                'settled_children_previous_year' => $request->settled_children_previous_year,
-                'settled_children_current_year' => $request->settled_children_current_year,
-                'working_children_previous_year' => $request->working_children_previous_year,
-                'working_children_current_year' => $request->working_children_current_year,
-                'other_category_previous_year' => $request->other_category_previous_year,
-                'other_category_current_year' => $request->other_category_current_year
+                'total_children_previous_year' => $validated['total_children_previous_year'] ?? null,
+                'total_children_current_year' => $validated['total_children_current_year'] ?? null,
+                'reintegrated_children_previous_year' => $validated['reintegrated_children_previous_year'] ?? null,
+                'reintegrated_children_current_year' => $validated['reintegrated_children_current_year'] ?? null,
+                'shifted_children_previous_year' => $validated['shifted_children_previous_year'] ?? null,
+                'shifted_children_current_year' => $validated['shifted_children_current_year'] ?? null,
+                'pursuing_higher_studies_previous_year' => $validated['pursuing_higher_studies_previous_year'] ?? null,
+                'pursuing_higher_studies_current_year' => $validated['pursuing_higher_studies_current_year'] ?? null,
+                'settled_children_previous_year' => $validated['settled_children_previous_year'] ?? null,
+                'settled_children_current_year' => $validated['settled_children_current_year'] ?? null,
+                'working_children_previous_year' => $validated['working_children_previous_year'] ?? null,
+                'working_children_current_year' => $validated['working_children_current_year'] ?? null,
+                'other_category_previous_year' => $validated['other_category_previous_year'] ?? null,
+                'other_category_current_year' => $validated['other_category_current_year'] ?? null
             ]
         );
 

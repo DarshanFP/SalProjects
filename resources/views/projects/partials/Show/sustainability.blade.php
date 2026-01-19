@@ -3,7 +3,7 @@
     <div class="card-header">
         <h4 class="mb-0">Project Sustainability, Monitoring, and Methodologies</h4>
     </div>
-    <div class="card-body">
+    <div class="card-body sustainability-section">
         @forelse($project->sustainabilities as $sustainability)
             <div class="info-grid">
                 <!-- Resilience Section -->
@@ -27,3 +27,26 @@
         @endforelse
     </div>
 </div>
+
+<style>
+/* Sustainability section grid layout - 20% label, 80% value */
+.sustainability-section .info-grid {
+    display: grid;
+    grid-template-columns: 20% 80%;
+    grid-gap: 20px;
+    align-items: start;
+}
+
+.sustainability-section .info-label {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+/* Preserve line breaks in Sustainability display */
+.sustainability-section .info-value {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    line-height: 1.6 !important;
+}
+</style>

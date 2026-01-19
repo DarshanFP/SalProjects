@@ -33,6 +33,14 @@
     <link rel="stylesheet" href="{{ asset('backend/assets/css/demo2/style.css') }}">
     <!-- End layout styles -->
 
+    <!-- Custom form styles for dark theme -->
+    <link rel="stylesheet" href="{{ asset('css/custom/project-forms.css') }}">
+    <!-- TextArea auto-resize styles -->
+    <link rel="stylesheet" href="{{ asset('css/custom/textarea-auto-resize.css') }}">
+    <!-- Common table styles -->
+    <link rel="stylesheet" href="{{ asset('css/custom/common-tables.css') }}">
+    <!-- End custom form styles -->
+
     <link rel="shortcut icon" href="{{ asset('backend/assets/images/favicon.png') }}" />
 </head>
 <body>
@@ -69,6 +77,8 @@
 
     <!-- Custom js for this page -->
     <script src="{{ asset('backend/assets/js/dashboard-dark.js') }}"></script>
+    <!-- TextArea auto-resize functionality -->
+    <script src="{{ asset('js/textarea-auto-resize.js') }}"></script>
     <!-- End custom js for this page -->
 
 </body>

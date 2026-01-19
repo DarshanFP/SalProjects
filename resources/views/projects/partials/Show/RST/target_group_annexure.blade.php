@@ -8,6 +8,7 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
+                        <th style="width: 5%;">S.No.</th>
                         <th>Name</th>
                         <th>Religion</th>
                         <th>Caste</th>
@@ -18,8 +19,9 @@
                 </thead>
                 <tbody>
                     @if($RSTTargetGroupAnnexure && $RSTTargetGroupAnnexure->isNotEmpty())
-                        @foreach($RSTTargetGroupAnnexure as $annexure)
+                        @foreach($RSTTargetGroupAnnexure as $index => $annexure)
                             <tr>
+                                <td style="text-align: center; vertical-align: middle;">{{ $index + 1 }}</td>
                                 <td>{{ $annexure->rst_name ?? 'N/A' }}</td>
                                 <td>{{ $annexure->rst_religion ?? 'N/A' }}</td>
                                 <td>{{ $annexure->rst_caste ?? 'N/A' }}</td>
@@ -30,7 +32,7 @@
                         @endforeach
                     @else
                         <tr>
-                            <td colspan="6" class="text-center">No data available for Target Group Annexure.</td>
+                            <td colspan="7" class="text-center">No data available for Target Group Annexure.</td>
                         </tr>
                     @endif
                 </tbody>

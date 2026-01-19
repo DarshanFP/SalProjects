@@ -3,21 +3,26 @@
 namespace App\Http\Controllers\Projects\IAH;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IAH\ProjectIAHEarningMembers;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IAH\StoreIAHEarningMembersRequest;
+use App\Http\Requests\Projects\IAH\UpdateIAHEarningMembersRequest;
 
 class IAHEarningMembersController extends Controller
 {
     /**
      * Store earning members (multi-row). Overwrites existing data.
      */
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including earning_members[] arrays
+        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('IAHEarningMembersController@store - Start', [
-            'project_id'   => $projectId,
-            'request_data' => $request->all(),
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
@@ -29,9 +34,9 @@ class IAHEarningMembersController extends Controller
             ]);
 
             // 2️⃣ Insert new data
-            $memberNames      = $request->input('member_name', []);
-            $workTypes        = $request->input('work_type', []);
-            $monthlyIncomes   = $request->input('monthly_income', []);
+            $memberNames      = $validated['member_name'] ?? [];
+            $workTypes        = $validated['work_type'] ?? [];
+            $monthlyIncomes   = $validated['monthly_income'] ?? [];
             $rowCount         = count($memberNames);
 
             Log::info('IAHEarningMembersController@store - Inserting new rows', [
@@ -68,11 +73,14 @@ class IAHEarningMembersController extends Controller
     /**
      * Update earning members (overwrites old data).
      */
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including earning_members[] arrays
+        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('IAHEarningMembersController@update - Start', [
-            'project_id'   => $projectId,
-            'request_data' => $request->all()
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
@@ -82,9 +90,9 @@ class IAHEarningMembersController extends Controller
             ProjectIAHEarningMembers::where('project_id', $projectId)->delete();
 
             // 2️⃣ Insert new data
-            $memberNames    = $request->input('member_name', []);
-            $workTypes      = $request->input('work_type', []);
-            $monthlyIncomes = $request->input('monthly_income', []);
+            $memberNames    = $validated['member_name'] ?? [];
+            $workTypes      = $validated['work_type'] ?? [];
+            $monthlyIncomes = $validated['monthly_income'] ?? [];
             $rowCount       = count($memberNames);
 
             Log::info('IAHEarningMembersController@update - Inserting new rows', [

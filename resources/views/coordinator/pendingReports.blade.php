@@ -1,6 +1,9 @@
 @extends('coordinator.dashboard')
 
 @section('content')
+@php
+    use App\Constants\ProjectStatus;
+@endphp
 <div class="page-content">
     <div class="row justify-content-center">
         <div class="col-md-12 col-xl-12">
@@ -78,10 +81,10 @@
                                         <td>{{ $report->user->name }}</td>
                                         <td>{{ $report->user->province }}</td>
                                         <td>{{ $report->project_title }}</td>
-                                        <td>{{ number_format($totalAmount, 2) }}</td>
-                                        <td>{{ number_format($totalExpenses, 2) }}</td>
-                                        <td>{{ number_format($expensesThisMonth, 2) }}</td>
-                                        <td>{{ number_format($balanceAmount, 2) }}</td>
+                                        <td>{{ format_indian($totalAmount, 2) }}</td>
+                                        <td>{{ format_indian($totalExpenses, 2) }}</td>
+                                        <td>{{ format_indian($expensesThisMonth, 2) }}</td>
+                                        <td>{{ format_indian($balanceAmount, 2) }}</td>
                                         <td>{{ $report->project_type }}</td>
                                         <td>
                                             <span class="badge {{ $statusBadgeClass }}">{{ $statusLabel }}</span>
@@ -89,7 +92,7 @@
                                         <td>
                                             <a href="{{ route('coordinator.monthly.report.show', $report->report_id) }}" class="btn btn-primary btn-sm">View</a>
 
-                                            @if($report->status === 'forwarded_to_coordinator')
+                                            @if($report->status === ProjectStatus::FORWARDED_TO_COORDINATOR)
                                                 <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#approveModal{{ $report->report_id }}">
                                                     Approve
                                                 </button>
@@ -101,7 +104,7 @@
                                     </tr>
 
                                     <!-- Approve Modal -->
-                                    @if($report->status === 'forwarded_to_coordinator')
+                                    @if($report->status === ProjectStatus::FORWARDED_TO_COORDINATOR)
                                     <div class="modal fade" id="approveModal{{ $report->report_id }}" tabindex="-1" aria-labelledby="approveModalLabel{{ $report->report_id }}" aria-hidden="true">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
@@ -142,7 +145,7 @@
                                                         <p><strong>Executor:</strong> {{ $report->user->name }}</p>
                                                         <div class="mb-3">
                                                             <label for="revert_reason{{ $report->report_id }}" class="form-label">Reason for Revert *</label>
-                                                            <textarea class="form-control" id="revert_reason{{ $report->report_id }}" name="revert_reason" rows="3" required></textarea>
+                                                            <textarea class="form-control auto-resize-textarea" id="revert_reason{{ $report->report_id }}" name="revert_reason" rows="3" required></textarea>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer">

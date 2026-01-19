@@ -16,10 +16,10 @@
                 </thead>
                 <tbody id="RST-geographical-area-rows">
                     <tr>
-                        <td><input type="text" name="mandal[]" class="form-control" style="background-color: #202ba3;"></td>
-                        <td><input type="text" name="village[]" class="form-control" style="background-color: #202ba3;"></td>
-                        <td><input type="text" name="town[]" class="form-control" style="background-color: #202ba3;"></td>
-                        <td><input type="number" name="no_of_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
+                        <td><input type="text" name="mandal[]" class="form-control"></td>
+                        <td><input type="text" name="village[]" class="form-control"></td>
+                        <td><input type="text" name="town[]" class="form-control"></td>
+                        <td><input type="number" name="no_of_beneficiaries[]" class="form-control"></td>
                         <td><button type="button" class="btn btn-danger" onclick="removeRSTGeographicalAreaRow(this)">Remove</button></td>
                     </tr>
                 </tbody>
@@ -36,10 +36,10 @@
         RSTGeoAreaRowIndex++;
         const newRow = `
             <tr>
-                <td><input type="text" name="mandal[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="text" name="village[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="text" name="town[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="no_of_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="mandal[]" class="form-control"></td>
+                <td><input type="text" name="village[]" class="form-control"></td>
+                <td><input type="text" name="town[]" class="form-control"></td>
+                <td><input type="number" name="no_of_beneficiaries[]" class="form-control"></td>
                 <td><button type="button" class="btn btn-danger" onclick="removeRSTGeographicalAreaRow(this)">Remove</button></td>
             </tr>
         `;

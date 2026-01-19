@@ -4,28 +4,32 @@ namespace App\Http\Controllers\Projects\CCI;
 
 use App\Http\Controllers\Controller;
 use App\Models\OldProjects\CCI\ProjectCCIAgeProfile;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\CCI\StoreCCIAgeProfileRequest;
+use App\Http\Requests\Projects\CCI\UpdateCCIAgeProfileRequest;
 
 class AgeProfileController extends Controller
 {
     // Store Age Profile (for new entries)
     // App\Http\Controllers\Projects\CCI\AgeProfileController.php
 
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including age_profile[] arrays
+        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing CCI Age Profile', ['project_id' => $projectId]);
-            Log::info('Request data:', $request->all());
 
             // Create new instance of ProjectCCIAgeProfile
             $ageProfile = new ProjectCCIAgeProfile();
             $ageProfile->project_id = $projectId;
-            $ageProfile->fill($request->except('_token'));
+            $ageProfile->fill($validated);
 
-            Log::info('AgeProfile data before save:', $ageProfile->toArray());
 
             $ageProfile->save();
 
@@ -40,20 +44,21 @@ class AgeProfileController extends Controller
     }
 
         // Update or create Age Profile entry
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including age_profile[] arrays
+        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Updating or Creating CCI Age Profile', ['project_id' => $projectId]);
-            Log::info('Request data:', $request->all());
 
             // Use updateOrCreate to either update or create a new entry
             $ageProfile = ProjectCCIAgeProfile::updateOrCreate(
                 ['project_id' => $projectId], // Condition to check if record exists
-                $request->except('_token') // Fill with the request data
+                $validated // Fill with validated data
             );
-
-            Log::info('AgeProfile data after save:', $ageProfile->toArray());
 
             DB::commit();
             Log::info('CCI Age Profile updated or created successfully', ['project_id' => $projectId]);

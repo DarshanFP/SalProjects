@@ -17,16 +17,16 @@
             <div id="strengths-container">
                 @if(is_array($strengths) && count($strengths) > 0)
                     @foreach($strengths as $index => $strength)
-                        <div class="mt-2 form-control">{{ $strength }}</div>
+                        <div class="mb-2">
+                            <strong>Strength {{ $index + 1 }}:</strong>
+                            <div class="mt-1 form-control" style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.6;">{{ $strength }}</div>
+                        </div>
                     @endforeach
                 @else
                     <div class="mt-2 form-control">No strengths provided.</div>
                 @endif
             </div>
         </div>
-        <!-- Add/Remove Strengths Buttons -->
-        <button type="button" id="add-strength" class="btn btn-primary">Add Strength</button>
-        <button type="button" id="remove-strength" class="btn btn-danger">Remove Strength</button>
 
         <!-- Weaknesses Section -->
         <div class="mt-4 mb-3">
@@ -34,59 +34,16 @@
             <div id="weaknesses-container">
                 @if(is_array($weaknesses) && count($weaknesses) > 0)
                     @foreach($weaknesses as $index => $weakness)
-                        <div class="mt-2 form-control">{{ $weakness }}</div>
+                        <div class="mb-2">
+                            <strong>Weakness {{ $index + 1 }}:</strong>
+                            <div class="mt-1 form-control" style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.6;">{{ $weakness }}</div>
+                        </div>
                     @endforeach
                 @else
                     <div class="mt-2 form-control">No weaknesses provided.</div>
                 @endif
             </div>
         </div>
-        <!-- Add/Remove Weaknesses Buttons -->
-        <button type="button" id="add-weakness" class="btn btn-primary">Add Weakness</button>
-        <button type="button" id="remove-weakness" class="btn btn-danger">Remove Weakness</button>
 
     </div>
 </div>
-
-<script>
-    (function(){
-    document.addEventListener('DOMContentLoaded', function () {
-        let strengthIndex = {{ is_array($strengths) ? count($strengths) : 1 }};
-        let weaknessIndex = {{ is_array($weaknesses) ? count($weaknesses) : 1 }};
-
-        // Strengths Add/Remove functionality
-        const strengthsContainer = document.getElementById('strengths-container');
-        document.getElementById('add-strength').addEventListener('click', function () {
-            const strengthTextarea = document.createElement('textarea');
-            strengthTextarea.name = `strengths[${strengthIndex}]`;
-            strengthTextarea.className = 'form-control mt-2';
-            strengthTextarea.rows = 3;
-            strengthTextarea.placeholder = 'Enter strengths';
-            strengthsContainer.appendChild(strengthTextarea);
-            strengthIndex++;
-        });
-        document.getElementById('remove-strength').addEventListener('click', function () {
-            if (strengthsContainer.children.length > 1) {
-                strengthsContainer.removeChild(strengthsContainer.lastElementChild);
-            }
-        });
-
-        // Weaknesses Add/Remove functionality
-        const weaknessesContainer = document.getElementById('weaknesses-container');
-        document.getElementById('add-weakness').addEventListener('click', function () {
-            const weaknessTextarea = document.createElement('textarea');
-            weaknessTextarea.name = `weaknesses[${weaknessIndex}]`;
-            weaknessTextarea.className = 'form-control mt-2';
-            weaknessTextarea.rows = 3;
-            weaknessTextarea.placeholder = 'Enter weaknesses';
-            weaknessesContainer.appendChild(weaknessTextarea);
-            weaknessIndex++;
-        });
-        document.getElementById('remove-weakness').addEventListener('click', function () {
-            if (weaknessesContainer.children.length > 1) {
-                weaknessesContainer.removeChild(weaknessesContainer.lastElementChild);
-            }
-        });
-    });
-})();
-</script>

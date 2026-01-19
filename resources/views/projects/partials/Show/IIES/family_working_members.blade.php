@@ -27,7 +27,7 @@
                                 <td>{{ $index + 1 }}</td>
                                 <td>{{ $member->iies_member_name }}</td>
                                 <td>{{ $member->iies_work_nature }}</td>
-                                <td>₹{{ number_format($member->iies_monthly_income, 2) }}</td>
+                                <td>{{ format_indian_currency($member->iies_monthly_income, 2) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

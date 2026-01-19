@@ -22,22 +22,22 @@
                         @foreach($newBeneficiaries as $index => $beneficiary)
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td><input type="text" name="beneficiary_name[]" class="form-control" value="{{ old('beneficiary_name.' . $index, $beneficiary->beneficiary_name) }}" style="background-color: #202ba3;"></td>
-                            <td><input type="text" name="caste[]" class="form-control" value="{{ old('caste.' . $index, $beneficiary->caste) }}" style="background-color: #202ba3;"></td>
-                            <td><textarea name="address[]" class="form-control" rows="2" style="background-color: #202ba3;">{{ old('address.' . $index, $beneficiary->address) }}</textarea></td>
-                            <td><input type="text" name="group_year_of_study[]" class="form-control" value="{{ old('group_year_of_study.' . $index, $beneficiary->group_year_of_study) }}" style="background-color: #202ba3;"></td> <!-- Updated -->
-                            <td><textarea name="family_background_need[]" class="form-control" rows="2" style="background-color: #202ba3;">{{ old('family_background_need.' . $index, $beneficiary->family_background_need) }}</textarea></td> <!-- Added missing field -->
+                            <td><input type="text" name="beneficiary_name[]" class="form-control" value="{{ old('beneficiary_name.' . $index, $beneficiary->beneficiary_name) }}"></td>
+                            <td><input type="text" name="caste[]" class="form-control" value="{{ old('caste.' . $index, $beneficiary->caste) }}"></td>
+                            <td><textarea name="address[]" class="form-control sustainability-textarea" rows="2">{{ old('address.' . $index, $beneficiary->address) }}</textarea></td>
+                            <td><input type="text" name="group_year_of_study[]" class="form-control" value="{{ old('group_year_of_study.' . $index, $beneficiary->group_year_of_study) }}"></td> <!-- Updated -->
+                            <td><textarea name="family_background_need[]" class="form-control sustainability-textarea" rows="2">{{ old('family_background_need.' . $index, $beneficiary->family_background_need) }}</textarea></td> <!-- Added missing field -->
                             <td><button type="button" class="btn btn-danger" onclick="removeNewBeneficiaryRow(this)">Remove</button></td>
                         </tr>
                         @endforeach
                     @else
                         <tr>
                             <td>1</td>
-                            <td><input type="text" name="beneficiary_name[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="text" name="caste[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><textarea name="address[]" class="form-control" rows="2" style="background-color: #202ba3;"></textarea></td>
-                            <td><input type="text" name="group_year_of_study[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><textarea name="family_background_need[]" class="form-control" rows="2" style="background-color: #202ba3;"></textarea></td> <!-- Added -->
+                            <td><input type="text" name="beneficiary_name[]" class="form-control"></td>
+                            <td><input type="text" name="caste[]" class="form-control"></td>
+                            <td><textarea name="address[]" class="form-control sustainability-textarea" rows="2"></textarea></td>
+                            <td><input type="text" name="group_year_of_study[]" class="form-control"></td>
+                            <td><textarea name="family_background_need[]" class="form-control sustainability-textarea" rows="2"></textarea></td> <!-- Added -->
                             <td><button type="button" class="btn btn-danger" onclick="removeNewBeneficiaryRow(this)">Remove</button></td>
                         </tr>
                     @endif
@@ -57,15 +57,24 @@
         const newRow = `
             <tr>
                 <td>${newBeneficiaryRowIndex}</td>
-                <td><input type="text" name="beneficiary_name[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="text" name="caste[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><textarea name="address[]" class="form-control" rows="2" style="background-color: #202ba3;"></textarea></td>
-                <td><input type="text" name="group_year_of_study[]" class="form-control" style="background-color: #202ba3;"></td> <!-- Updated -->
-                <td><textarea name="family_background_need[]" class="form-control" rows="2" style="background-color: #202ba3;"></textarea></td> <!-- Added -->
+                <td><input type="text" name="beneficiary_name[]" class="form-control"></td>
+                <td><input type="text" name="caste[]" class="form-control"></td>
+                <td><textarea name="address[]" class="form-control sustainability-textarea" rows="2"></textarea></td>
+                <td><input type="text" name="group_year_of_study[]" class="form-control"></td> <!-- Updated -->
+                <td><textarea name="family_background_need[]" class="form-control sustainability-textarea" rows="2"></textarea></td> <!-- Added -->
                 <td><button type="button" class="btn btn-danger" onclick="removeNewBeneficiaryRow(this)">Remove</button></td>
             </tr>
         `;
         document.getElementById('new-beneficiaries-rows').insertAdjacentHTML('beforeend', newRow);
+
+        // Initialize auto-resize for newly added textareas using global function
+        const newRowElement = document.getElementById('new-beneficiaries-rows').lastElementChild;
+        const newTextareas = newRowElement.querySelectorAll('.sustainability-textarea');
+        if (newTextareas.length > 0 && typeof window.initTextareaAutoResize === 'function') {
+            newTextareas.forEach(textarea => {
+                window.initTextareaAutoResize(textarea);
+            });
+        }
     }
 
     function removeNewBeneficiaryRow(button) {
@@ -81,4 +90,14 @@
         });
         newBeneficiaryRowIndex = rows.length;
     }
+
+    // Initialize auto-resize for newly added textareas using global function
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize existing textareas (global script handles this, but ensure dynamic ones work)
+        document.querySelectorAll('#new-beneficiaries-rows .sustainability-textarea').forEach(textarea => {
+            if (typeof window.initTextareaAutoResize === 'function') {
+                window.initTextareaAutoResize(textarea);
+            }
+        });
+    });
 </script>

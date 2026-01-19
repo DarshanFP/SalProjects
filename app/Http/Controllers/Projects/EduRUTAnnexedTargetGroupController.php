@@ -7,22 +7,30 @@ use Illuminate\Http\Request;
 use App\Models\OldProjects\ProjectEduRUTAnnexedTargetGroup;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Foundation\Http\FormRequest;
 
 class EduRUTAnnexedTargetGroupController extends Controller
 {
     // Store annexed target group information
-    public function store(Request $request)
+    public function store(FormRequest $request)
     {
+        // Validation already done by FormRequest
+        // Use all() to get all form data including annexed target group arrays
+        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
-            Log::info('Storing annexed target group data', ['project_id' => $request->project_id]);
+            Log::info('Storing annexed target group data', ['project_id' => $validated['project_id']]);
 
-            foreach ($request->annexed_target_group as $group) {
+            $annexedTargetGroups = $validated['annexed_target_group'] ?? [];
+            
+            foreach ($annexedTargetGroups as $group) {
                 ProjectEduRUTAnnexedTargetGroup::create([
-                    'project_id' => $request->project_id,
-                    'beneficiary_name' => $group['beneficiary_name'],
-                    'family_background' => $group['family_background'],
-                    'need_of_support' => $group['need_of_support'],
+                    'project_id' => $validated['project_id'],
+                    'beneficiary_name' => $group['beneficiary_name'] ?? null,
+                    'family_background' => $group['family_background'] ?? null,
+                    'need_of_support' => $group['need_of_support'] ?? null,
                 ]);
             }
 
@@ -76,20 +84,27 @@ class EduRUTAnnexedTargetGroupController extends Controller
 
 
     // Update annexed target group data for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Validation and authorization already done by FormRequest
+        // Use all() to get all form data including annexed target group arrays
+        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Updating annexed target group data', ['project_id' => $projectId]);
 
             ProjectEduRUTAnnexedTargetGroup::where('project_id', $projectId)->delete(); // Delete old data first
 
-            foreach ($request->annexed_target_group as $group) {
+            $annexedTargetGroups = $validated['annexed_target_group'] ?? [];
+            
+            foreach ($annexedTargetGroups as $group) {
                 ProjectEduRUTAnnexedTargetGroup::create([
                     'project_id' => $projectId,
-                    'beneficiary_name' => $group['beneficiary_name'],
-                    'family_background' => $group['family_background'],
-                    'need_of_support' => $group['need_of_support'],
+                    'beneficiary_name' => $group['beneficiary_name'] ?? null,
+                    'family_background' => $group['family_background'] ?? null,
+                    'need_of_support' => $group['need_of_support'] ?? null,
                 ]);
             }
 

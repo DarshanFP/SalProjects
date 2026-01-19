@@ -10,14 +10,16 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
+                        <th style="width: 5%;">No.</th>
                         <th>Particular</th>
                         <th>Amount</th>
                     </tr>
                 </thead>
                 <tbody id="IES-expenses-table">
                     @if(isset($IESExpenses) && $IESExpenses->expenseDetails->count() > 0)
-                        @foreach($IESExpenses->expenseDetails as $detail)
+                        @foreach($IESExpenses->expenseDetails as $index => $detail)
                             <tr>
+                                <td style="text-align: center; vertical-align: middle;">{{ $index + 1 }}</td>
                                 <td>
                                     <input type="text" value="{{ $detail->particular }}"
                                            class="form-control" readonly/>
@@ -102,7 +104,7 @@
 <!-- Styles -->
 <style>
     .form-control {
-        background-color: #202ba3;
+        
         color: white;
     }
 </style>

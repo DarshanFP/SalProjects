@@ -3,16 +3,21 @@
 namespace App\Http\Controllers\Projects\ILP;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\ILP\ProjectILPBudget;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\ILP\StoreILPBudgetRequest;
+use App\Http\Requests\Projects\ILP\UpdateILPBudgetRequest;
 
 class BudgetController extends Controller
 {
     // Store or update budget
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing ILP Budget', ['project_id' => $projectId]);
@@ -20,13 +25,16 @@ class BudgetController extends Controller
             // Delete existing budget rows and insert updated data
             ProjectILPBudget::where('project_id', $projectId)->delete();
 
-            foreach ($request->budget_desc as $index => $description) {
+            $budgetDescs = $validated['budget_desc'] ?? [];
+            $costs = $validated['cost'] ?? [];
+            
+            foreach ($budgetDescs as $index => $description) {
                 ProjectILPBudget::create([
                     'project_id' => $projectId,
                     'budget_desc' => $description,
-                    'cost' => $request->cost[$index],
-                    'beneficiary_contribution' => $request->beneficiary_contribution,
-                    'amount_requested' => $request->amount_requested,
+                    'cost' => $costs[$index] ?? null,
+                    'beneficiary_contribution' => $validated['beneficiary_contribution'] ?? null,
+                    'amount_requested' => $validated['amount_requested'] ?? null,
                 ]);
             }
 
@@ -102,8 +110,11 @@ class BudgetController extends Controller
             return null;
         }
     }
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Updating ILP Budget', ['project_id' => $projectId]);
@@ -111,14 +122,17 @@ class BudgetController extends Controller
             // Delete existing budget records for the project
             ProjectILPBudget::where('project_id', $projectId)->delete();
 
-            // Insert new budget data from request
-            foreach ($request->budget_desc as $index => $description) {
+            // Insert new budget data from validated data
+            $budgetDescs = $validated['budget_desc'] ?? [];
+            $costs = $validated['cost'] ?? [];
+            
+            foreach ($budgetDescs as $index => $description) {
                 ProjectILPBudget::create([
                     'project_id' => $projectId,
                     'budget_desc' => $description,
-                    'cost' => $request->cost[$index] ?? 0,
-                    'beneficiary_contribution' => $request->beneficiary_contribution ?? 0,
-                    'amount_requested' => $request->amount_requested ?? 0,
+                    'cost' => $costs[$index] ?? null,
+                    'beneficiary_contribution' => $validated['beneficiary_contribution'] ?? null,
+                    'amount_requested' => $validated['amount_requested'] ?? null,
                 ]);
             }
 

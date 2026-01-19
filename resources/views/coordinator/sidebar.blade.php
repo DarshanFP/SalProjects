@@ -20,6 +20,12 @@
                     <span class="link-title">Dashboard - Coordinator</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('activities.all-activities') }}" class="nav-link">
+                    <i class="link-icon" data-feather="activity"></i>
+                    <span class="link-title">All Activities</span>
+                </a>
+            </li>
 
             <!-- Web Apps Section -->
             <li class="nav-item nav-category">web apps</li>
@@ -94,12 +100,33 @@
             </li>
 
             <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#quarterlyReportsView" role="button" aria-expanded="false" aria-controls="quarterlyReportsView">
+                    <i class="link-icon" data-feather="file-text"></i>
+                    <span class="link-title">Quarterly Reports</span>
+                    <i class="link-arrow" data-feather="chevron-down"></i>
+                </a>
+                <div class="collapse" id="quarterlyReportsView">
+                    <ul class="nav sub-menu">
+                        <li class="nav-item">
+                            <a href="{{ route('aggregated.quarterly.index') }}" class="nav-link">View Quarterly Reports</a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="nav-item">
                 <a class="nav-link" data-bs-toggle="collapse" href="#biannualReports" role="button" aria-expanded="false" aria-controls="biannualReports">
                     <i class="link-icon" data-feather="anchor"></i>
                     <span class="link-title">Biannual Reports</span>
                     <i class="link-arrow" data-feather="chevron-down"></i>
                 </a>
-                <!-- Additional items can be added here if needed -->
+                <div class="collapse" id="biannualReports">
+                    <ul class="nav sub-menu">
+                        <li class="nav-item">
+                            <a href="{{ route('aggregated.half-yearly.index') }}" class="nav-link">View Half-Yearly Reports</a>
+                        </li>
+                    </ul>
+                </div>
             </li>
 
             <li class="nav-item">
@@ -108,7 +135,13 @@
                     <span class="link-title">Annual Reports</span>
                     <i class="link-arrow" data-feather="chevron-down"></i>
                 </a>
-                <!-- Additional items can be added here if needed -->
+                <div class="collapse" id="annualReports">
+                    <ul class="nav sub-menu">
+                        <li class="nav-item">
+                            <a href="{{ route('aggregated.annual.index') }}" class="nav-link">View Annual Reports</a>
+                        </li>
+                    </ul>
+                </div>
             </li>
 
             <!-- Project Application Section -->

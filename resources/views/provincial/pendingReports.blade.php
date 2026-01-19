@@ -2,6 +2,9 @@
 @extends('provincial.dashboard')
 
 @section('content')
+@php
+    use App\Constants\ProjectStatus;
+@endphp
 <div class="page-content">
     <div class="row justify-content-center">
         <div class="col-md-12 col-xl-12">
@@ -60,7 +63,7 @@
                                 <div class="text-white card bg-primary">
                                     <div class="card-body">
                                         <h5 class="card-title">Total Budget</h5>
-                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_budget'], 2) }}</h3>
+                                        <h3 class="card-text">{{ format_indian_currency($budgetSummaries['total']['total_budget'], 2) }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -68,7 +71,7 @@
                                 <div class="text-white card bg-success">
                                     <div class="card-body">
                                         <h5 class="card-title">Total Expenses</h5>
-                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_expenses'], 2) }}</h3>
+                                        <h3 class="card-text">{{ format_indian_currency($budgetSummaries['total']['total_expenses'], 2) }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -76,7 +79,7 @@
                                 <div class="text-white card bg-info">
                                     <div class="card-body">
                                         <h5 class="card-title">Total Remaining</h5>
-                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_remaining'], 2) }}</h3>
+                                        <h3 class="card-text">{{ format_indian_currency($budgetSummaries['total']['total_remaining'], 2) }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -119,10 +122,10 @@
                                         <td>{{ $report->user->name }}</td>
                                         <td>{{ $report->place }}</td>
                                         <td>{{ $report->project_title }}</td>
-                                        <td>{{ number_format($totalAmount, 2) }}</td>
-                                        <td>{{ number_format($totalExpenses, 2) }}</td>
-                                        <td>{{ number_format($expensesThisMonth, 2) }}</td>
-                                        <td>{{ number_format($balanceAmount, 2) }}</td>
+                                        <td>{{ format_indian($totalAmount, 2) }}</td>
+                                        <td>{{ format_indian($totalExpenses, 2) }}</td>
+                                        <td>{{ format_indian($expensesThisMonth, 2) }}</td>
+                                        <td>{{ format_indian($balanceAmount, 2) }}</td>
                                         <td>{{ $report->project_type }}</td>
                                         <td>
                                             <span class="badge {{ $statusBadgeClass }}">{{ $statusLabel }}</span>
@@ -130,7 +133,7 @@
                                         <td>
                                             <a href="{{ route('provincial.monthly.report.show', $report->report_id) }}" class="btn btn-primary btn-sm">View</a>
 
-                                            @if($report->status === 'submitted_to_provincial')
+                                            @if($report->status === ProjectStatus::SUBMITTED_TO_PROVINCIAL)
                                                 <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#forwardModal{{ $report->report_id }}">
                                                     Forward to Coordinator
                                                 </button>
@@ -139,7 +142,7 @@
                                                 </button>
                                             @endif
 
-                                            @if($report->status === 'reverted_by_coordinator' && $report->revert_reason)
+                                            @if($report->status === ProjectStatus::REVERTED_BY_COORDINATOR && $report->revert_reason)
                                                 <button type="button" class="btn btn-info btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Revert Reason: {{ $report->revert_reason }}">
                                                     View Reason
                                                 </button>
@@ -148,7 +151,7 @@
                                     </tr>
 
                                     <!-- Forward Modal -->
-                                    @if($report->status === 'submitted_to_provincial')
+                                    @if($report->status === ProjectStatus::SUBMITTED_TO_PROVINCIAL)
                                     <div class="modal fade" id="forwardModal{{ $report->report_id }}" tabindex="-1" aria-labelledby="forwardModalLabel{{ $report->report_id }}" aria-hidden="true">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
@@ -187,7 +190,7 @@
                                                         <p><strong>Project:</strong> {{ $report->project_title }}</p>
                                                         <div class="mb-3">
                                                             <label for="revert_reason{{ $report->report_id }}" class="form-label">Reason for Revert *</label>
-                                                            <textarea class="form-control" id="revert_reason{{ $report->report_id }}" name="revert_reason" rows="3" required></textarea>
+                                                            <textarea class="form-control auto-resize-textarea" id="revert_reason{{ $report->report_id }}" name="revert_reason" rows="3" required></textarea>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer">

@@ -3,17 +3,23 @@
 namespace App\Http\Controllers\Projects\IES;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IES\ProjectIESExpenses;
 use App\Models\OldProjects\IES\ProjectIESExpenseDetail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IES\StoreIESExpensesRequest;
+use App\Http\Requests\Projects\IES\UpdateIESExpensesRequest;
 
 class IESExpensesController extends Controller
 {
     // Store or update expenses for a project
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including particulars[], amounts[] arrays
+        // These fields are not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing IES estimated expenses', ['project_id' => $projectId]);
@@ -28,16 +34,16 @@ class IESExpensesController extends Controller
             // Create new ProjectIESExpenses
             $projectExpenses = new ProjectIESExpenses();
             $projectExpenses->project_id = $projectId;
-            $projectExpenses->total_expenses = $request->input('total_expenses');
-            $projectExpenses->expected_scholarship_govt = $request->input('expected_scholarship_govt');
-            $projectExpenses->support_other_sources = $request->input('support_other_sources');
-            $projectExpenses->beneficiary_contribution = $request->input('beneficiary_contribution');
-            $projectExpenses->balance_requested = $request->input('balance_requested');
+            $projectExpenses->total_expenses = $validated['total_expenses'] ?? null;
+            $projectExpenses->expected_scholarship_govt = $validated['expected_scholarship_govt'] ?? null;
+            $projectExpenses->support_other_sources = $validated['support_other_sources'] ?? null;
+            $projectExpenses->beneficiary_contribution = $validated['beneficiary_contribution'] ?? null;
+            $projectExpenses->balance_requested = $validated['balance_requested'] ?? null;
             $projectExpenses->save();
 
             // Store each particular and amount as a detail
-            $particulars = $request->input('particulars', []);
-            $amounts = $request->input('amounts', []);
+            $particulars = $validated['particulars'] ?? [];
+            $amounts = $validated['amounts'] ?? [];
 
             for ($i = 0; $i < count($particulars); $i++) {
                 if (!empty($particulars[$i]) && !empty($amounts[$i])) {
@@ -98,9 +104,10 @@ class IESExpensesController extends Controller
     }
 
     // Update estimated expenses for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
-        return $this->store($request, $projectId); // Reuse the store logic for update
+        // Reuse store logic
+        return $this->store($request, $projectId);
     }
 
     // Delete estimated expenses for a project

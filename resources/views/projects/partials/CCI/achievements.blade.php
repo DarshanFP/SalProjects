@@ -19,7 +19,7 @@
                     <tbody id="academic-achievements-rows">
                         <tr>
                             <td>1</td>
-                            <td><input type="text" name="academic_achievements[0]" class="form-control" style="background-color: #202ba3;"></td>
+                            <td><input type="text" name="academic_achievements[0]" class="form-control"></td>
                             <td><button type="button" class="btn btn-danger" onclick="removeAchievementRow(this, 'academic')">Remove</button></td>
                         </tr>
                     </tbody>
@@ -43,7 +43,7 @@
                     <tbody id="sport-achievements-rows">
                         <tr>
                             <td>1</td>
-                            <td><input type="text" name="sport_achievements[0]" class="form-control" style="background-color: #202ba3;"></td>
+                            <td><input type="text" name="sport_achievements[0]" class="form-control"></td>
                             <td><button type="button" class="btn btn-danger" onclick="removeAchievementRow(this, 'sport')">Remove</button></td>
                         </tr>
                     </tbody>
@@ -67,7 +67,7 @@
                     <tbody id="other-achievements-rows">
                         <tr>
                             <td>1</td>
-                            <td><input type="text" name="other_achievements[0]" class="form-control" style="background-color: #202ba3;"></td>
+                            <td><input type="text" name="other_achievements[0]" class="form-control"></td>
                             <td><button type="button" class="btn btn-danger" onclick="removeAchievementRow(this, 'other')">Remove</button></td>
                         </tr>
                     </tbody>
@@ -87,7 +87,7 @@
             const newRow = `
                 <tr>
                     <td>${rowCount + 1}</td>
-                    <td><input type="text" name="${type}_achievements[${rowCount}]" class="form-control" style="background-color: #202ba3;"></td>
+                    <td><input type="text" name="${type}_achievements[${rowCount}]" class="form-control"></td>
                     <td><button type="button" class="btn btn-danger" onclick="removeAchievementRow(this, '${type}')">Remove</button></td>
                 </tr>
             `;

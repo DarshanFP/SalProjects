@@ -18,8 +18,8 @@
                         <tr>
                             <td>{{ $index + 1 }}</td>
                             <td><input type="text" name="annexed_target_group[{{ $index }}][beneficiary_name]" value="{{ $group->beneficiary_name }}" class="form-control"></td>
-                            <td><textarea name="annexed_target_group[{{ $index }}][family_background]" class="form-control" rows="2">{{ $group->family_background }}</textarea></td>
-                            <td><textarea name="annexed_target_group[{{ $index }}][need_of_support]" class="form-control" rows="2">{{ $group->need_of_support }}</textarea></td>
+                            <td><textarea name="annexed_target_group[{{ $index }}][family_background]" class="form-control sustainability-textarea" rows="2">{{ $group->family_background }}</textarea></td>
+                            <td><textarea name="annexed_target_group[{{ $index }}][need_of_support]" class="form-control sustainability-textarea" rows="2">{{ $group->need_of_support }}</textarea></td>
                         </tr>
                     @endforeach
                 @else
@@ -45,11 +45,20 @@ document.getElementById('addAnnexedTargetGroupRow').addEventListener('click', fu
             <tr>
                 <td>${rowCount + 1}</td>
                 <td><input type="text" name="annexed_target_group[${rowCount}][beneficiary_name]" class="form-control"></td>
-                <td><textarea name="annexed_target_group[${rowCount}][family_background]" class="form-control" rows="2"></textarea></td>
-                <td><textarea name="annexed_target_group[${rowCount}][need_of_support]" class="form-control" rows="2"></textarea></td>
+                <td><textarea name="annexed_target_group[${rowCount}][family_background]" class="form-control sustainability-textarea" rows="2"></textarea></td>
+                <td><textarea name="annexed_target_group[${rowCount}][need_of_support]" class="form-control sustainability-textarea" rows="2"></textarea></td>
             </tr>`;
 
         table.insertAdjacentHTML('beforeend', row);
+
+        // Initialize auto-resize for newly added textareas using global function
+        const newRowElement = table.lastElementChild;
+        const newTextareas = newRowElement.querySelectorAll('.sustainability-textarea');
+        if (newTextareas.length > 0 && typeof window.initTextareaAutoResize === 'function') {
+            newTextareas.forEach(textarea => {
+                window.initTextareaAutoResize(textarea);
+            });
+        }
     });
 
     // Remove the last row from the Annexed Target Group table

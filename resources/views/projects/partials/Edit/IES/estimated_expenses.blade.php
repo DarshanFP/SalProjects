@@ -9,6 +9,7 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
+                        <th style="width: 5%;">No.</th>
                         <th>Particular</th>
                         <th>Amount</th>
                         <th>Action</th>
@@ -18,15 +19,17 @@
                     @if(optional($project->iesExpenses)->count())
                         @foreach($project->iesExpenses as $index => $expense)
                         <tr>
-                            <td><input type="text" name="particulars[]" class="form-control" value="{{ old('particulars')[$index] ?? $expense->particular }}" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="amounts[]" class="form-control IES-expense-input" step="0.01" value="{{ old('amounts')[$index] ?? $expense->amount }}" style="background-color: #202ba3;" oninput="IEScalculateTotalExpenses()"></td>
+                            <td style="text-align: center; vertical-align: middle;">{{ $index + 1 }}</td>
+                            <td><input type="text" name="particulars[]" class="form-control" value="{{ old('particulars')[$index] ?? $expense->particular }}"></td>
+                            <td><input type="number" name="amounts[]" class="form-control IES-expense-input" step="0.01" value="{{ old('amounts')[$index] ?? $expense->amount }}" oninput="IEScalculateTotalExpenses()"></td>
                             <td><button type="button" class="btn btn-danger" onclick="IESremoveExpenseRow(this)">Remove</button></td>
                         </tr>
                         @endforeach
                     @else
                         <tr>
-                            <td><input type="text" name="particulars[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="amounts[]" class="form-control IES-expense-input" step="0.01" style="background-color: #202ba3;" oninput="IEScalculateTotalExpenses()"></td>
+                            <td style="text-align: center; vertical-align: middle;">1</td>
+                            <td><input type="text" name="particulars[]" class="form-control"></td>
+                            <td><input type="number" name="amounts[]" class="form-control IES-expense-input" step="0.01" oninput="IEScalculateTotalExpenses()"></td>
                             <td><button type="button" class="btn btn-danger" onclick="IESremoveExpenseRow(this)">Remove</button></td>
                         </tr>
                     @endif
@@ -38,27 +41,27 @@
         <!-- Total Expense -->
         <div class="mt-3 form-group">
             <label>Total expense of the study:</label>
-            <input type="number" name="total_expenses" class="form-control" step="0.01" value="{{ old('total_expenses', optional($project->iesExpenses)->sum('amount')) }}" style="background-color: #202ba3;" readonly>
+            <input type="number" name="total_expenses" class="form-control" step="0.01" value="{{ old('total_expenses', optional($project->iesExpenses)->sum('amount')) }}" readonly>
         </div>
 
         <!-- Financial Contributions -->
         <div class="form-group">
             <label>Scholarship expected from government:</label>
-            <input type="number" name="expected_scholarship_govt" class="form-control" step="0.01" value="{{ old('expected_scholarship_govt', $project->expected_scholarship_govt) }}" style="background-color: #202ba3;" oninput="IEScalculateBalanceRequested()">
+            <input type="number" name="expected_scholarship_govt" class="form-control" step="0.01" value="{{ old('expected_scholarship_govt', $project->expected_scholarship_govt) }}" oninput="IEScalculateBalanceRequested()">
         </div>
         <div class="form-group">
             <label>Support from other sources:</label>
-            <input type="number" name="support_other_sources" class="form-control" step="0.01" value="{{ old('support_other_sources', $project->support_other_sources) }}" style="background-color: #202ba3;" oninput="IEScalculateBalanceRequested()">
+            <input type="number" name="support_other_sources" class="form-control" step="0.01" value="{{ old('support_other_sources', $project->support_other_sources) }}" oninput="IEScalculateBalanceRequested()">
         </div>
         <div class="form-group">
             <label>Beneficiaries’ contribution:</label>
-            <input type="number" name="beneficiary_contribution" class="form-control" step="0.01" value="{{ old('beneficiary_contribution', $project->beneficiary_contribution) }}" style="background-color: #202ba3;" oninput="IEScalculateBalanceRequested()">
+            <input type="number" name="beneficiary_contribution" class="form-control" step="0.01" value="{{ old('beneficiary_contribution', $project->beneficiary_contribution) }}" oninput="IEScalculateBalanceRequested()">
         </div>
 
         <!-- Balance Amount Requested -->
         <div class="form-group">
             <label>Balance amount requested:</label>
-            <input type="number" name="balance_requested" class="form-control" step="0.01" value="{{ old('balance_requested', $project->balance_requested) }}" style="background-color: #202ba3;" readonly>
+            <input type="number" name="balance_requested" class="form-control" step="0.01" value="{{ old('balance_requested', $project->balance_requested) }}" readonly>
         </div>
     </div>
 </div>
@@ -66,23 +69,35 @@
 <!-- JavaScript to manage table rows and calculate totals -->
 <script>
     function IESaddExpenseRow() {
+        const table = document.querySelector('#IES-expenses-table');
+        const rowCount = table.children.length;
         const row = `
             <tr>
-                <td><input type="text" name="particulars[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="amounts[]" class="form-control IES-expense-input" step="0.01" style="background-color: #202ba3;" oninput="IEScalculateTotalExpenses()"></td>
+                <td style="text-align: center; vertical-align: middle;">${rowCount + 1}</td>
+                <td><input type="text" name="particulars[]" class="form-control"></td>
+                <td><input type="number" name="amounts[]" class="form-control IES-expense-input" step="0.01" oninput="IEScalculateTotalExpenses()"></td>
                 <td><button type="button" class="btn btn-danger" onclick="IESremoveExpenseRow(this)">Remove</button></td>
             </tr>`;
-        document.querySelector('#IES-expenses-table').insertAdjacentHTML('beforeend', row);
+        table.insertAdjacentHTML('beforeend', row);
+        reindexIESExpenseRows();
         IEScalculateTotalExpenses();
     }
 
     function IESremoveExpenseRow(button) {
         if (document.querySelectorAll('#IES-expenses-table tr').length > 1) {
             button.closest('tr').remove();
+            reindexIESExpenseRows();
             IEScalculateTotalExpenses();
         } else {
-            alert("At least one expense entry is .");
+            alert("At least one expense entry is required.");
         }
+    }
+    
+    function reindexIESExpenseRows() {
+        const rows = document.querySelectorAll('#IES-expenses-table tr');
+        rows.forEach((row, index) => {
+            row.children[0].textContent = index + 1;
+        });
     }
 
     function IEScalculateTotalExpenses() {
@@ -114,7 +129,7 @@
 <!-- Styles -->
 <style>
     .form-control {
-        background-color: #202ba3;
+        
         color: white;
     }
 </style> --}}
@@ -227,7 +242,7 @@
 <!-- Styles -->
 <style>
     .form-control {
-        background-color: #202ba3;
+        
         color: white;
     }
 </style>

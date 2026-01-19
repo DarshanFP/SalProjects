@@ -17,8 +17,8 @@
                 <tr>
                     <td>1</td>
                     <td><input type="text" name="annexed_target_group[0][beneficiary_name]" class="form-control"></td>
-                    <td><textarea name="annexed_target_group[0][family_background]" class="form-control" rows="2"></textarea></td>
-                    <td><textarea name="annexed_target_group[0][need_of_support]" class="form-control" rows="2"></textarea></td>
+                    <td><textarea name="annexed_target_group[0][family_background]" class="form-control sustainability-textarea" rows="2"></textarea></td>
+                    <td><textarea name="annexed_target_group[0][need_of_support]" class="form-control sustainability-textarea" rows="2"></textarea></td>
                 </tr>
                 <!-- Additional rows will be inserted here dynamically -->
             </tbody>
@@ -43,11 +43,20 @@
             <tr>
                 <td>${rowCount + 1}</td>
                 <td><input type="text" name="annexed_target_group[${rowCount}][beneficiary_name]" class="form-control"></td>
-                <td><textarea name="annexed_target_group[${rowCount}][family_background]" class="form-control" rows="2"></textarea></td>
-                <td><textarea name="annexed_target_group[${rowCount}][need_of_support]" class="form-control" rows="2"></textarea></td>
+                <td><textarea name="annexed_target_group[${rowCount}][family_background]" class="form-control sustainability-textarea" rows="2"></textarea></td>
+                <td><textarea name="annexed_target_group[${rowCount}][need_of_support]" class="form-control sustainability-textarea" rows="2"></textarea></td>
             </tr>`;
 
         table.insertAdjacentHTML('beforeend', row);
+
+        // Initialize auto-resize for newly added textareas using global function
+        const newRowElement = table.lastElementChild;
+        const newTextareas = newRowElement.querySelectorAll('.sustainability-textarea');
+        if (newTextareas.length > 0 && typeof window.initTextareaAutoResize === 'function') {
+            newTextareas.forEach(textarea => {
+                window.initTextareaAutoResize(textarea);
+            });
+        }
     });
 
     // Remove the last row from the Annexed Target Group table
@@ -55,8 +64,23 @@
         const table = document.getElementById('annexedTargetGroupTable');
         if (table.rows.length > 1) {
             table.deleteRow(-1);
+            reindexEduRUTAnnexedRows();
         }
     });
+
+    function reindexEduRUTAnnexedRows() {
+        const rows = document.querySelectorAll('#annexedTargetGroupTable tr');
+        rows.forEach((row, index) => {
+            row.children[0].textContent = index + 1;
+            // Update name attributes
+            row.querySelectorAll('input, textarea').forEach(input => {
+                const name = input.getAttribute('name');
+                if (name && name.includes('[annexed_target_group]')) {
+                    input.setAttribute('name', name.replace(/\[annexed_target_group\]\[\d+\]/, `[annexed_target_group][${index}]`));
+                }
+            });
+        });
+    }
 })();
 </script>
 
@@ -104,9 +128,9 @@
         const row = `
             <tr>
                 <td></td>  <!-- S.No. will be updated later -->
-                <td><input type="text" name="annexed_target_group[][beneficiary_name]" class="form-control select-input" style="background-color: #202ba3;"></td>
-                <td><textarea name="annexed_target_group[][family_background]" class="form-control select-input" style="background-color: #202ba3;" rows="2"></textarea></td>
-                <td><textarea name="annexed_target_group[][need_of_support]" class="form-control select-input" style="background-color: #202ba3;" rows="2"></textarea></td>
+                <td><input type="text" name="annexed_target_group[][beneficiary_name]" class="form-control select-input"></td>
+                <td><textarea name="annexed_target_group[][family_background]" class="form-control select-input" rows="2"></textarea></td>
+                <td><textarea name="annexed_target_group[][need_of_support]" class="form-control select-input" rows="2"></textarea></td>
             </tr>`;
 
         table.insertAdjacentHTML('beforeend', row);
@@ -152,9 +176,9 @@
                     const newRow = `
                         <tr>
                             <td></td>  <!-- S.No. will be updated later -->
-                            <td><input type="text" name="annexed_target_group[${index + 1}][beneficiary_name]" value="${row.beneficiary_name}" class="form-control select-input" style="background-color: #202ba3;"></td>
-                            <td><textarea name="annexed_target_group[${index + 1}][family_background]" class="form-control select-input" rows="2" style="background-color: #202ba3;">${row.family_background}</textarea></td>
-                            <td><textarea name="annexed_target_group[${index + 1}][need_of_support]" class="form-control select-input" rows="2" style="background-color: #202ba3;">${row.need_of_support}</textarea></td>
+                            <td><input type="text" name="annexed_target_group[${index + 1}][beneficiary_name]" value="${row.beneficiary_name}" class="form-control select-input"></td>
+                            <td><textarea name="annexed_target_group[${index + 1}][family_background]" class="form-control select-input" rows="2">${row.family_background}</textarea></td>
+                            <td><textarea name="annexed_target_group[${index + 1}][need_of_support]" class="form-control select-input" rows="2">${row.need_of_support}</textarea></td>
                         </tr>`;
 
                     table.insertAdjacentHTML('beforeend', newRow);

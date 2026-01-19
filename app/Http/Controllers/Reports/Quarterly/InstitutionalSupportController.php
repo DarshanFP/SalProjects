@@ -25,7 +25,7 @@ class InstitutionalSupportController extends Controller
     {
         // Log the request data
         Log::info('Store method called');
-        Log::info('Request data: ', $request->all());
+        LogHelper::logSafeRequest('Request data', $request, LogHelper::getReportAllowedFields());
 
         // Validate the incoming request data
         $validatedData = $request->validate([
@@ -242,7 +242,10 @@ class InstitutionalSupportController extends Controller
     //LIST REPORTS
     public function index()
     {
-        $reports = RQISReport::where('user_id', Auth::id())->get();
+        // Eager load relationships to prevent N+1 queries
+        $reports = RQISReport::where('user_id', Auth::id())
+            ->with(['user', 'project', 'accountDetails'])
+            ->get();
         return view('reports.quarterly.institutionalSupport.list', compact('reports'));
     }
 

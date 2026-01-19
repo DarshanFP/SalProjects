@@ -3,16 +3,21 @@
 namespace App\Http\Controllers\Projects\ILP;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\ILP\ProjectILPRiskAnalysis;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\ILP\StoreILPRiskAnalysisRequest;
+use App\Http\Requests\Projects\ILP\UpdateILPRiskAnalysisRequest;
 
 class RiskAnalysisController extends Controller
 {
     // Store or update risk analysis
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing ILP Risk Analysis', ['project_id' => $projectId]);
@@ -22,10 +27,10 @@ class RiskAnalysisController extends Controller
 
             ProjectILPRiskAnalysis::create([
                 'project_id' => $projectId,
-                'identified_risks' => $request->identified_risks,
-                'mitigation_measures' => $request->mitigation_measures,
-                'business_sustainability' => $request->business_sustainability,
-                'expected_profits' => $request->expected_profits,
+                'identified_risks' => $validated['identified_risks'] ?? null,
+                'mitigation_measures' => $validated['mitigation_measures'] ?? null,
+                'business_sustainability' => $validated['business_sustainability'] ?? null,
+                'expected_profits' => $validated['expected_profits'] ?? null,
             ]);
 
             DB::commit();
@@ -105,20 +110,15 @@ class RiskAnalysisController extends Controller
     }
 
     // Update risk analysis for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in UpdateProjectRequest validation rules
+        $validatedData = $request->all();
+        
         DB::beginTransaction();
 
         try {
             Log::info('Updating ILP Risk Analysis', ['project_id' => $projectId]);
-
-            // Validate request
-            $validatedData = $request->validate([
-                'identified_risks' => 'nullable|string|max:1000',
-                'mitigation_measures' => 'nullable|string|max:1000',
-                'business_sustainability' => 'nullable|string|max:1000',
-                'expected_profits' => 'nullable|string|max:1000',
-            ]);
 
             // Update or create risk analysis
             $riskAnalysis = ProjectILPRiskAnalysis::updateOrCreate(

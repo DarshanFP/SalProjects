@@ -5,6 +5,8 @@ namespace App\Models\OldProjects\IES;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\OldProjects\Project;
+use App\Models\OldProjects\IES\ProjectIESAttachmentFile;
+use App\Helpers\AttachmentFileNamingHelper;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -81,6 +83,22 @@ class ProjectIESAttachments extends Model
         return $this->belongsTo(Project::class, 'project_id', 'project_id');
     }
 
+    /**
+     * Get all files for this attachment record
+     */
+    public function files()
+    {
+        return $this->hasMany(ProjectIESAttachmentFile::class, 'IES_attachment_id', 'IES_attachment_id');
+    }
+
+    /**
+     * Get files for a specific field
+     */
+    public function getFilesForField($fieldName)
+    {
+        return $this->files()->where('field_name', $fieldName)->orderBy('serial_number')->get();
+    }
+
 
     public static function handleAttachments($request, $projectId)
     {
@@ -89,30 +107,86 @@ class ProjectIESAttachments extends Model
             'caste_certificate', 'self_declaration', 'death_certificate', 'request_letter'
         ];
 
-        // ✅ Change to `public/` so Laravel's `storage` route works!
-        $projectDir = "public/project_attachments/IES/{$projectId}";
+        // Storage path without 'public/' prefix - Laravel's Storage::disk('public') handles this
+        $projectDir = "project_attachments/IES/{$projectId}";
 
-        // ✅ Ensure the directory exists
-        \Storage::makeDirectory($projectDir);
+        // Ensure the directory exists on public disk
+        Storage::disk('public')->makeDirectory($projectDir, 0755, true);
 
         $attachments = self::updateOrCreate(['project_id' => $projectId], []);
 
+        $uploadedFiles = []; // Track uploaded files for cleanup on error
+
+        try {
         foreach ($fields as $field) {
             if ($request->hasFile($field)) {
                 $file = $request->file($field);
+
+                    // Validate file type
+                    if (!self::isValidFileType($file)) {
+                        \Log::error('Invalid file type for IES attachment', [
+                            'field' => $field,
+                            'mime_type' => $file->getMimeType(),
+                            'extension' => $file->getClientOriginalExtension()
+                        ]);
+                        $allowedTypes = config('attachments.allowed_file_types.image_only');
+                        $typesList = implode(', ', array_map('strtoupper', $allowedTypes['extensions']));
+                        $errorMsg = str_replace(':types', $typesList, config('attachments.messages.file_type_error'));
+                        throw new \Exception("Invalid file type for {$field}. {$errorMsg}");
+                    }
+
+                    // Validate file size (7MB max - allows buffer for files slightly over 5MB)
+                    $maxSize = config('attachments.max_file_size.server_bytes');
+                    if ($file->getSize() > $maxSize) {
+                        $maxSizeMB = config('attachments.max_file_size.display_mb');
+                        $errorMsg = str_replace(':size', $maxSizeMB, config('attachments.messages.file_size_error'));
+                        throw new \Exception("File size exceeds limit for {$field}. {$errorMsg}");
+                    }
+
                 $fileName = "{$projectId}_{$field}." . $file->getClientOriginalExtension();
 
-                // ✅ Save file in `public/` so Laravel can serve it correctly
-                $filePath = $file->storeAs($projectDir, $fileName);
+                    // Save file on public disk - storeAs handles the path correctly
+                    $filePath = $file->storeAs($projectDir, $fileName, 'public');
+
+                    if ($filePath) {
+                        $uploadedFiles[] = $filePath; // Track for cleanup
+
+                        // Remove old file if different from new path
+                        if (!empty($attachments->{$field}) && $attachments->{$field} !== $filePath) {
+                            Storage::disk('public')->delete($attachments->{$field});
+                        }
 
                 // ✅ Save the correct path in the database
                 $attachments->{$field} = $filePath;
+                    }
             }
         }
 
         $attachments->save();
         return $attachments;
+
+        } catch (\Exception $e) {
+            // Clean up uploaded files on error
+            foreach ($uploadedFiles as $filePath) {
+                if (Storage::disk('public')->exists($filePath)) {
+                    Storage::disk('public')->delete($filePath);
+                }
+            }
+            throw $e;
+        }
     }
 
+    /**
+     * Validate file type
+     */
+    private static function isValidFileType($file)
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $mimeType = $file->getMimeType();
 
+        $allowedTypes = config('attachments.allowed_file_types.image_only');
+
+        return in_array($extension, $allowedTypes['extensions']) &&
+               in_array($mimeType, $allowedTypes['mimes']);
+    }
 }

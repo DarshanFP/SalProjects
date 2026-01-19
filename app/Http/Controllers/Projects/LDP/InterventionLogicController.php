@@ -7,12 +7,17 @@ use Illuminate\Http\Request;
 use App\Models\OldProjects\LDP\ProjectLDPInterventionLogic;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Foundation\Http\FormRequest;
 
 class InterventionLogicController extends Controller
 {
     // Store or update intervention logic
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Validation already done by FormRequest
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing LDP Intervention Logic', ['project_id' => $projectId]);
@@ -20,7 +25,7 @@ class InterventionLogicController extends Controller
             // Use create or update logic
             ProjectLDPInterventionLogic::updateOrCreate(
                 ['project_id' => $projectId], // Search by project_id
-                ['intervention_description' => $request->intervention_description] // Update intervention description
+                ['intervention_description' => $validated['intervention_description'] ?? null] // Update intervention description
             );
 
             DB::commit();
@@ -69,8 +74,12 @@ class InterventionLogicController extends Controller
     }
 
     // Update intervention logic for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Validation and authorization already done by FormRequest
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Updating LDP Intervention Logic', ['project_id' => $projectId]);
@@ -78,7 +87,7 @@ class InterventionLogicController extends Controller
             // Use updateOrCreate logic to either update or create a new record
             ProjectLDPInterventionLogic::updateOrCreate(
                 ['project_id' => $projectId], // Search by project_id
-                ['intervention_description' => $request->intervention_description] // Update intervention description
+                ['intervention_description' => $validated['intervention_description'] ?? null] // Update intervention description
             );
 
             DB::commit();

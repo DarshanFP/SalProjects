@@ -30,15 +30,15 @@
                 </div>
                 <div class="mb-2 row">
                     <div class="col-6"><strong>Amount Sanctioned:</strong></div>
-                    <div class="col-6">Rs. {{ number_format($annexure->dla_amount_sanctioned, 2) }}</div>
+                    <div class="col-6">{{ format_indian_currency($annexure->dla_amount_sanctioned, 2) }}</div>
                 </div>
                 <div class="mb-2 row">
                     <div class="col-6"><strong>Monetary Profit Gained - Monthly:</strong></div>
-                    <div class="col-6">Rs. {{ number_format($annexure->dla_monthly_profit, 2) }}</div>
+                    <div class="col-6">{{ format_indian_currency($annexure->dla_monthly_profit, 2) }}</div>
                 </div>
                 <div class="mb-2 row">
                     <div class="col-6"><strong>Monetary Profit Gained - Per Annum:</strong></div>
-                    <div class="col-6">Rs. {{ number_format($annexure->dla_annual_profit, 2) }}</div>
+                    <div class="col-6">{{ format_indian_currency($annexure->dla_annual_profit, 2) }}</div>
                 </div>
                 <div class="mb-2 row">
                     <div class="col-6"><strong>Project’s Impact in the Life of the Beneficiary:</strong></div>
@@ -60,9 +60,5 @@
 
     .row {
         margin-bottom: 10px;
-    }
-
-    .col-6 {
-        word-wrap: break-word;
     }
 </style>

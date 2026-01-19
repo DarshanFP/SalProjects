@@ -30,15 +30,12 @@
                         <div class="form-group">
                             <label for="province">Province</label>
                             <select name="province" class="form-control" required id="province">
-                                <option value="" disabled selected>Choose one</option>
-                                <option value="Bangalore" {{ $provincial->province == 'Bangalore' ? 'selected' : '' }}>Bangalore</option>
-                                <option value="Vijayawada" {{ $provincial->province == 'Vijayawada' ? 'selected' : '' }}>Vijayawada</option>
-                                <option value="Visakhapatnam" {{ $provincial->province == 'Visakhapatnam' ? 'selected' : '' }}>Visakhapatnam</option>
-                                <option value="Generalate" {{ $provincial->province == 'Generalate' ? 'selected' : '' }}>Generalate</option>
-                                <option value="Divyodaya" {{ $provincial->province == 'Divyodaya' ? 'selected' : '' }}>Divyodaya</option>
-                                <option value="Indonesia" {{ $provincial->province == 'Indonesia' ? 'selected' : '' }}>Indonesia</option>
-                                <option value="East Timor" {{ $provincial->province == 'East Timor' ? 'selected' : '' }}>East Timor</option>
-                                <option value="East Africa" {{ $provincial->province == 'East Africa' ? 'selected' : '' }}>East Africa</option>
+                                <option value="" disabled>Choose one</option>
+                                @foreach($provinces ?? [] as $province)
+                                    <option value="{{ $province->name }}" {{ old('province', $provincial->province) == $province->name ? 'selected' : '' }}>
+                                        {{ $province->name }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="form-group">

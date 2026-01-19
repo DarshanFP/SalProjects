@@ -4,26 +4,28 @@ namespace App\Http\Controllers\Projects\IIES;
 
 use App\Http\Controllers\Controller;
 use App\Models\OldProjects\IIES\ProjectIIESFamilyWorkingMembers;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IIES\ProjectIIESImmediateFamilyDetails;
 use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IIES\StoreIIESImmediateFamilyDetailsRequest;
+use App\Http\Requests\Projects\IIES\UpdateIIESImmediateFamilyDetailsRequest;
 
 class IIESImmediateFamilyDetailsController extends Controller
 {
     /**
      * Store IIES Immediate Family Details for a project.
      */
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validatedData = $request->all();
+        
         DB::beginTransaction();
 
         try {
             Log::info('Storing IIES Immediate Family Details', ['project_id' => $projectId]);
-
-            // Validate request data
-            $validatedData = $request->validate($this->validationRules());
 
             // Update or Create record
             ProjectIIESImmediateFamilyDetails::updateOrCreate(
@@ -100,8 +102,11 @@ class IIESImmediateFamilyDetailsController extends Controller
     /**
      * Update IIES Immediate Family Details for a project.
      */
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validatedData = $request->all();
+        
         DB::beginTransaction();
 
         try {
@@ -129,16 +134,13 @@ class IIESImmediateFamilyDetailsController extends Controller
             ];
 
             // Prepare data with explicit false values for unchecked checkboxes
-            $data = $request->all();
+            $data = $validatedData;
             foreach ($booleanFields as $field) {
                 $data[$field] = $request->has($field) ? true : false;
             }
 
-            // Validate incoming data
-            $validatedData = $this->validate($request, $this->validationRules());
-
-            // Merge the validated data with our checkbox handling
-            $validatedData = array_merge($validatedData, $data);
+            // Use validated data
+            $validatedData = $data;
 
             // Find existing record or create new one
             $familyDetails = ProjectIIESImmediateFamilyDetails::updateOrCreate(
@@ -177,37 +179,4 @@ class IIESImmediateFamilyDetailsController extends Controller
         }
     }
 
-    /**
-     * Validation rules.
-     */
-    private function validationRules(): array
-    {
-        return [
-            'iies_mother_expired'        => 'nullable|boolean',
-            'iies_father_expired'        => 'nullable|boolean',
-            'iies_grandmother_support'   => 'nullable|boolean',
-            'iies_grandfather_support'   => 'nullable|boolean',
-            'iies_father_deserted'       => 'nullable|boolean',
-            'iies_family_details_others' => 'nullable|string|max:255',
-            'iies_father_sick'           => 'nullable|boolean',
-            'iies_father_hiv_aids'       => 'nullable|boolean',
-            'iies_father_disabled'       => 'nullable|boolean',
-            'iies_father_alcoholic'      => 'nullable|boolean',
-            'iies_father_health_others'  => 'nullable|string|max:255',
-            'iies_mother_sick'           => 'nullable|boolean',
-            'iies_mother_hiv_aids'       => 'nullable|boolean',
-            'iies_mother_disabled'       => 'nullable|boolean',
-            'iies_mother_alcoholic'      => 'nullable|boolean',
-            'iies_mother_health_others'  => 'nullable|string|max:255',
-            'iies_own_house'             => 'nullable|boolean',
-            'iies_rented_house'          => 'nullable|boolean',
-            'iies_residential_others'    => 'nullable|string|max:255',
-            'iies_family_situation'      => 'nullable|string',
-            'iies_assistance_need'       => 'nullable|string',
-            'iies_received_support'      => 'nullable|boolean',
-            'iies_support_details'       => 'nullable|string',
-            'iies_employed_with_stanns'  => 'nullable|boolean',
-            'iies_employment_details'    => 'nullable|string',
-        ];
-    }
 }

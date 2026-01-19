@@ -25,28 +25,28 @@
                         @foreach($project->igeBudget as $index => $budget)
                         <tr id="budget-row-{{ $index + 1 }}">
                             <td>{{ $index + 1 }}</td>
-                            <td><input type="text" name="name[]" class="form-control" value="{{ old('name.' . $index, $budget->name) }}" style="background-color: #202ba3;"></td>
-                            <td><input type="text" name="study_proposed[]" class="form-control" value="{{ old('study_proposed.' . $index, $budget->study_proposed) }}" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="college_fees[]" class="form-control college_fees" value="{{ old('college_fees.' . $index, $budget->college_fees) }}" step="0.01" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="hostel_fees[]" class="form-control hostel_fees" value="{{ old('hostel_fees.' . $index, $budget->hostel_fees) }}" step="0.01" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="total_amount[]" class="form-control total_amount" value="{{ old('total_amount.' . $index, $budget->total_amount) }}" step="0.01" style="background-color: #202ba3;" readonly></td>
-                            <td><input type="number" name="scholarship_eligibility[]" class="form-control scholarship_eligibility" value="{{ old('scholarship_eligibility.' . $index, $budget->scholarship_eligibility) }}" step="0.01" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="family_contribution[]" class="form-control family_contribution" value="{{ old('family_contribution.' . $index, $budget->family_contribution) }}" step="0.01" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="amount_requested[]" class="form-control amount_requested" value="{{ old('amount_requested.' . $index, $budget->amount_requested) }}" step="0.01" style="background-color: #202ba3;" readonly></td>
+                            <td><input type="text" name="name[]" class="form-control" value="{{ old('name.' . $index, $budget->name) }}"></td>
+                            <td><input type="text" name="study_proposed[]" class="form-control" value="{{ old('study_proposed.' . $index, $budget->study_proposed) }}"></td>
+                            <td><input type="number" name="college_fees[]" class="form-control college_fees" value="{{ old('college_fees.' . $index, $budget->college_fees) }}" step="0.01"></td>
+                            <td><input type="number" name="hostel_fees[]" class="form-control hostel_fees" value="{{ old('hostel_fees.' . $index, $budget->hostel_fees) }}" step="0.01"></td>
+                            <td><input type="number" name="total_amount[]" class="form-control total_amount" value="{{ old('total_amount.' . $index, $budget->total_amount) }}" step="0.01" readonly></td>
+                            <td><input type="number" name="scholarship_eligibility[]" class="form-control scholarship_eligibility" value="{{ old('scholarship_eligibility.' . $index, $budget->scholarship_eligibility) }}" step="0.01"></td>
+                            <td><input type="number" name="family_contribution[]" class="form-control family_contribution" value="{{ old('family_contribution.' . $index, $budget->family_contribution) }}" step="0.01"></td>
+                            <td><input type="number" name="amount_requested[]" class="form-control amount_requested" value="{{ old('amount_requested.' . $index, $budget->amount_requested) }}" step="0.01" readonly></td>
                             <td><button type="button" class="btn btn-danger" onclick="removeIGEBudgetRow(this)">Remove</button></td>
                         </tr>
                         @endforeach
                     @else
                         <tr id="budget-row-1">
                             <td>1</td>
-                            <td><input type="text" name="name[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="text" name="study_proposed[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="college_fees[]" class="form-control college_fees" step="0.01" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="hostel_fees[]" class="form-control hostel_fees" step="0.01" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="total_amount[]" class="form-control total_amount" step="0.01" style="background-color: #202ba3;" readonly></td>
-                            <td><input type="number" name="scholarship_eligibility[]" class="form-control scholarship_eligibility" step="0.01" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="family_contribution[]" class="form-control family_contribution" step="0.01" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="amount_requested[]" class="form-control amount_requested" step="0.01" style="background-color: #202ba3;" readonly></td>
+                            <td><input type="text" name="name[]" class="form-control"></td>
+                            <td><input type="text" name="study_proposed[]" class="form-control"></td>
+                            <td><input type="number" name="college_fees[]" class="form-control college_fees" step="0.01"></td>
+                            <td><input type="number" name="hostel_fees[]" class="form-control hostel_fees" step="0.01"></td>
+                            <td><input type="number" name="total_amount[]" class="form-control total_amount" step="0.01" readonly></td>
+                            <td><input type="number" name="scholarship_eligibility[]" class="form-control scholarship_eligibility" step="0.01"></td>
+                            <td><input type="number" name="family_contribution[]" class="form-control family_contribution" step="0.01"></td>
+                            <td><input type="number" name="amount_requested[]" class="form-control amount_requested" step="0.01" readonly></td>
                             <td><button type="button" class="btn btn-danger" onclick="removeIGEBudgetRow(this)">Remove</button></td>
                         </tr>
                     @endif
@@ -54,12 +54,12 @@
                 <tfoot>
                     <tr>
                         <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                        <td><input type="number" id="total-college-fees" class="form-control" step="0.01" style="background-color: #202ba3;" readonly></td>
-                        <td><input type="number" id="total-hostel-fees" class="form-control" step="0.01" style="background-color: #202ba3;" readonly></td>
-                        <td><input type="number" id="total-amount" class="form-control" step="0.01" style="background-color: #202ba3;" readonly></td>
-                        <td><input type="number" id="total-scholarship-eligibility" class="form-control" step="0.01" style="background-color: #202ba3;" readonly></td>
-                        <td><input type="number" id="total-family-contribution" class="form-control" step="0.01" style="background-color: #202ba3;" readonly></td>
-                        <td><input type="number" id="total-amount-requested" class="form-control" step="0.01" style="background-color: #202ba3;" readonly></td>
+                        <td><input type="number" id="total-college-fees" class="form-control" step="0.01" readonly></td>
+                        <td><input type="number" id="total-hostel-fees" class="form-control" step="0.01" readonly></td>
+                        <td><input type="number" id="total-amount" class="form-control" step="0.01" readonly></td>
+                        <td><input type="number" id="total-scholarship-eligibility" class="form-control" step="0.01" readonly></td>
+                        <td><input type="number" id="total-family-contribution" class="form-control" step="0.01" readonly></td>
+                        <td><input type="number" id="total-amount-requested" class="form-control" step="0.01" readonly></td>
                         <td></td>
                     </tr>
                 </tfoot>
@@ -79,14 +79,14 @@
         newRow.id = `budget-row-${budgetRowIndex}`;
         newRow.innerHTML = `
             <td>${budgetRowIndex}</td>
-            <td><input type="text" name="name[]" class="form-control" style="background-color: #202ba3;"></td>
-            <td><input type="text" name="study_proposed[]" class="form-control" style="background-color: #202ba3;"></td>
-            <td><input type="number" name="college_fees[]" class="form-control college_fees" step="0.01" style="background-color: #202ba3;"></td>
-            <td><input type="number" name="hostel_fees[]" class="form-control hostel_fees" step="0.01" style="background-color: #202ba3;"></td>
-            <td><input type="number" name="total_amount[]" class="form-control total_amount" step="0.01" style="background-color: #202ba3;" readonly></td>
-            <td><input type="number" name="scholarship_eligibility[]" class="form-control scholarship_eligibility" step="0.01" style="background-color: #202ba3;"></td>
-            <td><input type="number" name="family_contribution[]" class="form-control family_contribution" step="0.01" style="background-color: #202ba3;"></td>
-            <td><input type="number" name="amount_requested[]" class="form-control amount_requested" step="0.01" style="background-color: #202ba3;" readonly></td>
+            <td><input type="text" name="name[]" class="form-control"></td>
+            <td><input type="text" name="study_proposed[]" class="form-control"></td>
+            <td><input type="number" name="college_fees[]" class="form-control college_fees" step="0.01"></td>
+            <td><input type="number" name="hostel_fees[]" class="form-control hostel_fees" step="0.01"></td>
+            <td><input type="number" name="total_amount[]" class="form-control total_amount" step="0.01" readonly></td>
+            <td><input type="number" name="scholarship_eligibility[]" class="form-control scholarship_eligibility" step="0.01"></td>
+            <td><input type="number" name="family_contribution[]" class="form-control family_contribution" step="0.01"></td>
+            <td><input type="number" name="amount_requested[]" class="form-control amount_requested" step="0.01" readonly></td>
             <td><button type="button" class="btn btn-danger" onclick="removeIGEBudgetRow(this)">Remove</button></td>
         `;
         document.getElementById('IGE-budget-rows').appendChild(newRow);
@@ -150,7 +150,7 @@
 <!-- Styles -->
 <style>
     .form-control {
-        background-color: #202ba3;
+        
         color: white;
     }
 </style>

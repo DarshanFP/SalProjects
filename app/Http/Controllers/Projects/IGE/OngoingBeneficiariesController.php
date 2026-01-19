@@ -3,42 +3,45 @@
 namespace App\Http\Controllers\Projects\IGE;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IGE\ProjectIGEOngoingBeneficiaries;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\IGE\StoreIGEOngoingBeneficiariesRequest;
+use App\Http\Requests\Projects\IGE\UpdateIGEOngoingBeneficiariesRequest;
 
 class OngoingBeneficiariesController extends Controller
 {
     // Store or update ongoing beneficiaries for a project
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including obeneficiary_name[], ocaste[], etc. arrays
+        // These fields are not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing IGE Ongoing Beneficiaries Information', ['project_id' => $projectId]);
-
-            // Validate request data (allowing nullable fields)
-            $this->validate($request, [
-                'obeneficiary_name.*' => 'nullable|string|max:255',
-                'ocaste.*' => 'nullable|string|max:255',
-                'oaddress.*' => 'nullable|string|max:500',
-                'ocurrent_group_year_of_study.*' => 'nullable|string|max:255',
-                'operformance_details.*' => 'nullable|string|max:500',
-            ]);
 
             // Delete existing ongoing beneficiaries for the project
             ProjectIGEOngoingBeneficiaries::where('project_id', $projectId)->delete();
 
             // Insert new ongoing beneficiaries
-            foreach ($request->obeneficiary_name as $index => $name) {
+            $obeneficiaryNames = $validated['obeneficiary_name'] ?? [];
+            $ocastes = $validated['ocaste'] ?? [];
+            $oaddresses = $validated['oaddress'] ?? [];
+            $ocurrentGroupYearOfStudies = $validated['ocurrent_group_year_of_study'] ?? [];
+            $operformanceDetails = $validated['operformance_details'] ?? [];
+            
+            foreach ($obeneficiaryNames as $index => $name) {
                 if (!is_null($name)) {
                     ProjectIGEOngoingBeneficiaries::create([
                         'project_id' => $projectId,
                         'obeneficiary_name' => $name,
-                        'ocaste' => $request->ocaste[$index] ?? null,
-                        'oaddress' => $request->oaddress[$index] ?? null,
-                        'ocurrent_group_year_of_study' => $request->ocurrent_group_year_of_study[$index] ?? null,
-                        'operformance_details' => $request->operformance_details[$index] ?? null,
+                        'ocaste' => $ocastes[$index] ?? null,
+                        'oaddress' => $oaddresses[$index] ?? null,
+                        'ocurrent_group_year_of_study' => $ocurrentGroupYearOfStudies[$index] ?? null,
+                        'operformance_details' => $operformanceDetails[$index] ?? null,
                     ]);
                 }
             }
@@ -55,7 +58,7 @@ class OngoingBeneficiariesController extends Controller
 
 
     // Update ongoing beneficiaries for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
         // Reuse the store logic for updating
         return $this->store($request, $projectId);

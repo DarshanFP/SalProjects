@@ -2,45 +2,87 @@
 <script>
 
     function beforeSubmit() {
-    const formData = new FormData(document.querySelector('form'));
-    formData.forEach((value, key) => {
-        console.log(`${key}: ${value}`);
-    });
+    const form = document.querySelector('form');
+    if (!form) {
+        console.warn('Form not found');
+        return;
+    }
+    const formData = new FormData(form);
+    // Form data validation can be added here if needed
+    // Removed console.log for production
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     // Update the mobile and email fields based on the selected project in-charge
-    document.getElementById('in_charge').addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        const name = selectedOption.getAttribute('data-name');
-        const mobile = selectedOption.getAttribute('data-mobile');
-        const email = selectedOption.getAttribute('data-email');
+    const inChargeSelect = document.getElementById('in_charge');
+    if (inChargeSelect) {
+        inChargeSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const name = selectedOption ? selectedOption.getAttribute('data-name') : '';
+            const mobile = selectedOption ? selectedOption.getAttribute('data-mobile') : '';
+            const email = selectedOption ? selectedOption.getAttribute('data-email') : '';
 
-        document.getElementById('in_charge_name').value = name;
-        document.getElementById('in_charge_mobile').value = mobile;
-        document.getElementById('in_charge_email').value = email;
-    });
+            const nameField = document.getElementById('in_charge_name');
+            const mobileField = document.getElementById('in_charge_mobile');
+            const emailField = document.getElementById('in_charge_email');
+
+            if (nameField) nameField.value = name || '';
+            if (mobileField) mobileField.value = mobile || '';
+            if (emailField) emailField.value = email || '';
+        });
+    }
 
     // Update all budget rows based on the selected project period
-    document.getElementById('overall_project_period').addEventListener('change', function() {
-        // Update all budget rows based on the selected project period
-        updateAllBudgetRows();
-    });
+    const overallProjectPeriod = document.getElementById('overall_project_period');
+    if (overallProjectPeriod) {
+        overallProjectPeriod.addEventListener('change', function() {
+            // Update all budget rows based on the selected project period
+            updateAllBudgetRows();
+        });
+    }
 
     // Calculate initial totals when page loads
     calculateTotalAmountSanctioned();
+
+    // Add event listener for amount_forwarded input
+    const amountForwardedField = document.getElementById('amount_forwarded');
+    const localContributionField = document.getElementById('local_contribution');
+    if (amountForwardedField) {
+        amountForwardedField.addEventListener('input', calculateBudgetFields);
+        // Initial calculation on page load
+        setTimeout(calculateBudgetFields, 100);
+    }
 });
 
 // Calculate the budget totals for a single budget row
 function calculateBudgetRowTotals(element) {
+    if (!element) {
+        console.warn('calculateBudgetRowTotals: element is null');
+        return;
+    }
+
     const row = element.closest('tr');
-    const rateQuantity = parseFloat(row.querySelector('[name$="[rate_quantity]"]').value) || 0;
-    const rateMultiplier = parseFloat(row.querySelector('[name$="[rate_multiplier]"]').value) || 1;
-    const rateDuration = parseFloat(row.querySelector('[name$="[rate_duration]"]').value) || 1;
+    if (!row) {
+        console.warn('calculateBudgetRowTotals: row not found');
+        return;
+    }
+
+    const rateQuantityInput = row.querySelector('[name$="[rate_quantity]"]');
+    const rateMultiplierInput = row.querySelector('[name$="[rate_multiplier]"]');
+    const rateDurationInput = row.querySelector('[name$="[rate_duration]"]');
+    const thisPhaseInput = row.querySelector('[name$="[this_phase]"]');
+
+    if (!rateQuantityInput || !rateMultiplierInput || !rateDurationInput || !thisPhaseInput) {
+        console.warn('calculateBudgetRowTotals: required inputs not found');
+        return;
+    }
+
+    const rateQuantity = parseFloat(rateQuantityInput.value) || 0;
+    const rateMultiplier = parseFloat(rateMultiplierInput.value) || 1;
+    const rateDuration = parseFloat(rateDurationInput.value) || 1;
 
     const thisPhase = rateQuantity * rateMultiplier * rateDuration;
-
-    row.querySelector('[name$="[this_phase]"]').value = thisPhase.toFixed(2);
+    thisPhaseInput.value = thisPhase.toFixed(2);
 
     // Recalculate totals whenever a row total is updated
     calculateTotalAmountSanctioned();
@@ -143,6 +185,77 @@ function calculateTotalAmountSanctioned() {
     if (overallProjectBudgetField) {
         overallProjectBudgetField.value = totalAmount.toFixed(2);
     }
+
+    // Update the display field for overall project budget
+    const overallProjectBudgetDisplayField = document.getElementById('overall_project_budget_display');
+    if (overallProjectBudgetDisplayField) {
+        overallProjectBudgetDisplayField.value = totalAmount.toFixed(2);
+    }
+
+    // Call calculateBudgetFields to update amount_sanctioned and opening_balance
+    calculateBudgetFields();
+}
+
+// Calculate budget fields: amount_sanctioned and opening_balance
+// This function implements the new budget calculation logic:
+// - Amount Sanctioned = Overall Project Budget - Amount Forwarded
+// - Opening Balance = Amount Sanctioned + Amount Forwarded
+function calculateBudgetFields() {
+    // Get all required field elements
+    const overallBudgetField = document.getElementById('overall_project_budget');
+    const overallBudgetDisplayField = document.getElementById('overall_project_budget_display');
+    const amountForwardedField = document.getElementById('amount_forwarded');
+    const amountSanctionedField = document.getElementById('amount_sanctioned_preview');
+    const openingBalanceField = document.getElementById('opening_balance_preview');
+
+    // Exit if required fields are not present
+    if (!overallBudgetField) {
+        return;
+    }
+
+    // Get values from fields
+    const overallBudget = parseFloat(overallBudgetField.value) || 0;
+    const amountForwarded = parseFloat(amountForwardedField?.value) || 0;
+    const localContribution = parseFloat(localContributionField?.value) || 0;
+    const combined = amountForwarded + localContribution;
+
+    // Validate: amount_forwarded cannot exceed overall budget
+    if (combined > overallBudget) {
+        const msg = 'Amount Forwarded + Local Contribution cannot exceed Overall Project Budget (Rs. ' + overallBudget.toFixed(2) + ')';
+        if (amountForwardedField || localContributionField) {
+            alert(msg);
+            const ratio = overallBudget > 0 ? amountForwarded / combined : 0;
+            const newForwarded = (overallBudget * ratio);
+            const newLocal = overallBudget - newForwarded;
+            if (amountForwardedField) amountForwardedField.value = newForwarded.toFixed(2);
+            if (localContributionField) localContributionField.value = newLocal.toFixed(2);
+            // Recalculate after correction
+            setTimeout(calculateBudgetFields, 10);
+        }
+        return;
+    }
+
+    // Calculate Amount Sanctioned: Overall Budget - (Amount Forwarded + Local Contribution)
+    const amountSanctioned = overallBudget - combined;
+
+    // Calculate Opening Balance: Amount Sanctioned + (Amount Forwarded + Local Contribution)
+    // Note: This equals Overall Budget, but we keep the formula for clarity
+    const openingBalance = amountSanctioned + combined;
+
+    // Update the display fields
+    if (overallBudgetDisplayField) {
+        overallBudgetDisplayField.value = overallBudget.toFixed(2);
+    }
+
+    if (amountSanctionedField) {
+        amountSanctionedField.value = amountSanctioned.toFixed(2);
+    }
+
+    if (openingBalanceField) {
+        openingBalanceField.value = openingBalance.toFixed(2);
+    }
+
+    // Intentionally no console.log here (keep production console clean)
 }
 
 
@@ -150,15 +263,17 @@ function calculateTotalAmountSanctioned() {
 function addBudgetRow(button) {
     const tableBody = document.querySelector('.budget-rows');
     const phaseIndex = 0; // Since we only have one phase
+    const rowCount = tableBody.children.length;
     const newRow = document.createElement('tr');
 
     newRow.innerHTML = `
-        <td><input type="text" name="phases[${phaseIndex}][budget][${tableBody.children.length}][particular]" class="form-control" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="phases[${phaseIndex}][budget][${tableBody.children.length}][this_phase]" class="form-control readonly-input" readonly></td>
-        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeBudgetRow(this)">Remove</button></td>
+        <td style="width: 5%; text-align: center; vertical-align: middle;">${rowCount + 1}</td>
+        <td class="particular-cell-create" style="width: 40%;"><textarea name="phases[${phaseIndex}][budget][${rowCount}][particular]" class="form-control select-input particular-textarea" rows="1"></textarea></td>
+        <td style="width: 12%;"><input type="number" name="phases[${phaseIndex}][budget][${rowCount}][rate_quantity]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)"></td>
+        <td style="width: 12%;"><input type="number" name="phases[${phaseIndex}][budget][${rowCount}][rate_multiplier]" class="form-control select-input budget-number-input" value="1" oninput="calculateBudgetRowTotals(this)"></td>
+        <td style="width: 12%;"><input type="number" name="phases[${phaseIndex}][budget][${rowCount}][rate_duration]" class="form-control select-input budget-number-input" value="1" oninput="calculateBudgetRowTotals(this)"></td>
+        <td style="width: 12%;"><input type="number" name="phases[${phaseIndex}][budget][${rowCount}][this_phase]" class="form-control readonly-input budget-number-input" readonly></td>
+        <td style="width: 7%; padding: 4px;"><button type="button" class="btn btn-danger budget-remove-btn" onclick="removeBudgetRow(this)">Remove</button></td>
     `;
 
     newRow.querySelectorAll('input').forEach(input => {
@@ -167,7 +282,21 @@ function addBudgetRow(button) {
         });
     });
 
+    // Auto-resize textarea for particular column using global function
+    const particularTextarea = newRow.querySelector('.particular-textarea');
+    if (particularTextarea) {
+        // Add auto-resize class if not already present
+        if (!particularTextarea.classList.contains('auto-resize-textarea')) {
+            particularTextarea.classList.add('auto-resize-textarea');
+        }
+        // Initialize using global function
+        if (typeof initTextareaAutoResize === 'function') {
+            initTextareaAutoResize(particularTextarea);
+        }
+    }
+
     tableBody.appendChild(newRow);
+    reindexBudgetRows(); // Reindex all rows after adding
     calculateTotalAmountSanctioned();
 }
 
@@ -175,93 +304,35 @@ function addBudgetRow(button) {
 function removeBudgetRow(button) {
     const row = button.closest('tr');
     row.remove();
+    reindexBudgetRows(); // Reindex all rows after removing
     calculateTotalAmountSanctioned(); // Recalculate totals after removing a row
 }
 
-// Add a new phase card - COMMENTED OUT TO DISABLE PHASE FUNCTIONALITY
-/*
-function addPhase() {
-    const phasesContainer = document.getElementById('phases-container');
-    const phaseCount = phasesContainer.children.length;
-    const newPhase = document.createElement('div');
-    newPhase.className = 'phase-card';
-    newPhase.dataset.phase = phaseCount;
+// Reindex budget rows to maintain sequential numbering
+function reindexBudgetRows() {
+    const tableBody = document.querySelector('.budget-rows');
+    if (!tableBody) return;
 
-    newPhase.innerHTML = `
-        <div class="card-header">
-            <h4>Phase ${phaseCount + 1}</h4>
-        </div>
-        ${phaseCount > 0 ? `
-        <div class="mb-3">
-            <label for="phases[${phaseCount}][amount_forwarded]" class="form-label">Amount Forwarded from the Last Financial Year: Rs.</label>
-            <input type="number" name="phases[${phaseCount}][amount_forwarded]" class="form-control" oninput="calculateBudgetTotals(this.closest('.phase-card'))">
-        </div>
-        ` : ''}
-        <div class="mb-3">
-            <label for="phases[${phaseCount}][amount_sanctioned]" class="form-label">Amount Sanctioned in Phase ${phaseCount + 1}: Rs.</label>
-            <input type="number" name="phases[${phaseCount}][amount_sanctioned]" class="form-control readonly-input" readonly>
-        </div>
-        <div class="mb-3">
-            <label for="phases[${phaseCount}][opening_balance]" class="form-label">Opening balance in Phase ${phaseCount + 1}: Rs.</label>
-            <input type="number" name="phases[${phaseCount}][opening_balance]" class="form-control readonly-input" readonly>
-        </div>
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Particular</th>
-                    <th>Costs</th>
-                    <th>Rate Multiplier</th>
-                    <th>Rate Duration</th>
-                    <th>Rate Increase (next phase)</th>
-                    <th>This Phase (Auto)</th>
-                    <th>Next Phase (Auto)</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody class="budget-rows">
-                <tr>
-                    <td><input type="text" name="phases[${phaseCount}][budget][0][particular]" class="form-control"  style="background-color: #202ba3;"></td>
-                    <td><input type="number" name="phases[${phaseCount}][budget][0][rate_quantity]" class="form-control" oninput="calculateBudgetRowTotals(this)"  style="background-color: #202ba3;"></td>
-                    <td><input type="number" name="phases[${phaseCount}][budget][0][rate_multiplier]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"  style="background-color: #202ba3;"></td>
-                    <td><input type="number" name="phases[${phaseCount}][budget][0][rate_duration]" class="form-control" value="1" oninput="calculateBudgetRowTotals(this)"  style="background-color: #202ba3;"></td>
-                    <td><input type="number" name="phases[${phaseCount}][budget][0][rate_increase]" class="form-control" oninput="calculateBudgetRowTotals(this)" style="background-color: #122F6B"></td>
-                    <td><input type="number" name="phases[${phaseCount}][budget][0][this_phase]" class="form-control readonly-input" readonly></td>
-                    <td><input type="number" name="phases[${phaseCount}][budget][0][next_phase]" class="form-control" style="background-color: #122F6B"></td>
-                    <td><button type="button" class="btn btn-danger btn-sm" onclick="removeBudgetRow(this)">Remove</button></td>
-                </tr>
-            </tbody>
-            <tfoot>
-                <tr>
-                    <th>Total</th>
-                    <th><input type="number" class="total_rate_quantity form-control readonly-input" readonly></th>
-                    <th><input type="number" class="total_rate_multiplier form-control readonly-input" readonly></th>
-                    <th><input type="number" class="total_rate_duration form-control readonly-input" readonly></th>
-                    <th><input type="number" class="total_rate_increase form-control readonly-input" readonly></th>
-                    <th><input type="number" class="total_this_phase form-control readonly-input" readonly></th>
-                    <th><input type="number" class="total_next_phase form-control"></th>
-                    <th></th>
-                </tr>
-            </tfoot>
-        </table>
-        <button type="button" class="btn btn-primary" onclick="addBudgetRow(this)">Add Row</button>
-        <div>
-            <button type="button" class="mt-3 btn btn-danger" onclick="removePhase(this)">Remove Phase</button>
-        </div>
-    `;
+    const rows = tableBody.querySelectorAll('tr');
+    rows.forEach((row, index) => {
+        // Update index number in first cell
+        const indexCell = row.querySelector('td:first-child');
+        if (indexCell) {
+            indexCell.textContent = index + 1;
+        }
 
-    phasesContainer.appendChild(newPhase);
-    calculateTotalAmountSanctioned();
+        // Update name attributes for all inputs in the row
+        row.querySelectorAll('input, textarea').forEach(input => {
+            const name = input.getAttribute('name');
+            if (name && name.includes('[budget]')) {
+                // Replace the budget index in the name attribute
+                const newName = name.replace(/\[budget\]\[\d+\]/, `[budget][${index}]`);
+                input.setAttribute('name', newName);
+            }
+        });
+    });
 }
-*/
 
-// Remove a phase card - COMMENTED OUT TO DISABLE PHASE FUNCTIONALITY
-/*
-function removePhase(button) {
-    const phaseCard = button.closest('.phase-card');
-    phaseCard.remove();
-    calculateTotalAmountSanctioned();
-}
-*/
 
 // Add a new attachment field
 function addAttachment() {
@@ -275,11 +346,18 @@ function addAttachment() {
             <input type="file" name="attachments[${index}][file]" class="mb-2 form-control" accept=".pdf,.doc,.docx,.xlsx">
             <label for="file_name[${index}]" class="form-label">File Name</label>
             <input type="text" name="file_name[${index}]" class="mb-2 form-control" placeholder="Name of File Attached">
-            <textarea name="attachments[${index}][description]" class="form-control" rows="3" placeholder="Brief Description"></textarea>
+            <textarea name="attachments[${index}][description]" class="form-control sustainability-textarea" rows="3" placeholder="Brief Description"></textarea>
             <button type="button" class="mt-2 btn btn-danger" onclick="removeAttachment(this)">Remove</button>
         </div>
     `;
     attachmentsContainer.insertAdjacentHTML('beforeend', attachmentTemplate);
+
+    // Initialize auto-resize for new attachment textarea using global function
+    const newAttachment = attachmentsContainer.lastElementChild;
+    if (newAttachment && typeof initDynamicTextarea === 'function') {
+        initDynamicTextarea(newAttachment);
+    }
+
     updateAttachmentLabels();
 }
 

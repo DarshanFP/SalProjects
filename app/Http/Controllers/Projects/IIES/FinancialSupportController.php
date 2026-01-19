@@ -3,16 +3,21 @@
 namespace App\Http\Controllers\Projects\IIES;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IIES\ProjectIIESScopeFinancialSupport;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\IIES\StoreIIESFinancialSupportRequest;
+use App\Http\Requests\Projects\IIES\UpdateIIESFinancialSupportRequest;
 
 class FinancialSupportController extends Controller
 {
     // Store or update financial support
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing IIES Financial Support', ['project_id' => $projectId]);
@@ -21,12 +26,12 @@ class FinancialSupportController extends Controller
             ProjectIIESScopeFinancialSupport::updateOrCreate(
                 ['project_id' => $projectId],
                 [
-                    'govt_eligible_scholarship' => $request->govt_eligible_scholarship,
-                    'scholarship_amt' => $request->scholarship_amt,
-                    'other_eligible_scholarship' => $request->other_eligible_scholarship,
-                    'other_scholarship_amt' => $request->other_scholarship_amt,
-                    'family_contrib' => $request->family_contrib,
-                    'no_contrib_reason' => $request->no_contrib_reason,
+                    'govt_eligible_scholarship' => $validated['govt_eligible_scholarship'] ?? null,
+                    'scholarship_amt' => $validated['scholarship_amt'] ?? null,
+                    'other_eligible_scholarship' => $validated['other_eligible_scholarship'] ?? null,
+                    'other_scholarship_amt' => $validated['other_scholarship_amt'] ?? null,
+                    'family_contrib' => $validated['family_contrib'] ?? null,
+                    'no_contrib_reason' => $validated['no_contrib_reason'] ?? null,
                 ]
             );
 
@@ -110,23 +115,26 @@ public function show($project_id)
         return new ProjectIIESScopeFinancialSupport(); // Return empty object on failure
     }
 }
-public function update(Request $request, $projectId)
+public function update(FormRequest $request, $projectId)
 {
+    // Use all() to get all form data including fields not in UpdateProjectRequest validation rules
+    $validated = $request->all();
+    
     DB::beginTransaction();
 
     try {
-        Log::info('Updating IIES Financial Support', ['project_id' => $projectId, 'data' => $request->all()]);
+        Log::info('Updating IIES Financial Support', ['project_id' => $projectId]);
 
         // Fetch the existing record or create a new one if it doesn't exist
         $IIESFinancialSupport = ProjectIIESScopeFinancialSupport::updateOrCreate(
             ['project_id' => $projectId],
             [
-                'govt_eligible_scholarship' => $request->govt_eligible_scholarship,
-                'scholarship_amt' => $request->scholarship_amt,
-                'other_eligible_scholarship' => $request->other_eligible_scholarship,
-                'other_scholarship_amt' => $request->other_scholarship_amt,
-                'family_contrib' => $request->family_contrib,
-                'no_contrib_reason' => $request->no_contrib_reason,
+                'govt_eligible_scholarship' => $validated['govt_eligible_scholarship'] ?? null,
+                'scholarship_amt' => $validated['scholarship_amt'] ?? null,
+                'other_eligible_scholarship' => $validated['other_eligible_scholarship'] ?? null,
+                'other_scholarship_amt' => $validated['other_scholarship_amt'] ?? null,
+                'family_contrib' => $validated['family_contrib'] ?? null,
+                'no_contrib_reason' => $validated['no_contrib_reason'] ?? null,
             ]
         );
 

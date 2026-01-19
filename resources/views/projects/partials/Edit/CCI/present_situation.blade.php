@@ -5,12 +5,12 @@
     <div class="card-body">
         <div class="mb-3">
             <label for="internal_challenges" class="form-label">(1) Internal challenges faced from inmates</label>
-            <textarea name="internal_challenges" class="form-control" rows="3" style="background-color: #202ba3;" placeholder="Describe internal challenges">{{ $presentSituation->internal_challenges ?? '' }}</textarea>
+            <textarea name="internal_challenges" class="form-control sustainability-textarea" rows="3" placeholder="Describe internal challenges">{{ $presentSituation->internal_challenges ?? '' }}</textarea>
         </div>
 
         <div class="mb-3">
             <label for="external_challenges" class="form-label">(2) External challenges / Present difficulties</label>
-            <textarea name="external_challenges" class="form-control" rows="3" style="background-color: #202ba3;" placeholder="Describe external challenges">{{ $presentSituation->external_challenges ?? '' }}</textarea>
+            <textarea name="external_challenges" class="form-control sustainability-textarea" rows="3" placeholder="Describe external challenges">{{ $presentSituation->external_challenges ?? '' }}</textarea>
         </div>
     </div>
 
@@ -22,23 +22,7 @@
             <label for="area_of_focus" class="form-label">
                 What are the main areas you want to focus on for the growth/development of the institution and children? Explain why you want to focus on these areas and what you intend to achieve?
             </label>
-            <textarea name="area_of_focus" class="form-control" rows="4" style="background-color: #202ba3;" placeholder="Specify areas of focus">{{ $presentSituation->area_of_focus ?? '' }}</textarea>
+            <textarea name="area_of_focus" class="form-control sustainability-textarea" rows="4" placeholder="Specify areas of focus">{{ $presentSituation->area_of_focus ?? '' }}</textarea>
         </div>
     </div>
 </div>
-
-<!-- Styles for table and input fields -->
-<style>
-    .form-control {
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .form-label {
-        font-weight: bold;
-    }
-
-    textarea {
-        resize: none;
-    }
-</style>

@@ -33,26 +33,17 @@
 	<link rel="stylesheet" href="{{ asset('backend/assets/css/demo2/style.css') }}">
 	<!-- End layout styles -->
 
+	<!-- Custom form styles for dark theme -->
+	<link rel="stylesheet" href="{{ asset('css/custom/project-forms.css') }}">
+	<!-- End custom form styles -->
+
 	<!-- Custom styles for this page -->
 	<style>
-		.form-control {
-			background-color: #2b2b2b;
-			color: #ffffff;
-		}
-		.form-control::placeholder {
-			color: #b0b0b0;
-		}
 		.form-check-label {
 			color: #ffffff;
 		}
 		.text-white {
 			color: #ffffff !important;
-		}
-
-		/* Autofill styles */
-		input:-webkit-autofill {
-			-webkit-box-shadow: 0 0 0 30px #2b2b2b inset !important;
-			-webkit-text-fill-color: #ffffff !important;
 		}
 	</style>
 

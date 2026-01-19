@@ -3,16 +3,21 @@
 namespace App\Http\Controllers\Projects\ILP;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\ILP\ProjectILPPersonalInfo;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\ILP\StoreILPPersonalInfoRequest;
+use App\Http\Requests\Projects\ILP\UpdateILPPersonalInfoRequest;
 
 class PersonalInfoController extends Controller
 {
     // Store or update personal information
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing ILP Personal Information', ['project_id' => $projectId]);
@@ -20,26 +25,26 @@ class PersonalInfoController extends Controller
             ProjectILPPersonalInfo::updateOrCreate(
                 ['project_id' => $projectId],
                 [
-                    'name' => $request->name,
-                    'age' => $request->age,
-                    'gender' => $request->gender,
-                    'dob' => $request->dob,
-                    'email' => $request->email,
-                    'contact_no' => $request->contact_no,
-                    'aadhar_id' => $request->aadhar_id,
-                    'address' => $request->address,
-                    'occupation' => $request->occupation,
-                    'marital_status' => $request->marital_status,
-                    'spouse_name' => $request->marital_status == 'Married' ? $request->spouse_name : null,
-                    'children_no' => $request->children_no,
-                    'children_edu' => $request->children_edu,
-                    'religion' => $request->religion,
-                    'caste' => $request->caste,
-                    'family_situation' => $request->family_situation,
-                    'small_business_status' => $request->small_business_status,
-                    'small_business_details' => $request->small_business_status == '1' ? $request->small_business_details : null,
-                    'monthly_income' => $request->monthly_income,
-                    'business_plan' => $request->business_plan,
+                    'name' => $validated['name'] ?? null,
+                    'age' => $validated['age'] ?? null,
+                    'gender' => $validated['gender'] ?? null,
+                    'dob' => $validated['dob'] ?? null,
+                    'email' => $validated['email'] ?? null,
+                    'contact_no' => $validated['contact_no'] ?? null,
+                    'aadhar_id' => $validated['aadhar_id'] ?? null,
+                    'address' => $validated['address'] ?? null,
+                    'occupation' => $validated['occupation'] ?? null,
+                    'marital_status' => $validated['marital_status'] ?? null,
+                    'spouse_name' => ($validated['marital_status'] ?? '') == 'Married' ? ($validated['spouse_name'] ?? null) : null,
+                    'children_no' => $validated['children_no'] ?? null,
+                    'children_edu' => $validated['children_edu'] ?? null,
+                    'religion' => $validated['religion'] ?? null,
+                    'caste' => $validated['caste'] ?? null,
+                    'family_situation' => $validated['family_situation'] ?? null,
+                    'small_business_status' => $validated['small_business_status'] ?? null,
+                    'small_business_details' => ($validated['small_business_status'] ?? '') == '1' ? ($validated['small_business_details'] ?? null) : null,
+                    'monthly_income' => $validated['monthly_income'] ?? null,
+                    'business_plan' => $validated['business_plan'] ?? null,
                 ]
             );
 
@@ -92,8 +97,9 @@ class PersonalInfoController extends Controller
             return null; // Return null if an error occurs
         }
     }
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Reuse store logic
         return $this->store($request, $projectId);
     }
 //

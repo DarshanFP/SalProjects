@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Helpers\LogHelper;
 
 class DevelopmentProjectController extends Controller
 {
@@ -68,7 +69,7 @@ class DevelopmentProjectController extends Controller
     {
         // Log the request data
         Log::info('Store method called');
-        Log::info('Request data: ', $request->all());
+        LogHelper::logSafeRequest('Request data', $request, LogHelper::getReportAllowedFields());
 
         // Validate the incoming request data
         $validatedData = $request->validate([
@@ -216,7 +217,17 @@ class DevelopmentProjectController extends Controller
 
     public function index()
     {
-        $reports = RQDPReport::where('user_id', Auth::id())->get();
+        $user = Auth::user();
+
+        // Get project IDs where user is owner or in-charge
+        $projectIds = \App\Services\ProjectQueryService::getProjectIdsForUser($user);
+
+        // Eager load relationships to prevent N+1 queries
+        // Note: RQDPReport uses OldDevelopmentProject which may have different structure
+        // For now, filter by user_id but this may need adjustment based on actual model structure
+        $reports = RQDPReport::where('user_id', $user->id)
+            ->with(['user', 'project', 'accountDetails'])
+            ->get();
         return view('reports.quarterly.developmentProject.list', compact('reports'));
     }
 

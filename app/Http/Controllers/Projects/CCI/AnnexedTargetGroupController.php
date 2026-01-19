@@ -4,22 +4,27 @@ namespace App\Http\Controllers\Projects\CCI;
 
 use App\Http\Controllers\Controller;
 use App\Models\OldProjects\CCI\ProjectCCIAnnexedTargetGroup;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\CCI\StoreCCIAnnexedTargetGroupRequest;
+use App\Http\Requests\Projects\CCI\UpdateCCIAnnexedTargetGroupRequest;
 
 class AnnexedTargetGroupController extends Controller
 {
     // Store new annexed target group entries
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including annexed_target_group[] arrays
+        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing CCI Annexed Target Group', ['project_id' => $projectId]);
-            Log::info('Request Data:', $request->all());
 
             // Loop through each annexed target group entry
-            foreach ($request->annexed_target_group as $group) {
+            foreach (($validated['annexed_target_group'] ?? []) as $group) {
                 // Log each beneficiary entry data before inserting
                 Log::info('Beneficiary Entry:', $group);
 
@@ -45,15 +50,18 @@ class AnnexedTargetGroupController extends Controller
     }
 
     // Update or create annexed target group entries
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including annexed_target_group[] arrays
+        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Updating or Creating CCI Annexed Target Group', ['project_id' => $projectId]);
-            Log::info('Request Data:', $request->all());
 
             // Loop through each annexed target group entry
-            foreach ($request->annexed_target_group as $group) {
+            foreach (($validated['annexed_target_group'] ?? []) as $group) {
                 // Log each beneficiary entry data before inserting/updating
                 Log::info('Beneficiary Entry:', $group);
 

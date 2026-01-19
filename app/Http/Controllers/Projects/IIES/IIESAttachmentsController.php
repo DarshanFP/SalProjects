@@ -3,29 +3,31 @@
 namespace App\Http\Controllers\Projects\IIES;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IIES\ProjectIIESAttachments;
 use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Requests\Projects\IIES\StoreIIESAttachmentsRequest;
+use App\Http\Requests\Projects\IIES\UpdateIIESAttachmentsRequest;
 
 class IIESAttachmentsController extends Controller
 {
     /**
      * STORE: handle initial file uploads for IIES Attachments.
      */
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('IIESAttachmentsController@store - Start', [
-            'project_id' => $projectId,
-            'request_data' => $request->all(),
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
         try {
-            // Validate file fields (optional).
-            $request->validate($this->validationRules());
 
             // Ensure project exists
             if (!Project::where('project_id', $projectId)->exists()) {
@@ -64,31 +66,25 @@ class IIESAttachmentsController extends Controller
         try {
             Log::info('IIESAttachmentsController@show - Fetching attachments', ['project_id' => $projectId]);
 
-            // Fetch attachments for the given project ID
-            $attachments = ProjectIIESAttachments::where('project_id', $projectId)->first();
+            // Fetch attachments for the given project ID with files relationship
+            $attachments = ProjectIIESAttachments::where('project_id', $projectId)
+                ->with('files')
+                ->first();
 
             if (!$attachments) {
                 Log::warning('IIESAttachmentsController@show - No attachments found', ['project_id' => $projectId]);
-                return []; // ✅ Always return an empty array instead of null
+                return null; // Return null so Blade can handle it properly
             }
 
-            return [
-                'iies_aadhar_card'          => $attachments->iies_aadhar_card ? Storage::url($attachments->iies_aadhar_card) : null,
-                'iies_fee_quotation'        => $attachments->iies_fee_quotation ? Storage::url($attachments->iies_fee_quotation) : null,
-                'iies_scholarship_proof'    => $attachments->iies_scholarship_proof ? Storage::url($attachments->iies_scholarship_proof) : null,
-                'iies_medical_confirmation' => $attachments->iies_medical_confirmation ? Storage::url($attachments->iies_medical_confirmation) : null,
-                'iies_caste_certificate'    => $attachments->iies_caste_certificate ? Storage::url($attachments->iies_caste_certificate) : null,
-                'iies_self_declaration'     => $attachments->iies_self_declaration ? Storage::url($attachments->iies_self_declaration) : null,
-                'iies_death_certificate'    => $attachments->iies_death_certificate ? Storage::url($attachments->iies_death_certificate) : null,
-                'iies_request_letter'       => $attachments->iies_request_letter ? Storage::url($attachments->iies_request_letter) : null,
-            ];
+            // Return the attachment object (views will use getFilesForField method)
+            return $attachments;
         } catch (\Exception $e) {
             Log::error('IIESAttachmentsController@show - Error retrieving attachments', [
                 'project_id' => $projectId,
                 'error' => $e->getMessage(),
             ]);
 
-            return []; // ✅ Always return an array, even on error
+            return null; // Return null to prevent errors in Blade template
         }
     }
 
@@ -133,17 +129,17 @@ class IIESAttachmentsController extends Controller
     /**
      * UPDATE: handle new file uploads that overwrite old files, if present.
      */
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('IIESAttachmentsController@update - Start', [
-            'project_id' => $projectId,
-            'request_data' => $request->all()
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
         try {
-            // Validate new files (optional)
-            $request->validate($this->validationRules());
 
             $attachments = ProjectIIESAttachments::handleAttachments($request, $projectId);
 
@@ -201,20 +197,4 @@ class IIESAttachmentsController extends Controller
         }
     }
 
-    /**
-     * Validation rules for each file input.
-     */
-    private function validationRules(): array
-    {
-        return [
-            'iies_aadhar_card'          => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'iies_fee_quotation'        => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'iies_scholarship_proof'    => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'iies_medical_confirmation' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'iies_caste_certificate'    => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'iies_self_declaration'     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'iies_death_certificate'    => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'iies_request_letter'       => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-        ];
-    }
 }

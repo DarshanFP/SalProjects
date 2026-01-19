@@ -6,7 +6,7 @@
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-bordered">
-                <thead style="background-color: #202ba3; color: white;">
+                <thead>
                     <tr>
                         <th style="text-align: center;">S.No.</th>
                         <th>Beneficiary Name</th>
@@ -22,8 +22,8 @@
                             <tr>
                                 <td style="text-align: center;">{{ $loop->iteration }}</td>
                                 <td><input type="text" name="L_beneficiary_name[]" class="form-control" value="{{ $targetGroup['L_beneficiary_name'] }}" placeholder="Enter name"></td>
-                                <td><textarea name="L_family_situation[]" class="form-control" rows="2" placeholder="Enter family situation">{{ $targetGroup['L_family_situation'] }}</textarea></td>
-                                <td><textarea name="L_nature_of_livelihood[]" class="form-control" rows="2" placeholder="Enter nature of livelihood">{{ $targetGroup['L_nature_of_livelihood'] }}</textarea></td>
+                                <td><textarea name="L_family_situation[]" class="form-control auto-resize-textarea" rows="2" placeholder="Enter family situation">{{ $targetGroup['L_family_situation'] }}</textarea></td>
+                                <td><textarea name="L_nature_of_livelihood[]" class="form-control auto-resize-textarea" rows="2" placeholder="Enter nature of livelihood">{{ $targetGroup['L_nature_of_livelihood'] }}</textarea></td>
                                 <td><input type="number" name="L_amount_requested[]" class="form-control" value="{{ $targetGroup['L_amount_requested'] }}" placeholder="Enter amount"></td>
                                 <td><button type="button" class="btn btn-danger ldp-remove-row-btn">Remove</button></td>
                             </tr>
@@ -54,13 +54,21 @@
             newRow.innerHTML = `
                 <td style="text-align: center;">${rowCount}</td>
                 <td><input type="text" name="L_beneficiary_name[]" class="form-control" placeholder="Enter name"></td>
-                <td><textarea name="L_family_situation[]" class="form-control" rows="2" placeholder="Enter family situation"></textarea></td>
-                <td><textarea name="L_nature_of_livelihood[]" class="form-control" rows="2" placeholder="Enter nature of livelihood"></textarea></td>
+                <td><textarea name="L_family_situation[]" class="form-control auto-resize-textarea" rows="2" placeholder="Enter family situation"></textarea></td>
+                <td><textarea name="L_nature_of_livelihood[]" class="form-control auto-resize-textarea" rows="2" placeholder="Enter nature of livelihood"></textarea></td>
                 <td><input type="number" name="L_amount_requested[]" class="form-control" placeholder="Enter amount"></td>
                 <td><button type="button" class="btn btn-danger ldp-remove-row-btn">Remove</button></td>
             `;
 
             document.getElementById('ldp-edit-target-group-rows').appendChild(newRow);
+
+            // Initialize auto-resize for newly added textareas
+            const newTextareas = newRow.querySelectorAll('.auto-resize-textarea');
+            if (newTextareas.length > 0 && typeof window.initTextareaAutoResize === 'function') {
+                newTextareas.forEach(textarea => {
+                    window.initTextareaAutoResize(textarea);
+                });
+            }
 
             // Attach event listener to the new remove button
             newRow.querySelector('.ldp-remove-row-btn').addEventListener('click', function () {

@@ -23,9 +23,9 @@
                         <td>{{ $index + 1 }}</td>
                         <td><input type="text" name="obeneficiary_name[]" class="form-control" value="{{ old('obeneficiary_name.' . $index, $beneficiary->obeneficiary_name) }}"></td>
                         <td><input type="text" name="ocaste[]" class="form-control" value="{{ old('ocaste.' . $index, $beneficiary->ocaste) }}"></td>
-                        <td><textarea name="oaddress[]" class="form-control" rows="2">{{ old('oaddress.' . $index, $beneficiary->oaddress) }}</textarea></td>
+                        <td><textarea name="oaddress[]" class="form-control sustainability-textarea" rows="2">{{ old('oaddress.' . $index, $beneficiary->oaddress) }}</textarea></td>
                         <td><input type="text" name="ocurrent_group_year_of_study[]" class="form-control" value="{{ old('ocurrent_group_year_of_study.' . $index, $beneficiary->ocurrent_group_year_of_study) }}"></td>
-                        <td><textarea name="operformance_details[]" class="form-control" rows="2">{{ old('operformance_details.' . $index, $beneficiary->operformance_details) }}</textarea></td>
+                        <td><textarea name="operformance_details[]" class="form-control sustainability-textarea" rows="2">{{ old('operformance_details.' . $index, $beneficiary->operformance_details) }}</textarea></td>
                         <td><button type="button" class="btn btn-danger" onclick="IGSremoveOngoingBeneficiaryRow(this)">Remove</button></td>
                     </tr>
                     @empty
@@ -51,13 +51,22 @@
                 <td>${IGSongoingBeneficiaryRowIndex}</td>
                 <td><input type="text" name="obeneficiary_name[]" class="form-control"></td>
                 <td><input type="text" name="ocaste[]" class="form-control"></td>
-                <td><textarea name="oaddress[]" class="form-control" rows="2"></textarea></td>
+                <td><textarea name="oaddress[]" class="form-control sustainability-textarea" rows="2"></textarea></td>
                 <td><input type="text" name="ocurrent_group_year_of_study[]" class="form-control"></td>
-                <td><textarea name="operformance_details[]" class="form-control" rows="2"></textarea></td>
+                <td><textarea name="operformance_details[]" class="form-control sustainability-textarea" rows="2"></textarea></td>
                 <td><button type="button" class="btn btn-danger" onclick="IGSremoveOngoingBeneficiaryRow(this)">Remove</button></td>
             </tr>
         `;
         document.getElementById('IGS-ongoing-beneficiaries-rows').insertAdjacentHTML('beforeend', newRow);
+
+        // Initialize auto-resize for newly added textareas using global function
+        const newRowElement = document.getElementById('IGS-ongoing-beneficiaries-rows').lastElementChild;
+        const newTextareas = newRowElement.querySelectorAll('.sustainability-textarea');
+        if (newTextareas.length > 0 && typeof window.initTextareaAutoResize === 'function') {
+            newTextareas.forEach(textarea => {
+                window.initTextareaAutoResize(textarea);
+            });
+        }
     }
 
     function IGSremoveOngoingBeneficiaryRow(button) {
@@ -73,12 +82,14 @@
         });
         IGSongoingBeneficiaryRowIndex = rows.length;
     }
-</script>
 
-<!-- Styles -->
-<style>
-    .form-control {
-        background-color: #202ba3;
-        color: white;
-    }
-</style>
+    // Initialize auto-resize for newly added textareas using global function
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize existing textareas (global script handles this, but ensure dynamic ones work)
+        document.querySelectorAll('#IGS-ongoing-beneficiaries-rows .sustainability-textarea').forEach(textarea => {
+            if (typeof window.initTextareaAutoResize === 'function') {
+                window.initTextareaAutoResize(textarea);
+            }
+        });
+    });
+</script>

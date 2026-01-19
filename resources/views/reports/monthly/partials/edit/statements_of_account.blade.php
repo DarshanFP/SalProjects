@@ -17,21 +17,17 @@
             <input type="number" name="amount_sanctioned_overview" class="form-control readonly-input" value="{{ old('amount_sanctioned_overview', $report->amount_sanctioned_overview) }}" readonly>
         </div>
         <div class="mb-3">
-            <label for="amount_forwarded_overview" class="form-label">Amount Forwarded from the Last Financial Year: Rs.</label>
-            <input type="number" name="amount_forwarded_overview" class="form-control readonly-input" value="{{ old('amount_forwarded_overview', $report->amount_forwarded_overview) }}" readonly>
-        </div>
-        <div class="mb-3">
             <label for="amount_in_hand" class="form-label">Total Amount: Rs.</label>
-            <input type="number" name="amount_in_hand" class="form-control readonly-input" value="{{ old('amount_in_hand', $report->amount_in_hand) }}" readonly>
+            <input type="number" name="amount_in_hand" class="form-control readonly-input" value="{{ old('amount_in_hand', $report->amount_sanctioned_overview ?? 0.00) }}" readonly>
         </div>
 
         <table class="table table-bordered">
             <thead>
                 <tr>
+                    <th>No.</th>
                     <th>Particulars</th>
-                    <th>Amount Forwarded from the Previous Year</th>
                     <th>Amount Sanctioned Current Year</th>
-                    <th>Total Amount (2+3)</th>
+                    <th>Total Amount</th>
                     <th>Expenses Up to Last Month</th>
                     <th>Expenses of This Month</th>
                     <th>Total Expenses (5+6)</th>
@@ -44,6 +40,7 @@
                     <tr data-budget-row="{{ $accountDetail->is_budget_row ? 'true' : 'false' }}">
                         <input type="hidden" name="account_detail_id[{{$index}}]" value="{{ $accountDetail->account_detail_id }}">
                         <input type="hidden" name="is_budget_row[{{$index}}]" value="{{ $accountDetail->is_budget_row }}">
+                        <td>{{ $index + 1 }}</td>
                         <td><input type="text" name="particulars[]" class="form-control" value="{{ old('particulars.' . $index, $accountDetail->particulars) }}" readonly></td>
                         <td><input type="number" name="amount_forwarded[]" class="form-control" value="{{ old('amount_forwarded.' . $index, $accountDetail->amount_forwarded) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
                         <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ old('amount_sanctioned.' . $index, $accountDetail->amount_sanctioned) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
@@ -66,7 +63,7 @@
             <tfoot>
                 <tr>
                     <th>Total</th>
-                    <th><input type="number" id="total_forwarded" class="form-control" readonly></th>
+                    <th></th>
                     <th><input type="number" id="total_sanctioned" class="form-control" readonly></th>
                     <th><input type="number" id="total_amount_total" class="form-control" readonly></th>
                     <th><input type="number" id="total_expenses_last_month" class="form-control" readonly></th>
@@ -97,12 +94,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     const prjctAmountSanctioned = document.querySelector('[name="amount_sanctioned_overview"]');
-    const lyAmountForwarded = document.querySelector('[name="amount_forwarded_overview"]');
 
     prjctAmountSanctioned.addEventListener('input', calculateTotalAmount);
-    lyAmountForwarded.addEventListener('input', calculateTotalAmount);
 
     // Initialize calculations on page load
+    reindexAccountRows();
     calculateAllRowTotals();
     calculateTotal();
     calculateTotalAmount();
@@ -122,6 +118,12 @@ function calculateRowTotals(row) {
     row.querySelector('[name="total_amount[]"]').value = totalAmount.toFixed(2);
     row.querySelector('[name="total_expenses[]"]').value = totalExpenses.toFixed(2);
     row.querySelector('[name="balance_amount[]"]').value = balanceAmount.toFixed(2);
+
+    // Update balance color for this row
+    const balanceInput = row.querySelector('[name="balance_amount[]"]');
+    if (balanceInput) {
+        updateBalanceColor(balanceInput);
+    }
 
     calculateTotal(); // Update overall totals
 }
@@ -165,13 +167,15 @@ function calculateTotal() {
 
     // Update the total balance forwarded field
     document.querySelector('[name="total_balance_forwarded"]').value = totalBalance.toFixed(2);
+
+    // Update balance colors after calculation
+    updateAllBalanceColors();
 }
 
 // Function to calculate the overall amount in hand
 function calculateTotalAmount() {
     const amountSanctioned = parseFloat(document.querySelector('[name="amount_sanctioned_overview"]').value) || 0;
-    const amountForwarded = parseFloat(document.querySelector('[name="amount_forwarded_overview"]').value) || 0;
-    const totalAmount = amountSanctioned + amountForwarded;
+    const totalAmount = amountSanctioned; // No longer includes amount_forwarded
 
     document.querySelector('[name="amount_in_hand"]').value = totalAmount.toFixed(2);
 }
@@ -184,6 +188,7 @@ function addAccountRow() {
     newRow.innerHTML = `
         <input type="hidden" name="account_detail_id[${currentRowCount}]" value="">
         <input type="hidden" name="is_budget_row[${currentRowCount}]" value="0">
+        <td>${currentRowCount + 1}</td>
         <td><input type="text" name="particulars[]" class="form-control" style="background-color: #202ba3;"></td>
         <td><input type="number" name="amount_forwarded[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
         <td><input type="number" name="amount_sanctioned[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
@@ -203,13 +208,57 @@ function addAccountRow() {
     });
     tableBody.appendChild(newRow);
     calculateRowTotals(newRow);
+    reindexAccountRows();
 }
 
 // Function to remove a row from the account table
 function removeAccountRow(button) {
     const row = button.closest('tr');
     row.remove();
+    reindexAccountRows();
     calculateTotal(); // Recalculate totals after removing a row
 }
+
+/**
+ * Reindexes all account detail rows after add/remove operations
+ * Updates index numbers in the "No." column and form field names/IDs
+ * Ensures sequential numbering (1, 2, 3, ...) for all account rows
+ *
+ * @returns {void}
+ */
+function reindexAccountRows() {
+    const rows = document.querySelectorAll('#account-rows tr');
+    rows.forEach((row, index) => {
+        const indexCell = row.querySelector('td:first-child');
+        if (indexCell) {
+            indexCell.textContent = index + 1;
+        }
+    });
+}
+
+// Function to update balance color for a single input
+function updateBalanceColor(inputElement) {
+    const value = parseFloat(inputElement.value) || 0;
+
+    if (value < 0) {
+        inputElement.style.backgroundColor = 'red';
+    } else {
+        inputElement.style.backgroundColor = '';
+    }
+}
+
+// Function to update all balance colors
+function updateAllBalanceColors() {
+    const balanceFields = document.querySelectorAll('[name="balance_amount[]"], #total_balance');
+    balanceFields.forEach(field => {
+        updateBalanceColor(field);
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function () {
+    reindexAccountRows();
+    updateAllBalanceColors();
+});
 
 </script>

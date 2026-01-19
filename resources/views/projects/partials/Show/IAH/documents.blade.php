@@ -1,104 +1,94 @@
-{{-- resources/views/projects/partials/Show/IAH/documents.blade.php --}}
-
+{{-- resources/views/projects/partials/show/IAH/documents.blade.php --}}
 @php
-    // If IAHDocuments is empty, try to fetch it directly
+    use App\Models\OldProjects\IAH\ProjectIAHDocuments;
+    use App\Models\OldProjects\IAH\ProjectIAHDocumentFile;
+    use Illuminate\Support\Facades\Storage;
+
     if (!isset($IAHDocuments) || empty($IAHDocuments)) {
-        $controller = new \App\Http\Controllers\Projects\IAH\IAHDocumentsController();
-        $IAHDocuments = $controller->show($project->project_id ?? 'IAH-0013');
+        if (isset($project->project_id) && !empty($project->project_id)) {
+            $IAHDocuments = ProjectIAHDocuments::where('project_id', $project->project_id)->first();
+        } else {
+            $IAHDocuments = null;
+        }
     }
+
+    $fields = [
+        'aadhar_copy' => 'Aadhar Copy',
+        'request_letter' => 'Request Letter',
+        'medical_reports' => 'Medical Reports',
+        'other_docs' => 'Other Documents'
+    ];
 @endphp
 
-<div class="card mb-3">
+<div class="mb-4 card">
     <div class="card-header">
-        <h5>Attached Documents of the Beneficiary</h5>
+        <h4 class="mb-0">Attached Documents:</h4>
     </div>
     <div class="card-body">
-
-        <!-- Aadhar Copy -->
-        <div class="attachment-row">
-            <span class="attachment-label">Aadhar Copy:</span>
-            <div class="attachment-actions">
-                @if(!empty($IAHDocuments['aadhar_copy']))
-                    <a href="{{ $IAHDocuments['aadhar_copy'] }}" target="_blank" class="btn btn-sm btn-primary">View Document</a>
-                    <a href="{{ $IAHDocuments['aadhar_copy'] }}" download class="btn btn-sm btn-secondary">Download</a>
-                @else
-                    <span class="text-muted">No file uploaded</span>
-                @endif
-            </div>
-        </div>
-
-        <!-- Request Letter -->
-        <div class="attachment-row">
-            <span class="attachment-label">Request Letter:</span>
-            <div class="attachment-actions">
-                @if(!empty($IAHDocuments['request_letter']))
-                    <a href="{{ $IAHDocuments['request_letter'] }}" target="_blank" class="btn btn-sm btn-primary">View Document</a>
-                    <a href="{{ $IAHDocuments['request_letter'] }}" download class="btn btn-sm btn-secondary">Download</a>
-                @else
-                    <span class="text-muted">No file uploaded</span>
-                @endif
-            </div>
-        </div>
-
-        <!-- Medical Reports -->
-        <div class="attachment-row">
-            <span class="attachment-label">Medical Reports (Diagnosis):</span>
-            <div class="attachment-actions">
-                @if(!empty($IAHDocuments['medical_reports']))
-                    <a href="{{ $IAHDocuments['medical_reports'] }}" target="_blank" class="btn btn-sm btn-primary">View Document</a>
-                    <a href="{{ $IAHDocuments['medical_reports'] }}" download class="btn btn-sm btn-secondary">Download</a>
-                @else
-                    <span class="text-muted">No file uploaded</span>
-                @endif
-            </div>
-        </div>
-
-        <!-- Other Supporting Documents -->
-        <div class="attachment-row">
-            <span class="attachment-label">Other Supporting Documents:</span>
-            <div class="attachment-actions">
-                @if(!empty($IAHDocuments['other_docs']))
-                    <a href="{{ $IAHDocuments['other_docs'] }}" target="_blank" class="btn btn-sm btn-primary">View Document</a>
-                    <a href="{{ $IAHDocuments['other_docs'] }}" download class="btn btn-sm btn-secondary">Download</a>
-                @else
-                    <span class="text-muted">No file uploaded</span>
-                @endif
-            </div>
+        <div class="row">
+            @foreach ($fields as $field => $label)
+                <div class="col-md-6 mb-4">
+                    <label class="form-label fw-bold">{{ $label }}:</label>
+                    @if(!empty($IAHDocuments))
+                        @php
+                            $files = $IAHDocuments->getFilesForField($field);
+                        @endphp
+                        @if($files && $files->count() > 0)
+                            <div class="file-list">
+                                @foreach($files as $file)
+                                    @php
+                                        $fileExists = Storage::disk('public')->exists($file->file_path);
+                                    @endphp
+                                    <div class="file-item mb-2 p-2 border rounded">
+                                        @if($fileExists)
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <i class="{{ \App\Helpers\AttachmentFileNamingHelper::getFileIcon($file->file_path) ?? config('attachments.file_icons.default') }}"></i>
+                                                    <strong>{{ $file->file_name }}</strong>
+                                                    @if($file->description)
+                                                        <br><small class="text-muted">{{ $file->description }}</small>
+                                                    @endif
+                                                    <br><small class="text-muted">Serial: {{ $file->serial_number }}</small>
+                                                </div>
+                                                <div>
+                                                    <a href="{{ Storage::url($file->file_path) }}" target="_blank" class="btn btn-sm btn-primary">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </a>
+                                                    <a href="{{ Storage::url($file->file_path) }}" download class="btn btn-sm btn-secondary">
+                                                        <i class="fas fa-download"></i> Download
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <span class="text-danger">
+                                                <i class="fas fa-exclamation-triangle"></i> File not found: {{ $file->file_name }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-muted">No files uploaded.</p>
+                        @endif
+                    @else
+                        <p class="text-muted">No files uploaded.</p>
+                    @endif
+                </div>
+            @endforeach
         </div>
     </div>
 </div>
 
-<!-- Styles -->
 <style>
-    .attachment-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 0;
-        border-bottom: 1px solid #eee;
+    .file-item {
+        background-color: #2d3748;
+        border-color: #4a5568 !important;
+        color: #e2e8f0;
     }
-
-    .attachment-row:last-child {
-        border-bottom: none;
+    .file-item .text-muted {
+        color: #a0aec0 !important;
     }
-
-    .attachment-label {
-        font-weight: bold;
-        color: #333;
-        flex: 1;
-    }
-
-    .attachment-actions {
-        flex: 1;
-        text-align: right;
-    }
-
-    .btn {
-        margin-left: 5px;
-    }
-
-    .text-muted {
-        color: #6c757d;
-        font-style: italic;
+    .file-list {
+        margin-top: 10px;
     }
 </style>

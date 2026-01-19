@@ -44,22 +44,53 @@
         <!-- Address of Doctor/Hospital -->
         <div class="mb-3">
             <label for="doctor_address" class="form-label">Address of Doctor/Hospital:</label>
-            <textarea name="doctor_address" class="form-control" rows="2" placeholder="Enter doctor's or hospital's address">{{ old('doctor_address', $healthCondition->doctor_address) }}</textarea>
+            <textarea name="doctor_address" class="form-control sustainability-textarea" rows="2" placeholder="Enter doctor's or hospital's address">{{ old('doctor_address', $healthCondition->doctor_address) }}</textarea>
         </div>
 
         <!-- Health Situation -->
         <div class="mb-3">
             <label for="health_situation" class="form-label">Please mention clearly about the health situation of the beneficiary:</label>
-            <textarea name="health_situation" class="form-control" rows="3" placeholder="Provide details on the health situation">{{ old('health_situation', $healthCondition->health_situation) }}</textarea>
+            <textarea name="health_situation" class="form-control sustainability-textarea" rows="3" placeholder="Provide details on the health situation">{{ old('health_situation', $healthCondition->health_situation) }}</textarea>
         </div>
 
         <!-- Family Situation -->
         <div class="mb-3">
             <label for="family_situation" class="form-label">Give information about the present situation of the family:</label>
-            <textarea name="family_situation" class="form-control" rows="3" placeholder="Provide details on the family situation">{{ old('family_situation', $healthCondition->family_situation) }}</textarea>
+            <textarea name="family_situation" class="form-control sustainability-textarea" rows="3" placeholder="Provide details on the family situation">{{ old('family_situation', $healthCondition->family_situation) }}</textarea>
         </div>
     </div>
-</div> --}}
+</div>
+
+<style>
+.sustainability-textarea {
+    resize: vertical;
+    min-height: 80px;
+    height: auto;
+    overflow-y: hidden;
+    line-height: 1.5;
+    padding: 8px 12px;
+}
+
+.sustainability-textarea:focus {
+    overflow-y: auto;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function autoResizeTextarea(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+    }
+    const textareas = document.querySelectorAll('.sustainability-textarea');
+    textareas.forEach(textarea => {
+        autoResizeTextarea(textarea);
+        textarea.addEventListener('input', function() {
+            autoResizeTextarea(this);
+        });
+    });
+});
+</script> --}}
 <div class="mb-4 card">
     <div class="card-header">
         <h4 class="mb-0">Edit: Health Condition Details</h4>
@@ -99,19 +130,21 @@
         <!-- Address of Doctor/Hospital -->
         <div class="mb-3">
             <label for="doctor_address" class="form-label">Address of Doctor/Hospital:</label>
-            <textarea name="doctor_address" class="form-control" rows="2" placeholder="Enter doctor's or hospital's address">{{ old('doctor_address', $healthCondition->doctor_address) }}</textarea>
+            <textarea name="doctor_address" class="form-control sustainability-textarea" rows="2" placeholder="Enter doctor's or hospital's address">{{ old('doctor_address', $healthCondition->doctor_address) }}</textarea>
         </div>
 
         <!-- Health Situation -->
         <div class="mb-3">
             <label for="health_situation" class="form-label">Please mention clearly about the health situation of the beneficiary:</label>
-            <textarea name="health_situation" class="form-control" rows="3" placeholder="Provide details on the health situation">{{ old('health_situation', $healthCondition->health_situation) }}</textarea>
+            <textarea name="health_situation" class="form-control sustainability-textarea" rows="3" placeholder="Provide details on the health situation">{{ old('health_situation', $healthCondition->health_situation) }}</textarea>
         </div>
 
         <!-- Family Situation -->
         <div class="mb-3">
             <label for="family_situation" class="form-label">Give information about the present situation of the family:</label>
-            <textarea name="family_situation" class="form-control" rows="3" placeholder="Provide details on the family situation">{{ old('family_situation', $healthCondition->family_situation) }}</textarea>
+            <textarea name="family_situation" class="form-control sustainability-textarea" rows="3" placeholder="Provide details on the family situation">{{ old('family_situation', $healthCondition->family_situation) }}</textarea>
         </div>
     </div>
 </div>
+
+

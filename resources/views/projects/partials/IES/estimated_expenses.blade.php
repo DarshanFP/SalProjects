@@ -9,6 +9,7 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
+                        <th style="width: 5%;">No.</th>
                         <th>Particular</th>
                         <th>Amount</th>
                         <th>Action</th>
@@ -16,8 +17,9 @@
                 </thead>
                 <tbody id="IES-expenses-table">
                     <tr>
-                        <td><input type="text" name="particulars[]" class="form-control" style="background-color: #202ba3;"></td>
-                        <td><input type="number" name="amounts[]" class="form-control IES-expense-input" step="0.01" style="background-color: #202ba3;" oninput="IEScalculateTotalExpenses()"></td>
+                        <td style="text-align: center; vertical-align: middle;">1</td>
+                        <td><input type="text" name="particulars[]" class="form-control"></td>
+                        <td><input type="number" name="amounts[]" class="form-control IES-expense-input" step="0.01" oninput="IEScalculateTotalExpenses()"></td>
                         <td><button type="button" class="btn btn-danger" onclick="IESremoveExpenseRow(this)">Remove</button></td>
                     </tr>
                 </tbody>
@@ -28,27 +30,27 @@
         <!-- Total Expense -->
         <div class="mt-3 form-group">
             <label>Total expense of the study:</label>
-            <input type="number" name="total_expenses" class="form-control" step="0.01" style="background-color: #202ba3;" readonly>
+            <input type="number" name="total_expenses" class="form-control" step="0.01" readonly>
         </div>
 
         <!-- Financial Contributions -->
         <div class="form-group">
             <label>Scholarship expected from government:</label>
-            <input type="number" name="expected_scholarship_govt" class="form-control" step="0.01" style="background-color: #202ba3;" oninput="IEScalculateBalanceRequested()">
+            <input type="number" name="expected_scholarship_govt" class="form-control" step="0.01" oninput="IEScalculateBalanceRequested()">
         </div>
         <div class="form-group">
             <label>Support from other sources:</label>
-            <input type="number" name="support_other_sources" class="form-control" step="0.01" style="background-color: #202ba3;" oninput="IEScalculateBalanceRequested()">
+            <input type="number" name="support_other_sources" class="form-control" step="0.01" oninput="IEScalculateBalanceRequested()">
         </div>
         <div class="form-group">
             <label>Beneficiaries’ contribution:</label>
-            <input type="number" name="beneficiary_contribution" class="form-control" step="0.01" style="background-color: #202ba3;" oninput="IEScalculateBalanceRequested()">
+            <input type="number" name="beneficiary_contribution" class="form-control" step="0.01" oninput="IEScalculateBalanceRequested()">
         </div>
 
         <!-- Balance Amount Requested -->
         <div class="form-group">
             <label>Balance amount requested:</label>
-            <input type="number" name="balance_requested" class="form-control" step="0.01" style="background-color: #202ba3;" readonly>
+            <input type="number" name="balance_requested" class="form-control" step="0.01" readonly>
         </div>
     </div>
 </div>
@@ -57,19 +59,32 @@
 <script>
     // Function to add a new expense row
     function IESaddExpenseRow() {
+        const table = document.querySelector('#IES-expenses-table');
+        const rowCount = table.children.length;
         const row = `
             <tr>
-                <td><input type="text" name="particulars[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="amounts[]" class="form-control IES-expense-input" step="0.01" style="background-color: #202ba3;" oninput="IEScalculateTotalExpenses()"></td>
+                <td style="text-align: center; vertical-align: middle;">${rowCount + 1}</td>
+                <td><input type="text" name="particulars[]" class="form-control"></td>
+                <td><input type="number" name="amounts[]" class="form-control IES-expense-input" step="0.01" oninput="IEScalculateTotalExpenses()"></td>
                 <td><button type="button" class="btn btn-danger" onclick="IESremoveExpenseRow(this)">Remove</button></td>
             </tr>`;
-        document.querySelector('#IES-expenses-table').insertAdjacentHTML('beforeend', row);
+        table.insertAdjacentHTML('beforeend', row);
+        reindexIESExpenseRows();
     }
 
     // Function to remove an expense row
     function IESremoveExpenseRow(button) {
         button.closest('tr').remove();
+        reindexIESExpenseRows();
         IEScalculateTotalExpenses();
+    }
+    
+    // Reindex expense rows
+    function reindexIESExpenseRows() {
+        const rows = document.querySelectorAll('#IES-expenses-table tr');
+        rows.forEach((row, index) => {
+            row.children[0].textContent = index + 1;
+        });
     }
 
     // Function to calculate total expenses
@@ -102,7 +117,7 @@
 <!-- Styles -->
 <style>
     .form-control {
-        background-color: #202ba3;
+        
         color: white;
     }
 </style>

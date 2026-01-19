@@ -90,7 +90,7 @@
             </div>
 
             <!-- Statements of Account Section -->
-            @include('reports.monthly.partials.view.statements_of_account', ['budgets' => $budgets])
+            @include('reports.monthly.partials.view.statements_of_account', ['budgets' => $budgets, 'project' => $project])
 
             <!-- Photos Section -->
             @include('reports.monthly.partials.view.photos', ['groupedPhotos' => $groupedPhotos])
@@ -115,27 +115,136 @@
 </div>
 @include('reports.monthly.partials.comments')
 
+<!-- Action Buttons -->
+<div class="mb-3">
+    @php
+        use App\Models\Reports\Monthly\DPReport;
+        $user = Auth::user();
+        $reportStatus = $report->status;
+        $userRole = $user->role;
 
+        // Check if user can edit report
+        $canEdit = false;
+        $editableStatuses = [
+            DPReport::STATUS_DRAFT,
+            DPReport::STATUS_REVERTED_BY_PROVINCIAL,
+            DPReport::STATUS_REVERTED_BY_COORDINATOR,
+        ];
 
-    <a href="{{ route('monthly.report.index') }}" class="btn btn-primary">Back to Reports</a>
+        if (in_array($reportStatus, $editableStatuses)) {
+            if (in_array($userRole, ['executor', 'applicant'])) {
+                // Check if user owns the report or is in-charge of the project
+                $canEdit = ($report->user_id === $user->id || ($project && $project->in_charge == $user->id));
+            } elseif (in_array($userRole, ['coordinator', 'provincial'])) {
+                // Coordinator and provincial can edit based on their permissions (handled in controller)
+                $canEdit = true; // Controller will handle authorization via UpdateMonthlyReportRequest
+            }
+        }
+
+        // Check if user can submit to provincial
+        $canSubmit = false;
+        $submittableStatuses = [
+            DPReport::STATUS_DRAFT,
+            DPReport::STATUS_REVERTED_BY_PROVINCIAL,
+            DPReport::STATUS_REVERTED_BY_COORDINATOR,
+        ];
+
+        if (in_array($userRole, ['executor', 'applicant']) && in_array($reportStatus, $submittableStatuses)) {
+            // Check if user owns the report or is in-charge of the project
+            $canSubmit = ($report->user_id === $user->id || ($project && $project->in_charge == $user->id));
+        }
+    @endphp
+
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+        <a href="{{ route('monthly.report.index') }}" class="btn btn-primary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Reports
+        </a>
+
+        @if($canEdit)
+            <a href="{{ route('monthly.report.edit', $report->report_id) }}" class="btn btn-warning">
+                <i class="fas fa-edit me-2"></i>Edit Report
+            </a>
+        @endif
+
+        @if($canSubmit)
+            <form action="{{ route('monthly.report.submit', $report->report_id) }}" method="POST" style="margin: 0;">
+                @csrf
+                <button type="submit" class="btn btn-success" onclick="return confirm('Are you sure you want to submit this report to Provincial? This action cannot be undone easily.');">
+                    <i class="fas fa-paper-plane me-2"></i>Submit to Provincial
+                </button>
+            </form>
+        @endif
+    </div>
+</div>
+
+<!-- Activity History Section -->
+@include('reports.monthly.partials.view.activity_history', ['report' => $report])
 
 </div>
 @endsection
 
+<script src="{{ asset('js/report-view-hide-empty.js') }}"></script>
+
 <style>
     .info-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr; /* Equal columns */
+        grid-template-columns: 20% 80%; /* 20% label, 80% fillable area */
         grid-gap: 20px; /* Increased spacing between rows */
+        align-items: start;
     }
 
     .info-label {
         font-weight: bold;
         margin-right: 10px; /* Optional spacing after labels */
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        white-space: normal;
     }
 
     .info-value {
         word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        white-space: normal;
         padding-left: 10px; /* Optional padding before values */
+    }
+
+    /* For Bootstrap column-based layouts */
+    .report-label-col {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        white-space: normal;
+    }
+
+    .report-value-col {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        white-space: normal;
+    }
+
+    /* Responsive behavior for mobile */
+    @media (max-width: 768px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+            grid-gap: 10px;
+        }
+
+        .info-label {
+            margin-right: 0;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            padding-left: 0;
+        }
+
+        .report-label-col,
+        .report-value-col {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
     }
 </style>

@@ -6,7 +6,7 @@
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-bordered">
-                <thead style="background-color: #202ba3; color: white;">
+                <thead>
                     <tr>
                         <th style="text-align: center;">S.No.</th>
                         <th>Beneficiary Name</th>
@@ -24,7 +24,7 @@
                         <td><input type="date" name="annexed_target_group[0][dob]" class="form-control"></td>
                         <td><input type="date" name="annexed_target_group[0][date_of_joining]" class="form-control"></td>
                         <td><input type="text" name="annexed_target_group[0][class_of_study]" class="form-control" placeholder="Enter class"></td>
-                        <td><textarea name="annexed_target_group[0][family_background_description]" class="form-control" rows="2" placeholder="Enter family background"></textarea></td>
+                        <td><textarea name="annexed_target_group[0][family_background_description]" class="form-control auto-resize-textarea" rows="2" placeholder="Enter family background"></textarea></td>
                         <td><button type="button" class="btn btn-danger remove-row-btn">Remove</button></td>
                     </tr>
                 </tbody>
@@ -66,7 +66,7 @@
                         <td><input type="date" name="annexed_target_group[${annexedRowIndex}][dob]" class="form-control"></td>
                         <td><input type="date" name="annexed_target_group[${annexedRowIndex}][date_of_joining]" class="form-control"></td>
                         <td><input type="text" name="annexed_target_group[${annexedRowIndex}][class_of_study]" class="form-control" placeholder="Enter class"></td>
-                        <td><textarea name="annexed_target_group[${annexedRowIndex}][family_background_description]" class="form-control" rows="2" placeholder="Enter family background"></textarea></td>
+                        <td><textarea name="annexed_target_group[${annexedRowIndex}][family_background_description]" class="form-control auto-resize-textarea" rows="2" placeholder="Enter family background"></textarea></td>
                         <td><button type="button" class="btn btn-danger remove-row-btn">Remove</button></td>
                     </tr>
                 `;
@@ -74,6 +74,13 @@
                 annexedRowIndex++;
                 tableBody.insertAdjacentHTML('beforeend', newRow);  // Add new row
                 addRemoveRowEventListeners();  // Add event listener to new remove button
+
+                // Initialize auto-resize for newly added textarea
+                const newRowElement = tableBody.lastElementChild;
+                const newTextarea = newRowElement.querySelector('.auto-resize-textarea');
+                if (newTextarea && typeof window.initTextareaAutoResize === 'function') {
+                    window.initTextareaAutoResize(newTextarea);
+                }
             }
 
             // Function to remove a row

@@ -3,22 +3,26 @@
 namespace App\Http\Controllers\Projects\IAH;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IAH\ProjectIAHPersonalInfo;
 use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IAH\StoreIAHPersonalInfoRequest;
+use App\Http\Requests\Projects\IAH\UpdateIAHPersonalInfoRequest;
 
 class IAHPersonalInfoController extends Controller
 {
     /**
      * Store (create) personal info for a project.
      */
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('IAHPersonalInfoController@store - Start', [
-            'project_id'   => $projectId,
-            'request_data' => $request->all()
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
@@ -28,18 +32,18 @@ class IAHPersonalInfoController extends Controller
 
             $personalInfo = new ProjectIAHPersonalInfo();
             $personalInfo->project_id    = $projectId;
-            $personalInfo->name          = $request->input('name');
-            $personalInfo->age           = $request->input('age');
-            $personalInfo->gender        = $request->input('gender');
-            $personalInfo->dob           = $request->input('dob');
-            $personalInfo->aadhar        = $request->input('aadhar');
-            $personalInfo->contact       = $request->input('contact');
-            $personalInfo->address       = $request->input('address');
-            $personalInfo->email         = $request->input('email');
-            $personalInfo->guardian_name = $request->input('guardian_name');
-            $personalInfo->children      = $request->input('children');
-            $personalInfo->caste         = $request->input('caste');
-            $personalInfo->religion      = $request->input('religion');
+            $personalInfo->name          = $validated['name'] ?? null;
+            $personalInfo->age           = $validated['age'] ?? null;
+            $personalInfo->gender        = $validated['gender'] ?? null;
+            $personalInfo->dob           = $validated['dob'] ?? null;
+            $personalInfo->aadhar        = $validated['aadhar'] ?? null;
+            $personalInfo->contact       = $validated['contact'] ?? null;
+            $personalInfo->address       = $validated['address'] ?? null;
+            $personalInfo->email         = $validated['email'] ?? null;
+            $personalInfo->guardian_name = $validated['guardian_name'] ?? null;
+            $personalInfo->children      = $validated['children'] ?? null;
+            $personalInfo->caste         = $validated['caste'] ?? null;
+            $personalInfo->religion      = $validated['religion'] ?? null;
             $personalInfo->save();
 
             DB::commit();
@@ -60,11 +64,13 @@ class IAHPersonalInfoController extends Controller
     /**
      * Update personal info record.
      */
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('IAHPersonalInfoController@update - Start', [
-            'project_id'   => $projectId,
-            'request_data' => $request->all()
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
@@ -74,18 +80,18 @@ class IAHPersonalInfoController extends Controller
                 'id' => $personalInfo->id
             ]);
 
-            $personalInfo->name          = $request->input('name');
-            $personalInfo->age           = $request->input('age');
-            $personalInfo->gender        = $request->input('gender');
-            $personalInfo->dob           = $request->input('dob');
-            $personalInfo->aadhar        = $request->input('aadhar');
-            $personalInfo->contact       = $request->input('contact');
-            $personalInfo->address       = $request->input('address');
-            $personalInfo->email         = $request->input('email');
-            $personalInfo->guardian_name = $request->input('guardian_name');
-            $personalInfo->children      = $request->input('children');
-            $personalInfo->caste         = $request->input('caste');
-            $personalInfo->religion      = $request->input('religion');
+            $personalInfo->name          = $validated['name'] ?? null;
+            $personalInfo->age           = $validated['age'] ?? null;
+            $personalInfo->gender        = $validated['gender'] ?? null;
+            $personalInfo->dob           = $validated['dob'] ?? null;
+            $personalInfo->aadhar        = $validated['aadhar'] ?? null;
+            $personalInfo->contact       = $validated['contact'] ?? null;
+            $personalInfo->address       = $validated['address'] ?? null;
+            $personalInfo->email         = $validated['email'] ?? null;
+            $personalInfo->guardian_name = $validated['guardian_name'] ?? null;
+            $personalInfo->children      = $validated['children'] ?? null;
+            $personalInfo->caste         = $validated['caste'] ?? null;
+            $personalInfo->religion      = $validated['religion'] ?? null;
             $personalInfo->save();
 
             DB::commit();

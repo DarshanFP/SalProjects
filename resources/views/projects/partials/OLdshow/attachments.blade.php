@@ -7,7 +7,7 @@
         @foreach($project->attachments as $attachment)
             <div class="attachment-grid">
                 <div class="attachment-label"><strong>Attachment:</strong></div>
-                <div class="attachment-value"><a href="{{ route('download.attachment', $attachment->id) }}">{{ $attachment->file_name }}</a></div>
+                <div class="attachment-value"><a href="{{ route('projects.attachments.download', $attachment->id) }}">{{ $attachment->file_name }}</a></div>
                 <div class="attachment-label"><strong>Description:</strong></div>
                 <div class="attachment-value">{{ $attachment->description }}</div>
             </div>
@@ -24,7 +24,7 @@
                 <div class="info-label">
                     <strong>Attachment:</strong>
                 </div>
-                <div class="info-value"><a href="{{ route('download.attachment', $attachment->id) }}">{{ $attachment->file_name }}</a></div>
+                <div class="info-value"><a href="{{ route('projects.attachments.download', $attachment->id) }}">{{ $attachment->file_name }}</a></div>
 
                 <div class="info-label"><strong>Description:</strong></div>
                 <div class="info-value">{{ $attachment->description }}</div>

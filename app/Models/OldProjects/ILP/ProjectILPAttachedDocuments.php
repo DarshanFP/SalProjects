@@ -85,6 +85,22 @@ class ProjectILPAttachedDocuments extends Model
     }
 
     /**
+     * Get all files for this document record
+     */
+    public function files()
+    {
+        return $this->hasMany(ProjectILPDocumentFile::class, 'ILP_doc_id', 'ILP_doc_id');
+    }
+
+    /**
+     * Get files for a specific field
+     */
+    public function getFilesForField($fieldName)
+    {
+        return $this->files()->where('field_name', $fieldName)->orderBy('serial_number')->get();
+    }
+
+    /**
      * Handle the file upload and storage process for the ILP attached documents.
      */
     public static function handleDocuments($request, $projectId)
@@ -100,41 +116,100 @@ class ProjectILPAttachedDocuments extends Model
 
         // Example: stored in storage/app/public/project_attachments/ILP/ILA-0013
         $projectDir = "project_attachments/ILP/{$projectId}";
-        Storage::disk('public')->makeDirectory($projectDir);
+        Storage::disk('public')->makeDirectory($projectDir, 0755, true);
 
         $documents = self::updateOrCreate(['project_id' => $projectId], []);
         \Log::info("Document record found or created.", ['record_id' => $documents->id]);
 
-        foreach ($fields as $field => $shortName) {
-            if ($request->hasFile("attachments.$field")) {
-                $file = $request->file("attachments.$field");
-                $fileName = "{$projectId}_{$shortName}." . $file->getClientOriginalExtension();
+        $uploadedFiles = []; // Track uploaded files for cleanup on error
 
-                // Store on 'public' disk => storage/app/public
-                $filePath = $file->storeAs($projectDir, $fileName, 'public');
-                \Log::info("File storedAs", ['field' => $field, 'filePath' => $filePath]);
+        try {
+            foreach ($fields as $field => $shortName) {
+                // Support both single file and array of files
+                if ($request->hasFile("attachments.$field")) {
+                    $files = is_array($request->file("attachments.$field")) 
+                        ? $request->file("attachments.$field") 
+                        : [$request->file("attachments.$field")];
+                    
+                    // Get user-provided names if any
+                    $fileNames = $request->input("attachments.{$field}_names", []);
+                    $descriptions = $request->input("attachments.{$field}_descriptions", []);
 
-                if ($filePath && Storage::disk('public')->exists($filePath)) {
-                    \Log::info("New file verified in storage: {$filePath}");
+                    foreach ($files as $index => $file) {
+                        if ($file && $file->isValid()) {
+                            // Validate file type
+                            if (!self::isValidFileType($file)) {
+                                \Log::error('Invalid file type for ILP document', [
+                                    'field' => $field,
+                                    'mime_type' => $file->getMimeType(),
+                                    'extension' => $file->getClientOriginalExtension()
+                                ]);
+                                $allowedTypes = config('attachments.allowed_file_types.image_only');
+                                $typesList = implode(', ', array_map('strtoupper', $allowedTypes['extensions']));
+                                $errorMsg = str_replace(':types', $typesList, config('attachments.messages.file_type_error'));
+                                throw new \Exception("Invalid file type for {$field}. {$errorMsg}");
+                            }
 
-                    // ► **Only delete old file if it's different from the new path**
-                    if (!empty($documents->{$field}) && $documents->{$field} !== $filePath) {
-                        \Log::info("Deleting old file", [
-                            'old_file' => $documents->{$field},
-                            'new_file' => $filePath
-                        ]);
-                        Storage::disk('public')->delete($documents->{$field});
+                            // Validate file size (7MB max - allows buffer for files slightly over 5MB)
+                            $maxSize = config('attachments.max_file_size.server_bytes');
+                            if ($file->getSize() > $maxSize) {
+                                $maxSizeMB = config('attachments.max_file_size.display_mb');
+                                $errorMsg = str_replace(':size', $maxSizeMB, config('attachments.messages.file_size_error'));
+                                throw new \Exception("File size exceeds limit for {$field}. {$errorMsg}");
+                            }
+
+                            // Generate file name using helper
+                            $userProvidedName = $fileNames[$index] ?? null;
+                            $extension = $file->getClientOriginalExtension();
+                            $fileName = AttachmentFileNamingHelper::generateFileName(
+                                $projectId,
+                                $field,
+                                $extension,
+                                $userProvidedName,
+                                'ILP'
+                            );
+
+                            // Store on 'public' disk
+                            $filePath = $file->storeAs($projectDir, $fileName, 'public');
+                            \Log::info("File storedAs", ['field' => $field, 'filePath' => $filePath]);
+
+                            if ($filePath && Storage::disk('public')->exists($filePath)) {
+                                $uploadedFiles[] = $filePath; // Track for cleanup
+                                \Log::info("New file verified in storage: {$filePath}");
+
+                                // Get next serial number
+                                $serialNumber = AttachmentFileNamingHelper::getNextSerialNumber($projectId, $field, 'ILP');
+                                $serialFormatted = str_pad($serialNumber, 2, '0', STR_PAD_LEFT);
+
+                                // Create file record in new table
+                                ProjectILPDocumentFile::create([
+                                    'ILP_doc_id' => $documents->ILP_doc_id,
+                                    'project_id' => $projectId,
+                                    'field_name' => $field,
+                                    'file_path' => $filePath,
+                                    'file_name' => $userProvidedName ?? $fileName,
+                                    'description' => $descriptions[$index] ?? '',
+                                    'serial_number' => $serialFormatted,
+                                    'public_url' => Storage::url($filePath),
+                                ]);
+                            } else {
+                                \Log::warning("File was not stored or does not exist after storeAs", [
+                                    'field' => $field,
+                                    'filePath' => $filePath
+                                ]);
+                            }
+                        }
                     }
-
-                    // Save new path
-                    $documents->{$field} = $filePath;
-                } else {
-                    \Log::warning("File was not stored or does not exist after storeAs", [
-                        'field' => $field,
-                        'filePath' => $filePath
-                    ]);
                 }
             }
+        } catch (\Exception $e) {
+            // Clean up uploaded files on error
+            foreach ($uploadedFiles as $filePath) {
+                if (Storage::disk('public')->exists($filePath)) {
+                    Storage::disk('public')->delete($filePath);
+                }
+            }
+            throw $e;
         }
 
         $documents->save();
@@ -175,5 +250,19 @@ class ProjectILPAttachedDocuments extends Model
                 Storage::delete($this->$field);
             }
         }
+    }
+
+    /**
+     * Validate file type
+     */
+    private static function isValidFileType($file)
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $mimeType = $file->getMimeType();
+
+        $allowedTypes = config('attachments.allowed_file_types.image_only');
+
+        return in_array($extension, $allowedTypes['extensions']) &&
+               in_array($mimeType, $allowedTypes['mimes']);
     }
 }

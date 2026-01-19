@@ -15,16 +15,8 @@ use App\Models\Reports\Monthly\DPPhoto;
 
 class ReportAttachmentController extends Controller
 {
-    // Allowed file types and their MIME types
-    private const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx'];
-    private const ALLOWED_MIME_TYPES = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    ];
-    private const MAX_FILE_SIZE = 2097152; // 2MB in bytes
+    // Configuration moved to config/attachments.php
+    // Using config() helper for better maintainability
 
     public function store(Request $request, DPReport $report)
     {
@@ -305,8 +297,13 @@ class ReportAttachmentController extends Controller
         $extension = strtolower($file->getClientOriginalExtension());
         $mimeType = $file->getMimeType();
 
-        return in_array($extension, self::ALLOWED_EXTENSIONS) &&
-               in_array($mimeType, self::ALLOWED_MIME_TYPES);
+        // Get allowed types from config
+        $allowedTypes = config('attachments.allowed_types.report_attachments');
+        $allowedExtensions = $allowedTypes['extensions'] ?? [];
+        $allowedMimeTypes = $allowedTypes['mime_types'] ?? [];
+
+        return in_array($extension, $allowedExtensions) &&
+               in_array($mimeType, $allowedMimeTypes);
     }
 
     /**

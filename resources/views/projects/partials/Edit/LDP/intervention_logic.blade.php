@@ -6,7 +6,7 @@
     </div>
     <div class="card-body">
         <div class="mb-3">
-            <textarea name="intervention_description" class="form-control" rows="5" style="background-color: #202ba3;" placeholder="Update the interventions...">{{ isset($interventionLogic) ? $interventionLogic->intervention_description : '' }}</textarea>
+            <textarea name="intervention_description" class="form-control sustainability-textarea" rows="5" placeholder="Update the interventions...">{{ isset($interventionLogic) ? $interventionLogic->intervention_description : '' }}</textarea>
         </div>
     </div>
 </div>

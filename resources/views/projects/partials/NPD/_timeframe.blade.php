@@ -20,7 +20,7 @@
                         <tr class="activity-timeframe-row">
                             <td class="activity-description-text">
                                 <textarea name="objectives[{{ $objectiveIndex }}][activities][{{ $activityIndex }}][timeframe][description]"
-                                    class="form-control" rows="2" style="background-color: #202ba3;">{{ $timeframe['description'] ?? '' }}</textarea>
+                                    class="form-control logical-textarea" rows="2">{{ $timeframe['description'] ?? '' }}</textarea>
                             </td>
                             @for($month = 1; $month <= 12; $month++)
                                 <td class="text-center">
@@ -38,7 +38,7 @@
                     <tr class="activity-timeframe-row">
                         <td class="activity-description-text">
                             <textarea name="objectives[{{ $objectiveIndex }}][activities][0][timeframe][description]"
-                                class="form-control" rows="2" style="background-color: #202ba3;"></textarea>
+                                class="form-control logical-textarea" rows="2"></textarea>
                         </td>
                         @for($month = 1; $month <= 12; $month++)
                             <td class="text-center">
@@ -67,4 +67,33 @@
     position: relative;
     display: block;
 }
+
+.logical-textarea {
+    resize: vertical;
+    min-height: 60px;
+    height: auto;
+    overflow-y: hidden;
+    line-height: 1.5;
+    padding: 8px 12px;
+}
+
+.logical-textarea:focus {
+    overflow-y: auto;
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function autoResizeTextarea(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+    }
+    const textareas = document.querySelectorAll('.logical-textarea');
+    textareas.forEach(textarea => {
+        autoResizeTextarea(textarea);
+        textarea.addEventListener('input', function() {
+            autoResizeTextarea(this);
+        });
+    });
+});
+</script>

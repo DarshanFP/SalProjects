@@ -15,10 +15,10 @@
             <tbody id="ilp-budget">
                 <tr>
                     <td>
-                        <input type="text" name="budget_desc[0]" class="form-control" placeholder="Enter description" style="background-color: #202ba3;">
+                        <input type="text" name="budget_desc[0]" class="form-control" placeholder="Enter description">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="cost[0]" class="form-control" placeholder="Enter cost" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="cost[0]" class="form-control" placeholder="Enter cost">
                     </td>
                 </tr>
             </tbody>
@@ -31,19 +31,19 @@
         <!-- Total Amount -->
         <div class="mt-4 mb-3">
             <label for="total_amount" class="form-label">Total amount:</label>
-            <input type="number" step="0.01" name="total_amount" class="form-control" placeholder="Enter total amount" style="background-color: #202ba3;">
+            <input type="number" step="0.01" name="total_amount" class="form-control" placeholder="Enter total amount">
         </div>
 
         <!-- Beneficiary's Contribution -->
         <div class="mb-3">
             <label for="beneficiary_contribution" class="form-label">Beneficiary’s contribution:</label>
-            <input type="number" step="0.01" name="beneficiary_contribution" class="form-control" placeholder="Enter beneficiary's contribution" style="background-color: #202ba3;">
+            <input type="number" step="0.01" name="beneficiary_contribution" class="form-control" placeholder="Enter beneficiary's contribution">
         </div>
 
         <!-- Amount Requested -->
         <div class="mb-3">
             <label for="amount_requested" class="form-label">Amount requested:</label>
-            <input type="number" step="0.01" name="amount_requested" class="form-control" placeholder="Enter amount requested" style="background-color: #202ba3;">
+            <input type="number" step="0.01" name="amount_requested" class="form-control" placeholder="Enter amount requested">
         </div>
 
     </div>
@@ -61,10 +61,10 @@
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>
-                    <input type="text" name="budget_desc[${itemIndex}]" class="form-control" placeholder="Enter description" style="background-color: #202ba3;">
+                    <input type="text" name="budget_desc[${itemIndex}]" class="form-control" placeholder="Enter description">
                 </td>
                 <td>
-                    <input type="number" step="0.01" name="cost[${itemIndex}]" class="form-control" placeholder="Enter cost" style="background-color: #202ba3;">
+                    <input type="number" step="0.01" name="cost[${itemIndex}]" class="form-control" placeholder="Enter cost">
                 </td>
             `;
             budgetBody.appendChild(row);
@@ -97,10 +97,10 @@
             <tbody id="ilp-budget">
                 <tr>
                     <td>
-                        <input type="text" name="budget_desc[0]" class="form-control" placeholder="Enter description" style="background-color: #202ba3;">
+                        <input type="text" name="budget_desc[0]" class="form-control" placeholder="Enter description">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="cost[0]" class="form-control budget-cost" placeholder="Enter cost" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="cost[0]" class="form-control budget-cost" placeholder="Enter cost">
                     </td>
                 </tr>
             </tbody>
@@ -113,19 +113,19 @@
         <!-- Total Amount -->
         <div class="mt-4 mb-3">
             <label for="total_amount" class="form-label">Total amount:</label>
-            <input type="number" step="0.01" id="total_amount" name="total_amount" class="form-control" readonly style="background-color: #0c1427;" >
+            <input type="number" step="0.01" id="total_amount" name="total_amount" class="form-control" readonly >
         </div>
 
         <!-- Beneficiary's Contribution -->
         <div class="mb-3">
             <label for="beneficiary_contribution" class="form-label">Beneficiary’s contribution:</label>
-            <input type="number" step="0.01" id="beneficiary_contribution" name="beneficiary_contribution" class="form-control" placeholder="Enter beneficiary's contribution" style="background-color: #202ba3;">
+            <input type="number" step="0.01" id="beneficiary_contribution" name="beneficiary_contribution" class="form-control" placeholder="Enter beneficiary's contribution">
         </div>
 
         <!-- Amount Requested -->
         <div class="mb-3">
             <label for="amount_requested" class="form-label">Amount requested:</label>
-            <input type="number" step="0.01" id="amount_requested" name="amount_requested" class="form-control" readonly style="background-color: #0c1427;">
+            <input type="number" step="0.01" id="amount_requested" name="amount_requested" class="form-control" readonly>
         </div>
 
     </div>
@@ -173,10 +173,10 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>
-                        <input type="text" name="budget_desc[${itemIndex}]" class="form-control" placeholder="Enter description" style="background-color: #202ba3;">
+                        <input type="text" name="budget_desc[${itemIndex}]" class="form-control" placeholder="Enter description">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="cost[${itemIndex}]" class="form-control budget-cost" placeholder="Enter cost" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="cost[${itemIndex}]" class="form-control budget-cost" placeholder="Enter cost">
                     </td>
                 `;
                 budgetBody.appendChild(row);

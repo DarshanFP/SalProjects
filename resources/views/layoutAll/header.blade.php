@@ -31,23 +31,13 @@
                     </div>
                 </div>
             </li>
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <i data-feather="bell"></i>
-                    <div class="indicator">
-                        <div class="circle"></div>
-                    </div>
-                </a>
-                <div class="p-0 dropdown-menu" aria-labelledby="notificationDropdown">
-                    <div class="px-3 py-2 d-flex align-items-center justify-content-between border-bottom">
-                        <p>Notifications will be available here</p>
-                        <a href="javascript:;" class="text-muted">Clear all</a>
-                    </div>
-                    <div class="px-3 py-2 d-flex align-items-center justify-content-center border-top">
-                        <a href="javascript:;">View all</a>
-                    </div>
-                </div>
-            </li>
+            @include('components.notification-dropdown')
+
+            {{-- Province Filter Selector (Only for General Users Managing Multiple Provinces) --}}
+            @if($profileData->role === 'general' && auth()->user()->managedProvinces()->count() > 0)
+                @include('components.province-filter-selector')
+            @endif
+
             <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     Hello, {{ $profileData->name }}

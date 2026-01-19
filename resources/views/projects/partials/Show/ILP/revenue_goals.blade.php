@@ -12,6 +12,7 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
+                        <th style="width: 5%;">No.</th>
                         <th>Business Plan (Items)</th>
                         <th>Year 1</th>
                         <th>Year 2</th>
@@ -20,8 +21,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($ILPRevenueGoals['business_plan_items'] as $item)
+                    @foreach($ILPRevenueGoals['business_plan_items'] as $index => $item)
                         <tr>
+                            <td style="text-align: center; vertical-align: middle;">{{ $index + 1 }}</td>
                             <td>{{ $item['item'] ?? 'N/A' }}</td>
                             <td>{{ $item['year_1'] ?? 0 }}</td>
                             <td>{{ $item['year_2'] ?? 0 }}</td>
@@ -41,6 +43,7 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
+                        <th style="width: 5%;">No.</th>
                         <th>Description</th>
                         <th>Year 1</th>
                         <th>Year 2</th>
@@ -49,8 +52,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($ILPRevenueGoals['annual_income'] as $income)
+                    @foreach($ILPRevenueGoals['annual_income'] as $index => $income)
                         <tr>
+                            <td style="text-align: center; vertical-align: middle;">{{ $index + 1 }}</td>
                             <td>{{ $income['description'] ?? 'N/A' }}</td>
                             <td>{{ $income['year_1'] ?? 0 }}</td>
                             <td>{{ $income['year_2'] ?? 0 }}</td>
@@ -70,6 +74,7 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
+                        <th style="width: 5%;">No.</th>
                         <th>Description</th>
                         <th>Year 1</th>
                         <th>Year 2</th>
@@ -78,8 +83,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($ILPRevenueGoals['annual_expenses'] as $expense)
+                    @foreach($ILPRevenueGoals['annual_expenses'] as $index => $expense)
                         <tr>
+                            <td style="text-align: center; vertical-align: middle;">{{ $index + 1 }}</td>
                             <td>{{ $expense['description'] ?? 'N/A' }}</td>
                             <td>{{ $expense['year_1'] ?? 0 }}</td>
                             <td>{{ $expense['year_2'] ?? 0 }}</td>

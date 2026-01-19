@@ -40,6 +40,16 @@
                     <td class="label">Project Type:</td>
                     <td class="value">{{ $project->project_type }}</td>
                 </tr>
+                @if($project->predecessor)
+                    <tr>
+                        <td class="label">Predecessor Project:</td>
+                        <td class="value">
+                            <a href="{{ route('projects.show', $project->predecessor->project_id) }}">
+                                {{ $project->predecessor->project_title }} ({{ $project->predecessor->project_id }})
+                            </a>
+                        </td>
+                    </tr>
+                @endif
                 <tr>
                     <td class="label">Society Name:</td>
                     <td class="value">{{ $project->society_name }}</td>
@@ -81,24 +91,32 @@
                     <td class="value">{{ $project->overall_project_period }} years</td>
                 </tr>
                 <tr>
+                    <td class="label">Current Phase:</td>
+                    <td class="value">{{ $project->current_phase ? 'Phase ' . $project->current_phase : 'N/A' }}</td>
+                </tr>
+                <tr>
                     <td class="label">Commencement Month & Year:</td>
                     <td class="value">{{ \Carbon\Carbon::parse($project->commencement_month_year)->format('F Y') ?? 'N/A' }}</td>
                 </tr>
                 <tr>
                     <td class="label">Overall Project Budget:</td>
-                    <td class="value">Rs. {{ number_format($project->overall_project_budget, 2) }}</td>
+                    <td class="value">{{ format_indian_currency($project->overall_project_budget, 2) }}</td>
                 </tr>
                 <tr>
-                    <td class="label">Amount Forwarded:</td>
-                    <td class="value">Rs. {{ number_format($project->amount_forwarded, 2) }}</td>
+                    <td class="label">Amount Forwarded  (Existing Funds):</td>
+                    <td class="value">{{ format_indian_currency($project->amount_forwarded, 2) }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Local Contribution:</td>
+                    <td class="value">{{ format_indian_currency($project->local_contribution ?? 0, 2) }}</td>
                 </tr>
                 <tr>
                     <td class="label">Amount Sanctioned:</td>
-                    <td class="value">Rs. {{ number_format($project->amount_sanctioned, 2) }}</td>
+                    <td class="value">{{ format_indian_currency($project->amount_sanctioned, 2) }}</td>
                 </tr>
                 <tr>
                     <td class="label">Opening Balance:</td>
-                    <td class="value">Rs. {{ number_format($project->opening_balance, 2) }}</td>
+                    <td class="value">{{ format_indian_currency($project->opening_balance, 2) }}</td>
                 </tr>
                 <tr>
                     <td class="label">Coordinator India Name:</td>

@@ -15,7 +15,7 @@
                 class="form-control"
                 value="{{ $personalInfo->name ?? '' }}"
                 placeholder="Enter beneficiary's name"
-                style="background-color: #202ba3;"
+               
             >
         </div>
 
@@ -28,7 +28,7 @@
                 class="form-control"
                 value="{{ $personalInfo->age ?? '' }}"
                 placeholder="Enter age"
-                style="background-color: #202ba3;"
+               
             >
         </div>
 
@@ -38,7 +38,7 @@
             <select
                 name="gender"
                 class="form-control"
-                style="background-color: #202ba3;"
+               
             >
                 <option value="Male"   {{ (isset($personalInfo->gender) && $personalInfo->gender === 'Male') ? 'selected' : '' }}>Male</option>
                 <option value="Female" {{ (isset($personalInfo->gender) && $personalInfo->gender === 'Female') ? 'selected' : '' }}>Female</option>
@@ -54,7 +54,7 @@
                 name="dob"
                 class="form-control"
                 value="{{ $personalInfo->dob ?? '' }}"
-                style="background-color: #202ba3;"
+               
             >
         </div>
 
@@ -67,7 +67,7 @@
                 class="form-control"
                 value="{{ $personalInfo->email ?? '' }}"
                 placeholder="Enter email"
-                style="background-color: #202ba3;"
+               
             >
         </div>
 
@@ -80,7 +80,7 @@
                 class="form-control"
                 value="{{ $personalInfo->contact_no ?? '' }}"
                 placeholder="Enter contact number"
-                style="background-color: #202ba3;"
+               
             >
         </div>
 
@@ -93,7 +93,7 @@
                 class="form-control"
                 value="{{ $personalInfo->aadhar_id ?? '' }}"
                 placeholder="Enter Aadhar ID"
-                style="background-color: #202ba3;"
+               
             >
         </div>
 
@@ -105,7 +105,7 @@
                 class="form-control"
                 rows="3"
                 placeholder="Enter full address"
-                style="background-color: #202ba3;"
+               
             >{{ $personalInfo->address ?? '' }}</textarea>
         </div>
 
@@ -118,7 +118,7 @@
                 class="form-control"
                 value="{{ $personalInfo->occupation ?? '' }}"
                 placeholder="Enter occupation"
-                style="background-color: #202ba3;"
+               
             >
         </div>
 
@@ -129,7 +129,7 @@
                 name="marital_status"
                 class="form-control"
                 id="marital_status"
-                style="background-color: #202ba3;"
+               
             >
                 <option value="Single"   {{ (isset($personalInfo->marital_status) && $personalInfo->marital_status === 'Single') ? 'selected' : '' }}>Single</option>
                 <option value="Married"  {{ (isset($personalInfo->marital_status) && $personalInfo->marital_status === 'Married') ? 'selected' : '' }}>Married</option>
@@ -151,7 +151,7 @@
                 class="form-control"
                 value="{{ $personalInfo->spouse_name ?? '' }}"
                 placeholder="Enter spouse name"
-                style="background-color: #202ba3;"
+               
             >
         </div>
 
@@ -164,7 +164,7 @@
                 class="form-control"
                 value="{{ $personalInfo->children_no ?? '' }}"
                 placeholder="Enter number of children"
-                style="background-color: #202ba3;"
+               
             >
         </div>
 
@@ -176,7 +176,7 @@
                 class="form-control"
                 rows="2"
                 placeholder="Enter children education qualification"
-                style="background-color: #202ba3;"
+               
             >{{ $personalInfo->children_edu ?? '' }}</textarea>
         </div>
 
@@ -189,7 +189,7 @@
                 class="form-control"
                 value="{{ $personalInfo->religion ?? '' }}"
                 placeholder="Enter religion"
-                style="background-color: #202ba3;"
+               
             >
         </div>
 
@@ -202,7 +202,7 @@
                 class="form-control"
                 value="{{ $personalInfo->caste ?? '' }}"
                 placeholder="Enter caste"
-                style="background-color: #202ba3;"
+               
             >
         </div>
 
@@ -214,7 +214,7 @@
                 class="form-control"
                 rows="3"
                 placeholder="Enter family situation"
-                style="background-color: #202ba3;"
+               
             >{{ $personalInfo->family_situation ?? '' }}</textarea>
         </div>
 
@@ -225,7 +225,7 @@
                 name="small_business_status"
                 class="form-control"
                 id="small_business_status"
-                style="background-color: #202ba3;"
+               
             >
                 <option value="0" {{ (isset($personalInfo->small_business_status) && $personalInfo->small_business_status == 0) ? 'selected' : '' }}>No</option>
                 <option value="1" {{ (isset($personalInfo->small_business_status) && $personalInfo->small_business_status == 1) ? 'selected' : '' }}>Yes</option>
@@ -244,7 +244,7 @@
                 class="form-control"
                 rows="3"
                 placeholder="Provide details"
-                style="background-color: #202ba3;"
+               
             >{{ $personalInfo->small_business_details ?? '' }}</textarea>
         </div>
 
@@ -258,7 +258,7 @@
                 class="form-control"
                 value="{{ $personalInfo->monthly_income ?? '' }}"
                 placeholder="Enter monthly income"
-                style="background-color: #202ba3;"
+               
             >
         </div>
 
@@ -270,7 +270,7 @@
                 class="form-control"
                 rows="3"
                 placeholder="Provide details of the business plan"
-                style="background-color: #202ba3;"
+               
             >{{ $personalInfo->business_plan ?? '' }}</textarea>
         </div>
 

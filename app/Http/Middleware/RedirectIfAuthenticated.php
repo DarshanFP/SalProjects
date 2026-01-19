@@ -29,6 +29,7 @@ class RedirectIfAuthenticated
                 // Redirect based on role to prevent loops
                 $redirectUrl = match($role) {
                     'admin' => '/admin/dashboard',
+                    'general' => '/general/dashboard', // General has own dashboard
                     'coordinator' => '/coordinator/dashboard',
                     'provincial' => '/provincial/dashboard',
                     'executor' => '/executor/dashboard',

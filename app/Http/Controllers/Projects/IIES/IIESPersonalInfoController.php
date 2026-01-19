@@ -3,40 +3,25 @@
 namespace App\Http\Controllers\Projects\IIES;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IIES\ProjectIIESPersonalInfo;
 use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IIES\StoreIIESPersonalInfoRequest;
+use App\Http\Requests\Projects\IIES\UpdateIIESPersonalInfoRequest;
 
 class IIESPersonalInfoController extends Controller
 {
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
+        $validatedData = $request->all();
+        
         DB::beginTransaction();
 
         try {
             Log::info('Storing IIES Personal Info', ['project_id' => $projectId]);
-
-            $validatedData = $request->validate([
-                'iies_bname' => 'required|string|max:255',
-                'iies_age' => 'nullable|integer|min:0',
-                'iies_gender' => 'nullable|string|max:10',
-                'iies_dob' => 'nullable|date',
-                'iies_email' => 'nullable|email|max:255',
-                'iies_contact' => 'nullable|string|max:15',
-                'iies_aadhar' => 'nullable|string|max:20',
-                'iies_full_address' => 'nullable|string|max:500',
-                'iies_father_name' => 'nullable|string|max:255',
-                'iies_mother_name' => 'nullable|string|max:255',
-                'iies_mother_tongue' => 'nullable|string|max:100',
-                'iies_current_studies' => 'nullable|string|max:255',
-                'iies_bcaste' => 'nullable|string|max:100',
-                'iies_father_occupation' => 'nullable|string|max:255',
-                'iies_father_income' => 'nullable|numeric|min:0',
-                'iies_mother_occupation' => 'nullable|string|max:255',
-                'iies_mother_income' => 'nullable|numeric|min:0',
-            ]);
 
             $personalInfo = ProjectIIESPersonalInfo::updateOrCreate(
                 ['project_id' => $projectId],
@@ -93,32 +78,15 @@ class IIESPersonalInfoController extends Controller
     /**
      * Update the IIES Personal Info for a project.
      */
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
+        $validatedData = $request->all();
+        
         DB::beginTransaction();
 
         try {
             Log::info('Updating IIES Personal Info', ['project_id' => $projectId]);
-
-            $validatedData = $request->validate([
-                'iies_bname' => 'required|string|max:255',
-                'iies_age' => 'nullable|integer|min:0',
-                'iies_gender' => 'nullable|string|max:10',
-                'iies_dob' => 'nullable|date',
-                'iies_email' => 'nullable|email|max:255',
-                'iies_contact' => 'nullable|string|max:15',
-                'iies_aadhar' => 'nullable|string|max:20',
-                'iies_full_address' => 'nullable|string|max:500',
-                'iies_father_name' => 'nullable|string|max:255',
-                'iies_mother_name' => 'nullable|string|max:255',
-                'iies_mother_tongue' => 'nullable|string|max:100',
-                'iies_current_studies' => 'nullable|string|max:255',
-                'iies_bcaste' => 'nullable|string|max:100',
-                'iies_father_occupation' => 'nullable|string|max:255',
-                'iies_father_income' => 'nullable|numeric|min:0',
-                'iies_mother_occupation' => 'nullable|string|max:255',
-                'iies_mother_income' => 'nullable|numeric|min:0',
-            ]);
 
             $personalInfo = ProjectIIESPersonalInfo::where('project_id', $projectId)->first();
             if (!$personalInfo) {

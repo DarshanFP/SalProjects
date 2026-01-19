@@ -17,7 +17,7 @@
                             </div>
                         @endforeach
                     </div>
-                    <textarea name="photo_descriptions[{{ $description }}]" class="mt-2 form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $description }}</textarea>
+                    <textarea name="photo_descriptions[{{ $description }}]" class="mt-2 form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $description }}</textarea>
                 </div>
             @endforeach
 
@@ -34,15 +34,25 @@
                 @endphp
                 @foreach ($photoGroups as $groupIndex => $group)
                     <div class="mb-3 photo-group" data-index="{{ $groupIndex }}">
-                        <label class="form-label">Upload up to 3 Photos</label>
-                        <label class="form-label"><i>(Each photo size should be less than 5 MB)</i></label>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <label class="form-label">
+                                    <span class="badge bg-info me-2">{{ $groupIndex + 1 }}</span>
+                                    Photo Group {{ $groupIndex + 1 }} - Upload up to 3 Photos
+                                </label>
+                                <label class="form-label"><i>(Each photo size should be less than 5 MB)</i></label>
+                            </div>
+                            @if($groupIndex > 0)
+                                <button type="button" class="btn btn-danger btn-sm remove-photo-group" onclick="removePhotoGroup(this)">Remove</button>
+                            @endif
+                        </div>
                         <div class="file-upload">
                             <button type="button" class="btn btn-primary" onclick="document.getElementById('photos_{{ $groupIndex }}').click()">Choose up to 3 photos</button>
                             <input type="file" name="photos[{{ $groupIndex }}][]" id="photos_{{ $groupIndex }}" class="mb-2 form-control" accept="image/*" multiple onchange="previewImages(this, {{ $groupIndex }})" style="display: none;">
                             <div id="file-text-{{ $groupIndex }}" class="file-text">No files selected</div>
                         </div>
                         <div id="photos-preview_{{ $groupIndex }}" class="photos-preview" style="display: flex; flex-wrap: wrap;"></div>
-                        <textarea name="photo_descriptions[{{ $groupIndex }}]" class="mt-2 form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ old("photo_descriptions.$groupIndex") }}</textarea>
+                        <textarea name="photo_descriptions[{{ $groupIndex }}]" class="mt-2 form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ old("photo_descriptions.$groupIndex") }}</textarea>
                     </div>
                 @endforeach
             </div>
@@ -178,25 +188,156 @@
 
     // Add a new photo group
     function addPhotoGroup() {
-        const container = document.getElementById('photos-container');
-        const newGroupIndex = container.children.length;
+        const container = document.getElementById('new-photos-container');
+        const newGroupIndex = container ? container.children.length : 0;
 
         const newGroupHtml = `
             <div class="mb-3 photo-group" data-index="${newGroupIndex}">
-                <label class="form-label">Upload up to 3 Photos</label>
-                <label class="form-label"><i>(Each photo size should be less than 5 MB)</i></label>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <label class="form-label">
+                            <span class="badge bg-info me-2">${newGroupIndex + 1}</span>
+                            Photo Group ${newGroupIndex + 1} - Upload up to 3 Photos
+                        </label>
+                        <label class="form-label"><i>(Each photo size should be less than 5 MB)</i></label>
+                    </div>
+                    <button type="button" class="btn btn-danger btn-sm remove-photo-group" onclick="removePhotoGroup(this)">Remove</button>
+                </div>
                 <div class="file-upload">
                     <button type="button" class="btn btn-primary" onclick="document.getElementById('photos_${newGroupIndex}').click()">Choose up to 3 photos</button>
                     <input type="file" name="photos[${newGroupIndex}][]" id="photos_${newGroupIndex}" class="mb-2 form-control" accept="image/*" multiple onchange="previewImages(this, ${newGroupIndex})" style="display: none;">
                     <div id="file-text-${newGroupIndex}" class="file-text">No files selected</div>
                 </div>
                 <div id="photos-preview_${newGroupIndex}" class="photos-preview" style="display: flex; flex-wrap: wrap;"></div>
-                <textarea name="photo_descriptions[${newGroupIndex}]" class="mt-2 form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
+                <textarea name="photo_descriptions[${newGroupIndex}]" class="mt-2 form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
             </div>
         `;
 
-        container.insertAdjacentHTML('beforeend', newGroupHtml);
+        if (container) {
+            container.insertAdjacentHTML('beforeend', newGroupHtml);
+        } else {
+            const photosContainer = document.getElementById('photos-container');
+            photosContainer.insertAdjacentHTML('beforeend', newGroupHtml);
+        }
+
+        // Initialize auto-resize for new photo group textarea using global function
+        const newPhotoGroup = container ? container.lastElementChild : photosContainer.lastElementChild;
+        if (newPhotoGroup && typeof initDynamicTextarea === 'function') {
+            initDynamicTextarea(newPhotoGroup);
+        }
 
         photoGroups[newGroupIndex] = [];
+        reindexPhotoGroups();
     }
+
+    function removePhotoGroup(button) {
+        const photoGroup = button.closest('.photo-group');
+        const groupIndex = parseInt(photoGroup.dataset.index);
+
+        // Remove from photoGroups object
+        delete photoGroups[groupIndex];
+
+        // Remove the DOM element
+        photoGroup.remove();
+
+        // Reindex all photo groups
+        reindexPhotoGroups();
+    }
+
+    function reindexPhotoGroups() {
+        // Only reindex new photo groups (in new-photos-container)
+        const container = document.getElementById('new-photos-container');
+        if (!container) return;
+
+        const photoGroupElements = container.querySelectorAll('.photo-group[data-index]');
+        const photoGroupsArray = Array.from(photoGroupElements);
+
+        // Store current photoGroups data by old data-index before reindexing
+        const photoGroupsDataMap = {};
+        photoGroupsArray.forEach((group) => {
+            const oldDataIndex = parseInt(group.dataset.index);
+            if (photoGroups[oldDataIndex] !== undefined) {
+                photoGroupsDataMap[oldDataIndex] = photoGroups[oldDataIndex];
+            }
+        });
+
+        // Clear and rebuild photoGroups object
+        Object.keys(photoGroups).forEach(key => delete photoGroups[key]);
+
+        photoGroupsArray.forEach((group, newIndex) => {
+            const oldDataIndex = parseInt(group.dataset.index);
+
+            // Update data-index
+            group.dataset.index = newIndex;
+
+            // Update badge and label
+            const label = group.querySelector('label.form-label');
+            if (label && label.textContent.includes('Photo Group')) {
+                label.innerHTML = `<span class="badge bg-info me-2">${newIndex + 1}</span>Photo Group ${newIndex + 1} - Upload up to 3 Photos`;
+            }
+
+            // Update all IDs and names that use the index
+            const fileInput = group.querySelector('input[type="file"]');
+            const fileText = group.querySelector('[id^="file-text-"]');
+            const fileWarning = group.querySelector('[id^="file-size-warning-"]');
+            const previewContainer = group.querySelector('[id^="photos-preview_"]');
+            const textarea = group.querySelector('textarea[name^="photo_descriptions"]');
+            const button = group.querySelector('button[onclick*="photos_"]');
+
+            if (fileInput) {
+                const newId = `photos_${newIndex}`;
+                fileInput.id = newId;
+                fileInput.name = `photos[${newIndex}][]`;
+                fileInput.setAttribute('onchange', `previewImages(this, ${newIndex})`);
+
+                // Update button onclick
+                if (button) {
+                    button.setAttribute('onclick', `document.getElementById('${newId}').click()`);
+                }
+            }
+
+            if (fileText) {
+                fileText.id = `file-text-${newIndex}`;
+            }
+
+            if (fileWarning) {
+                fileWarning.id = `file-size-warning-${newIndex}`;
+            }
+
+            if (previewContainer) {
+                previewContainer.id = `photos-preview_${newIndex}`;
+            }
+
+            if (textarea) {
+                textarea.name = `photo_descriptions[${newIndex}]`;
+            }
+
+            // Update remove buttons visibility
+            const removeButton = group.querySelector('.remove-photo-group');
+            if (removeButton) {
+                if (newIndex === 0) {
+                    removeButton.classList.add('d-none');
+                } else {
+                    removeButton.classList.remove('d-none');
+                }
+            }
+
+            // Restore photoGroups data with new index (preserve from old index)
+            if (photoGroupsDataMap[oldDataIndex] !== undefined) {
+                photoGroups[newIndex] = photoGroupsDataMap[oldDataIndex];
+            } else {
+                photoGroups[newIndex] = [];
+            }
+
+            // Re-initialize textarea auto-resize after reindexing
+            if (textarea && typeof autoResizeTextarea === 'function') {
+                autoResizeTextarea(textarea);
+            }
+        });
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        reindexPhotoGroups();
+    });
 </script>

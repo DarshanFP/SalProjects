@@ -3,16 +3,22 @@
 namespace App\Http\Controllers\Projects\RST;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\RST\ProjectRSTInstitutionInfo;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\RST\StoreRSTInstitutionInfoRequest;
+use App\Http\Requests\Projects\RST\UpdateRSTInstitutionInfoRequest;
 
 class InstitutionInfoController extends Controller
 {
     // Store or update institution info
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() instead of validated() because year_setup, total_students_trained, etc.
+        // fields are not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing Institution Info for RST', ['project_id' => $projectId]);
@@ -21,10 +27,10 @@ class InstitutionInfoController extends Controller
             ProjectRSTInstitutionInfo::updateOrCreate(
                 ['project_id' => $projectId],
                 [
-                    'year_setup' => $request->year_setup,
-                    'total_students_trained' => $request->total_students_trained,
-                    'beneficiaries_last_year' => $request->beneficiaries_last_year,
-                    'training_outcome' => $request->training_outcome,
+                    'year_setup' => $validated['year_setup'] ?? null,
+                    'total_students_trained' => $validated['total_students_trained'] ?? null,
+                    'beneficiaries_last_year' => $validated['beneficiaries_last_year'] ?? null,
+                    'training_outcome' => $validated['training_outcome'] ?? null,
                 ]
             );
 
@@ -75,8 +81,12 @@ class InstitutionInfoController extends Controller
     }
 
     // Update institution info for a project
-public function update(Request $request, $projectId)
+public function update(FormRequest $request, $projectId)
 {
+    // Use all() instead of validated() because year_setup, total_students_trained, etc.
+    // fields are not in UpdateProjectRequest validation rules
+    $validated = $request->all();
+    
     DB::beginTransaction();
     try {
         Log::info('Updating Institution Info for RST', ['project_id' => $projectId]);
@@ -90,10 +100,10 @@ public function update(Request $request, $projectId)
 
         // Update the institution info
         $institutionInfo->update([
-            'year_setup' => $request->year_setup,
-            'total_students_trained' => $request->total_students_trained,
-            'beneficiaries_last_year' => $request->beneficiaries_last_year,
-            'training_outcome' => $request->training_outcome,
+            'year_setup' => $validated['year_setup'] ?? null,
+            'total_students_trained' => $validated['total_students_trained'] ?? null,
+            'beneficiaries_last_year' => $validated['beneficiaries_last_year'] ?? null,
+            'training_outcome' => $validated['training_outcome'] ?? null,
         ]);
 
         DB::commit();

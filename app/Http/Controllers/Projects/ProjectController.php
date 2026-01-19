@@ -10,6 +10,18 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Exception;
+use App\Http\Requests\Projects\StoreProjectRequest;
+use App\Http\Requests\Projects\UpdateProjectRequest;
+use App\Http\Requests\Projects\SubmitProjectRequest;
+use App\Constants\ProjectStatus;
+use App\Constants\ProjectType;
+use App\Helpers\ProjectPermissionHelper;
+use App\Services\ActivityHistoryService;
+use App\Services\ProjectStatusService;
+use App\Services\ProjectPhaseService;
+use App\Traits\HandlesErrors;
+use App\Services\ProjectQueryService;
 // Aliases for CCI Controllers with prefix 'CCI' -
 use App\Http\Controllers\Projects\CCI\AchievementsController as CCIAchievementsController;
 use App\Http\Controllers\Projects\CCI\AgeProfileController as CCIAgeProfileController;
@@ -279,207 +291,16 @@ class ProjectController extends Controller
         $user = Auth::user();
 
         // Fetch projects where the user is either the owner or the in-charge
-        // Exclude projects with status 'approved_by_coordinator' for executors
-        $projects = Project::where(function($query) use ($user) {
-            $query->where('user_id', $user->id)
-                  ->orWhere('in_charge', $user->id);
-        })
-        ->where('status', '!=', 'approved_by_coordinator')
-        ->get();
+        // Exclude projects with status APPROVED_BY_COORDINATOR for executors
+        // Eager load relationships to prevent N+1 queries
+        $projects = \App\Services\ProjectQueryService::getProjectsForUserQuery($user)
+            ->where('status', '!=', ProjectStatus::APPROVED_BY_COORDINATOR)
+            ->with(['user', 'objectives', 'budgets'])
+            ->get();
 
         return view('projects.Oldprojects.index', compact('projects', 'user'));
     }
 
-    // befoir logical framework
-//     public function create()
-//     {
-//         Log::info('ProjectController@create - Starting create process');
-
-//         $user = Auth::user();
-//         $users = User::all();
-
-//         Log::info('ProjectController@create - Fetching development projects for executor or in-charge', [
-//             'user_id' => $user->id
-//         ]);
-//         $developmentProjects = Project::where(function ($query) use ($user) {
-//             $query->where('user_id', $user->id)
-//                   ->orWhere('in_charge', $user->id);
-//         })
-//         ->where('project_type', 'Development Projects')
-//         ->get();
-//         Log::info('ProjectController@create - Development projects fetched', [
-//             'count' => $developmentProjects->count()
-//         ]);
-
-//         $predecessorBeneficiaries = [];
-//         $predecessorObjectives = [];
-//         $predecessorActivities = [];
-//         $predecessorSustainability = [];
-//         $predecessorBudget = [];
-//         $predecessorAttachments = [];
-//         $predecessorProjectId = request()->get('predecessor_project_id');
-
-//         if ($predecessorProjectId) {
-//             Log::info('ProjectController@create - Fetching predecessor project data', [
-//                 'predecessor_project_id' => $predecessorProjectId
-//             ]);
-//             $predecessorProject = Project::with([
-//                 'DPRSTBeneficiariesAreas',
-//                 'objectives.results',
-//                 'objectives.risks',
-//                 'objectives.activities.timeframes',
-//                 'sustainabilities',
-//                 'budgets',
-//                 'attachments'
-//             ])->find($predecessorProjectId);
-
-//             if ($predecessorProject) {
-//                 $predecessorBeneficiaries = $predecessorProject->DPRSTBeneficiariesAreas->map(function ($area) {
-//                     return [
-//                         'project_area' => $area->project_area,
-//                         'category' => $area->category_beneficiary,
-//                         'direct' => $area->direct_beneficiaries,
-//                         'indirect' => $area->indirect_beneficiaries
-//                     ];
-//                 })->toArray();
-//                 $predecessorObjectives = $predecessorProject->objectives->map(function ($objective) {
-//                     return [
-//                         'objective_id' => $objective->objective_id,
-//                         'objective' => $objective->objective,
-//                         'results' => $objective->results->toArray(),
-//                         'risks' => $objective->risks->toArray(),
-//                         'activities' => $objective->activities->map(function ($activity) {
-//                             return [
-//                                 'activity_id' => $activity->activity_id,
-//                                 'activity' => $activity->activity,
-//                                 'verification' => $activity->verification,
-//                                 'timeframes' => $activity->timeframes->toArray(),
-//                             ];
-//                         })->toArray(),
-//                     ];
-//                 })->toArray();
-//                 $predecessorSustainability = $predecessorProject->sustainabilities->first()
-//                     ? $predecessorProject->sustainabilities->first()->toArray()
-//                     : [];
-//                 $predecessorBudget = $predecessorProject->budgets->groupBy('phase')->map(function ($phase) {
-//                     return [
-//                         'amount_sanctioned' => $phase->sum('amount'),
-//                         'budget' => $phase->map(function ($budget) {
-//                             return [
-//                                 'particular' => $budget->particular,
-//                                 'rate_quantity' => $budget->rate_quantity,
-//                                 'rate_multiplier' => $budget->rate_multiplier,
-//                                 'rate_duration' => $budget->rate_duration,
-//                                 'rate_increase' => $budget->rate_increase,
-//                                 'this_phase' => $budget->this_phase,
-//                                 'next_phase' => $budget->next_phase,
-//                             ];
-//                         })->toArray(),
-//                     ];
-//                 })->toArray();
-//                 $predecessorAttachments = $predecessorProject->attachments->map(function ($attachment) {
-//                     return [
-//                         'file' => $attachment->file,
-//                         'file_name' => $attachment->file_name,
-//                         'description' => $attachment->description,
-//                     ];
-//                 })->toArray();
-//                 Log::info('ProjectController@create - Predecessor data fetched', [
-//                     'predecessor_project_id' => $predecessorProjectId,
-//                     'beneficiaries_count' => count($predecessorBeneficiaries)
-//                 ]);
-//             } else {
-//                 Log::warning('ProjectController@create - Predecessor project not found', [
-//                     'predecessor_project_id' => $predecessorProjectId
-//                 ]);
-//             }
-//         }
-
-//         Log::info('ProjectController@create - Preparing data for view');
-//         return view('projects.Oldprojects.createProjects', compact(
-//             'users',
-//             'user',
-//             'developmentProjects',
-//             'predecessorBeneficiaries',
-//             'predecessorObjectives',
-//             'predecessorActivities',
-//             'predecessorSustainability',
-//             'predecessorBudget',
-//             'predecessorAttachments'
-//         ));
-//     }
-
-
-
-// public function getProjectDetails($project_id)
-// {
-//     Log::info('ProjectController@getProjectDetails - Request received', [
-//         'project_id' => $project_id,
-//         'request_headers' => request()->headers->all(),
-//         'request_method' => request()->method()
-//     ]);
-
-//     try {
-//         Log::debug('ProjectController@getProjectDetails - Querying project', [
-//             'project_id' => $project_id
-//         ]);
-//         $project = Project::where('project_id', $project_id)
-//             ->with(['user', 'DPRSTBeneficiariesAreas'])
-//             ->firstOrFail();
-
-//         Log::info('ProjectController@getProjectDetails - Project retrieved', [
-//             'project_id' => $project_id,
-//             'project_data' => $project->toArray()
-//         ]);
-
-//         $responseData = [
-//             'project_title' => $project->project_title,
-//             'society_name' => $project->society_name,
-//             'president_name' => $project->president_name,
-//             'applicant_name' => $project->user ? $project->user->name : null,
-//             'applicant_mobile' => $project->user ? $project->user->phone : null,
-//             'applicant_email' => $project->user ? $project->user->email : null,
-//             'in_charge' => $project->in_charge,
-//             'in_charge_name' => $project->in_charge_name,
-//             'in_charge_mobile' => $project->in_charge_mobile,
-//             'in_charge_email' => $project->in_charge_email,
-//             'full_address' => $project->full_address,
-//             'overall_project_period' => $project->overall_project_period,
-//             'current_phase' => $project->current_phase,
-//             'commencement_month' => $project->commencement_month,
-//             'commencement_year' => $project->commencement_year,
-//             'overall_project_budget' => $project->overall_project_budget,
-//             'goal' => $project->goal, // Added goal field
-//             'beneficiaries_areas' => $project->DPRSTBeneficiariesAreas->map(function ($area) {
-//                 return [
-//                     'project_area' => $area->project_area,
-//                     'category' => $area->category_beneficiary,
-//                     'direct' => $area->direct_beneficiaries,
-//                     'indirect' => $area->indirect_beneficiaries
-//                 ];
-//             })->toArray()
-//         ];
-
-//         Log::info('ProjectController@getProjectDetails - Preparing response', [
-//             'project_id' => $project_id,
-//             'response_data' => $responseData
-//         ]);
-
-//         return response()->json($responseData, 200);
-//     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-//         Log::warning('ProjectController@getProjectDetails - Project not found', [
-//             'project_id' => $project_id
-//         ]);
-//         return response()->json(['error' => 'Project not found'], 404);
-//     } catch (\Exception $e) {
-//         Log::error('ProjectController@getProjectDetails - Unexpected error', [
-//             'project_id' => $project_id,
-//             'error' => $e->getMessage(),
-//             'trace' => $e->getTraceAsString()
-//         ]);
-//         return response()->json(['error' => 'Failed to fetch project details'], 500);
-//     }
-// }
 
 public function create()
 {
@@ -488,15 +309,19 @@ public function create()
     $user = Auth::user();
     $users = User::all();
 
-    Log::info('ProjectController@create - Fetching development projects for executor or in-charge', [
+    Log::info('ProjectController@create - Fetching development projects for predecessor selection', [
         'user_id' => $user->id
     ]);
-    $developmentProjects = Project::where(function ($query) use ($user) {
-        $query->where('user_id', $user->id)
-              ->orWhere('in_charge', $user->id);
-    })
-    ->where('project_type', 'Development Projects')
-    ->get();
+    // Always fetch development projects for all project types (for predecessor selection)
+    // Eager load relationships to prevent N+1 queries
+    $developmentProjects = \App\Services\ProjectQueryService::getProjectsForUserQuery($user)
+        ->whereIn('project_type', [
+            ProjectType::DEVELOPMENT_PROJECTS,
+            ProjectType::NEXT_PHASE_DEVELOPMENT_PROPOSAL
+        ])
+        ->with(['user', 'budgets'])
+        ->orderBy('project_id', 'desc')
+        ->get();
     Log::info('ProjectController@create - Development projects fetched', [
         'count' => $developmentProjects->count()
     ]);
@@ -653,6 +478,11 @@ public function getProjectDetails($project_id)
             'commencement_month' => $project->commencement_month,
             'commencement_year' => $project->commencement_year,
             'overall_project_budget' => $project->overall_project_budget,
+            // Key Information fields
+            'initial_information' => $project->initial_information,
+            'target_beneficiaries' => $project->target_beneficiaries,
+            'general_situation' => $project->general_situation,
+            'need_of_project' => $project->need_of_project,
             'goal' => $project->goal,
             'beneficiaries_areas' => $project->DPRSTBeneficiariesAreas->map(function ($area) {
                 return [
@@ -716,12 +546,18 @@ public function getProjectDetails($project_id)
         return response()->json(['error' => 'Failed to fetch project details'], 500);
     }
 }
-public function store(Request $request)
+public function store(StoreProjectRequest $request)
 {
     DB::beginTransaction();
 
     try {
-        Log::info('ProjectController@store - Data received from form', $request->all());
+        Log::info('ProjectController@store - Data received from form', [
+            'project_type' => $request->project_type,
+            'project_title' => $request->project_title,
+            'society_name' => $request->society_name,
+            'overall_project_period' => $request->overall_project_period,
+            'current_phase' => $request->current_phase,
+        ]);
         Log::info('Received Project Type:', ['project_type' => $request->project_type]);
 
         // Step 1: Store general project details
@@ -732,19 +568,16 @@ public function store(Request $request)
         $request->merge(['project_id' => $project->project_id]);
 
         // Step 2: Handle common sections for non-individual project types
-        $nonIndividualTypes = [
-            'Rural-Urban-Tribal',
-            'CHILD CARE INSTITUTION',
-            'Institutional Ongoing Group Educational proposal',
-            'Livelihood Development Projects',
-            'Residential Skill Training Proposal 2',
-            'Development Projects',
-            'NEXT PHASE - DEVELOPMENT PROPOSAL',
-            'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER'
-        ];
-
-        if (in_array($request->project_type, $nonIndividualTypes)) {
-            $this->logicalFrameworkController->store($request);
+        // Use ProjectType helper method instead of hard-coded array
+        if (ProjectType::isInstitutional($request->project_type)) {
+            // Store logical framework (objectives) - can return null if no objectives provided
+            $logicalFrameworkResponse = $this->logicalFrameworkController->store($request);
+            // Check if LogicalFrameworkController returned a redirect (error case - should not happen now)
+            if ($logicalFrameworkResponse instanceof \Illuminate\Http\RedirectResponse) {
+                DB::rollBack();
+                return $logicalFrameworkResponse;
+            }
+            // Continue with other common sections
             $this->sustainabilityController->store($request, $project->project_id);
             (new BudgetController())->store($request, $project);
             if ($request->hasFile('file')) { // Check for the common attachment partial
@@ -757,14 +590,14 @@ public function store(Request $request)
 
         // Step 4: Handle project type-specific logic
         switch ($request->project_type) {
-            case 'Rural-Urban-Tribal':
+            case ProjectType::RURAL_URBAN_TRIBAL:
                 Log::info('Processing Rural-Urban-Tribal project type');
                 $this->eduRUTBasicInfoController->store($request, $project->project_id);
                 $this->eduRUTTargetGroupController->store($request, $project->project_id);
                 $this->eduRUTAnnexedTargetGroupController->store($request);
                 break;
 
-            case 'CHILD CARE INSTITUTION':
+            case ProjectType::CHILD_CARE_INSTITUTION:
                 Log::info('Processing Child Care Institution project type');
                 $this->cciAchievementsController->store($request, $project->project_id);
                 $this->cciAgeProfileController->store($request, $project->project_id);
@@ -776,7 +609,7 @@ public function store(Request $request)
                 $this->cciStatisticsController->store($request, $project->project_id);
                 break;
 
-            case 'Institutional Ongoing Group Educational proposal':
+            case ProjectType::INSTITUTIONAL_ONGOING_GROUP_EDUCATIONAL:
                 Log::info('Processing Institutional Ongoing Group Educational proposal');
                 $this->igeInstitutionInfoController->store($request, $project->project_id);
                 $this->igeBeneficiariesSupportedController->store($request, $project->project_id);
@@ -786,14 +619,14 @@ public function store(Request $request)
                 $this->igeDevelopmentMonitoringController->store($request, $project->project_id);
                 break;
 
-            case 'Livelihood Development Projects':
+            case ProjectType::LIVELIHOOD_DEVELOPMENT_PROJECTS:
                 Log::info('Processing Livelihood Development Projects');
                 $this->ldpInterventionLogicController->store($request, $project->project_id);
                 $this->ldpNeedAnalysisController->store($request, $project->project_id);
                 $this->ldpTargetGroupController->store($request, $project->project_id);
                 break;
 
-            case 'Residential Skill Training Proposal 2':
+            case ProjectType::RESIDENTIAL_SKILL_TRAINING:
                 Log::info('Processing Residential Skill Training Proposal 2');
                 $this->rstBeneficiariesAreaController->store($request, $project->project_id);
                 $this->rstGeographicalAreaController->store($request, $project->project_id);
@@ -802,22 +635,22 @@ public function store(Request $request)
                 $this->rstTargetGroupController->store($request, $project->project_id);
                 break;
 
-            case 'Development Projects':
+            case ProjectType::DEVELOPMENT_PROJECTS:
                 Log::info('Processing Development Projects');
                 $this->rstBeneficiariesAreaController->store($request, $project->project_id);
                 break;
 
-            case 'NEXT PHASE - DEVELOPMENT PROPOSAL':
+            case ProjectType::NEXT_PHASE_DEVELOPMENT_PROPOSAL:
                 Log::info('Processing NEXT PHASE - DEVELOPMENT PROPOSAL');
                 $this->rstBeneficiariesAreaController->store($request, $project->project_id);
                 break;
 
-            case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
+            case ProjectType::CRISIS_INTERVENTION_CENTER:
                 Log::info('Processing PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER');
                 $this->cicBasicInfoController->store($request, $project->project_id);
                 break;
 
-            case 'Individual - Ongoing Educational support':
+            case ProjectType::INDIVIDUAL_ONGOING_EDUCATIONAL:
                 Log::info('Processing Individual - Ongoing Educational Support project type');
                 $this->iesPersonalInfoController->store($request, $project->project_id);
                 $this->iesFamilyWorkingMembersController->store($request, $project->project_id);
@@ -827,7 +660,7 @@ public function store(Request $request)
                 $this->iesAttachmentsController->store($request, $project->project_id); // Specific IES controller
                 break;
 
-            case 'Individual - Livelihood Application':
+            case ProjectType::INDIVIDUAL_LIVELIHOOD_APPLICATION:
                 Log::info('Processing Individual - Livelihood Application');
                 $this->ilpPersonalInfoController->store($request, $project->project_id);
                 $this->ilpRevenueGoalsController->store($request, $project->project_id);
@@ -837,7 +670,7 @@ public function store(Request $request)
                 $this->ilpBudgetController->store($request, $project->project_id);
                 break;
 
-            case 'Individual - Access to Health':
+            case ProjectType::INDIVIDUAL_ACCESS_TO_HEALTH:
                 Log::info('Processing Individual - Access to Health');
                 $this->iahPersonalInfoController->store($request, $project->project_id);
                 $this->iahEarningMembersController->store($request, $project->project_id);
@@ -847,7 +680,7 @@ public function store(Request $request)
                 $this->iahDocumentsController->store($request, $project->project_id); // Specific IAH controller
                 break;
 
-            case 'Individual - Initial - Educational support':
+            case ProjectType::INDIVIDUAL_INITIAL_EDUCATIONAL:
                 Log::info('Processing Individual - Initial - Educational support project type');
                 $this->iiesPersonalInfoController->store($request, $project->project_id);
                 $this->iiesFamilyWorkingMembersController->store($request, $project->project_id);
@@ -864,14 +697,30 @@ public function store(Request $request)
         }
 
         DB::commit();
+        // Set status based on whether it's a draft save
+        if ($request->has('save_as_draft') && $request->input('save_as_draft') == '1') {
+            $project->status = ProjectStatus::DRAFT;
+            $project->save();
+            Log::info('Project saved as draft', ['project_id' => $project->project_id]);
+        } else {
+            // For complete submissions, set status to draft (users submit manually later)
+            $project->status = ProjectStatus::DRAFT;
+            $project->save();
+        }
+
         Log::info('Project and all related data saved successfully', ['project_id' => $project->project_id]);
+
+        if ($request->has('save_as_draft') && $request->input('save_as_draft') == '1') {
+            return redirect()->route('projects.edit', $project->project_id)
+                ->with('success', 'Project saved as draft. You can continue editing later.');
+        }
 
         return redirect()->route('projects.index')->with('success', 'Project created successfully.');
     } catch (\Exception $e) {
         DB::rollBack();
-        Log::error('Error in ProjectController@store', [
+        Log::error('ProjectController@store - Error during project creation', [
             'error' => $e->getMessage(),
-            'request' => $request->all(),
+            'trace' => $e->getTraceAsString()
         ]);
         return redirect()->back()->withErrors(['error' => 'There was an error creating the project. Please try again.'])->withInput();
     }
@@ -880,12 +729,22 @@ public function store(Request $request)
 
 public function show($project_id)
 {
-    Log::info('ProjectController@show - Starting show process', ['project_id' => $project_id]);
-
     try {
+        Log::info('ProjectController@show - Starting show process', ['project_id' => $project_id]);
         Log::info('ProjectController@show - Fetching project data with relationships');
+        // Eager load all relationships to prevent N+1 queries
         $project = Project::where('project_id', $project_id)
-            ->with('budgets', 'attachments', 'objectives', 'sustainabilities', 'user')
+            ->with([
+                'budgets',
+                'attachments',
+                'objectives.results',
+                'objectives.risks',
+                'objectives.activities.timeframes',
+                'sustainabilities',
+                'user',
+                'statusHistory.changedBy',
+                'reports.accountDetails' // Load reports with account details for budget calculations
+            ])
             ->firstOrFail();
 
         $user = Auth::user();
@@ -896,32 +755,45 @@ public function show($project_id)
             'project_status' => $project->status
         ]);
 
-        // Role-based access control
+        // Use ProjectPermissionHelper for consistent permission checking
+        // For admin, coordinator, and provincial roles, check separately as they have different rules
         $hasAccess = false;
 
-        switch ($user->role) {
-            case 'executor':
-                // Executors can view their own projects regardless of status (except approved ones which go to approved page)
-                if ($project->user_id === $user->id || $project->in_charge === $user->id) {
-                    $hasAccess = true;
-                }
-                break;
+        if (in_array($user->role, ['admin', 'coordinator', 'provincial'])) {
+            // Admin, coordinators, and provincials have special access rules
+            switch ($user->role) {
+                case 'provincial':
+                    // Provincials can view projects from executors under them with specific statuses
+                    if ($project->user->parent_id === $user->id) {
+                        if (in_array($project->status, [
+                            ProjectStatus::SUBMITTED_TO_PROVINCIAL,
+                            ProjectStatus::REVERTED_BY_COORDINATOR,
+                            ProjectStatus::APPROVED_BY_COORDINATOR
+                        ])) {
+                            $hasAccess = true;
+                        }
+                    }
+                    break;
 
-            case 'provincial':
-                // Provincials can view projects from executors under them with specific statuses
-                if ($project->user->parent_id === $user->id) {
-                    if (in_array($project->status, ['submitted_to_provincial', 'reverted_by_coordinator', 'approved_by_coordinator'])) {
+                case 'coordinator':
+                    // Coordinators can view projects with various statuses
+                    if (in_array($project->status, [
+                        ProjectStatus::FORWARDED_TO_COORDINATOR,
+                        ProjectStatus::APPROVED_BY_COORDINATOR,
+                        ProjectStatus::REVERTED_BY_COORDINATOR
+                    ])) {
                         $hasAccess = true;
                     }
-                }
-                break;
+                    break;
 
-            case 'coordinator':
-                // Coordinators can view projects with various statuses
-                if (in_array($project->status, ['forwarded_to_coordinator', 'approved_by_coordinator', 'reverted_by_coordinator'])) {
+                case 'admin':
+                    // Admins can view all projects
                     $hasAccess = true;
-                }
-                break;
+                    break;
+            }
+        } else {
+            // For executor and applicant, use ProjectPermissionHelper
+            $hasAccess = ProjectPermissionHelper::canView($project, $user);
         }
 
         if (!$hasAccess) {
@@ -1132,12 +1004,9 @@ public function show($project_id)
 
         return view('projects.Oldprojects.show', $data);
     } catch (\Exception $e) {
-        Log::error('ProjectController@show - Error fetching project data', [
+        return $this->handleException($e, 'ProjectController@show', $this->getStandardErrorMessage('load', 'project'), [
             'project_id' => $project_id,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
         ]);
-        return redirect()->back()->withErrors(['error' => 'Failed to load project details.']);
     }
 }
 
@@ -1158,17 +1027,38 @@ public function edit($project_id)
             'attachments_count' => $project->attachments->count()
         ]);
 
-        $developmentProjects = Project::whereIn('project_type', [
-            'Development Projects',
-            'NEXT PHASE - DEVELOPMENT PROPOSAL'
-        ])->get();
-
         $user = Auth::user();
+
+        // Always fetch development projects for predecessor selection (for all project types)
+        // Include both DEVELOPMENT_PROJECTS and NEXT_PHASE_DEVELOPMENT_PROPOSAL
+        $developmentProjects = ProjectQueryService::getProjectsForUserQuery($user)
+            ->whereIn('project_type', [
+                ProjectType::DEVELOPMENT_PROJECTS,
+                ProjectType::NEXT_PHASE_DEVELOPMENT_PROPOSAL
+            ])
+            ->orderBy('project_id', 'desc')
+            ->get();
+
         $users = User::all();
         Log::info('ProjectController@edit - User and development projects fetched', [
             'user_id' => $user->id,
             'development_projects_count' => $developmentProjects->count()
         ]);
+
+        // Check if project can be edited - use ProjectPermissionHelper for consistent checking
+        // This handles all status checks, ownership checks, and role-based permissions
+        if (!ProjectPermissionHelper::canEdit($project, $user)) {
+            Log::warning('ProjectController@edit - Attempt to edit project without permission', [
+                'user_id' => $user->id,
+                'user_role' => $user->role,
+                'project_id' => $project_id,
+                'project_status' => $project->status,
+                'project_user_id' => $project->user_id,
+                'project_in_charge' => $project->in_charge
+            ]);
+            return redirect()->route('projects.show', $project_id)
+                ->with('error', 'You do not have permission to edit this project.');
+        }
 
         // Initialize variables for different project types
         $basicInfo = null;
@@ -1390,11 +1280,16 @@ public function edit($project_id)
 
 
 
-    public function update(Request $request, $project_id)
+    public function update(UpdateProjectRequest $request, $project_id)
     {
+        // Authorization already checked by UpdateProjectRequest
+        // Validation already done by UpdateProjectRequest
+
         Log::info('ProjectController@update - Starting update process', [
             'project_id' => $project_id,
-            'request_data' => $request->all()
+            'project_type' => $request->project_type,
+            'project_title' => $request->project_title,
+            'society_name' => $request->society_name,
         ]);
 
         // Force `phases` to be an array if it doesn't exist
@@ -1404,6 +1299,10 @@ public function edit($project_id)
         try {
             Log::info('ProjectController@update - Fetching project from database');
             $project = Project::where('project_id', $project_id)->firstOrFail();
+
+            // Status and permission checks already done by UpdateProjectRequest
+            // No need to check again here
+
             Log::info('ProjectController@update - Project fetched', [
                 'project_type' => $project->project_type
             ]);
@@ -1415,18 +1314,8 @@ public function edit($project_id)
             Log::info('ProjectController@update - General info and key information updated');
 
             // Handle common sections for non-individual project types
-            $nonIndividualTypes = [
-                'Rural-Urban-Tribal',
-                'CHILD CARE INSTITUTION',
-                'Institutional Ongoing Group Educational proposal',
-                'Livelihood Development Projects',
-                'Residential Skill Training Proposal 2',
-                'Development Projects',
-                'NEXT PHASE - DEVELOPMENT PROPOSAL',
-                'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER'
-            ];
-
-            if (in_array($project->project_type, $nonIndividualTypes)) {
+            // Use ProjectType helper method instead of hard-coded array
+            if (ProjectType::isInstitutional($project->project_type)) {
                 Log::info('ProjectController@update - Updating common sections for non-individual type');
                 $this->logicalFrameworkController->update($request, $project->project_id);
                 $this->sustainabilityController->update($request, $project->project_id);
@@ -1441,19 +1330,19 @@ public function edit($project_id)
 
             // Handle project type-specific updates
             switch ($project->project_type) {
-                case 'Rural-Urban-Tribal':
+                case ProjectType::RURAL_URBAN_TRIBAL:
                     Log::info('ProjectController@update - Updating Rural-Urban-Tribal data');
                     $this->eduRUTBasicInfoController->update($request, $project->project_id);
                     $this->eduRUTTargetGroupController->update($request, $project->project_id);
                     $this->eduRUTAnnexedTargetGroupController->update($request, $project->project_id);
                     break;
 
-                case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
+                case ProjectType::CRISIS_INTERVENTION_CENTER:
                     Log::info('ProjectController@update - Updating CIC data');
                     $this->cicBasicInfoController->update($request, $project->project_id);
                     break;
 
-                case 'CHILD CARE INSTITUTION':
+                case ProjectType::CHILD_CARE_INSTITUTION:
                     Log::info('ProjectController@update - Updating CCI data');
                     $this->cciAchievementsController->update($request, $project->project_id);
                     $this->cciAgeProfileController->update($request, $project->project_id);
@@ -1465,7 +1354,7 @@ public function edit($project_id)
                     $this->cciStatisticsController->update($request, $project->project_id);
                     break;
 
-                case 'Institutional Ongoing Group Educational proposal':
+                case ProjectType::INSTITUTIONAL_ONGOING_GROUP_EDUCATIONAL:
                     Log::info('ProjectController@update - Updating IGE data');
                     $this->igeInstitutionInfoController->update($request, $project->project_id);
                     $this->igeBeneficiariesSupportedController->update($request, $project->project_id);
@@ -1475,14 +1364,14 @@ public function edit($project_id)
                     $this->igeDevelopmentMonitoringController->update($request, $project->project_id);
                     break;
 
-                case 'Livelihood Development Projects':
+                case ProjectType::LIVELIHOOD_DEVELOPMENT_PROJECTS:
                     Log::info('ProjectController@update - Updating LDP data');
                     $this->ldpInterventionLogicController->update($request, $project->project_id);
                     $this->ldpNeedAnalysisController->update($request, $project->project_id);
                     $this->ldpTargetGroupController->update($request, $project->project_id);
                     break;
 
-                case 'Residential Skill Training Proposal 2':
+                case ProjectType::RESIDENTIAL_SKILL_TRAINING:
                     Log::info('ProjectController@update - Updating RST data');
                     $this->rstBeneficiariesAreaController->update($request, $project->project_id);
                     $this->rstGeographicalAreaController->update($request, $project->project_id);
@@ -1491,17 +1380,17 @@ public function edit($project_id)
                     $this->rstTargetGroupController->update($request, $project->project_id);
                     break;
 
-                case 'Development Projects':
+                case ProjectType::DEVELOPMENT_PROJECTS:
                     Log::info('ProjectController@update - Updating Development Projects data');
                     $this->rstBeneficiariesAreaController->update($request, $project->project_id);
                     break;
 
-                case 'NEXT PHASE - DEVELOPMENT PROPOSAL':
+                case ProjectType::NEXT_PHASE_DEVELOPMENT_PROPOSAL:
                     Log::info('ProjectController@update - Updating NEXT PHASE - DEVELOPMENT PROPOSAL data');
                     $this->rstBeneficiariesAreaController->update($request, $project->project_id);
                     break;
 
-                case 'Individual - Ongoing Educational support':
+                case ProjectType::INDIVIDUAL_ONGOING_EDUCATIONAL:
                     Log::info('ProjectController@update - Updating IES data');
                     $this->iesPersonalInfoController->update($request, $project->project_id);
                     $this->iesFamilyWorkingMembersController->update($request, $project->project_id);
@@ -1511,7 +1400,7 @@ public function edit($project_id)
                     $this->iesAttachmentsController->update($request, $project->project_id);
                     break;
 
-                case 'Individual - Livelihood Application':
+                case ProjectType::INDIVIDUAL_LIVELIHOOD_APPLICATION:
                     Log::info('ProjectController@update - Updating ILP data');
                     $this->ilpPersonalInfoController->update($request, $project_id);
                     $this->ilpRevenueGoalsController->update($request, $project_id);
@@ -1521,7 +1410,7 @@ public function edit($project_id)
                     $this->ilpBudgetController->update($request, $project_id);
                     break;
 
-                case 'Individual - Access to Health':
+                case ProjectType::INDIVIDUAL_ACCESS_TO_HEALTH:
                     Log::info('ProjectController@update - Updating IAH data');
                     $this->iahPersonalInfoController->update($request, $project->project_id);
                     $this->iahEarningMembersController->update($request, $project->project_id);
@@ -1531,7 +1420,7 @@ public function edit($project_id)
                     $this->iahDocumentsController->update($request, $project->project_id);
                     break;
 
-                case 'Individual - Initial - Educational support':
+                case ProjectType::INDIVIDUAL_INITIAL_EDUCATIONAL:
                     Log::info('ProjectController@update - Updating IIES data');
                     $this->iiesPersonalInfoController->update($request, $project->project_id);
                     $this->iiesFamilyWorkingMembersController->update($request, $project->project_id);
@@ -1550,6 +1439,14 @@ public function edit($project_id)
             }
 
             DB::commit();
+
+            // Refresh project to get latest data
+            $project->refresh();
+
+            // Log activity update
+            $user = Auth::user();
+            ActivityHistoryService::logProjectUpdate($project, $user, 'Project details updated');
+
             Log::info('ProjectController@update - Project updated successfully', [
                 'project_id' => $project->project_id
             ]);
@@ -1757,20 +1654,24 @@ public function edit($project_id)
     return view('projects.Coord-Prov-ProjectList', compact('projects'));
 }
 // Status
-public function submitToProvincial($project_id)
+public function submitToProvincial(SubmitProjectRequest $request, $project_id)
 {
+    // Authorization already checked by SubmitProjectRequest
+    // Validation already done by SubmitProjectRequest
+
     $project = Project::where('project_id', $project_id)->firstOrFail();
     $user = Auth::user();
 
-    // Check if user is executor and status is draft or reverted_by_provincial
-    if($user->role !== 'executor' || !in_array($project->status, ['draft','reverted_by_provincial'])) {
-        abort(403, 'Unauthorized action.');
+    try {
+        ProjectStatusService::submitToProvincial($project, $user);
+        return redirect()->back()->with('success', 'Project submitted to Provincial successfully.');
+    } catch (Exception $e) {
+        Log::error('Error submitting project to provincial', [
+            'project_id' => $project_id,
+            'error' => $e->getMessage(),
+        ]);
+        return redirect()->back()->withErrors(['error' => $e->getMessage()]);
     }
-
-    $project->status = 'submitted_to_provincial';
-    $project->save();
-
-    return redirect()->back()->with('success', 'Project submitted to Provincial successfully.');
 }
 
 // Approved Projects for Executors
@@ -1779,16 +1680,78 @@ public function approvedProjects()
     $user = Auth::user();
 
     // Fetch approved projects where the user is either the owner or the in-charge
-    $projects = Project::where(function($query) use ($user) {
-        $query->where('user_id', $user->id)
-              ->orWhere('in_charge', $user->id);
-    })
-    ->where('status', 'approved_by_coordinator')
-    ->orderBy('project_id')
-    ->orderBy('user_id')
-    ->get();
+    $projects = ProjectQueryService::getApprovedProjectsForUser($user)
+        ->sortBy(['project_id', 'user_id'])
+        ->values();
 
     return view('projects.Oldprojects.approved', compact('projects', 'user'));
+}
+
+/**
+ * Mark project as completed
+ *
+ * @param string $project_id
+ * @return \Illuminate\Http\RedirectResponse
+ */
+public function markAsCompleted($project_id)
+{
+    $project = Project::where('project_id', $project_id)->firstOrFail();
+    $user = Auth::user();
+
+    // Check permission - only owner or in-charge can mark as completed
+    if (!ProjectPermissionHelper::isOwnerOrInCharge($project, $user)) {
+        Log::warning('Unauthorized attempt to mark project as completed', [
+            'project_id' => $project_id,
+            'user_id' => $user->id,
+            'user_role' => $user->role
+        ]);
+        abort(403, 'You do not have permission to mark this project as completed.');
+    }
+
+    // Check if project is approved
+    if (!ProjectStatus::isApproved($project->status)) {
+        return redirect()->back()
+            ->withErrors([
+                'error' => 'Only approved projects can be marked as completed.'
+            ]);
+    }
+
+    // Check if already completed
+    if ($project->is_completed) {
+        return redirect()->back()
+            ->with('info', 'This project is already marked as completed.');
+    }
+
+    // Check if eligible (10+ months elapsed)
+    if (!ProjectPhaseService::isEligibleForCompletion($project)) {
+        $monthsElapsed = ProjectPhaseService::getMonthsElapsedInCurrentPhase($project);
+        $phaseInfo = ProjectPhaseService::getPhaseInfo($project);
+
+        return redirect()->back()
+            ->withErrors([
+                'error' => "Project cannot be marked as completed. " .
+                          "Only {$monthsElapsed} months have elapsed in the current phase. " .
+                          "Minimum 10 months required. " .
+                          "Project will be eligible for completion in " .
+                          (10 - $monthsElapsed) . " more month(s)."
+            ]);
+    }
+
+    // Mark as completed
+    $project->completed_at = now();
+    $project->save();
+
+    Log::info('Project marked as completed', [
+        'project_id' => $project->project_id,
+        'project_title' => $project->project_title,
+        'user_id' => $user->id,
+        'user_role' => $user->role,
+        'completed_at' => $project->completed_at,
+        'phase_info' => ProjectPhaseService::getPhaseInfo($project)
+    ]);
+
+    return redirect()->back()
+        ->with('success', 'Project marked as completed successfully.');
 }
 
 }

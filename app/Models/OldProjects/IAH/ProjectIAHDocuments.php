@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use App\Models\OldProjects\Project;
+use App\Models\OldProjects\IAH\ProjectIAHDocumentFile;
+use App\Helpers\AttachmentFileNamingHelper;
 
 /**
  * ProjectIAHDocuments Model
@@ -72,6 +74,22 @@ class ProjectIAHDocuments extends Model
     }
 
     /**
+     * Get all files for this document record
+     */
+    public function files()
+    {
+        return $this->hasMany(ProjectIAHDocumentFile::class, 'IAH_doc_id', 'IAH_doc_id');
+    }
+
+    /**
+     * Get files for a specific field
+     */
+    public function getFilesForField($fieldName)
+    {
+        return $this->files()->where('field_name', $fieldName)->orderBy('serial_number')->get();
+    }
+
+    /**
      * Handle the file upload/storage for IAH documents.
      */
     public static function handleDocuments($request, $projectId)
@@ -88,32 +106,95 @@ class ProjectIAHDocuments extends Model
 
         // Ensure directory exists
         $projectDir = "project_attachments/IAH/{$projectId}";
-        Storage::disk('public')->makeDirectory($projectDir);
+        Storage::disk('public')->makeDirectory($projectDir, 0755, true);
 
         // Update or create the row for this project
         $documents = self::updateOrCreate(['project_id' => $projectId], []);
 
-        // For each field, if there's a file, store it
-        foreach ($fields as $field) {
-            if ($request->hasFile($field)) {
-                $file = $request->file($field);
+        $uploadedFiles = []; // Track uploaded files for cleanup on error
 
-                $extension = $file->getClientOriginalExtension();
-                $fileName  = "{$projectId}_{$field}.{$extension}";
+        try {
+            // For each field, if there's a file, store it
+            foreach ($fields as $field) {
+                // Support both single file and array of files
+                if ($request->hasFile($field)) {
+                    $files = is_array($request->file($field)) 
+                        ? $request->file($field) 
+                        : [$request->file($field)];
+                    
+                    // Get user-provided names if any
+                    $fileNames = $request->input("{$field}_names", []);
+                    $descriptions = $request->input("{$field}_descriptions", []);
 
-                // storeAs on the public disk => /storage/project_attachments/IAH/{$projectId}
-                $filePath = $file->storeAs($projectDir, $fileName, 'public');
+                    foreach ($files as $index => $file) {
+                        if ($file && $file->isValid()) {
+                            // Validate file type
+                            if (!self::isValidFileType($file)) {
+                                \Log::error('Invalid file type for IAH document', [
+                                    'field' => $field,
+                                    'mime_type' => $file->getMimeType(),
+                                    'extension' => $file->getClientOriginalExtension()
+                                ]);
+                                $allowedTypes = config('attachments.allowed_file_types.image_only');
+                                $typesList = implode(', ', array_map('strtoupper', $allowedTypes['extensions']));
+                                $errorMsg = str_replace(':types', $typesList, config('attachments.messages.file_type_error'));
+                                throw new \Exception("Invalid file type for {$field}. {$errorMsg}");
+                            }
 
-                // If successful:
-                if ($filePath && Storage::disk('public')->exists($filePath)) {
-                    // Remove old file if different from new path
-                    if (!empty($documents->{$field}) && $documents->{$field} !== $filePath) {
-                        Storage::disk('public')->delete($documents->{$field});
+                            // Validate file size (7MB max - allows buffer for files slightly over 5MB)
+                            $maxSize = config('attachments.max_file_size.server_bytes');
+                            if ($file->getSize() > $maxSize) {
+                                $maxSizeMB = config('attachments.max_file_size.display_mb');
+                                $errorMsg = str_replace(':size', $maxSizeMB, config('attachments.messages.file_size_error'));
+                                throw new \Exception("File size exceeds limit for {$field}. {$errorMsg}");
+                            }
+
+                            // Generate file name using helper
+                            $userProvidedName = $fileNames[$index] ?? null;
+                            $extension = $file->getClientOriginalExtension();
+                            $fileName = AttachmentFileNamingHelper::generateFileName(
+                                $projectId,
+                                $field,
+                                $extension,
+                                $userProvidedName,
+                                'IAH'
+                            );
+
+                            // storeAs on the public disk
+                            $filePath = $file->storeAs($projectDir, $fileName, 'public');
+
+                            // If successful:
+                            if ($filePath && Storage::disk('public')->exists($filePath)) {
+                                $uploadedFiles[] = $filePath; // Track for cleanup
+
+                                // Get next serial number
+                                $serialNumber = AttachmentFileNamingHelper::getNextSerialNumber($projectId, $field, 'IAH');
+                                $serialFormatted = str_pad($serialNumber, 2, '0', STR_PAD_LEFT);
+
+                                // Create file record in new table
+                                ProjectIAHDocumentFile::create([
+                                    'IAH_doc_id' => $documents->IAH_doc_id,
+                                    'project_id' => $projectId,
+                                    'field_name' => $field,
+                                    'file_path' => $filePath,
+                                    'file_name' => $userProvidedName ?? $fileName,
+                                    'description' => $descriptions[$index] ?? '',
+                                    'serial_number' => $serialFormatted,
+                                    'public_url' => Storage::url($filePath),
+                                ]);
+                            }
+                        }
                     }
-
-                    $documents->{$field} = $filePath;
                 }
             }
+        } catch (\Exception $e) {
+            // Clean up uploaded files on error
+            foreach ($uploadedFiles as $filePath) {
+                if (Storage::disk('public')->exists($filePath)) {
+                    Storage::disk('public')->delete($filePath);
+                }
+            }
+            throw $e;
         }
 
         $documents->save();
@@ -142,5 +223,19 @@ class ProjectIAHDocuments extends Model
                 Storage::disk('public')->delete($this->$field);
             }
         }
+    }
+
+    /**
+     * Validate file type
+     */
+    private static function isValidFileType($file)
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $mimeType = $file->getMimeType();
+
+        $allowedTypes = config('attachments.allowed_file_types.image_only');
+
+        return in_array($extension, $allowedTypes['extensions']) &&
+               in_array($mimeType, $allowedTypes['mimes']);
     }
 }

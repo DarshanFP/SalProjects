@@ -3,32 +3,27 @@
 namespace App\Http\Controllers\Projects\IES;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IES\ProjectIESAttachments;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IES\StoreIESAttachmentsRequest;
+use App\Http\Requests\Projects\IES\UpdateIESAttachmentsRequest;
+use App\Helpers\LogHelper;
 
 class IESAttachmentsController extends Controller
 {
     // 🟢 STORE ATTACHMENTS
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
 
         try {
             Log::info('Storing IES attachments', ['project_id' => $projectId]);
-
-            $validatedData = $request->validate([
-                'aadhar_card' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'fee_quotation' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'scholarship_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'medical_confirmation' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'caste_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'self_declaration' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'death_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'request_letter' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            ]);
 
             ProjectIESAttachments::handleAttachments($request, $projectId);
 
@@ -89,30 +84,15 @@ class IESAttachmentsController extends Controller
         }
     }
 
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Starting update process for IES Attachments', [
-                'project_id' => $projectId,
-                'request_data' => $request->all()
-            ]);
-
-            // Validate request inputs
-            $validatedData = $request->validate([
-                'aadhar_card' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'fee_quotation' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'scholarship_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'medical_confirmation' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'caste_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'self_declaration' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'death_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'request_letter' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            ]);
-
-            Log::info('Validation passed for IES Attachments update', [
-                'project_id' => $projectId,
-                'validated_data' => $validatedData
+                'project_id' => $projectId
             ]);
 
             // Handle file uploads and database updates
@@ -123,7 +103,9 @@ class IESAttachmentsController extends Controller
             Log::info('IES Attachments updated successfully', [
                 'project_id' => $projectId
             ]);
-            Log::info('Files received for update:', $request->all());
+            LogHelper::logSafeRequest('Files received for update', $request, [
+                'project_id' => $projectId,
+            ]);
 
 
             return response()->json(['message' => 'IES Attachments updated successfully.'], 200);

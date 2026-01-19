@@ -70,7 +70,7 @@
                                 <div class="text-white card bg-primary">
                                     <div class="card-body">
                                         <h5 class="card-title">Total Budget</h5>
-                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_budget'], 2) }}</h3>
+                                        <h3 class="card-text">{{ format_indian_currency($budgetSummaries['total']['total_budget'], 2) }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -78,7 +78,7 @@
                                 <div class="text-white card bg-success">
                                     <div class="card-body">
                                         <h5 class="card-title">Total Expenses</h5>
-                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_expenses'], 2) }}</h3>
+                                        <h3 class="card-text">{{ format_indian_currency($budgetSummaries['total']['total_expenses'], 2) }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -86,7 +86,7 @@
                                 <div class="text-white card bg-info">
                                     <div class="card-body">
                                         <h5 class="card-title">Total Remaining</h5>
-                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_remaining'], 2) }}</h3>
+                                        <h3 class="card-text">{{ format_indian_currency($budgetSummaries['total']['total_remaining'], 2) }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -97,7 +97,7 @@
                     <div class="mb-4">
                         <h5 class="mb-3 card-title">Budget Summary by Project Type</h5>
                         <div class="table-responsive">
-                            <table class="table table-bordered table-striped">
+                            <table class="table table-bordered table-hover">
                                 <thead>
                                     <tr>
                                         <th>Project Type</th>
@@ -110,9 +110,9 @@
                                     @foreach($budgetSummaries['by_project_type'] as $type => $summary)
                                     <tr>
                                         <td>{{ $type }}</td>
-                                        <td>₱{{ number_format($summary['total_budget'], 2) }}</td>
-                                        <td>₱{{ number_format($summary['total_expenses'], 2) }}</td>
-                                        <td>₱{{ number_format($summary['total_remaining'], 2) }}</td>
+                                        <td>{{ format_indian_currency($summary['total_budget'], 2) }}</td>
+                                        <td>{{ format_indian_currency($summary['total_expenses'], 2) }}</td>
+                                        <td>{{ format_indian_currency($summary['total_remaining'], 2) }}</td>
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -124,7 +124,7 @@
                     <div class="mb-4">
                         <h5 class="mb-3 card-title">Budget Summary by Province</h5>
                         <div class="table-responsive">
-                            <table class="table table-bordered table-striped">
+                            <table class="table table-bordered table-hover">
                                 <thead>
                                     <tr>
                                         <th>Province</th>
@@ -137,9 +137,9 @@
                                     @foreach($budgetSummaries['by_province'] as $province => $summary)
                                     <tr>
                                         <td>{{ $province }}</td>
-                                        <td>₱{{ number_format($summary['total_budget'], 2) }}</td>
-                                        <td>₱{{ number_format($summary['total_expenses'], 2) }}</td>
-                                        <td>₱{{ number_format($summary['total_remaining'], 2) }}</td>
+                                        <td>{{ format_indian_currency($summary['total_budget'], 2) }}</td>
+                                        <td>{{ format_indian_currency($summary['total_expenses'], 2) }}</td>
+                                        <td>{{ format_indian_currency($summary['total_remaining'], 2) }}</td>
                                     </tr>
                                     @endforeach
                                 </tbody>

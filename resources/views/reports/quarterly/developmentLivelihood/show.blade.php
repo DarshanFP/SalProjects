@@ -14,33 +14,21 @@
                 </div>
                 <div class="card-body">
                     <!-- Basic Information Fields -->
-                    <div class="mb-3">
-                        <label class="form-label">Title of the Project</label>
-                        <p>{{ $report->project_title }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Place</label>
-                        <p>{{ $report->place }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Name of the Society / Trust</label>
-                        <p>{{ $report->society_name }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Month & Year of Commencement of the Project</label>
-                        <p>{{ $report->commencement_month_year }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Sister/s In-Charge</label>
-                        <p>{{ $report->in_charge }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Total No. of Beneficiaries</label>
-                        <p>{{ $report->total_beneficiaries }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Reporting Period</label>
-                        <p>{{ $report->reporting_period }}</p>
+                    <div class="info-grid">
+                        <div class="info-label"><strong>Title of the Project:</strong></div>
+                        <div class="info-value">{{ $report->project_title }}</div>
+                        <div class="info-label"><strong>Place:</strong></div>
+                        <div class="info-value">{{ $report->place }}</div>
+                        <div class="info-label"><strong>Name of the Society / Trust:</strong></div>
+                        <div class="info-value">{{ $report->society_name }}</div>
+                        <div class="info-label"><strong>Month & Year of Commencement of the Project:</strong></div>
+                        <div class="info-value">{{ $report->commencement_month_year }}</div>
+                        <div class="info-label"><strong>Sister/s In-Charge:</strong></div>
+                        <div class="info-value">{{ $report->in_charge }}</div>
+                        <div class="info-label"><strong>Total No. of Beneficiaries:</strong></div>
+                        <div class="info-value">{{ $report->total_beneficiaries }}</div>
+                        <div class="info-label"><strong>Reporting Period:</strong></div>
+                        <div class="info-value">{{ $report->reporting_period }}</div>
                     </div>
                 </div>
             </div>
@@ -51,9 +39,9 @@
                     <h4>1. Key Information</h4>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Goal of the Project</label>
-                        <p>{{ $report->goal }}</p>
+                    <div class="info-grid">
+                        <div class="info-label"><strong>Goal of the Project:</strong></div>
+                        <div class="info-value">{{ $report->goal }}</div>
                     </div>
                 </div>
             </div>
@@ -68,64 +56,48 @@
                     Objective {{ $loop->iteration }}
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Objective</label>
-                        <p>{{ $objective->objective }}</p>
+                    <div class="info-grid">
+                        <div class="info-label"><strong>Objective:</strong></div>
+                        <div class="info-value">{{ $objective->objective }}</div>
+                        <div class="info-label"><strong>Expected Outcome:</strong></div>
+                        <div class="info-value">{{ $objective->expected_outcome }}</div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Expected Outcome</label>
-                        <p>{{ $objective->expected_outcome }}</p>
-                    </div>
-                    <h4>Monthly Summary</h4>
+                    <h4 class="mt-4">Monthly Summary</h4>
                     @foreach($objective->activities as $activity)
                     <div class="mb-3 card">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <div class="form-group">
-                                <label class="form-label">Month</label>
-                                <p>{{ $activity->month }}</p>
+                            <div class="info-grid" style="width: 100%;">
+                                <div class="info-label"><strong>Month:</strong></div>
+                                <div class="info-value">{{ $activity->month }}</div>
                             </div>
                         </div>
                         <div class="card-body">
-                            <div class="mb-3">
-                                <label class="form-label">Summary of Activities</label>
-                                <p>{{ $activity->summary_activities }}</p>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Qualitative & Quantitative Data</label>
-                                <p>{{ $activity->qualitative_quantitative_data }}</p>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Intermediate Outcomes</label>
-                                <p>{{ $activity->intermediate_outcomes }}</p>
+                            <div class="info-grid">
+                                <div class="info-label"><strong>Summary of Activities:</strong></div>
+                                <div class="info-value">{{ $activity->summary_activities }}</div>
+                                <div class="info-label"><strong>Qualitative & Quantitative Data:</strong></div>
+                                <div class="info-value">{{ $activity->qualitative_quantitative_data }}</div>
+                                <div class="info-label"><strong>Intermediate Outcomes:</strong></div>
+                                <div class="info-value">{{ $activity->intermediate_outcomes }}</div>
                             </div>
                         </div>
                     </div>
                     @endforeach
-                    <div class="mb-3">
-                        <label class="form-label">What Did Not Happen?</label>
-                        <p>{{ $objective->not_happened }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Explain Why Some Activities Could Not Be Undertaken</label>
-                        <p>{{ $objective->why_not_happened }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Have You Made Any Changes in the Project Such as New Activities or Modified the Activities Contextually?</label>
-                        <p>{{ $objective->changes ? 'Yes' : 'No' }}</p>
-                    </div>
-                    @if($objective->changes)
-                    <div class="mb-3">
-                        <label class="form-label">Explain Why the Changes Were Needed</label>
-                        <p>{{ $objective->why_changes }}</p>
-                    </div>
-                    @endif
-                    <div class="mb-3">
-                        <label class="form-label">What Are the Lessons Learnt?</label>
-                        <p>{{ $objective->lessons_learnt }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">What Will Be Done Differently Because of the Learnings?</label>
-                        <p>{{ $objective->todo_lessons_learnt }}</p>
+                    <div class="info-grid mt-3">
+                        <div class="info-label"><strong>What Did Not Happen?:</strong></div>
+                        <div class="info-value">{{ $objective->not_happened }}</div>
+                        <div class="info-label"><strong>Explain Why Some Activities Could Not Be Undertaken:</strong></div>
+                        <div class="info-value">{{ $objective->why_not_happened }}</div>
+                        <div class="info-label"><strong>Have You Made Any Changes in the Project Such as New Activities or Modified the Activities Contextually?:</strong></div>
+                        <div class="info-value">{{ $objective->changes ? 'Yes' : 'No' }}</div>
+                        @if($objective->changes)
+                        <div class="info-label"><strong>Explain Why the Changes Were Needed:</strong></div>
+                        <div class="info-value">{{ $objective->why_changes }}</div>
+                        @endif
+                        <div class="info-label"><strong>What Are the Lessons Learnt?:</strong></div>
+                        <div class="info-value">{{ $objective->lessons_learnt }}</div>
+                        <div class="info-label"><strong>What Will Be Done Differently Because of the Learnings?:</strong></div>
+                        <div class="info-value">{{ $objective->todo_lessons_learnt }}</div>
                     </div>
                 </div>
             </div>
@@ -141,13 +113,11 @@
                     Outlook {{ $loop->iteration }}
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Date</label>
-                        <p>{{ $outlook->date }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Action Plan for Next Month</label>
-                        <p>{{ $outlook->plan_next_month }}</p>
+                    <div class="info-grid">
+                        <div class="info-label"><strong>Date:</strong></div>
+                        <div class="info-value">{{ $outlook->date }}</div>
+                        <div class="info-label"><strong>Action Plan for Next Month:</strong></div>
+                        <div class="info-value">{{ $outlook->plan_next_month }}</div>
                     </div>
                 </div>
             </div>
@@ -159,21 +129,15 @@
                     <h4>4. Statements of Account</h4>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Account Statement Period:</label>
-                        <p>{{ $report->account_period_start }} to {{ $report->account_period_end }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Amount Sanctioned: Rs.</label>
-                        <p>{{ $report->amount_sanctioned_overview }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Amount Forwarded from the Last Financial Year: Rs.</label>
-                        <p>{{ $report->amount_forwarded_overview }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Total Amount: Rs.</label>
-                        <p>{{ $report->amount_in_hand }}</p>
+                    <div class="info-grid">
+                        <div class="info-label"><strong>Account Statement Period:</strong></div>
+                        <div class="info-value">{{ $report->account_period_start }} to {{ $report->account_period_end }}</div>
+                        <div class="info-label"><strong>Amount Sanctioned:</strong></div>
+                        <div class="info-value">{{ format_indian_currency($report->amount_sanctioned_overview ?? 0, 2) }}</div>
+                        <div class="info-label"><strong>Amount Forwarded from the Last Financial Year:</strong></div>
+                        <div class="info-value">{{ format_indian_currency($report->amount_forwarded_overview ?? 0, 2) }}</div>
+                        <div class="info-label"><strong>Total Amount:</strong></div>
+                        <div class="info-value">{{ format_indian_currency($report->amount_in_hand ?? 0, 2) }}</div>
                     </div>
 
                     <table class="table table-bordered">
@@ -193,20 +157,20 @@
                             @foreach($report->accountDetails as $accountDetail)
                             <tr>
                                 <td>{{ $accountDetail->particulars }}</td>
-                                <td>{{ $accountDetail->amount_forwarded }}</td>
-                                <td>{{ $accountDetail->amount_sanctioned }}</td>
-                                <td>{{ $accountDetail->total_amount }}</td>
-                                <td>{{ $accountDetail->expenses_last_month }}</td>
-                                <td>{{ $accountDetail->expenses_this_month }}</td>
-                                <td>{{ $accountDetail->total_expenses }}</td>
-                                <td>{{ $accountDetail->balance_amount }}</td>
+                                <td>{{ format_indian_currency($accountDetail->amount_forwarded ?? 0, 2) }}</td>
+                                <td>{{ format_indian_currency($accountDetail->amount_sanctioned ?? 0, 2) }}</td>
+                                <td>{{ format_indian_currency($accountDetail->total_amount ?? 0, 2) }}</td>
+                                <td>{{ format_indian_currency($accountDetail->expenses_last_month ?? 0, 2) }}</td>
+                                <td>{{ format_indian_currency($accountDetail->expenses_this_month ?? 0, 2) }}</td>
+                                <td>{{ format_indian_currency($accountDetail->total_expenses ?? 0, 2) }}</td>
+                                <td>{{ format_indian_currency($accountDetail->balance_amount ?? 0, 2) }}</td>
                             </tr>
                             @endforeach
                         </tbody>
                     </table>
-                    <div class="mt-3">
-                        <label class="form-label">Total Balance Amount Forwarded for the Following Month: Rs.</label>
-                        <p>{{ $report->total_balance_forwarded }}</p>
+                    <div class="info-grid mt-3">
+                        <div class="info-label"><strong>Total Balance Amount Forwarded for the Following Month:</strong></div>
+                        <div class="info-value">{{ format_indian_currency($report->total_balance_forwarded ?? 0, 2) }}</div>
                     </div>
                 </div>
             </div>
@@ -233,37 +197,23 @@
                 </div>
                 @foreach($report->annexures as $annexure)
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Name of the Beneficiary</label>
-                        <p>{{ $annexure->beneficiary_name }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Date of support given</label>
-                        <p>{{ $annexure->support_date }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Nature of self-employment</label>
-                        <p>{{ $annexure->self_employment }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Amount sanctioned</label>
-                        <p>{{ $annexure->amount_sanctioned }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Monetary profit gained - Monthly</label>
-                        <p>{{ $annexure->monthly_profit }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Monetary profit gained - Per annum</label>
-                        <p>{{ $annexure->annual_profit }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Project’s impact in the life of the beneficiary</label>
-                        <p>{{ $annexure->impact }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Challenges faced if any</label>
-                        <p>{{ $annexure->challenges }}</p>
+                    <div class="info-grid">
+                        <div class="info-label"><strong>Name of the Beneficiary:</strong></div>
+                        <div class="info-value">{{ $annexure->beneficiary_name }}</div>
+                        <div class="info-label"><strong>Date of support given:</strong></div>
+                        <div class="info-value">{{ $annexure->support_date }}</div>
+                        <div class="info-label"><strong>Nature of self-employment:</strong></div>
+                        <div class="info-value">{{ $annexure->self_employment }}</div>
+                        <div class="info-label"><strong>Amount sanctioned:</strong></div>
+                        <div class="info-value">{{ format_indian_currency($annexure->amount_sanctioned ?? 0, 2) }}</div>
+                        <div class="info-label"><strong>Monetary profit gained - Monthly:</strong></div>
+                        <div class="info-value">{{ format_indian_currency($annexure->monthly_profit ?? 0, 2) }}</div>
+                        <div class="info-label"><strong>Monetary profit gained - Per annum:</strong></div>
+                        <div class="info-value">{{ format_indian_currency($annexure->annual_profit ?? 0, 2) }}</div>
+                        <div class="info-label"><strong>Project's impact in the life of the beneficiary:</strong></div>
+                        <div class="info-value">{{ $annexure->impact }}</div>
+                        <div class="info-label"><strong>Challenges faced if any:</strong></div>
+                        <div class="info-value">{{ $annexure->challenges }}</div>
                     </div>
                 </div>
                 @endforeach
@@ -272,3 +222,47 @@
     </div>
 </div>
 @endsection
+
+<style>
+.info-grid {
+    display: grid;
+    grid-template-columns: 20% 80%;
+    grid-gap: 20px;
+    align-items: start;
+}
+
+.info-label {
+    font-weight: bold;
+    margin-right: 10px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+}
+
+.info-value {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    padding-left: 10px;
+}
+
+@media (max-width: 768px) {
+    .info-grid {
+        grid-template-columns: 1fr;
+        grid-gap: 10px;
+    }
+
+    .info-label {
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
+
+    .info-value {
+        padding-left: 0;
+    }
+}
+</style>
+
+<script src="{{ asset('js/report-view-hide-empty.js') }}"></script>

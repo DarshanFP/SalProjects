@@ -37,6 +37,13 @@
                             white-space: nowrap;
                         }
 
+                        /* Style badges */
+                        table.my-projects-table .badge {
+                            font-size: 11px;
+                            padding: 5px 10px;
+                            font-weight: 500;
+                        }
+
                         .table {
                             table-layout: fixed;
                             width: 100%;
@@ -52,29 +59,53 @@
                         }
                     </style>
 
+                    @php
+                        use App\Constants\ProjectStatus;
+                        use App\Helpers\ProjectPermissionHelper;
+                        $editableStatuses = ProjectStatus::getEditableStatuses();
+                    @endphp
+
                     <table class="table table-bordered my-projects-table">
                         <thead>
                             <tr>
                                 <th style="width: 10%;">Project ID</th>
-                                <th style="width: 35%;">Project Title</th>
-                                <th style="width: 20%;">Project Type</th>
-                                <th style="width: 15%;">Status</th>
+                                <th style="width: 30%;">Project Title</th>
+                                <th style="width: 15%;">Project Type</th>
+                                <th style="width: 12%;">Role</th>
+                                <th style="width: 13%;">Status</th>
                                 <th style="width: 20%;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($projects as $project)
+                                @php
+                                    $user = auth()->user();
+                                    $isOwner = $project->user_id === $user->id;
+                                    $isInCharge = $project->in_charge === $user->id && !$isOwner;
+                                @endphp
                                 <tr>
                                     <td>{{ $project->project_id }}</td>
                                     <td class="project-title">{{ $project->project_title }}</td>
                                     <td class="project-type">{{ $project->project_type }}</td>
+                                    <td class="text-center">
+                                        @if($isOwner)
+                                            <span class="badge bg-success">Executor</span>
+                                        @elseif($isInCharge)
+                                            <span class="badge bg-info">Applicant</span>
+                                        @endif
+                                    </td>
                                     <td class="project-status">
                                         {{ \App\Models\OldProjects\Project::$statusLabels[$project->status] ?? $project->status }}
                                     </td>
                                     <td>
                                         <a href="{{ route('projects.show', $project->project_id) }}" class="btn btn-info">View</a>
-                                        @if($project->status == 'draft' || $project->status == 'reverted_by_provincial' || $project->status == 'reverted_by_coordinator')
-                                            <a href="{{ route('projects.edit', $project->project_id) }}" class="btn btn-primary">Edit</a>
+                                        @if(in_array($project->status, $editableStatuses))
+                                            @php
+                                                $canEdit = ProjectPermissionHelper::canEdit($project, $user);
+                                            @endphp
+                                            @if($canEdit)
+                                                <a href="{{ route('projects.edit', $project->project_id) }}" class="btn btn-primary">Edit</a>
+                                            @endif
                                         @endif
                                     </td>
                                 </tr>

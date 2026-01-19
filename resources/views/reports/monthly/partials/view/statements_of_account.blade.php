@@ -23,12 +23,14 @@
 @if(View::exists($partialPath))
     @include($partialPath, [
         'report' => $report,
+        'project' => $project ?? $report->project ?? null,
         'budgets' => $budgets ?? null
     ])
 @else
     {{-- Fallback to default development projects structure --}}
     @include('reports.monthly.partials.view.statements_of_account.development_projects', [
         'report' => $report,
+        'project' => $project ?? $report->project ?? null,
         'budgets' => $budgets ?? null
     ])
 @endif

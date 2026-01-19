@@ -21,6 +21,7 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
+                        <th style="width: 5%;">No.</th>
                         <th>Particular</th>
                         <th>Amount</th>
                         <th>Action</th>
@@ -28,8 +29,9 @@
                 </thead>
                 <tbody id="IIES-expenses-table">
                     @if ($iiesExpenses && $iiesExpenses->expenseDetails->count())
-                        @foreach ($iiesExpenses->expenseDetails as $detail)
+                        @foreach ($iiesExpenses->expenseDetails as $index => $detail)
                             <tr>
+                                <td style="text-align: center; vertical-align: middle;">{{ $index + 1 }}</td>
                                 <td>
                                     <input type="text" name="iies_particulars[]" class="form-control"
                                            value="{{ old('iies_particulars[]', $detail->iies_particular) }}">
@@ -48,6 +50,7 @@
                         @endforeach
                     @else
                         <tr>
+                            <td style="text-align: center; vertical-align: middle;">1</td>
                             <td><input type="text" name="iies_particulars[]" class="form-control"></td>
                             <td><input type="number" name="iies_amounts[]" class="form-control IIES-expense-input" step="0.01" oninput="IIEScalculateTotalExpenses()"></td>
                             <td><button type="button" class="btn btn-danger" onclick="IIESremoveExpenseRow(this)">Remove</button></td>
@@ -98,18 +101,30 @@
 <!-- JavaScript to manage table rows and calculate totals -->
 <script>
     function IIESaddExpenseRow() {
+        const table = document.querySelector('#IIES-expenses-table');
+        const rowCount = table.children.length;
         const row = `
             <tr>
+                <td style="text-align: center; vertical-align: middle;">${rowCount + 1}</td>
                 <td><input type="text" name="iies_particulars[]" class="form-control"></td>
                 <td><input type="number" name="iies_amounts[]" class="form-control IIES-expense-input" step="0.01" oninput="IIEScalculateTotalExpenses()"></td>
                 <td><button type="button" class="btn btn-danger" onclick="IIESremoveExpenseRow(this)">Remove</button></td>
             </tr>`;
-        document.querySelector('#IIES-expenses-table').insertAdjacentHTML('beforeend', row);
+        table.insertAdjacentHTML('beforeend', row);
+        reindexIIESExpenseRows();
     }
 
     function IIESremoveExpenseRow(button) {
         button.closest('tr').remove();
+        reindexIIESExpenseRows();
         IIEScalculateTotalExpenses();
+    }
+    
+    function reindexIIESExpenseRows() {
+        const rows = document.querySelectorAll('#IIES-expenses-table tr');
+        rows.forEach((row, index) => {
+            row.children[0].textContent = index + 1;
+        });
     }
 
     function IIEScalculateTotalExpenses() {

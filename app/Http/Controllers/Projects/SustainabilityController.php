@@ -15,16 +15,23 @@ class SustainabilityController extends Controller
     // Store sustainability information for a project
     public function store(Request $request, $projectId)
     {
+        $validated = $request->validate([
+            'sustainability' => 'nullable|string',
+            'monitoring_process' => 'nullable|string',
+            'reporting_methodology' => 'nullable|string',
+            'evaluation_methodology' => 'nullable|string',
+        ]);
+        
         DB::beginTransaction();
         try {
             Log::info('SustainabilityController@store - Starting to store sustainability information', ['project_id' => $projectId]);
 
             $sustainability = new ProjectSustainability();
             $sustainability->project_id = $projectId;
-            $sustainability->sustainability = $request->input('sustainability');
-            $sustainability->monitoring_process = $request->input('monitoring_process');
-            $sustainability->reporting_methodology = $request->input('reporting_methodology');
-            $sustainability->evaluation_methodology = $request->input('evaluation_methodology');
+            $sustainability->sustainability = $validated['sustainability'] ?? null;
+            $sustainability->monitoring_process = $validated['monitoring_process'] ?? null;
+            $sustainability->reporting_methodology = $validated['reporting_methodology'] ?? null;
+            $sustainability->evaluation_methodology = $validated['evaluation_methodology'] ?? null;
             $sustainability->save();
 
             DB::commit();
@@ -70,6 +77,13 @@ class SustainabilityController extends Controller
     // Update sustainability information for a project
     public function update(Request $request, $project_id)
 {
+    $validated = $request->validate([
+        'sustainability' => 'nullable|string',
+        'monitoring_process' => 'nullable|string',
+        'reporting_methodology' => 'nullable|string',
+        'evaluation_methodology' => 'nullable|string',
+    ]);
+    
     DB::beginTransaction();
     try {
         Log::info('SustainabilityController@update - Starting to update sustainability information', ['project_id' => $project_id]);
@@ -83,11 +97,11 @@ class SustainabilityController extends Controller
             $sustainability->project_id = $project_id;
         }
 
-        // Update the sustainability data
-        $sustainability->sustainability = $request->input('sustainability');
-        $sustainability->monitoring_process = $request->input('monitoring_process');
-        $sustainability->reporting_methodology = $request->input('reporting_methodology');
-        $sustainability->evaluation_methodology = $request->input('evaluation_methodology');
+        // Update the sustainability data with validated data
+        $sustainability->sustainability = $validated['sustainability'] ?? null;
+        $sustainability->monitoring_process = $validated['monitoring_process'] ?? null;
+        $sustainability->reporting_methodology = $validated['reporting_methodology'] ?? null;
+        $sustainability->evaluation_methodology = $validated['evaluation_methodology'] ?? null;
         $sustainability->save();
 
         DB::commit();

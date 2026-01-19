@@ -3,17 +3,23 @@
 namespace App\Http\Controllers\Projects\IIES;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IIES\ProjectIIESExpenses;
 use App\Models\OldProjects\IIES\ProjectIIESExpenseDetail;
 use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IIES\StoreIIESExpensesRequest;
+use App\Http\Requests\Projects\IIES\UpdateIIESExpensesRequest;
 
 class IIESExpensesController extends Controller
 {
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including particulars[], amounts[] arrays
+        // These fields are not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
 
         try {
@@ -29,18 +35,21 @@ class IIESExpensesController extends Controller
             // Create new entry
             $projectExpenses = new ProjectIIESExpenses();
             $projectExpenses->project_id = $projectId;
-            $projectExpenses->iies_total_expenses = $request->input('iies_total_expenses');
-            $projectExpenses->iies_expected_scholarship_govt = $request->input('iies_expected_scholarship_govt');
-            $projectExpenses->iies_support_other_sources = $request->input('iies_support_other_sources');
-            $projectExpenses->iies_beneficiary_contribution = $request->input('iies_beneficiary_contribution');
-            $projectExpenses->iies_balance_requested = $request->input('iies_balance_requested');
+            $projectExpenses->iies_total_expenses = $validated['iies_total_expenses'] ?? null;
+            $projectExpenses->iies_expected_scholarship_govt = $validated['iies_expected_scholarship_govt'] ?? null;
+            $projectExpenses->iies_support_other_sources = $validated['iies_support_other_sources'] ?? null;
+            $projectExpenses->iies_beneficiary_contribution = $validated['iies_beneficiary_contribution'] ?? null;
+            $projectExpenses->iies_balance_requested = $validated['iies_balance_requested'] ?? null;
             $projectExpenses->save();
 
-            foreach ($request->input('iies_particulars', []) as $index => $particular) {
-                if (!empty($particular) && !empty($request->input('iies_amounts')[$index])) {
+            $particulars = $validated['iies_particulars'] ?? [];
+            $amounts = $validated['iies_amounts'] ?? [];
+            
+            foreach ($particulars as $index => $particular) {
+                if (!empty($particular) && !empty($amounts[$index] ?? null)) {
                     $projectExpenses->expenseDetails()->create([
                         'iies_particular' => $particular,
-                        'iies_amount' => $request->input('iies_amounts')[$index],
+                        'iies_amount' => $amounts[$index],
                     ]);
                 }
             }
@@ -154,8 +163,9 @@ class IIESExpensesController extends Controller
 
         // Update IIES estimated expenses
 
-public function update(Request $request, $projectId)
+public function update(\Illuminate\Foundation\Http\FormRequest $request, $projectId)
 {
+    // Reuse store logic
     return $this->store($request, $projectId);
 }
 

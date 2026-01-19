@@ -18,19 +18,19 @@
             <tbody id="ilp-business-plan-body">
                 <tr>
                     <td>
-                        <input type="text" name="business_plan_items[0][item]" class="form-control" placeholder="Business Item" style="background-color: #202ba3;">
+                        <input type="text" name="business_plan_items[0][item]" class="form-control" placeholder="Business Item">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="business_plan_items[0][year_1]" class="form-control" placeholder="Year 1" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="business_plan_items[0][year_1]" class="form-control" placeholder="Year 1">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="business_plan_items[0][year_2]" class="form-control" placeholder="Year 2" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="business_plan_items[0][year_2]" class="form-control" placeholder="Year 2">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="business_plan_items[0][year_3]" class="form-control" placeholder="Year 3" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="business_plan_items[0][year_3]" class="form-control" placeholder="Year 3">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="business_plan_items[0][year_4]" class="form-control" placeholder="Year 4" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="business_plan_items[0][year_4]" class="form-control" placeholder="Year 4">
                     </td>
                 </tr>
             </tbody>
@@ -55,19 +55,19 @@
             <tbody id="ilp-annual-income-body">
                 <tr>
                     <td>
-                        <input type="text" name="annual_income[0][desc]" class="form-control" placeholder="Income Description" style="background-color: #202ba3;">
+                        <input type="text" name="annual_income[0][desc]" class="form-control" placeholder="Income Description">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="annual_income[0][year_1]" class="form-control" placeholder="Year 1" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="annual_income[0][year_1]" class="form-control" placeholder="Year 1">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="annual_income[0][year_2]" class="form-control" placeholder="Year 2" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="annual_income[0][year_2]" class="form-control" placeholder="Year 2">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="annual_income[0][year_3]" class="form-control" placeholder="Year 3" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="annual_income[0][year_3]" class="form-control" placeholder="Year 3">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="annual_income[0][year_4]" class="form-control" placeholder="Year 4" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="annual_income[0][year_4]" class="form-control" placeholder="Year 4">
                     </td>
                 </tr>
             </tbody>
@@ -92,19 +92,19 @@
             <tbody id="ilp-annual-expenses-body">
                 <tr>
                     <td>
-                        <input type="text" name="annual_expenses[0][desc]" class="form-control" placeholder="Expense Description" style="background-color: #202ba3;">
+                        <input type="text" name="annual_expenses[0][desc]" class="form-control" placeholder="Expense Description">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="annual_expenses[0][year_1]" class="form-control" placeholder="Year 1" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="annual_expenses[0][year_1]" class="form-control" placeholder="Year 1">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="annual_expenses[0][year_2]" class="form-control" placeholder="Year 2" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="annual_expenses[0][year_2]" class="form-control" placeholder="Year 2">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="annual_expenses[0][year_3]" class="form-control" placeholder="Year 3" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="annual_expenses[0][year_3]" class="form-control" placeholder="Year 3">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="annual_expenses[0][year_4]" class="form-control" placeholder="Year 4" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="annual_expenses[0][year_4]" class="form-control" placeholder="Year 4">
                     </td>
                 </tr>
             </tbody>
@@ -127,11 +127,11 @@
         document.getElementById('add-business-plan-item').addEventListener('click', function () {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><input type="text" name="business_plan_items[${businessPlanIndex}][item]" class="form-control" placeholder="Business Item" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_1]" class="form-control" placeholder="Year 1" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_2]" class="form-control" placeholder="Year 2" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_3]" class="form-control" placeholder="Year 3" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_4]" class="form-control" placeholder="Year 4" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="business_plan_items[${businessPlanIndex}][item]" class="form-control" placeholder="Business Item"></td>
+                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_1]" class="form-control" placeholder="Year 1"></td>
+                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_2]" class="form-control" placeholder="Year 2"></td>
+                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_3]" class="form-control" placeholder="Year 3"></td>
+                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_4]" class="form-control" placeholder="Year 4"></td>
             `;
             businessPlanBody.appendChild(row);
             businessPlanIndex++;
@@ -147,11 +147,11 @@
         document.getElementById('add-annual-income-item').addEventListener('click', function () {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><input type="text" name="annual_income[${incomeIndex}][desc]" class="form-control" placeholder="Income Description" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_1]" class="form-control" placeholder="Year 1" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_2]" class="form-control" placeholder="Year 2" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_3]" class="form-control" placeholder="Year 3" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_4]" class="form-control" placeholder="Year 4" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="annual_income[${incomeIndex}][desc]" class="form-control" placeholder="Income Description"></td>
+                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_1]" class="form-control" placeholder="Year 1"></td>
+                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_2]" class="form-control" placeholder="Year 2"></td>
+                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_3]" class="form-control" placeholder="Year 3"></td>
+                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_4]" class="form-control" placeholder="Year 4"></td>
             `;
             incomeBody.appendChild(row);
             incomeIndex++;
@@ -167,11 +167,11 @@
         document.getElementById('add-annual-expense-item').addEventListener('click', function () {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><input type="text" name="annual_expenses[${expenseIndex}][desc]" class="form-control" placeholder="Expense Description" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_1]" class="form-control" placeholder="Year 1" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_2]" class="form-control" placeholder="Year 2" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_3]" class="form-control" placeholder="Year 3" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_4]" class="form-control" placeholder="Year 4" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="annual_expenses[${expenseIndex}][desc]" class="form-control" placeholder="Expense Description"></td>
+                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_1]" class="form-control" placeholder="Year 1"></td>
+                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_2]" class="form-control" placeholder="Year 2"></td>
+                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_3]" class="form-control" placeholder="Year 3"></td>
+                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_4]" class="form-control" placeholder="Year 4"></td>
             `;
             expensesBody.appendChild(row);
             expenseIndex++;
@@ -195,6 +195,7 @@
         <table class="table table-bordered">
             <thead>
                 <tr>
+                    <th style="width: 5%;">No.</th>
                     <th>Business Plan (Items)</th>
                     <th>Year 1</th>
                     <th>Year 2</th>
@@ -204,6 +205,7 @@
             </thead>
             <tbody id="ilp-business-plan-body">
                 <tr>
+                    <td style="text-align: center; vertical-align: middle;">1</td>
                     <td><input type="text" name="business_plan_items[0][item]" class="form-control" placeholder="Business Item"></td>
                     <td><input type="number" step="0.01" name="business_plan_items[0][year_1]" class="form-control" placeholder="Year 1"></td>
                     <td><input type="number" step="0.01" name="business_plan_items[0][year_2]" class="form-control" placeholder="Year 2"></td>
@@ -220,6 +222,7 @@
         <table class="table table-bordered">
             <thead>
                 <tr>
+                    <th style="width: 5%;">No.</th>
                     <th>Description</th>
                     <th>Year 1</th>
                     <th>Year 2</th>
@@ -229,6 +232,7 @@
             </thead>
             <tbody id="ilp-annual-income-body">
                 <tr>
+                    <td style="text-align: center; vertical-align: middle;">1</td>
                     <td><input type="text" name="annual_income[0][desc]" class="form-control" placeholder="Income Description"></td>
                     <td><input type="number" step="0.01" name="annual_income[0][year_1]" class="form-control" placeholder="Year 1"></td>
                     <td><input type="number" step="0.01" name="annual_income[0][year_2]" class="form-control" placeholder="Year 2"></td>
@@ -245,6 +249,7 @@
         <table class="table table-bordered">
             <thead>
                 <tr>
+                    <th style="width: 5%;">No.</th>
                     <th>Description</th>
                     <th>Year 1</th>
                     <th>Year 2</th>
@@ -254,6 +259,7 @@
             </thead>
             <tbody id="ilp-annual-expenses-body">
                 <tr>
+                    <td style="text-align: center; vertical-align: middle;">1</td>
                     <td><input type="text" name="annual_expenses[0][desc]" class="form-control" placeholder="Expense Description"></td>
                     <td><input type="number" step="0.01" name="annual_expenses[0][year_1]" class="form-control" placeholder="Year 1"></td>
                     <td><input type="number" step="0.01" name="annual_expenses[0][year_2]" class="form-control" placeholder="Year 2"></td>
@@ -274,7 +280,9 @@
     // Add/Remove rows for Business Plan Items
     document.getElementById('add-business-plan-item').addEventListener('click', function () {
         const businessPlanBody = document.getElementById('ilp-business-plan-body');
+        const rowCount = businessPlanBody.children.length;
         const row = `<tr>
+            <td style="text-align: center; vertical-align: middle;">${rowCount + 1}</td>
             <td><input type="text" name="business_plan_items[${businessPlanIndex}][item]" class="form-control" placeholder="Business Item"></td>
             <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_1]" class="form-control" placeholder="Year 1"></td>
             <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_2]" class="form-control" placeholder="Year 2"></td>
@@ -283,19 +291,37 @@
         </tr>`;
         businessPlanBody.insertAdjacentHTML('beforeend', row);
         businessPlanIndex++;
+        reindexBusinessPlanRows();
     });
 
     document.getElementById('remove-business-plan-item').addEventListener('click', function () {
         const businessPlanBody = document.getElementById('ilp-business-plan-body');
         if (businessPlanBody.children.length > 1) {
             businessPlanBody.removeChild(businessPlanBody.lastElementChild);
+            businessPlanIndex--;
+            reindexBusinessPlanRows();
         }
     });
+    
+    function reindexBusinessPlanRows() {
+        const rows = document.querySelectorAll('#ilp-business-plan-body tr');
+        rows.forEach((row, index) => {
+            row.children[0].textContent = index + 1;
+            row.querySelectorAll('input').forEach(input => {
+                const name = input.getAttribute('name');
+                if (name && name.includes('[business_plan_items]')) {
+                    input.setAttribute('name', name.replace(/\[business_plan_items\]\[\d+\]/, `[business_plan_items][${index}]`));
+                }
+            });
+        });
+    }
 
     // Add/Remove rows for Annual Income
     document.getElementById('add-annual-income-item').addEventListener('click', function () {
         const incomeBody = document.getElementById('ilp-annual-income-body');
+        const rowCount = incomeBody.children.length;
         const row = `<tr>
+            <td style="text-align: center; vertical-align: middle;">${rowCount + 1}</td>
             <td><input type="text" name="annual_income[${incomeIndex}][desc]" class="form-control" placeholder="Income Description"></td>
             <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_1]" class="form-control" placeholder="Year 1"></td>
             <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_2]" class="form-control" placeholder="Year 2"></td>
@@ -304,19 +330,37 @@
         </tr>`;
         incomeBody.insertAdjacentHTML('beforeend', row);
         incomeIndex++;
+        reindexAnnualIncomeRows();
     });
 
     document.getElementById('remove-annual-income-item').addEventListener('click', function () {
         const incomeBody = document.getElementById('ilp-annual-income-body');
         if (incomeBody.children.length > 1) {
             incomeBody.removeChild(incomeBody.lastElementChild);
+            incomeIndex--;
+            reindexAnnualIncomeRows();
         }
     });
+    
+    function reindexAnnualIncomeRows() {
+        const rows = document.querySelectorAll('#ilp-annual-income-body tr');
+        rows.forEach((row, index) => {
+            row.children[0].textContent = index + 1;
+            row.querySelectorAll('input').forEach(input => {
+                const name = input.getAttribute('name');
+                if (name && name.includes('[annual_income]')) {
+                    input.setAttribute('name', name.replace(/\[annual_income\]\[\d+\]/, `[annual_income][${index}]`));
+                }
+            });
+        });
+    }
 
     // Add/Remove rows for Annual Expenses
     document.getElementById('add-annual-expense-item').addEventListener('click', function () {
         const expenseBody = document.getElementById('ilp-annual-expenses-body');
+        const rowCount = expenseBody.children.length;
         const row = `<tr>
+            <td style="text-align: center; vertical-align: middle;">${rowCount + 1}</td>
             <td><input type="text" name="annual_expenses[${expenseIndex}][desc]" class="form-control" placeholder="Expense Description"></td>
             <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_1]" class="form-control" placeholder="Year 1"></td>
             <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_2]" class="form-control" placeholder="Year 2"></td>
@@ -325,14 +369,30 @@
         </tr>`;
         expenseBody.insertAdjacentHTML('beforeend', row);
         expenseIndex++;
+        reindexAnnualExpenseRows();
     });
 
     document.getElementById('remove-annual-expense-item').addEventListener('click', function () {
         const expenseBody = document.getElementById('ilp-annual-expenses-body');
         if (expenseBody.children.length > 1) {
             expenseBody.removeChild(expenseBody.lastElementChild);
+            expenseIndex--;
+            reindexAnnualExpenseRows();
         }
     });
+    
+    function reindexAnnualExpenseRows() {
+        const rows = document.querySelectorAll('#ilp-annual-expenses-body tr');
+        rows.forEach((row, index) => {
+            row.children[0].textContent = index + 1;
+            row.querySelectorAll('input').forEach(input => {
+                const name = input.getAttribute('name');
+                if (name && name.includes('[annual_expenses]')) {
+                    input.setAttribute('name', name.replace(/\[annual_expenses\]\[\d+\]/, `[annual_expenses][${index}]`));
+                }
+            });
+        });
+    }
 });
 
 </script>

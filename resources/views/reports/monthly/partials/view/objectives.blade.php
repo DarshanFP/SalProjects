@@ -11,12 +11,12 @@
                     <h5>Objective {{ $loop->iteration }}</h5>
                 </div>
                 <div class="mb-2 row">
-                    <div class="col-6"><strong>Objective:</strong></div>
-                    <div class="col-6">{{ $objective->objective }}</div>
+                    <div class="col-2 report-label-col"><strong>Objective:</strong></div>
+                    <div class="col-10 report-value-col">{{ $objective->objective }}</div>
                 </div>
                 <div class="mb-2 row">
-                    <div class="col-6"><strong>Expected Outcome:</strong></div>
-                    <div class="col-6">
+                    <div class="col-2 report-label-col"><strong>Expected Outcome:</strong></div>
+                    <div class="col-10 report-value-col">
                         @if(is_array($objective->expected_outcome))
                             <ul>
                                 @foreach($objective->expected_outcome as $outcome)
@@ -29,8 +29,8 @@
                     </div>
                 </div>
                 <div class="mb-2 row">
-                    <div class="col-6"><strong>What Did Not Happen:</strong></div>
-                    <div class="col-6">
+                    <div class="col-2 report-label-col"><strong>What Did Not Happen:</strong></div>
+                    <div class="col-10 report-value-col">
                         @if(is_array($objective->not_happened))
                             <ul>
                                 @foreach($objective->not_happened as $notHappened)
@@ -43,8 +43,8 @@
                     </div>
                 </div>
                 <div class="mb-2 row">
-                    <div class="col-6"><strong>Why Some Activities Could Not Be Undertaken:</strong></div>
-                    <div class="col-6">
+                    <div class="col-2 report-label-col"><strong>Why Some Activities Could Not Be Undertaken:</strong></div>
+                    <div class="col-10 report-value-col">
                         @if(is_array($objective->why_not_happened))
                             <ul>
                                 @foreach($objective->why_not_happened as $reason)
@@ -57,22 +57,22 @@
                     </div>
                 </div>
                 <div class="mb-2 row">
-                    <div class="col-6"><strong>Changes:</strong></div>
-                    <div class="col-6">{{ $objective->changes ? 'Yes' : 'No' }}</div>
+                    <div class="col-2 report-label-col"><strong>Changes:</strong></div>
+                    <div class="col-10 report-value-col">{{ $objective->changes ? 'Yes' : 'No' }}</div>
                 </div>
                 @if($objective->changes)
                     <div class="mb-2 row">
-                        <div class="col-6"><strong>Why Changes Were Needed:</strong></div>
-                        <div class="col-6">{{ $objective->why_changes }}</div>
+                        <div class="col-2 report-label-col"><strong>Why Changes Were Needed:</strong></div>
+                        <div class="col-10 report-value-col">{{ $objective->why_changes }}</div>
                     </div>
                 @endif
                 <div class="mb-2 row">
-                    <div class="col-6"><strong>Lessons Learnt:</strong></div>
-                    <div class="col-6">{{ $objective->lessons_learnt }}</div>
+                    <div class="col-2 report-label-col"><strong>Lessons Learnt:</strong></div>
+                    <div class="col-10 report-value-col">{{ $objective->lessons_learnt }}</div>
                 </div>
                 <div class="mb-2 row">
-                    <div class="col-6"><strong>What Will Be Done Differently:</strong></div>
-                    <div class="col-6">{{ $objective->todo_lessons_learnt }}</div>
+                    <div class="col-2 report-label-col"><strong>What Will Be Done Differently:</strong></div>
+                    <div class="col-10 report-value-col">{{ $objective->todo_lessons_learnt }}</div>
                 </div>
 
                 <!-- Activities Section -->
@@ -80,8 +80,8 @@
                     <h6>Activities</h6>
                     @foreach($objective->activities as $activity)
                         <div class="mb-2 row">
-                            <div class="col-6"><strong>Month:</strong></div>
-                            <div class="col-6">
+                            <div class="col-2 report-label-col"><strong>Month:</strong></div>
+                            <div class="col-10 report-value-col">
                                 @if(is_numeric($activity->month))
                                     {{ \Carbon\Carbon::createFromFormat('m', $activity->month)->format('F') }}
                                 @else
@@ -90,8 +90,8 @@
                             </div>
                         </div>
                         <div class="mb-2 row">
-                            <div class="col-6"><strong>Summary of Activities:</strong></div>
-                            <div class="col-6">
+                            <div class="col-2 report-label-col"><strong>Summary of Activities:</strong></div>
+                            <div class="col-10 report-value-col">
                                 @if(is_array($activity->summary_activities))
                                     <ul>
                                         @foreach($activity->summary_activities as $summary)
@@ -104,8 +104,8 @@
                             </div>
                         </div>
                         <div class="mb-2 row">
-                            <div class="col-6"><strong>Qualitative & Quantitative Data:</strong></div>
-                            <div class="col-6">
+                            <div class="col-2 report-label-col"><strong>Qualitative & Quantitative Data:</strong></div>
+                            <div class="col-10 report-value-col">
                                 @if(is_array($activity->qualitative_quantitative_data))
                                     <ul>
                                         @foreach($activity->qualitative_quantitative_data as $data)
@@ -118,8 +118,8 @@
                             </div>
                         </div>
                         <div class="mb-2 row">
-                            <div class="col-6"><strong>Intermediate Outcomes:</strong></div>
-                            <div class="col-6">
+                            <div class="col-2 report-label-col"><strong>Intermediate Outcomes:</strong></div>
+                            <div class="col-10 report-value-col">
                                 @if(is_array($activity->intermediate_outcomes))
                                     <ul>
                                         @foreach($activity->intermediate_outcomes as $outcome)

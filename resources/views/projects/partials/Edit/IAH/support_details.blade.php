@@ -26,7 +26,7 @@
         <!-- If yes, provide employment details -->
         <div class="mb-3">
             <label for="employment_details" class="form-label">If yes, provide employment details:</label>
-            <textarea name="employment_details" class="form-control" rows="2" placeholder="Provide details of employment at St. Ann’s">{{ old('employment_details', $supportDetails->employment_details) }}</textarea>
+            <textarea name="employment_details" class="form-control auto-resize-textarea" rows="2" placeholder="Provide details of employment at St. Ann’s">{{ old('employment_details', $supportDetails->employment_details) }}</textarea>
         </div>
 
         <!-- Has the beneficiary or family received any kind of support from St. Ann’s projects? -->
@@ -41,7 +41,7 @@
         <!-- If yes, provide details of the support received -->
         <div class="mb-3">
             <label for="support_details" class="form-label">If yes, provide details of the support received:</label>
-            <textarea name="support_details" class="form-control" rows="2" placeholder="Provide details of support received">{{ old('support_details', $supportDetails->support_details) }}</textarea>
+            <textarea name="support_details" class="form-control auto-resize-textarea" rows="2" placeholder="Provide details of support received">{{ old('support_details', $supportDetails->support_details) }}</textarea>
         </div>
 
         <!-- Does the beneficiary have access to Government or other support? -->
@@ -56,7 +56,7 @@
         <!-- If yes, provide the nature of the support -->
         <div class="mb-3">
             <label for="govt_support_nature" class="form-label">If yes, provide the nature of the support:</label>
-            <textarea name="govt_support_nature" class="form-control" rows="2" placeholder="Provide details of government or other support">{{ old('govt_support_nature', $supportDetails->govt_support_nature) }}</textarea>
+            <textarea name="govt_support_nature" class="form-control auto-resize-textarea" rows="2" placeholder="Provide details of government or other support">{{ old('govt_support_nature', $supportDetails->govt_support_nature) }}</textarea>
         </div>
     </div>
 </div>

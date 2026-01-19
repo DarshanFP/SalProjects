@@ -3,26 +3,32 @@
 namespace App\Http\Controllers\Projects\ILP;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\OldProjects\ILP\ProjectILPRevenuePlanItem;
 use App\Models\OldProjects\ILP\ProjectILPRevenueIncome;
 use App\Models\OldProjects\ILP\ProjectILPRevenueExpense;
+use App\Http\Requests\Projects\ILP\StoreILPRevenueGoalsRequest;
+use App\Http\Requests\Projects\ILP\UpdateILPRevenueGoalsRequest;
 
 class RevenueGoalsController extends Controller
 {
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including business_plan_items[], annual_income[], annual_expenses[] arrays
+        // These fields are not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing Revenue Goals for Project', ['project_id' => $projectId]);
 
             // Store Business Plan Items
-            $businessPlanItems = $request->input('business_plan_items', []);
+            $businessPlanItems = $validated['business_plan_items'] ?? [];
             foreach ($businessPlanItems as $item) {
                 ProjectILPRevenuePlanItem::create([
                     'project_id' => $projectId,
@@ -35,7 +41,7 @@ class RevenueGoalsController extends Controller
             }
 
             // Store Annual Income
-            $annualIncome = $request->input('annual_income', []);
+            $annualIncome = $validated['annual_income'] ?? [];
             foreach ($annualIncome as $income) {
                 ProjectILPRevenueIncome::create([
                     'project_id' => $projectId,
@@ -48,7 +54,7 @@ class RevenueGoalsController extends Controller
             }
 
             // Store Annual Expenses
-            $annualExpenses = $request->input('annual_expenses', []);
+            $annualExpenses = $validated['annual_expenses'] ?? [];
             foreach ($annualExpenses as $expense) {
                 ProjectILPRevenueExpense::create([
                     'project_id' => $projectId,
@@ -142,15 +148,19 @@ class RevenueGoalsController extends Controller
         }
     }
 
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including business_plan_items[], annual_income[], annual_expenses[] arrays
+        // These fields are not in UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Updating Revenue Goals for Project', ['project_id' => $projectId]);
 
             // Update Business Plan Items
             ProjectILPRevenuePlanItem::where('project_id', $projectId)->delete();
-            $businessPlanItems = $request->input('business_plan_items', []);
+            $businessPlanItems = $validated['business_plan_items'] ?? [];
             foreach ($businessPlanItems as $item) {
                 ProjectILPRevenuePlanItem::create([
                     'project_id' => $projectId,
@@ -164,7 +174,7 @@ class RevenueGoalsController extends Controller
 
             // Update Annual Income
             ProjectILPRevenueIncome::where('project_id', $projectId)->delete();
-            $annualIncome = $request->input('annual_income', []);
+            $annualIncome = $validated['annual_income'] ?? [];
             foreach ($annualIncome as $income) {
                 ProjectILPRevenueIncome::create([
                     'project_id' => $projectId,
@@ -178,7 +188,7 @@ class RevenueGoalsController extends Controller
 
             // Update Annual Expenses
             ProjectILPRevenueExpense::where('project_id', $projectId)->delete();
-            $annualExpenses = $request->input('annual_expenses', []);
+            $annualExpenses = $validated['annual_expenses'] ?? [];
             foreach ($annualExpenses as $expense) {
                 ProjectILPRevenueExpense::create([
                     'project_id' => $projectId,

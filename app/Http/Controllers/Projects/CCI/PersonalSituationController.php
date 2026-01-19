@@ -4,15 +4,20 @@ namespace App\Http\Controllers\Projects\CCI;
 
 use App\Http\Controllers\Controller;
 use App\Models\OldProjects\CCI\ProjectCCIPersonalSituation;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\CCI\StoreCCIPersonalSituationRequest;
+use App\Http\Requests\Projects\CCI\UpdateCCIPersonalSituationRequest;
 
 class PersonalSituationController extends Controller
 {
     // Store new personal situation entry
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing CCI Personal Situation', ['project_id' => $projectId]);
@@ -20,21 +25,21 @@ class PersonalSituationController extends Controller
             // Create new personal situation entry
             $personalSituation = new ProjectCCIPersonalSituation();
             $personalSituation->project_id = $projectId;
-            $personalSituation->children_with_parents_last_year = $request->children_with_parents_last_year;
-            $personalSituation->children_with_parents_current_year = $request->children_with_parents_current_year;
-            $personalSituation->semi_orphans_last_year = $request->semi_orphans_last_year;
-            $personalSituation->semi_orphans_current_year = $request->semi_orphans_current_year;
-            $personalSituation->orphans_last_year = $request->orphans_last_year;
-            $personalSituation->orphans_current_year = $request->orphans_current_year;
-            $personalSituation->hiv_infected_last_year = $request->hiv_infected_last_year;
-            $personalSituation->hiv_infected_current_year = $request->hiv_infected_current_year;
-            $personalSituation->differently_abled_last_year = $request->differently_abled_last_year;
-            $personalSituation->differently_abled_current_year = $request->differently_abled_current_year;
-            $personalSituation->parents_in_conflict_last_year = $request->parents_in_conflict_last_year;
-            $personalSituation->parents_in_conflict_current_year = $request->parents_in_conflict_current_year;
-            $personalSituation->other_ailments_last_year = $request->other_ailments_last_year;
-            $personalSituation->other_ailments_current_year = $request->other_ailments_current_year;
-            $personalSituation->general_remarks = $request->general_remarks;
+            $personalSituation->children_with_parents_last_year = $validated['children_with_parents_last_year'] ?? null;
+            $personalSituation->children_with_parents_current_year = $validated['children_with_parents_current_year'] ?? null;
+            $personalSituation->semi_orphans_last_year = $validated['semi_orphans_last_year'] ?? null;
+            $personalSituation->semi_orphans_current_year = $validated['semi_orphans_current_year'] ?? null;
+            $personalSituation->orphans_last_year = $validated['orphans_last_year'] ?? null;
+            $personalSituation->orphans_current_year = $validated['orphans_current_year'] ?? null;
+            $personalSituation->hiv_infected_last_year = $validated['hiv_infected_last_year'] ?? null;
+            $personalSituation->hiv_infected_current_year = $validated['hiv_infected_current_year'] ?? null;
+            $personalSituation->differently_abled_last_year = $validated['differently_abled_last_year'] ?? null;
+            $personalSituation->differently_abled_current_year = $validated['differently_abled_current_year'] ?? null;
+            $personalSituation->parents_in_conflict_last_year = $validated['parents_in_conflict_last_year'] ?? null;
+            $personalSituation->parents_in_conflict_current_year = $validated['parents_in_conflict_current_year'] ?? null;
+            $personalSituation->other_ailments_last_year = $validated['other_ailments_last_year'] ?? null;
+            $personalSituation->other_ailments_current_year = $validated['other_ailments_current_year'] ?? null;
+            $personalSituation->general_remarks = $validated['general_remarks'] ?? null;
             $personalSituation->save();
 
             DB::commit();
@@ -85,36 +90,36 @@ class PersonalSituationController extends Controller
     }
 
     // Update existing personal situation entry
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
 {
+    // Use all() to get all form data including fields not in UpdateProjectRequest validation rules
+    $validated = $request->all();
+    
     DB::beginTransaction();
     try {
         Log::info('Updating or Creating CCI Personal Situation', ['project_id' => $projectId]);
-        Log::info('Request data:', $request->all());
 
         // Use updateOrCreate to either update an existing entry or create a new one
         $personalSituation = ProjectCCIPersonalSituation::updateOrCreate(
             ['project_id' => $projectId], // Condition to find the record
             [
-                'children_with_parents_last_year' => $request->children_with_parents_last_year,
-                'children_with_parents_current_year' => $request->children_with_parents_current_year,
-                'semi_orphans_last_year' => $request->semi_orphans_last_year,
-                'semi_orphans_current_year' => $request->semi_orphans_current_year,
-                'orphans_last_year' => $request->orphans_last_year,
-                'orphans_current_year' => $request->orphans_current_year,
-                'hiv_infected_last_year' => $request->hiv_infected_last_year,
-                'hiv_infected_current_year' => $request->hiv_infected_current_year,
-                'differently_abled_last_year' => $request->differently_abled_last_year,
-                'differently_abled_current_year' => $request->differently_abled_current_year,
-                'parents_in_conflict_last_year' => $request->parents_in_conflict_last_year,
-                'parents_in_conflict_current_year' => $request->parents_in_conflict_current_year,
-                'other_ailments_last_year' => $request->other_ailments_last_year,
-                'other_ailments_current_year' => $request->other_ailments_current_year,
-                'general_remarks' => $request->general_remarks,
+                'children_with_parents_last_year' => $validated['children_with_parents_last_year'] ?? null,
+                'children_with_parents_current_year' => $validated['children_with_parents_current_year'] ?? null,
+                'semi_orphans_last_year' => $validated['semi_orphans_last_year'] ?? null,
+                'semi_orphans_current_year' => $validated['semi_orphans_current_year'] ?? null,
+                'orphans_last_year' => $validated['orphans_last_year'] ?? null,
+                'orphans_current_year' => $validated['orphans_current_year'] ?? null,
+                'hiv_infected_last_year' => $validated['hiv_infected_last_year'] ?? null,
+                'hiv_infected_current_year' => $validated['hiv_infected_current_year'] ?? null,
+                'differently_abled_last_year' => $validated['differently_abled_last_year'] ?? null,
+                'differently_abled_current_year' => $validated['differently_abled_current_year'] ?? null,
+                'parents_in_conflict_last_year' => $validated['parents_in_conflict_last_year'] ?? null,
+                'parents_in_conflict_current_year' => $validated['parents_in_conflict_current_year'] ?? null,
+                'other_ailments_last_year' => $validated['other_ailments_last_year'] ?? null,
+                'other_ailments_current_year' => $validated['other_ailments_current_year'] ?? null,
+                'general_remarks' => $validated['general_remarks'] ?? null,
             ]
         );
-
-        Log::info('Personal Situation data after update or create:', $personalSituation->toArray());
 
         DB::commit();
         Log::info('CCI Personal Situation updated or created successfully', ['project_id' => $projectId]);

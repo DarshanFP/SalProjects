@@ -18,20 +18,20 @@
                     @if(isset($geographicalArea) && count($geographicalArea) > 0)
                         @foreach($geographicalArea as $index => $area)
                             <tr>
-                                <td><input type="text" name="mandal[]" value="{{ $area->mandal }}" class="form-control" style="background-color: #202ba3;"></td>
-                                <td><input type="text" name="village[]" value="{{ $area->villages }}" class="form-control" style="background-color: #202ba3;"></td>
-                                <td><input type="text" name="town[]" value="{{ $area->town }}" class="form-control" style="background-color: #202ba3;"></td>
-                                <td><input type="number" name="no_of_beneficiaries[]" value="{{ $area->no_of_beneficiaries }}" class="form-control" style="background-color: #202ba3;"></td>
+                                <td><input type="text" name="mandal[]" value="{{ $area->mandal }}" class="form-control"></td>
+                                <td><input type="text" name="village[]" value="{{ $area->villages }}" class="form-control"></td>
+                                <td><input type="text" name="town[]" value="{{ $area->town }}" class="form-control"></td>
+                                <td><input type="number" name="no_of_beneficiaries[]" value="{{ $area->no_of_beneficiaries }}" class="form-control"></td>
                                 <td><button type="button" class="btn btn-danger" onclick="removeRSTGeographicalAreaRow(this)">Remove</button></td>
                             </tr>
                         @endforeach
                     @else
                         <!-- If no data exists, show a default empty row -->
                         <tr>
-                            <td><input type="text" name="mandal[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="text" name="village[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="text" name="town[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="no_of_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
+                            <td><input type="text" name="mandal[]" class="form-control"></td>
+                            <td><input type="text" name="village[]" class="form-control"></td>
+                            <td><input type="text" name="town[]" class="form-control"></td>
+                            <td><input type="number" name="no_of_beneficiaries[]" class="form-control"></td>
                             <td><button type="button" class="btn btn-danger" onclick="removeRSTGeographicalAreaRow(this)">Remove</button></td>
                         </tr>
                     @endif
@@ -49,10 +49,10 @@
         RSTGeoAreaRowIndex++;
         const newRow = `
             <tr>
-                <td><input type="text" name="mandal[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="text" name="village[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="text" name="town[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="no_of_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="mandal[]" class="form-control"></td>
+                <td><input type="text" name="village[]" class="form-control"></td>
+                <td><input type="text" name="town[]" class="form-control"></td>
+                <td><input type="number" name="no_of_beneficiaries[]" class="form-control"></td>
                 <td><button type="button" class="btn btn-danger" onclick="removeRSTGeographicalAreaRow(this)">Remove</button></td>
             </tr>
         `;

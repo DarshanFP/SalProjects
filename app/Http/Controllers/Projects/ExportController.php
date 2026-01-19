@@ -73,6 +73,8 @@ use PhpOffice\PhpWord\IOFactory;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Constants\ProjectStatus;
+use App\Helpers\ProjectPermissionHelper;
 use Mpdf\Mpdf;
 // Controller imports
 use App\Http\Controllers\Projects\ProjectEduRUTBasicInfoController;
@@ -307,32 +309,45 @@ class ExportController extends Controller
 
             $user = Auth::user();
 
-            // Role-based access control
+            // Use ProjectPermissionHelper for consistent permission checking
+            // For admin, coordinator, and provincial roles, check separately as they have different rules
             $hasAccess = false;
 
-            switch ($user->role) {
-                case 'executor':
-                    // Executors can download their own projects
-                    if ($project->user_id === $user->id || $project->in_charge === $user->id) {
-                        $hasAccess = true;
-                    }
-                    break;
+            if (in_array($user->role, ['admin', 'coordinator', 'provincial'])) {
+                // Admin, coordinators, and provincials have special access rules
+                switch ($user->role) {
+                    case 'provincial':
+                        // Provincials can download projects from executors under them with specific statuses
+                        if ($project->user->parent_id === $user->id) {
+                            if (in_array($project->status, [
+                                ProjectStatus::SUBMITTED_TO_PROVINCIAL,
+                                ProjectStatus::REVERTED_BY_COORDINATOR,
+                                ProjectStatus::APPROVED_BY_COORDINATOR
+                            ])) {
+                                $hasAccess = true;
+                            }
+                        }
+                        break;
 
-                case 'provincial':
-                    // Provincials can download projects from executors under them with specific statuses
-                    if ($project->user->parent_id === $user->id) {
-                        if (in_array($project->status, ['submitted_to_provincial', 'reverted_by_coordinator', 'approved_by_coordinator'])) {
+                    case 'coordinator':
+                        // Coordinators can download projects with various statuses
+                        if (in_array($project->status, [
+                            ProjectStatus::FORWARDED_TO_COORDINATOR,
+                            ProjectStatus::APPROVED_BY_COORDINATOR,
+                            ProjectStatus::REVERTED_BY_COORDINATOR
+                        ])) {
                             $hasAccess = true;
                         }
-                    }
-                    break;
+                        break;
 
-                case 'coordinator':
-                    // Coordinators can download projects with various statuses
-                    if (in_array($project->status, ['forwarded_to_coordinator', 'approved_by_coordinator', 'reverted_by_coordinator'])) {
+                    case 'admin':
+                        // Admins can download all projects
                         $hasAccess = true;
-                    }
-                    break;
+                        break;
+                }
+            } else {
+                // For executor and applicant, use ProjectPermissionHelper
+                $hasAccess = ProjectPermissionHelper::canView($project, $user);
             }
 
             if (!$hasAccess) {
@@ -787,32 +802,45 @@ class ExportController extends Controller
 
             $user = Auth::user();
 
-            // Role-based access control
+            // Use ProjectPermissionHelper for consistent permission checking
+            // For admin, coordinator, and provincial roles, check separately as they have different rules
             $hasAccess = false;
 
-            switch ($user->role) {
-                case 'executor':
-                    // Executors can download their own projects
-                    if ($project->user_id === $user->id || $project->in_charge === $user->id) {
-                        $hasAccess = true;
-                    }
-                    break;
+            if (in_array($user->role, ['admin', 'coordinator', 'provincial'])) {
+                // Admin, coordinators, and provincials have special access rules
+                switch ($user->role) {
+                    case 'provincial':
+                        // Provincials can download projects from executors under them with specific statuses
+                        if ($project->user->parent_id === $user->id) {
+                            if (in_array($project->status, [
+                                ProjectStatus::SUBMITTED_TO_PROVINCIAL,
+                                ProjectStatus::REVERTED_BY_COORDINATOR,
+                                ProjectStatus::APPROVED_BY_COORDINATOR
+                            ])) {
+                                $hasAccess = true;
+                            }
+                        }
+                        break;
 
-                case 'provincial':
-                    // Provincials can download projects from executors under them with specific statuses
-                    if ($project->user->parent_id === $user->id) {
-                        if (in_array($project->status, ['submitted_to_provincial', 'reverted_by_coordinator', 'approved_by_coordinator'])) {
+                    case 'coordinator':
+                        // Coordinators can download projects with various statuses
+                        if (in_array($project->status, [
+                            ProjectStatus::FORWARDED_TO_COORDINATOR,
+                            ProjectStatus::APPROVED_BY_COORDINATOR,
+                            ProjectStatus::REVERTED_BY_COORDINATOR
+                        ])) {
                             $hasAccess = true;
                         }
-                    }
-                    break;
+                        break;
 
-                case 'coordinator':
-                    // Coordinators can download projects with various statuses
-                    if (in_array($project->status, ['forwarded_to_coordinator', 'approved_by_coordinator', 'reverted_by_coordinator'])) {
+                    case 'admin':
+                        // Admins can download all projects
                         $hasAccess = true;
-                    }
-                    break;
+                        break;
+                }
+            } else {
+                // For executor and applicant, use ProjectPermissionHelper
+                $hasAccess = ProjectPermissionHelper::canView($project, $user);
             }
 
             if (!$hasAccess) {
@@ -942,16 +970,16 @@ private function addGeneralInfoSection(PhpWord $phpWord, $project, $projectRoles
         (\Carbon\Carbon::parse($project->commencement_month_year)->format('F Y') ?? 'N/A')
     );
     $section->addText(
-        "Overall Project Budget: Rs. " . number_format($project->overall_project_budget, 2)
+        "Overall Project Budget: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($project->overall_project_budget, 2)
     );
     $section->addText(
-        "Amount Forwarded: Rs. " . number_format($project->amount_forwarded, 2)
+        "Amount Forwarded: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($project->amount_forwarded, 2)
     );
     $section->addText(
-        "Amount Sanctioned: Rs. " . number_format($project->amount_sanctioned, 2)
+        "Amount Sanctioned: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($project->amount_sanctioned, 2)
     );
     $section->addText(
-        "Opening Balance: Rs. " . number_format($project->opening_balance, 2)
+        "Opening Balance: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($project->opening_balance, 2)
     );
     $section->addText("Coordinator India Name: {$project->coordinator_india_name}");
     $section->addText("Coordinator India Phone: {$project->coordinator_india_phone}");
@@ -976,12 +1004,68 @@ private function addKeyInformationSection(PhpWord $phpWord, $project)
     // Add a horizontal rule for visual separation
     $section->addText(str_repeat('-', 50), ['color' => 'gray']);
 
-    // Add content in a grid-like structure
-    $section->addText("Goal of the Project:", ['bold' => true]);
-    $section->addText($project->goal ?? 'N/A', ['size' => 12]);
+    // Add Initial Information
+    if ($project->initial_information) {
+        $section->addText("Initial Information:", ['bold' => true]);
+        $this->addTextWithLineBreaks($section, $project->initial_information);
+        $section->addTextBreak(0.5);
+    }
+
+    // Add Target Beneficiaries
+    if ($project->target_beneficiaries) {
+        $section->addText("Target Beneficiaries:", ['bold' => true]);
+        $this->addTextWithLineBreaks($section, $project->target_beneficiaries);
+        $section->addTextBreak(0.5);
+    }
+
+    // Add General Situation
+    if ($project->general_situation) {
+        $section->addText("General Situation:", ['bold' => true]);
+        $this->addTextWithLineBreaks($section, $project->general_situation);
+        $section->addTextBreak(0.5);
+    }
+
+    // Add Need of the Project
+    if ($project->need_of_project) {
+        $section->addText("Need of the Project:", ['bold' => true]);
+        $this->addTextWithLineBreaks($section, $project->need_of_project);
+        $section->addTextBreak(0.5);
+    }
+
+    // Add Goal of the Project (last field)
+    if ($project->goal) {
+        $section->addText("Goal of the Project:", ['bold' => true]);
+        $this->addTextWithLineBreaks($section, $project->goal);
+        $section->addTextBreak(0.5);
+    }
+
+    // If no key information fields are present
+    if (!$project->initial_information && !$project->target_beneficiaries && 
+        !$project->general_situation && !$project->need_of_project && !$project->goal) {
+        $section->addText("No key information provided yet.", ['italic' => true]);
+    }
 
     // Add spacing at the end of the section
     $section->addTextBreak(1);
+}
+
+// Helper method to add text with preserved line breaks
+private function addTextWithLineBreaks($section, $text)
+{
+    if (empty($text)) {
+        $section->addText('N/A', ['size' => 12]);
+        return;
+    }
+    
+    // Split by newlines and add each line separately to preserve line breaks
+    $lines = explode("\n", $text);
+    foreach ($lines as $index => $line) {
+        $section->addText($line, ['size' => 12]);
+        // Add line break after each line except the last one
+        if ($index < count($lines) - 1) {
+            $section->addTextBreak(0.3);
+        }
+    }
 }
 // CHILD CARE INSTITUTION specific functions
 private function addCCISections(PhpWord $phpWord, $project)
@@ -1032,7 +1116,8 @@ private function addRationaleSection(PhpWord $phpWord, $project)
     // Add rows
     $table->addRow();
     $table->addCell(3000)->addText("Description:", ['bold' => true]);
-    $table->addCell(7000)->addText($project->rationale->description ?? 'No rationale provided yet.');
+    $descriptionCell = $table->addCell(7000);
+    $this->addTextWithLineBreaks($descriptionCell, $project->rationale->description ?? 'No rationale provided yet.');
 }
 //Section - Statistics - CHILD CARE INSTITUTION
 
@@ -1274,7 +1359,7 @@ private function addPersonalSituationSection(PhpWord $phpWord, $project)
     // Add General Remarks Section
     $section->addTextBreak(1);
     $section->addText("General Remarks", ['bold' => true]);
-    $section->addText($personalSituation->general_remarks ?? 'No remarks provided.');
+    $this->addTextWithLineBreaks($section, $personalSituation->general_remarks ?? 'No remarks provided.');
 }
 //Section - Economic BackgroundS - CHILD CARE INSTITUTION
 private function addEconomicBackgroundSection(PhpWord $phpWord, $project)
@@ -1320,7 +1405,7 @@ private function addEconomicBackgroundSection(PhpWord $phpWord, $project)
     // Add General Remarks
     $section->addTextBreak(1);
     $section->addText("General Remarks", ['bold' => true]);
-    $section->addText($economicBackground->general_remarks ?? 'No remarks provided.');
+    $this->addTextWithLineBreaks($section, $economicBackground->general_remarks ?? 'No remarks provided.');
 }
 //Section - Achievements - CHILD CARE INSTITUTION
 private function addAchievementsSection(PhpWord $phpWord, $project)
@@ -1376,12 +1461,12 @@ private function addPresentSituationSection(PhpWord $phpWord, $project)
 
     // Add Internal Challenges
     $section->addText("Internal Challenges Faced from Inmates:", ['bold' => true]);
-    $section->addText($project->present_situation->internal_challenges ?? 'No internal challenges recorded.');
+    $this->addTextWithLineBreaks($section, $project->present_situation->internal_challenges ?? 'No internal challenges recorded.');
     $section->addTextBreak(1);
 
     // Add External Challenges
     $section->addText("External Challenges / Present Difficulties:", ['bold' => true]);
-    $section->addText($project->present_situation->external_challenges ?? 'No external challenges recorded.');
+    $this->addTextWithLineBreaks($section, $project->present_situation->external_challenges ?? 'No external challenges recorded.');
     $section->addTextBreak(2);
 
     // Add Header for Area of Focus
@@ -1390,7 +1475,7 @@ private function addPresentSituationSection(PhpWord $phpWord, $project)
 
     // Add Main Focus Areas
     $section->addText("Main Focus Areas:", ['bold' => true]);
-    $section->addText($project->present_situation->area_of_focus ?? 'No focus areas specified.');
+    $this->addTextWithLineBreaks($section, $project->present_situation->area_of_focus ?? 'No focus areas specified.');
     $section->addTextBreak(1);
 }
 
@@ -1512,7 +1597,8 @@ private function addTargetGroupSection(PhpWord $phpWord, $project)
             $table->addRow();
             $table->addCell(1000)->addText($index + 1);
             $table->addCell(3000)->addText($targetGroup->tg_no_of_beneficiaries ?? 'N/A');
-            $table->addCell(6000)->addText($targetGroup->beneficiaries_description_problems ?? 'N/A');
+            $problemCell = $table->addCell(6000);
+            $this->addTextWithLineBreaks($problemCell, $targetGroup->beneficiaries_description_problems ?? 'N/A');
         }
     } else {
         // If no data is available
@@ -1567,9 +1653,12 @@ private function addTargetGroupAnnexureSection(PhpWord $phpWord, $project)
         $table->addCell(2000)->addText($annexure->rst_name ?? 'N/A');
         $table->addCell(2000)->addText($annexure->rst_religion ?? 'N/A');
         $table->addCell(2000)->addText($annexure->rst_caste ?? 'N/A');
-        $table->addCell(3000)->addText($annexure->rst_education_background ?? 'N/A');
-        $table->addCell(3000)->addText($annexure->rst_family_situation ?? 'N/A');
-        $table->addCell(3000)->addText($annexure->rst_paragraph ?? 'N/A');
+        $educationCell = $table->addCell(3000);
+        $this->addTextWithLineBreaks($educationCell, $annexure->rst_education_background ?? 'N/A');
+        $familyCell = $table->addCell(3000);
+        $this->addTextWithLineBreaks($familyCell, $annexure->rst_family_situation ?? 'N/A');
+        $paragraphCell = $table->addCell(3000);
+        $this->addTextWithLineBreaks($paragraphCell, $annexure->rst_paragraph ?? 'N/A');
     }
 
     // Add spacing after table
@@ -1728,10 +1817,10 @@ private function addEduRUTTargetGroupSection(PhpWord $phpWord, $project)
             $table->addCell(1500)->addText($group->caste ?? 'N/A');
             $table->addCell(2000)->addText($group->institution_name ?? 'N/A');
             $table->addCell(1500)->addText($group->class_standard ?? 'N/A');
-            $table->addCell(1500)->addText($group->total_tuition_fee ? 'Rs. ' . number_format($group->total_tuition_fee, 2) : 'N/A');
+            $table->addCell(1500)->addText($group->total_tuition_fee ? \App\Helpers\NumberFormatHelper::formatIndianCurrency($group->total_tuition_fee, 2) : 'N/A');
             $table->addCell(2000)->addText($group->eligibility_scholarship ? 'Yes' : 'No');
-            $table->addCell(1500)->addText($group->expected_amount ? 'Rs. ' . number_format($group->expected_amount, 2) : 'N/A');
-            $table->addCell(2000)->addText($group->contribution_from_family ? 'Rs. ' . number_format($group->contribution_from_family, 2) : 'N/A');
+            $table->addCell(1500)->addText($group->expected_amount ? \App\Helpers\NumberFormatHelper::formatIndianCurrency($group->expected_amount, 2) : 'N/A');
+            $table->addCell(2000)->addText($group->contribution_from_family ? \App\Helpers\NumberFormatHelper::formatIndianCurrency($group->contribution_from_family, 2) : 'N/A');
         }
     } else {
         // No data available
@@ -1770,8 +1859,10 @@ private function addEduRUTAnnexedTargetGroupSection(PhpWord $phpWord, $project)
             $table->addRow();
             $table->addCell(500)->addText($index + 1);
             $table->addCell(3000)->addText($group->beneficiary_name ?? 'N/A');
-            $table->addCell(5000)->addText($group->family_background ?? 'N/A');
-            $table->addCell(3000)->addText($group->need_of_support ?? 'N/A');
+            $familyBgCell = $table->addCell(5000);
+            $this->addTextWithLineBreaks($familyBgCell, $group->family_background ?? 'N/A');
+            $needCell = $table->addCell(3000);
+            $this->addTextWithLineBreaks($needCell, $group->need_of_support ?? 'N/A');
         }
     } else {
         // No data available
@@ -1907,9 +1998,11 @@ private function addIGEOngoingBeneficiariesSection(PhpWord $phpWord, $project)
             $table->addCell(1000)->addText($index + 1);
             $table->addCell(3000)->addText($beneficiary->obeneficiary_name ?? 'N/A');
             $table->addCell(2000)->addText($beneficiary->ocaste ?? 'N/A');
-            $table->addCell(3000)->addText($beneficiary->oaddress ?? 'N/A');
+            $oaddressCell = $table->addCell(3000);
+            $this->addTextWithLineBreaks($oaddressCell, $beneficiary->oaddress ?? 'N/A');
             $table->addCell(3000)->addText($beneficiary->ocurrent_group_year_of_study ?? 'N/A');
-            $table->addCell(3000)->addText($beneficiary->operformance_details ?? 'N/A');
+            $perfCell = $table->addCell(3000);
+            $this->addTextWithLineBreaks($perfCell, $beneficiary->operformance_details ?? 'N/A');
         }
     } else {
         // Add a fallback text if no data is found
@@ -1949,9 +2042,11 @@ private function addIGENewBeneficiariesSection(PhpWord $phpWord, $project)
             $table->addCell(1000)->addText($index + 1);
             $table->addCell(3000)->addText($beneficiary->beneficiary_name ?? 'N/A');
             $table->addCell(2000)->addText($beneficiary->caste ?? 'N/A');
-            $table->addCell(3000)->addText($beneficiary->address ?? 'N/A');
+            $addressCell = $table->addCell(3000);
+            $this->addTextWithLineBreaks($addressCell, $beneficiary->address ?? 'N/A');
             $table->addCell(3000)->addText($beneficiary->group_year_of_study ?? 'N/A');
-            $table->addCell(4000)->addText($beneficiary->family_background_need ?? 'N/A');
+            $familyBgNeedCell = $table->addCell(4000);
+            $this->addTextWithLineBreaks($familyBgNeedCell, $beneficiary->family_background_need ?? 'N/A');
         }
     } else {
         // Add message if no beneficiaries are recorded
@@ -2017,23 +2112,23 @@ private function addIGEBudgetSection(PhpWord $phpWord, $project)
             $table->addCell(1000)->addText($index + 1);
             $table->addCell(2000)->addText($budget->name ?? 'N/A');
             $table->addCell(2000)->addText($budget->study_proposed ?? 'N/A');
-            $table->addCell(2000)->addText(number_format($collegeFees, 2));
-            $table->addCell(2000)->addText(number_format($hostelFees, 2));
-            $table->addCell(2000)->addText(number_format($totalRowAmount, 2));
-            $table->addCell(2000)->addText(number_format($scholarshipEligibility, 2));
-            $table->addCell(2000)->addText(number_format($familyContribution, 2));
-            $table->addCell(2000)->addText(number_format($amountRequested, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndian($collegeFees, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndian($hostelFees, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndian($totalRowAmount, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndian($scholarshipEligibility, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndian($familyContribution, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndian($amountRequested, 2));
         }
 
         // Add totals row
         $table->addRow();
         $table->addCell(3000, ['gridSpan' => 3])->addText("Totals", ['bold' => true], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::RIGHT]);
-        $table->addCell(2000)->addText(number_format($totalCollegeFees, 2), ['bold' => true]);
-        $table->addCell(2000)->addText(number_format($totalHostelFees, 2), ['bold' => true]);
-        $table->addCell(2000)->addText(number_format($totalAmount, 2), ['bold' => true]);
-        $table->addCell(2000)->addText(number_format($totalScholarshipEligibility, 2), ['bold' => true]);
-        $table->addCell(2000)->addText(number_format($totalFamilyContribution, 2), ['bold' => true]);
-        $table->addCell(2000)->addText(number_format($totalAmountRequested, 2), ['bold' => true]);
+        $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndian($totalCollegeFees, 2), ['bold' => true]);
+        $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndian($totalHostelFees, 2), ['bold' => true]);
+        $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndian($totalAmount, 2), ['bold' => true]);
+        $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndian($totalScholarshipEligibility, 2), ['bold' => true]);
+        $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndian($totalFamilyContribution, 2), ['bold' => true]);
+        $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndian($totalAmountRequested, 2), ['bold' => true]);
     } else {
         $section->addText("No budget data available for this project.", ['italic' => true]);
     }
@@ -2158,9 +2253,10 @@ private function addLDPTargetGroupSection(PhpWord $phpWord, $project)
             $table->addRow();
             $table->addCell(1000)->addText(($index + 1), null, ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
             $table->addCell(3000)->addText($targetGroup->L_beneficiary_name ?? 'N/A');
-            $table->addCell(3000)->addText($targetGroup->L_family_situation ?? 'N/A');
+            $familySituationCell = $table->addCell(3000);
+            $this->addTextWithLineBreaks($familySituationCell, $targetGroup->L_family_situation ?? 'N/A');
             $table->addCell(3000)->addText($targetGroup->L_nature_of_livelihood ?? 'N/A');
-            $table->addCell(2000)->addText($targetGroup->L_amount_requested ? 'Rs. ' . number_format($targetGroup->L_amount_requested, 2) : 'N/A');
+            $table->addCell(2000)->addText($targetGroup->L_amount_requested ? \App\Helpers\NumberFormatHelper::formatIndianCurrency($targetGroup->L_amount_requested, 2) : 'N/A');
         }
     } else {
         // Add a row indicating no data is available
@@ -2192,7 +2288,7 @@ private function addInterventionLogicSection(PhpWord $phpWord, $project)
     // Add the description
     if ($interventionLogic && $interventionLogic->intervention_description) {
         $section->addText("Description:", ['bold' => true]);
-        $section->addText($interventionLogic->intervention_description);
+        $this->addTextWithLineBreaks($section, $interventionLogic->intervention_description);
     } else {
         $section->addText("No intervention logic provided.", ['italic' => true]);
     }
@@ -2212,24 +2308,27 @@ private function addLogicalFrameworkSection(PhpWord $phpWord, $project)
     $section->addText("Logical Framework", ['bold' => true, 'size' => 16]);
     $section->addTextBreak(1);
 
-    // Loop through each objective
-    foreach ($project->objectives as $objective) {
-        // Objective Header
-        $section->addText("Objective: {$objective->objective}", ['bold' => true, 'size' => 14]);
+    // Loop through each objective with index
+    foreach ($project->objectives as $objIndex => $objective) {
+        // Objective Header with index
+        $section->addText("Objective " . ($objIndex + 1) . ":", ['bold' => true, 'size' => 14]);
+        $this->addTextWithLineBreaks($section, $objective->objective);
         $section->addTextBreak(0.5);
 
-        // Results / Outcomes
+        // Results / Outcomes with nested index
         $section->addText("Results / Outcomes:", ['bold' => true, 'size' => 12]);
-        foreach ($objective->results as $result) {
-            $section->addText("- {$result->result}");
+        foreach ($objective->results as $resIndex => $result) {
+            $section->addText("Objective " . ($objIndex + 1) . " - Result " . ($resIndex + 1) . ":", ['bold' => true, 'size' => 11]);
+            $this->addTextWithLineBreaks($section, $result->result);
         }
         $section->addTextBreak(0.5);
 
-        // Risks Section
+        // Risks Section with nested index
         if ($objective->risks->isNotEmpty()) {
             $section->addText("Risks:", ['bold' => true, 'size' => 12]);
-            foreach ($objective->risks as $risk) {
-                $section->addText("- {$risk->risk}");
+            foreach ($objective->risks as $riskIndex => $risk) {
+                $section->addText("Objective " . ($objIndex + 1) . " - Risk " . ($riskIndex + 1) . ":", ['bold' => true, 'size' => 11]);
+                $this->addTextWithLineBreaks($section, $risk->risk);
             }
         }
         $section->addTextBreak(0.5);
@@ -2244,15 +2343,19 @@ private function addLogicalFrameworkSection(PhpWord $phpWord, $project)
         $phpWord->addTableStyle('ActivitiesTable', $tableStyle);
         $table = $section->addTable('ActivitiesTable');
 
-        // Table Header
+        // Table Header with index column
         $table->addRow();
-        $table->addCell(5000)->addText("Activities", ['bold' => true]);
+        $table->addCell(500)->addText("No.", ['bold' => true]);
+        $table->addCell(4500)->addText("Activities", ['bold' => true]);
         $table->addCell(5000)->addText("Means of Verification", ['bold' => true]);
 
-        foreach ($objective->activities as $activity) {
+        foreach ($objective->activities as $actIndex => $activity) {
             $table->addRow();
-            $table->addCell(5000)->addText($activity->activity);
-            $table->addCell(5000)->addText($activity->verification);
+            $table->addCell(500)->addText($actIndex + 1);
+            $activityCell = $table->addCell(4500);
+            $this->addTextWithLineBreaks($activityCell, $activity->activity);
+            $verificationCell = $table->addCell(5000);
+            $this->addTextWithLineBreaks($verificationCell, $activity->verification);
         }
         $section->addTextBreak(1);
 
@@ -2260,17 +2363,20 @@ private function addLogicalFrameworkSection(PhpWord $phpWord, $project)
         $section->addText("Time Frame for Activities:", ['bold' => true, 'size' => 12]);
         $table = $section->addTable('ActivitiesTable');
 
-        // Add table header for months
+        // Add table header for months with index column
         $table->addRow();
-        $table->addCell(5000)->addText("Activities", ['bold' => true]);
+        $table->addCell(500)->addText("No.", ['bold' => true]);
+        $table->addCell(4500)->addText("Activities", ['bold' => true]);
         foreach (['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as $month) {
             $table->addCell(1000)->addText($month, ['bold' => true]);
         }
 
-        // Add activities with time frames
-        foreach ($objective->activities as $activity) {
+        // Add activities with time frames and index numbers
+        foreach ($objective->activities as $actIndex => $activity) {
             $table->addRow();
-            $table->addCell(5000)->addText($activity->activity);
+            $table->addCell(500)->addText($actIndex + 1);
+            $activityCell = $table->addCell(4500);
+            $this->addTextWithLineBreaks($activityCell, $activity->activity);
 
             // Loop through months and add checkmark if active
             foreach (range(1, 12) as $month) {
@@ -2299,40 +2405,76 @@ private function addSustainabilitySection(PhpWord $phpWord, $project)
         return;
     }
 
-    // Define table style for grid layout
+    // Define table style for grid layout with proper spacing
     $tableStyle = [
         'borderSize' => 6,
         'borderColor' => '000000',
-        'cellMargin' => 80
+        'cellMargin' => 200, // Increased margin for better spacing between label and content
     ];
     $phpWord->addTableStyle('SustainabilityTable', $tableStyle);
 
-    // Add the sustainability details in a table format
+    // Add the sustainability details in a table format with proper spacing
     foreach ($project->sustainabilities as $sustainability) {
         $table = $section->addTable('SustainabilityTable');
 
         // Sustainability of the Project
         $table->addRow();
-        $table->addCell(5000)->addText("Sustainability of the Project:", ['bold' => true]);
-        $table->addCell(7000)->addText($sustainability->sustainability ?? 'N/A');
+        $labelCell = $table->addCell(5000);
+        $labelCell->addText("Sustainability of the Project:", ['bold' => true, 'size' => 12]);
+        $labelCell->addTextBreak(0.8); // Space after label
+        $contentCell = $table->addCell(7000);
+        $this->addTextWithLineBreaks($contentCell, $sustainability->sustainability ?? 'N/A');
+        $contentCell->addTextBreak(1.2); // Space after content
+        
+        // Add spacing row (empty row for visual separation)
+        $table->addRow();
+        $spacingCell1 = $table->addCell(5000);
+        $spacingCell1->addTextBreak(1.2); // Spacing in empty cell for visual separation
+        $spacingCell2 = $table->addCell(7000);
+        $spacingCell2->addTextBreak(1.2); // Spacing in empty cell for visual separation
 
         // Monitoring Process
         $table->addRow();
-        $table->addCell(5000)->addText("Monitoring Process of the Project:", ['bold' => true]);
-        $table->addCell(7000)->addText($sustainability->monitoring_process ?? 'N/A');
+        $labelCell = $table->addCell(5000);
+        $labelCell->addText("Monitoring Process of the Project:", ['bold' => true, 'size' => 12]);
+        $labelCell->addTextBreak(0.8); // Space after label
+        $contentCell = $table->addCell(7000);
+        $this->addTextWithLineBreaks($contentCell, $sustainability->monitoring_process ?? 'N/A');
+        $contentCell->addTextBreak(1.2); // Space after content
+        
+        // Add spacing row (empty row for visual separation)
+        $table->addRow();
+        $spacingCell1 = $table->addCell(5000);
+        $spacingCell1->addTextBreak(1.2); // Spacing in empty cell for visual separation
+        $spacingCell2 = $table->addCell(7000);
+        $spacingCell2->addTextBreak(1.2); // Spacing in empty cell for visual separation
 
         // Reporting Methodology
         $table->addRow();
-        $table->addCell(5000)->addText("Methodology of Reporting:", ['bold' => true]);
-        $table->addCell(7000)->addText($sustainability->reporting_methodology ?? 'N/A');
+        $labelCell = $table->addCell(5000);
+        $labelCell->addText("Methodology of Reporting:", ['bold' => true, 'size' => 12]);
+        $labelCell->addTextBreak(0.8); // Space after label
+        $contentCell = $table->addCell(7000);
+        $this->addTextWithLineBreaks($contentCell, $sustainability->reporting_methodology ?? 'N/A');
+        $contentCell->addTextBreak(1.2); // Space after content
+        
+        // Add spacing row (empty row for visual separation)
+        $table->addRow();
+        $spacingCell1 = $table->addCell(5000);
+        $spacingCell1->addTextBreak(1.2); // Spacing in empty cell for visual separation
+        $spacingCell2 = $table->addCell(7000);
+        $spacingCell2->addTextBreak(1.2); // Spacing in empty cell for visual separation
 
         // Evaluation Methodology
         $table->addRow();
-        $table->addCell(5000)->addText("Methodology of Evaluation:", ['bold' => true]);
-        $table->addCell(7000)->addText($sustainability->evaluation_methodology ?? 'N/A');
+        $labelCell = $table->addCell(5000);
+        $labelCell->addText("Methodology of Evaluation:", ['bold' => true, 'size' => 12]);
+        $labelCell->addTextBreak(0.8); // Space after label
+        $contentCell = $table->addCell(7000);
+        $this->addTextWithLineBreaks($contentCell, $sustainability->evaluation_methodology ?? 'N/A');
 
         // Add spacing after each sustainability entry
-        $section->addTextBreak(1);
+        $section->addTextBreak(1.5);
     }
 }
 // Budget
@@ -2349,7 +2491,7 @@ private function addBudgetSection(PhpWord $phpWord, $project)
     foreach ($groupedBudgets as $phase => $budgets) {
         // Add Phase Header
         $section->addText("Phase {$phase}", ['bold' => true, 'size' => 14]);
-        $section->addText("Amount Sanctioned in Phase {$phase}: Rs. " . number_format($budgets->sum('this_phase'), 2));
+        $section->addText("Amount Sanctioned in Phase {$phase}: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($budgets->sum('this_phase'), 2));
         $section->addTextBreak(1);
 
         // Define table style
@@ -2365,7 +2507,8 @@ private function addBudgetSection(PhpWord $phpWord, $project)
 
         // Add table header
         $table->addRow();
-        $table->addCell(4000)->addText("Particular", ['bold' => true]);
+        $table->addCell(500)->addText("No.", ['bold' => true]);
+        $table->addCell(3500)->addText("Particular", ['bold' => true]);
         $table->addCell(1500)->addText("Costs", ['bold' => true]);
         $table->addCell(1500)->addText("Rate Multiplier", ['bold' => true]);
         $table->addCell(1500)->addText("Rate Duration", ['bold' => true]);
@@ -2373,27 +2516,30 @@ private function addBudgetSection(PhpWord $phpWord, $project)
         $table->addCell(1500)->addText("This Phase (Auto)", ['bold' => true]);
         $table->addCell(1500)->addText("Next Phase (Auto)", ['bold' => true]);
 
-        // Add table rows
-        foreach ($budgets as $budget) {
+        // Add table rows with index numbers
+        foreach ($budgets as $index => $budget) {
             $table->addRow();
-            $table->addCell(4000)->addText($budget->particular);
-            $table->addCell(1500)->addText(number_format($budget->rate_quantity, 2));
-            $table->addCell(1500)->addText(number_format($budget->rate_multiplier, 2));
-            $table->addCell(1500)->addText(number_format($budget->rate_duration, 2));
-            $table->addCell(1500)->addText(number_format($budget->rate_increase, 2));
-            $table->addCell(1500)->addText(number_format($budget->this_phase, 2));
-            $table->addCell(1500)->addText(number_format($budget->next_phase, 2));
+            $table->addCell(500)->addText($index + 1);
+            $cell = $table->addCell(3500);
+            $this->addTextWithLineBreaks($cell, $budget->particular);
+            $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budget->rate_quantity, 2));
+            $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budget->rate_multiplier, 2));
+            $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budget->rate_duration, 2));
+            $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budget->rate_increase, 2));
+            $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budget->this_phase, 2));
+            $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budget->next_phase, 2));
         }
 
         // Add table footer for totals
         $table->addRow();
-        $table->addCell(4000)->addText("Total", ['bold' => true]);
-        $table->addCell(1500)->addText(number_format($budgets->sum('rate_quantity'), 2), ['bold' => true]);
-        $table->addCell(1500)->addText(number_format($budgets->sum('rate_multiplier'), 2), ['bold' => true]);
-        $table->addCell(1500)->addText(number_format($budgets->sum('rate_duration'), 2), ['bold' => true]);
-        $table->addCell(1500)->addText(number_format($budgets->sum('rate_increase'), 2), ['bold' => true]);
-        $table->addCell(1500)->addText(number_format($budgets->sum('this_phase'), 2), ['bold' => true]);
-        $table->addCell(1500)->addText(number_format($budgets->sum('next_phase'), 2), ['bold' => true]);
+        $table->addCell(500)->addText(""); // Empty cell for No. column
+        $table->addCell(3500)->addText("Total", ['bold' => true]);
+        $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budgets->sum('rate_quantity'), 2), ['bold' => true]);
+        $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budgets->sum('rate_multiplier'), 2), ['bold' => true]);
+        $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budgets->sum('rate_duration'), 2), ['bold' => true]);
+        $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budgets->sum('rate_increase'), 2), ['bold' => true]);
+        $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budgets->sum('this_phase'), 2), ['bold' => true]);
+        $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budgets->sum('next_phase'), 2), ['bold' => true]);
 
         // Add spacing between phases
         $section->addTextBreak(1);
@@ -2426,14 +2572,17 @@ private function addAttachmentsSection(PhpWord $phpWord, $project)
 
     // Add table headers
     $table->addRow();
-    $table->addCell(5000)->addText("Attachment Name", ['bold' => true]);
+    $table->addCell(800)->addText("No.", ['bold' => true]);
+    $table->addCell(4200)->addText("Attachment Name", ['bold' => true]);
     $table->addCell(5000)->addText("Description", ['bold' => true]);
 
-    // Loop through attachments and add rows to the table
-    foreach ($project->attachments as $attachment) {
+    // Loop through attachments and add rows to the table with index numbers
+    foreach ($project->attachments as $index => $attachment) {
         $table->addRow();
-        $table->addCell(5000)->addText($attachment->file_name);
-        $table->addCell(5000)->addText($attachment->description ?? 'No description provided.');
+        $table->addCell(800)->addText($index + 1);
+        $table->addCell(4200)->addText($attachment->file_name);
+        $descCell = $table->addCell(5000);
+        $this->addTextWithLineBreaks($descCell, $attachment->description ?? 'No description provided.');
     }
 
     // Add footer note
@@ -2660,7 +2809,7 @@ private function addIESections(PhpWord $phpWord, $project)
         foreach ($project->iesExpenses as $expense) {
             $table->addRow();
             $table->addCell(5000)->addText($expense->expense_type ?? 'N/A');
-            $table->addCell(5000)->addText("Rs. " . number_format($expense->amount ?? 0, 2));
+            $table->addCell(5000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($expense->amount ?? 0, 2));
         }
     }
 }
@@ -2689,7 +2838,7 @@ private function addIIESSections(PhpWord $phpWord, $project)
     if ($project->iiesFinancialSupport) {
         $section->addText("Support Type: " . ($project->iiesFinancialSupport->support_type ?? 'N/A'));
         $section->addText("Duration: " . ($project->iiesFinancialSupport->duration ?? 'N/A'));
-        $section->addText("Amount: Rs. " . number_format($project->iiesFinancialSupport->amount ?? 0, 2));
+        $section->addText("Amount: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($project->iiesFinancialSupport->amount ?? 0, 2));
     }
     $section->addTextBreak(1);
 
@@ -2709,7 +2858,7 @@ private function addIIESSections(PhpWord $phpWord, $project)
         foreach ($project->iiesExpenses as $expense) {
             $table->addRow();
             $table->addCell(5000)->addText($expense->expense_type ?? 'N/A');
-            $table->addCell(5000)->addText("Rs. " . number_format($expense->amount ?? 0, 2));
+            $table->addCell(5000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($expense->amount ?? 0, 2));
         }
     }
 }
@@ -2750,10 +2899,10 @@ private function addILPSections(PhpWord $phpWord, $project)
         foreach ($project->revenuePlanItems as $item) {
             $table->addRow();
             $table->addCell(4000)->addText($item->item ?? 'N/A');
-            $table->addCell(2000)->addText("Rs. " . number_format($item->year_1 ?? 0, 2));
-            $table->addCell(2000)->addText("Rs. " . number_format($item->year_2 ?? 0, 2));
-            $table->addCell(2000)->addText("Rs. " . number_format($item->year_3 ?? 0, 2));
-            $table->addCell(2000)->addText("Rs. " . number_format($item->year_4 ?? 0, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($item->year_1 ?? 0, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($item->year_2 ?? 0, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($item->year_3 ?? 0, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($item->year_4 ?? 0, 2));
         }
     } else {
         $section->addText("No Business Plan Items available.");
@@ -2779,10 +2928,10 @@ private function addILPSections(PhpWord $phpWord, $project)
         foreach ($project->revenueIncomes as $income) {
             $table->addRow();
             $table->addCell(4000)->addText($income->description ?? 'N/A');
-            $table->addCell(2000)->addText("Rs. " . number_format($income->year_1 ?? 0, 2));
-            $table->addCell(2000)->addText("Rs. " . number_format($income->year_2 ?? 0, 2));
-            $table->addCell(2000)->addText("Rs. " . number_format($income->year_3 ?? 0, 2));
-            $table->addCell(2000)->addText("Rs. " . number_format($income->year_4 ?? 0, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($income->year_1 ?? 0, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($income->year_2 ?? 0, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($income->year_3 ?? 0, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($income->year_4 ?? 0, 2));
         }
     } else {
         $section->addText("No Annual Income data available.");
@@ -2808,10 +2957,10 @@ private function addILPSections(PhpWord $phpWord, $project)
         foreach ($project->revenueExpenses as $expense) {
             $table->addRow();
             $table->addCell(4000)->addText($expense->description ?? 'N/A');
-            $table->addCell(2000)->addText("Rs. " . number_format($expense->year_1 ?? 0, 2));
-            $table->addCell(2000)->addText("Rs. " . number_format($expense->year_2 ?? 0, 2));
-            $table->addCell(2000)->addText("Rs. " . number_format($expense->year_3 ?? 0, 2));
-            $table->addCell(2000)->addText("Rs. " . number_format($expense->year_4 ?? 0, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($expense->year_1 ?? 0, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($expense->year_2 ?? 0, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($expense->year_3 ?? 0, 2));
+            $table->addCell(2000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($expense->year_4 ?? 0, 2));
         }
     } else {
         $section->addText("No Annual Expenses data available.");
@@ -2823,8 +2972,17 @@ private function addILPSections(PhpWord $phpWord, $project)
     $section->addTextBreak(1);
 
     if ($project->ilpRiskAnalysis) {
-        $section->addText("Identified Risks: " . ($project->ilpRiskAnalysis->identified_risks ?? 'N/A'));
-        $section->addText("Mitigation Measures: " . ($project->ilpRiskAnalysis->mitigation_measures ?? 'N/A'));
+        $section->addText("Identified Risks:", ['bold' => true]);
+        $this->addTextWithLineBreaks($section, $project->ilpRiskAnalysis->identified_risks ?? 'N/A');
+        $section->addTextBreak(0.5);
+        $section->addText("Mitigation Measures:", ['bold' => true]);
+        $this->addTextWithLineBreaks($section, $project->ilpRiskAnalysis->mitigation_measures ?? 'N/A');
+        $section->addTextBreak(0.5);
+        $section->addText("Business Sustainability:", ['bold' => true]);
+        $this->addTextWithLineBreaks($section, $project->ilpRiskAnalysis->business_sustainability ?? 'N/A');
+        $section->addTextBreak(0.5);
+        $section->addText("Expected Profits:", ['bold' => true]);
+        $this->addTextWithLineBreaks($section, $project->ilpRiskAnalysis->expected_profits ?? 'N/A');
     }
     $section->addTextBreak(1);
 
@@ -2844,7 +3002,7 @@ private function addILPSections(PhpWord $phpWord, $project)
         foreach ($project->ilpBudget as $budget) {
             $table->addRow();
             $table->addCell(5000)->addText($budget->budget_desc ?? 'N/A');
-            $table->addCell(5000)->addText("Rs. " . number_format($budget->cost ?? 0, 2));
+            $table->addCell(5000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($budget->cost ?? 0, 2));
         }
     }
 }
@@ -2893,7 +3051,7 @@ private function addIAHSections(PhpWord $phpWord, $project)
         foreach ($project->iahBudgetDetails as $budget) {
             $table->addRow();
             $table->addCell(5000)->addText($budget->expense_type ?? 'N/A');
-            $table->addCell(5000)->addText("Rs. " . number_format($budget->amount ?? 0, 2));
+            $table->addCell(5000)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($budget->amount ?? 0, 2));
         }
     }
 }

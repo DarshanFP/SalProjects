@@ -20,16 +20,16 @@
                         @foreach($predecessorBeneficiaries as $beneficiary)
                             <tr>
                                 <td>
-                                    <input type="text" name="project_area[]" class="form-control" value="{{ $beneficiary['project_area'] }}" style="background-color: #202ba3;">
+                                    <input type="text" name="project_area[]" class="form-control" value="{{ $beneficiary['project_area'] }}">
                                 </td>
                                 <td>
-                                    <input type="text" name="category_beneficiary[]" class="form-control" value="{{ $beneficiary['category_beneficiary'] }}" style="background-color: #202ba3;">
+                                    <input type="text" name="category_beneficiary[]" class="form-control" value="{{ $beneficiary['category_beneficiary'] }}">
                                 </td>
                                 <td>
-                                    <input type="number" name="direct_beneficiaries[]" class="form-control" value="{{ $beneficiary['direct_beneficiaries'] }}" style="background-color: #202ba3;">
+                                    <input type="number" name="direct_beneficiaries[]" class="form-control" value="{{ $beneficiary['direct_beneficiaries'] }}">
                                 </td>
                                 <td>
-                                    <input type="number" name="indirect_beneficiaries[]" class="form-control" value="{{ $beneficiary['indirect_beneficiaries'] }}" style="background-color: #202ba3;">
+                                    <input type="number" name="indirect_beneficiaries[]" class="form-control" value="{{ $beneficiary['indirect_beneficiaries'] }}">
                                 </td>
                                 <td>
                                     <button type="button" class="btn btn-danger" onclick="removeNPDProjectAreaRow(this)">Remove</button>
@@ -38,10 +38,10 @@
                         @endforeach
                     @else
                         <tr>
-                            <td><input type="text" name="project_area[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="text" name="category_beneficiary[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="direct_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="indirect_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
+                            <td><input type="text" name="project_area[]" class="form-control"></td>
+                            <td><input type="text" name="category_beneficiary[]" class="form-control"></td>
+                            <td><input type="number" name="direct_beneficiaries[]" class="form-control"></td>
+                            <td><input type="number" name="indirect_beneficiaries[]" class="form-control"></td>
                             <td><button type="button" class="btn btn-danger" onclick="removeNPDProjectAreaRow(this)">Remove</button></td>
                         </tr>
                     @endif
@@ -58,10 +58,10 @@
     function addNPDProjectAreaRow() {
         const newRow = `
             <tr>
-                <td><input type="text" name="project_area[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="text" name="category_beneficiary[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="direct_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="indirect_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="project_area[]" class="form-control"></td>
+                <td><input type="text" name="category_beneficiary[]" class="form-control"></td>
+                <td><input type="number" name="direct_beneficiaries[]" class="form-control"></td>
+                <td><input type="number" name="indirect_beneficiaries[]" class="form-control"></td>
                 <td><button type="button" class="btn btn-danger" onclick="removeNPDProjectAreaRow(this)">Remove</button></td>
             </tr>
         `;

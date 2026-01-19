@@ -18,6 +18,12 @@
                 <span class="link-title">Dashboard</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('activities.my-activities') }}" class="nav-link">
+                <i class="link-icon" data-feather="activity"></i>
+                <span class="link-title">My Activities</span>
+                </a>
+            </li>
             <li class="nav-item nav-category">web apps</li>
             <li class="nav-item">
                 <a class="nav-link" data-bs-toggle="collapse" href="#webAppsCollapse" role="button" aria-expanded="false" aria-controls="webAppsCollapse">
@@ -103,27 +109,33 @@
             </li>
 
             <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#quarterlyReportsCollapse" role="button" aria-expanded="false" aria-controls="quarterlyReportsCollapse">
+                <i class="link-icon" data-feather="file-text"></i>
+                <span class="link-title">Quarterly Reports</span>
+                <i class="link-arrow" data-feather="chevron-down"></i>
+                </a>
+                <div class="collapse" id="quarterlyReportsCollapse">
+                    <ul class="nav sub-menu">
+                        <li class="nav-item">
+                            <a href="{{ route('aggregated.quarterly.index') }}" class="nav-link">View Quarterly Reports</a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="nav-item">
                 <a class="nav-link" data-bs-toggle="collapse" href="#biannualReportsCollapse" role="button" aria-expanded="false" aria-controls="biannualReportsCollapse">
                 <i class="link-icon" data-feather="anchor"></i>
                 <span class="link-title">Biannual Reports</span>
                 <i class="link-arrow" data-feather="chevron-down"></i>
                 </a>
-                {{-- <div class="collapse" id="biannualReportsCollapse">
+                <div class="collapse" id="biannualReportsCollapse">
                     <ul class="nav sub-menu">
                         <li class="nav-item">
-                            <a href="pages/advanced-ui/cropper.html" class="nav-link">Cropper</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="pages/advanced-ui/owl-carousel.html" class="nav-link">Owl carousel</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="pages/advanced-ui/sortablejs.html" class="nav-link">SortableJs</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="pages/advanced-ui/sweet-alert.html" class="nav-link">Sweet Alert</a>
+                            <a href="{{ route('aggregated.half-yearly.index') }}" class="nav-link">View Half-Yearly Reports</a>
                         </li>
                     </ul>
-                </div> --}}
+                </div>
             </li>
             <li class="nav-item">
                 <a class="nav-link" data-bs-toggle="collapse" href="#annualReportsCollapse" role="button" aria-expanded="false" aria-controls="annualReportsCollapse">
@@ -131,22 +143,13 @@
                 <span class="link-title">Annual Reports</span>
                 <i class="link-arrow" data-feather="chevron-down"></i>
                 </a>
-                {{-- <div class="collapse" id="annualReportsCollapse">
+                <div class="collapse" id="annualReportsCollapse">
                     <ul class="nav sub-menu">
                         <li class="nav-item">
-                            <a href="pages/forms/basic-elements.html" class="nav-link">Basic Elements</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="pages/forms/advanced-elements.html" class="nav-link">Advanced Elements</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="pages/forms/editors.html" class="nav-link">Editors</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="pages/forms/wizard.html" class="nav-link">Wizard</a>
+                            <a href="{{ route('aggregated.annual.index') }}" class="nav-link">View Annual Reports</a>
                         </li>
                     </ul>
-                </div> --}}
+                </div>
             </li>
 
             {{-- Create Reports --}}

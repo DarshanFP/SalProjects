@@ -16,8 +16,8 @@
                 <tbody id="IGS-beneficiaries-supported-rows">
                     <tr>
                         <td>1</td>
-                        <td><input type="text" name="class[]" class="form-control" style="background-color: #202ba3;"></td>
-                        <td><input type="number" name="total_number[]" class="form-control" style="background-color: #202ba3;"></td>
+                        <td><input type="text" name="class[]" class="form-control"></td>
+                        <td><input type="number" name="total_number[]" class="form-control"></td>
                         <td><button type="button" class="btn btn-danger" onclick="IGSremoveBeneficiaryRow(this)">Remove</button></td>
                     </tr>
                 </tbody>
@@ -36,8 +36,8 @@
         const newRow = `
             <tr>
                 <td>${IGSbeneficiaryRowIndex}</td>
-                <td><input type="text" name="class[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="total_number[]" class="form-control" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="class[]" class="form-control"></td>
+                <td><input type="number" name="total_number[]" class="form-control"></td>
                 <td><button type="button" class="btn btn-danger" onclick="IGSremoveBeneficiaryRow(this)">Remove</button></td>
             </tr>
         `;

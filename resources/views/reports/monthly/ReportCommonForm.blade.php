@@ -107,7 +107,7 @@
                             </div>
                             <div class="mb-3">
                                 <label for="plan_next_month[{{ $index }}]" class="form-label">Action Plan for Next Month</label>
-                                <textarea name="plan_next_month[{{ $index }}]" class="form-control" rows="3" style="background-color: #202ba3;">{{ old("plan_next_month.$index") }}</textarea>
+                                <textarea name="plan_next_month[{{ $index }}]" class="form-control auto-resize-textarea" rows="3" style="background-color: #202ba3;">{{ old("plan_next_month.$index") }}</textarea>
                             </div>
                         </div>
                     </div>
@@ -134,7 +134,7 @@
                             <div class="mb-3 photo-group" data-index="{{ $index }}">
                                 <label for="photo_{{ $index }}" class="form-label">Photo {{ $index + 1 }}</label>
                                 <input type="file" name="photos[]" class="mb-2 form-control" accept="image/*" onchange="checkFileSize(this)" style="background-color: #202ba3;">
-                                <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $value }}</textarea>
+                                <textarea name="photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $value }}</textarea>
                                 <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
                             </div>
                             @endforeach
@@ -166,11 +166,18 @@
                 <div class="mb-3 photo-group" data-index="${index}">
                     <label for="photo_${index}" class="form-label">Photo ${index + 1}</label>
                     <input type="file" name="photos[]" class="mb-2 form-control" accept="image/*" onchange="checkFileSize(this)" style="background-color: #202ba3;">
-                    <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
+                    <textarea name="photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
                     <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
                 </div>
             `;
             photosContainer.insertAdjacentHTML('beforeend', newPhotoHtml);
+
+            // Initialize auto-resize for new photo textarea using global function
+            const newPhoto = photosContainer.lastElementChild;
+            if (newPhoto && typeof initDynamicTextarea === 'function') {
+                initDynamicTextarea(newPhoto);
+            }
+
             updatePhotoLabels();
         } else {
             alert('You can upload a maximum of 10 photos.');
@@ -204,8 +211,6 @@
         const form = document.querySelector('#reportForm');
         if (form) {
             form.addEventListener('submit', function(e) {
-                console.log('Form submission attempted');
-
                 // Check form data size
                 const formData = new FormData(form);
                 let totalSize = 0;
@@ -214,17 +219,10 @@
                         totalSize += value.size;
                     }
                 }
-                console.log('Total form data size:', totalSize, 'bytes');
 
                 // Check if required fields are present
                 const projectObjectiveIds = document.querySelectorAll('input[name^="project_objective_id"]');
                 const projectActivityIds = document.querySelectorAll('input[name^="project_activity_id"]');
-
-                console.log('Project objective IDs found:', projectObjectiveIds.length);
-                console.log('Project activity IDs found:', projectActivityIds.length);
-
-                // Log all form fields for debugging
-                console.log('Form fields:', Array.from(formData.keys()));
 
                 if (projectObjectiveIds.length === 0) {
                     e.preventDefault();
@@ -245,7 +243,6 @@
                     submitBtn.textContent = 'Submitting...';
                 }
 
-                console.log('Form validation passed, proceeding with submission');
             });
         }
 
@@ -270,12 +267,19 @@
                     </div>
                     <div class="mb-3">
                         <label for="plan_next_month[${index}]" class="form-label">Action Plan for Next Month</label>
-                        <textarea name="plan_next_month[${index}]" class="form-control" rows="3" style="background-color: #202ba3;"></textarea>
+                        <textarea name="plan_next_month[${index}]" class="form-control auto-resize-textarea" rows="3" style="background-color: #202ba3;"></textarea>
                     </div>
                 </div>
             </div>
         `;
         outlookContainer.insertAdjacentHTML('beforeend', newOutlookHtml);
+
+        // Initialize auto-resize for new outlook textarea using global function
+        const newOutlook = outlookContainer.lastElementChild;
+        if (newOutlook && typeof initDynamicTextarea === 'function') {
+            initDynamicTextarea(newOutlook);
+        }
+
         updateOutlookRemoveButtons();
     }
 

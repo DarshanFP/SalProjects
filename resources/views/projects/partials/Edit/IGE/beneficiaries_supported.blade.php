@@ -19,16 +19,16 @@
                     @foreach($beneficiariesSupported as $index => $beneficiary)
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td><input type="text" name="class[]" class="form-control" value="{{ old('class.' . $index, $beneficiary->class) }}" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="total_number[]" class="form-control" value="{{ old('total_number.' . $index, $beneficiary->total_number) }}" style="background-color: #202ba3;"></td>
+                            <td><input type="text" name="class[]" class="form-control" value="{{ old('class.' . $index, $beneficiary->class) }}"></td>
+                            <td><input type="number" name="total_number[]" class="form-control" value="{{ old('total_number.' . $index, $beneficiary->total_number) }}"></td>
                             <td><button type="button" class="btn btn-danger" onclick="removeBeneficiaryRow(this)">Remove</button></td>
                         </tr>
                         @endforeach
                     @else
                         <tr>
                             <td>1</td>
-                            <td><input type="text" name="class[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="total_number[]" class="form-control" style="background-color: #202ba3;"></td>
+                            <td><input type="text" name="class[]" class="form-control"></td>
+                            <td><input type="number" name="total_number[]" class="form-control"></td>
                             <td><button type="button" class="btn btn-danger" onclick="removeBeneficiaryRow(this)">Remove</button></td>
                         </tr>
                     @endif
@@ -48,8 +48,8 @@
         const newRow = `
             <tr>
                 <td>${beneficiaryRowIndex}</td>
-                <td><input type="text" name="class[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="total_number[]" class="form-control" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="class[]" class="form-control"></td>
+                <td><input type="number" name="total_number[]" class="form-control"></td>
                 <td><button type="button" class="btn btn-danger" onclick="removeBeneficiaryRow(this)">Remove</button></td>
             </tr>
         `;
@@ -74,7 +74,7 @@
 <!-- Styles -->
 <style>
     .form-control {
-        background-color: #202ba3;
+        
         color: white;
     }
 </style>

@@ -19,7 +19,7 @@
         <!-- Expected Amount of Scholarship -->
         <div class="form-group">
             <label for="scholarship_amt">Expected amount of Scholarship:</label>
-            <input type="number" name="scholarship_amt" id="scholarship_amt" class="form-control" step="0.01" style="background-color: #202ba3;">
+            <input type="number" name="scholarship_amt" id="scholarship_amt" class="form-control" step="0.01">
         </div>
 
         <!-- Eligibility for Other Scholarships -->
@@ -38,27 +38,20 @@
         <!-- Expected Amount of Other Scholarships -->
         <div class="form-group">
             <label for="other_scholarship_amt">Expected amount of other Scholarships:</label>
-            <input type="number" name="other_scholarship_amt" id="other_scholarship_amt" class="form-control" step="0.01" style="background-color: #202ba3;">
+            <input type="number" name="other_scholarship_amt" id="other_scholarship_amt" class="form-control" step="0.01">
         </div>
 
         <!-- Family Contribution -->
         <div class="form-group">
             <label for="family_contrib">Family contribution:</label>
-            <input type="number" name="family_contrib" id="family_contrib" class="form-control" step="0.01" style="background-color: #202ba3;">
+            <input type="number" name="family_contrib" id="family_contrib" class="form-control" step="0.01">
         </div>
 
         <!-- Reason for No Family Contribution -->
         <div class="form-group">
             <label for="no_contrib_reason">If no contribution from family, mention the reasons:</label>
-            <textarea name="no_contrib_reason" id="no_contrib_reason" class="form-control" rows="3" style="background-color: #202ba3;"></textarea>
+            <textarea name="no_contrib_reason" id="no_contrib_reason" class="form-control sustainability-textarea" rows="3"></textarea>
         </div>
     </div>
 </div>
 
-<!-- Styles -->
-<style>
-    .form-control {
-        background-color: #202ba3;
-        color: white;
-    }
-</style>

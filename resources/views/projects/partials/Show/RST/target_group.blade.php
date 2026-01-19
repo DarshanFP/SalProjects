@@ -15,10 +15,7 @@
 
         <div class="form-group">
             <label for="beneficiaries_description_problems">Description of Beneficiaries' Problems</label>
-            <textarea name="beneficiaries_description_problems"
-                      class="form-control"
-                      rows="4"
-                      disabled>{{ $RSTTargetGroup?->beneficiaries_description_problems ?? 'No description provided.' }}</textarea>
+            <div class="form-control" style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.6;">{{ $RSTTargetGroup?->beneficiaries_description_problems ?? 'No description provided.' }}</div>
         </div>
     </div>
 </div>

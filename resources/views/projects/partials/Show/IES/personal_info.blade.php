@@ -96,7 +96,7 @@
 
             <div class="mb-3">
                 <span class="info-label">Monthly income of Father:</span>
-                <span class="info-value">{{ $personalInfo->father_income ? '₹' . number_format($personalInfo->father_income, 2) : 'Not provided' }}</span>
+                <span class="info-value">{{ $personalInfo->father_income ? format_indian_currency($personalInfo->father_income, 2) : 'Not provided' }}</span>
             </div>
 
             <div class="mb-3">
@@ -106,7 +106,7 @@
 
             <div class="mb-3">
                 <span class="info-label">Monthly income of Mother:</span>
-                <span class="info-value">{{ $personalInfo->mother_income ? '₹' . number_format($personalInfo->mother_income, 2) : 'Not provided' }}</span>
+                <span class="info-value">{{ $personalInfo->mother_income ? format_indian_currency($personalInfo->mother_income, 2) : 'Not provided' }}</span>
             </div>
         </div>
     </div>
@@ -115,7 +115,7 @@
 <!-- Styles -->
 <style>
     .form-control {
-        background-color: #202ba3;
+        
         color: white;
     }
     .card-header h4 {

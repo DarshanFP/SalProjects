@@ -27,23 +27,47 @@ class LogicalFrameworkController extends Controller
     // 3. Store a newly created objective in storage
     public function store(Request $request)
     {
-        Log::info('Incoming request data - logged in LFW ', $request->all());
-        Log::info('Data structure:', $request->all());
+        // This controller is orchestrated by ProjectController and receives StoreProjectRequest.
+        // We validate the subset we need here (project_id + objectives).
+        $validated = $request->validate([
+            'project_id' => 'required|string',
+            'objectives' => 'nullable|array',
+        ]);
+        
+        Log::info('Incoming request data - logged in LFW', [
+            'objectives_count' => count($validated['objectives'] ?? $request->input('objectives', [])),
+            'has_activities' => !empty(($validated['objectives'] ?? $request->input('objectives', []))[0]['activities'] ?? []),
+        ]);
 
-        $objectives = $request->input('objectives', []);
+        $objectives = $validated['objectives'] ?? [];
 
+        // Allow empty objectives - they can be added later during editing
         if (empty($objectives)) {
-            Log::error('No objectives data provided.');
-            return redirect()->back()->withErrors(['error' => 'No objectives data provided.']);
+            Log::info('No objectives data provided - skipping objective storage. Objectives can be added later.');
+            return; // Return null to allow the parent controller to continue
         }
 
-        DB::transaction(function () use ($request, $objectives) {
+        // Check if any objectives have actual data (not all null/empty)
+        $hasValidObjectives = false;
+        foreach ($objectives as $objectiveData) {
+            if (isset($objectiveData['objective']) && !empty(trim($objectiveData['objective']))) {
+                $hasValidObjectives = true;
+                break;
+            }
+        }
+
+        if (!$hasValidObjectives) {
+            Log::info('No valid objectives data provided (all are null/empty) - skipping objective storage. Objectives can be added later.');
+            return; // Return null to allow the parent controller to continue
+        }
+
+        DB::transaction(function () use ($validated, $objectives) {
             Log::info('Starting transaction to store new project objective.');
 
-            $projectId = $request->input('project_id');
+            $projectId = $validated['project_id'];
 
             foreach ($objectives as $objectiveIndex => $objectiveData) {
-                if (isset($objectiveData['objective'])) {
+                if (isset($objectiveData['objective']) && !empty(trim($objectiveData['objective']))) {
                     Log::info('Creating a new objective for project ID: ' . $projectId, ['objective' => $objectiveData['objective']]);
 
                     $objective = new ProjectObjective([
@@ -175,13 +199,23 @@ class LogicalFrameworkController extends Controller
 
     public function update(Request $request, $project_id)
 {
-    DB::transaction(function () use ($request, $project_id) {
+    // Validate that objectives is an array, but use input() to get all nested data
+    // This ensures we get activities, verification, and other nested fields
+    $request->validate([
+        'objectives' => 'nullable|array',
+    ]);
+
+    // Use input() instead of validated() to ensure we get all nested data
+    // including activities[][activity], activities[][verification], etc.
+    $objectives = $request->input('objectives', []);
+    
+    DB::transaction(function () use ($objectives, $project_id) {
         Log::info('Starting transaction to update objectives for project ID: ' . $project_id);
 
         // Delete old objectives, risks, results, and activities
         ProjectObjective::where('project_id', $project_id)->delete();
 
-        foreach ($request->input('objectives', []) as $objectiveData) {
+        foreach ($objectives as $objectiveData) {
             $objective = new ProjectObjective([
                 'project_id' => $project_id,
                 'objective' => $objectiveData['objective'],

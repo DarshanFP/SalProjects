@@ -1,176 +1,204 @@
 {{-- resources/views/projects/partials/Edit/ILP/attached_docs.blade.php --}}
+@php
+    use App\Models\OldProjects\ILP\ProjectILPAttachedDocuments;
+    use App\Models\OldProjects\ILP\ProjectILPDocumentFile;
+    use Illuminate\Support\Facades\Storage;
+
+    if (!isset($ILPDocuments) && !isset($attachedDocs)) {
+        if (isset($project->project_id) && !empty($project->project_id)) {
+            $ILPDocuments = ProjectILPAttachedDocuments::where('project_id', $project->project_id)->first();
+        } else {
+            $ILPDocuments = null;
+        }
+    } else {
+        $ILPDocuments = $attachedDocs ?? $ILPDocuments ?? null;
+    }
+
+    $fields = [
+        'aadhar_doc' => 'Aadhar Document',
+        'request_letter_doc' => 'Request Letter Document',
+        'purchase_quotation_doc' => 'Purchase Quotation Document',
+        'other_doc' => 'Other Document'
+    ];
+@endphp
+
 <div class="mb-4 card">
     <div class="card-header">
         <h4 class="mb-0">Edit: Attach the following documents of the beneficiary:</h4>
+        <small class="text-muted">You can upload multiple files for each field. Maximum 5 MB per file.</small>
     </div>
     <div class="card-body">
         <div class="row">
-            <!-- LEFT COLUMN -->
-            <div class="col-md-6">
-                @foreach ([
-                    'aadhar_doc' => 'Self-attested Aadhar',
-                    'request_letter_doc' => 'Request Letter',
-                ] as $name => $label)
-                    <div class="mb-3">
-                        <label class="form-label">{{ $label }}:</label>
-                        <input type="file" name="attachments[{{ $name }}]" class="form-control" onchange="renameFile(this, '{{ $name }}')">
+            @foreach ($fields as $field => $label)
+                <div class="col-md-6 mb-4">
+                    <label class="form-label fw-bold">{{ $label }}:</label>
 
-                        @if(!empty($attachedDocs->$name))
-                            <p>Currently Attached:</p>
-                            <a href="{{ Storage::url($attachedDocs->$name) }}" target="_blank">
-                                {{ basename($attachedDocs->$name) }}
-                            </a>
-                            <br>
-                            <a href="{{ Storage::url($attachedDocs->$name) }}" download class="btn btn-green">
-                                Download
-                            </a>
-                            {{-- <button type="button" class="btn btn-danger delete-file-btn" data-field="{{ $name }}" data-url="{{ route('projects.ilp.attachments.delete', ['projectId' => $attachedDocs->project_id, 'field' => $name]) }}">
-                                Delete
-                            </button> --}}
+                    {{-- Show existing files --}}
+                    @if(!empty($ILPDocuments))
+                        @php
+                            $existingFiles = $ILPDocuments->getFilesForField($field);
+                        @endphp
+                        @if($existingFiles && $existingFiles->count() > 0)
+                            <div class="existing-files mb-3">
+                                <strong>Existing Files:</strong>
+                                @foreach($existingFiles as $file)
+                                    @php
+                                        $fileExists = Storage::disk('public')->exists($file->file_path);
+                                    @endphp
+                                    <div class="file-item mb-2 p-2 border rounded">
+                                        @if($fileExists)
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <i class="{{ \App\Helpers\AttachmentFileNamingHelper::getFileIcon($file->file_path) ?? config('attachments.file_icons.default') }}"></i>
+                                                    <strong>{{ $file->file_name }}</strong>
+                                                    @if($file->description)
+                                                        <br><small class="text-muted">{{ $file->description }}</small>
+                                                    @endif
+                                                </div>
+                                                <div>
+                                                    <a href="{{ Storage::url($file->file_path) }}" target="_blank" class="btn btn-sm btn-primary">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </a>
+                                                    <a href="{{ Storage::url($file->file_path) }}" download class="btn btn-sm btn-secondary">
+                                                        <i class="fas fa-download"></i> Download
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <span class="text-danger">
+                                                <i class="fas fa-exclamation-triangle"></i> File not found: {{ $file->file_name }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
                         @endif
-                    </div>
-                @endforeach
-            </div>
+                    @endif
 
-            <!-- RIGHT COLUMN -->
-            <div class="col-md-6">
-                @foreach ([
-                    'purchase_quotation_doc' => 'Purchase Quotation',
-                    'other_doc' => 'Other Document',
-                ] as $name => $label)
-                    <div class="mb-3">
-                        <label class="form-label">{{ $label }}:</label>
-                        <input type="file" name="attachments[{{ $name }}]" class="form-control" onchange="renameFile(this, '{{ $name }}')">
-
-                        @if(!empty($attachedDocs->$name))
-                            <p>Currently Attached:</p>
-                            <a href="{{ Storage::url($attachedDocs->$name) }}" target="_blank">
-                                {{ basename($attachedDocs->$name) }}
-                            </a>
-                            <br>
-                            <a href="{{ Storage::url($attachedDocs->$name) }}" download class="btn btn-green">
-                                Download
-                            </a>
-                            {{-- <button type="button" class="btn btn-danger delete-file-btn" data-field="{{ $name }}" data-url="{{ route('projects.ilp.attachments.delete', ['projectId' => $attachedDocs->project_id, 'field' => $name]) }}">
-                                Delete
-                            </button> --}}
-                        @endif
+                    {{-- New file upload section --}}
+                    <div class="file-upload-container" data-field="{{ $field }}">
+                        <div class="file-input-wrapper mb-2">
+                            <input type="file"
+                                   name="attachments[{{ $field }}][]"
+                                   class="form-control-file file-input"
+                                   accept=".pdf,.jpg,.jpeg,.png"
+                                   onchange="validateIESFile(this, '{{ $field }}')"
+                                   data-field="{{ $field }}">
+                            <input type="text"
+                                   name="attachments[{{ $field }}_names][]"
+                                   class="form-control mt-2"
+                                   placeholder="Optional: Custom file name (without extension)"
+                                   data-field="{{ $field }}">
+                            <textarea name="attachments[{{ $field }}_descriptions][]"
+                                      class="form-control mt-2"
+                                      rows="2"
+                                      placeholder="Optional: File description"
+                                      data-field="{{ $field }}"></textarea>
+                        </div>
+                        <button type="button"
+                                class="btn btn-sm btn-success add-file-btn"
+                                data-field="{{ $field }}">
+                            <i class="fas fa-plus"></i> Add Another File
+                        </button>
                     </div>
-                @endforeach
-            </div>
+                </div>
+            @endforeach
         </div>
     </div>
 </div>
 
 <!-- Styles -->
 <style>
-/* Style for the input field */
-.form-control {
-    background-color: #202ba3;
-    color: white;
-}
-
-/* Button Styles */
-.btn {
-    display: inline-block;
-    padding: 5px 10px;
-    font-size: 12px;
-    font-weight: bold;
-    text-align: center;
-    text-decoration: none;
-    border-radius: 4px;
-}
-
-.btn-green {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    cursor: pointer;
-}
-
-.btn-green:hover {
-    background-color: #218838;
-}
-
-.btn-danger {
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    cursor: pointer;
-    margin-left: 5px;
-}
-
-.btn-danger:hover {
-    background-color: #c82333;
-}
-
-/* Spacing between elements */
-.mb-3 {
-    margin-bottom: 20px;
-}
-
-.mb-3 p {
-    margin-bottom: 5px;
-}
-
-/* File name and link alignment */
-p a {
-    display: block;
-    margin-bottom: 5px;
-}
-</style>
-
-<!-- JavaScript -->
-<script>
-    function renameFile(input, label) {
-        const projectIdInput = document.querySelector('input[name="project_id"]');
-        if (!projectIdInput) {
-            console.warn("No <input name='project_id'> found in the parent form.");
-            return;
-        }
-
-        const projectId = projectIdInput.value;
-        const file = input.files[0];
-
-        if (!file) {
-            return; // No file selected
-        }
-
-        const extension = file.name.split('.').pop();
-        const newFileName = `${projectId}_${label}.${extension}`;
-
-        const dataTransfer = new DataTransfer();
-        const renamedFile = new File([file], newFileName, { type: file.type });
-        dataTransfer.items.add(renamedFile);
-        input.files = dataTransfer.files;
+    .file-upload-container {
+        border: 1px solid #4a5568;
+        padding: 15px;
+        border-radius: 5px;
+        background-color: #2d3748;
+        color: #e2e8f0;
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.delete-file-btn').forEach(button => {
-            button.addEventListener('click', function () {
-                let field = this.dataset.field;
-                let deleteUrl = this.dataset.url;
+    .file-input-wrapper {
+        margin-bottom: 10px;
+    }
 
-                if (confirm(`Are you sure you want to delete the ${field.replace('_', ' ')}?`)) {
-                    fetch(deleteUrl, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Content-Type': 'application/json',
-                        },
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert(`${field.replace('_', ' ')} deleted successfully.`);
-                            location.reload();
-                        } else {
-                            alert(`Failed to delete ${field.replace('_', ' ')}.`);
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
-                }
-            });
+    .file-input-wrapper:not(:first-child) {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px dashed #4a5568;
+    }
+
+    .file-item {
+        background-color: #2d3748;
+        border-color: #4a5568 !important;
+        color: #e2e8f0;
+    }
+
+    .file-item .text-muted {
+        color: #a0aec0 !important;
+    }
+
+    .existing-files {
+        margin-bottom: 15px;
+        color: #e2e8f0;
+    }
+
+    .file-upload-container .form-control {
+        background-color: #1a202c;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+
+    .file-upload-container .form-control:focus {
+        background-color: #1a202c;
+        border-color: #667eea;
+        color: #e2e8f0;
+    }
+
+    .file-upload-container .form-control::placeholder {
+        color: #718096;
+    }
+
+    .file-upload-container .form-control-file {
+        color: #e2e8f0;
+    }
+
+    .file-upload-container label {
+        color: #e2e8f0;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add file input functionality
+    document.querySelectorAll('.add-file-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const field = this.getAttribute('data-field');
+            const container = this.closest('.file-upload-container');
+            const firstWrapper = container.querySelector('.file-input-wrapper');
+
+            // Clone the first file input wrapper
+            const newWrapper = firstWrapper.cloneNode(true);
+
+            // Clear file input value
+            newWrapper.querySelector('input[type="file"]').value = '';
+            newWrapper.querySelector('input[type="text"]').value = '';
+            newWrapper.querySelector('textarea').value = '';
+
+            // Add remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-sm btn-danger remove-file-btn';
+            removeBtn.innerHTML = '<i class="fas fa-times"></i> Remove';
+            removeBtn.onclick = function() {
+                newWrapper.remove();
+            };
+            newWrapper.appendChild(removeBtn);
+
+            // Insert before the add button
+            container.insertBefore(newWrapper, this);
         });
     });
+});
 </script>
+
+<script src="{{ asset('js/attachments-validation.js') }}"></script>

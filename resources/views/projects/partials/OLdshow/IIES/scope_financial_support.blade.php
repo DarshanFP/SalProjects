@@ -20,7 +20,7 @@
         <!-- Expected Amount of Scholarship -->
         <div class="form-group">
             <label for="scholarship_amt">Expected amount of Scholarship:</label>
-            <input type="number" name="scholarship_amt" id="scholarship_amt" class="form-control" step="0.01" style="background-color: #202ba3;" value="{{ old('scholarship_amt', $financialSupport->scholarship_amt) }}">
+            <input type="number" name="scholarship_amt" id="scholarship_amt" class="form-control" step="0.01" value="{{ old('scholarship_amt', $financialSupport->scholarship_amt) }}">
         </div>
 
         <!-- Eligibility for Other Scholarships -->
@@ -39,19 +39,19 @@
         <!-- Expected Amount of Other Scholarships -->
         <div class="form-group">
             <label for="other_scholarship_amt">Expected amount of other Scholarships:</label>
-            <input type="number" name="other_scholarship_amt" id="other_scholarship_amt" class="form-control" step="0.01" style="background-color: #202ba3;" value="{{ old('other_scholarship_amt', $financialSupport->other_scholarship_amt) }}">
+            <input type="number" name="other_scholarship_amt" id="other_scholarship_amt" class="form-control" step="0.01" value="{{ old('other_scholarship_amt', $financialSupport->other_scholarship_amt) }}">
         </div>
 
         <!-- Family Contribution -->
         <div class="form-group">
             <label for="family_contrib">Family contribution:</label>
-            <input type="number" name="family_contrib" id="family_contrib" class="form-control" step="0.01" style="background-color: #202ba3;" value="{{ old('family_contrib', $financialSupport->family_contrib) }}">
+            <input type="number" name="family_contrib" id="family_contrib" class="form-control" step="0.01" value="{{ old('family_contrib', $financialSupport->family_contrib) }}">
         </div>
 
         <!-- Reason for No Family Contribution -->
         <div class="form-group">
             <label for="no_contrib_reason">If no contribution from family, mention the reasons:</label>
-            <textarea name="no_contrib_reason" id="no_contrib_reason" class="form-control" rows="3" style="background-color: #202ba3;">{{ old('no_contrib_reason', $financialSupport->no_contrib_reason) }}</textarea>
+            <textarea name="no_contrib_reason" id="no_contrib_reason" class="form-control" rows="3">{{ old('no_contrib_reason', $financialSupport->no_contrib_reason) }}</textarea>
         </div>
     </div>
 </div>

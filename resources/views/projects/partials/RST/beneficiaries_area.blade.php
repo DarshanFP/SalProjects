@@ -33,20 +33,20 @@
                     @elseif(isset($beneficiaries) && !empty($beneficiaries))
                         @foreach($beneficiaries as $beneficiary)
                             <tr>
-                                <td><input type="text" name="project_area[]" class="form-control" value="{{ $beneficiary['project_area'] ?? '' }}" style="background-color: #202ba3;"></td>
-                                <td><input type="text" name="category_beneficiary[]" class="form-control" value="{{ $beneficiary['category'] ?? '' }}" style="background-color: #202ba3;"></td>
-                                <td><input type="number" name="direct_beneficiaries[]" class="form-control" value="{{ $beneficiary['direct'] ?? 0 }}" style="background-color: #202ba3;"></td>
-                                <td><input type="number" name="indirect_beneficiaries[]" class="form-control" value="{{ $beneficiary['indirect'] ?? 0 }}" style="background-color: #202ba3;"></td>
+                                <td><input type="text" name="project_area[]" class="form-control" value="{{ $beneficiary['project_area'] ?? '' }}"></td>
+                                <td><input type="text" name="category_beneficiary[]" class="form-control" value="{{ $beneficiary['category'] ?? '' }}"></td>
+                                <td><input type="number" name="direct_beneficiaries[]" class="form-control" value="{{ $beneficiary['direct'] ?? 0 }}"></td>
+                                <td><input type="number" name="indirect_beneficiaries[]" class="form-control" value="{{ $beneficiary['indirect'] ?? 0 }}"></td>
                                 <td><button type="button" class="btn btn-danger" onclick="removeRSTProjectAreaRow(this)">Remove</button></td>
                             </tr>
                         @endforeach
                     @else
                         <!-- Default empty row when no data is available and not readonly -->
                         <tr>
-                            <td><input type="text" name="project_area[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="text" name="category_beneficiary[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="direct_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="indirect_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
+                            <td><input type="text" name="project_area[]" class="form-control"></td>
+                            <td><input type="text" name="category_beneficiary[]" class="form-control"></td>
+                            <td><input type="number" name="direct_beneficiaries[]" class="form-control"></td>
+                            <td><input type="number" name="indirect_beneficiaries[]" class="form-control"></td>
                             @if(!isset($readonly) || !$readonly)
                                 <td><button type="button" class="btn btn-danger" onclick="removeRSTProjectAreaRow(this)">Remove</button></td>
                             @endif
@@ -70,10 +70,10 @@ window.RSTprojectAreaRowIndex = window.RSTprojectAreaRowIndex || {{ isset($benef
         window.RSTprojectAreaRowIndex++;
         const newRow = `
             <tr>
-                <td><input type="text" name="project_area[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="text" name="category_beneficiary[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="direct_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="indirect_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="project_area[]" class="form-control"></td>
+                <td><input type="text" name="category_beneficiary[]" class="form-control"></td>
+                <td><input type="number" name="direct_beneficiaries[]" class="form-control"></td>
+                <td><input type="number" name="indirect_beneficiaries[]" class="form-control"></td>
                 <td><button type="button" class="btn btn-danger" onclick="removeRSTProjectAreaRow(this)">Remove</button></td>
             </tr>
         `;

@@ -37,6 +37,13 @@
                             white-space: nowrap;
                         }
 
+                        /* Style badges */
+                        table.my-projects-table .badge {
+                            font-size: 11px;
+                            padding: 5px 10px;
+                            font-weight: 500;
+                        }
+
                         .table {
                             table-layout: fixed;
                             width: 100%;
@@ -56,18 +63,31 @@
                         <thead>
                             <tr>
                                 <th style="width: 10%;">Project ID</th>
-                                <th style="width: 35%;">Project Title</th>
-                                <th style="width: 20%;">Project Type</th>
-                                <th style="width: 15%;">Status</th>
+                                <th style="width: 30%;">Project Title</th>
+                                <th style="width: 15%;">Project Type</th>
+                                <th style="width: 12%;">Role</th>
+                                <th style="width: 13%;">Status</th>
                                 <th style="width: 20%;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($projects as $project)
+                                @php
+                                    $user = auth()->user();
+                                    $isOwner = $project->user_id === $user->id;
+                                    $isInCharge = $project->in_charge === $user->id && !$isOwner;
+                                @endphp
                                 <tr>
                                     <td>{{ $project->project_id }}</td>
                                     <td class="project-title">{{ $project->project_title }}</td>
                                     <td class="project-type">{{ $project->project_type }}</td>
+                                    <td class="text-center">
+                                        @if($isOwner)
+                                            <span class="badge bg-success">Executor</span>
+                                        @elseif($isInCharge)
+                                            <span class="badge bg-info">Applicant</span>
+                                        @endif
+                                    </td>
                                     <td class="project-status">
                                         {{ \App\Models\OldProjects\Project::$statusLabels[$project->status] ?? $project->status }}
                                     </td>
@@ -78,7 +98,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center">No approved projects found.</td>
+                                    <td colspan="6" class="text-center">No approved projects found.</td>
                                 </tr>
                             @endforelse
                         </tbody>

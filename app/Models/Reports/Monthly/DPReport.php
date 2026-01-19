@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $report_id
@@ -88,6 +88,11 @@ class DPReport extends Model
 {
     use HasFactory;
 
+    protected static function newFactory()
+    {
+        return \Database\Factories\DPReportFactory::new();
+    }
+
     protected $table = 'DP_Reports';
     protected $primaryKey = 'report_id';
     public $incrementing = false;
@@ -102,6 +107,20 @@ class DPReport extends Model
     public const STATUS_APPROVED_BY_COORDINATOR = 'approved_by_coordinator';
     public const STATUS_REJECTED_BY_COORDINATOR = 'rejected_by_coordinator';
 
+    // General user acting as Coordinator
+    public const STATUS_APPROVED_BY_GENERAL_AS_COORDINATOR = 'approved_by_general_as_coordinator';
+    public const STATUS_REVERTED_BY_GENERAL_AS_COORDINATOR = 'reverted_by_general_as_coordinator';
+
+    // General user acting as Provincial
+    public const STATUS_APPROVED_BY_GENERAL_AS_PROVINCIAL = 'approved_by_general_as_provincial';
+    public const STATUS_REVERTED_BY_GENERAL_AS_PROVINCIAL = 'reverted_by_general_as_provincial';
+
+    // Granular revert statuses
+    public const STATUS_REVERTED_TO_EXECUTOR = 'reverted_to_executor';
+    public const STATUS_REVERTED_TO_APPLICANT = 'reverted_to_applicant';
+    public const STATUS_REVERTED_TO_PROVINCIAL = 'reverted_to_provincial';
+    public const STATUS_REVERTED_TO_COORDINATOR = 'reverted_to_coordinator';
+
     // Status labels for display
     public static $statusLabels = [
         'draft' => 'Draft (Executor still working)',
@@ -111,6 +130,17 @@ class DPReport extends Model
         'reverted_by_coordinator' => 'Coordinator sent back for changes',
         'approved_by_coordinator' => 'Approved by Coordinator',
         'rejected_by_coordinator' => 'Rejected by Coordinator',
+        // General user acting as Coordinator
+        'approved_by_general_as_coordinator' => 'Approved by General (as Coordinator)',
+        'reverted_by_general_as_coordinator' => 'Reverted by General (as Coordinator)',
+        // General user acting as Provincial
+        'approved_by_general_as_provincial' => 'Approved by General (as Provincial)',
+        'reverted_by_general_as_provincial' => 'Reverted by General (as Provincial)',
+        // Granular revert statuses
+        'reverted_to_executor' => 'Reverted to Executor',
+        'reverted_to_applicant' => 'Reverted to Applicant',
+        'reverted_to_provincial' => 'Reverted to Provincial',
+        'reverted_to_coordinator' => 'Reverted to Coordinator',
     ];
 
     protected $fillable = [
@@ -188,9 +218,22 @@ class DPReport extends Model
         return $this->hasMany(ReportComment::class, 'report_id', 'report_id');
     }
 
+    public function activityHistory()
+    {
+        return $this->hasMany(\App\Models\ActivityHistory::class, 'related_id', 'report_id')
+            ->where('type', 'report')
+            ->orderBy('created_at', 'desc');
+    }
+
     public function attachments()
     {
         return $this->hasMany(ReportAttachment::class, 'report_id', 'report_id');
+    }
+
+    public function aiValidation()
+    {
+        return $this->hasOne(\App\Models\Reports\AI\AIReportValidationResult::class, 'report_id', 'report_id')
+                    ->where('report_type', 'monthly');
     }
 
     public function generateCommentId()
@@ -215,8 +258,94 @@ class DPReport extends Model
             'reverted_by_coordinator' => 'bg-warning',
             'approved_by_coordinator' => 'bg-success',
             'rejected_by_coordinator' => 'bg-danger',
+            'approved_by_general_as_coordinator' => 'bg-success',
+            'reverted_by_general_as_coordinator' => 'bg-warning',
+            'approved_by_general_as_provincial' => 'bg-success',
+            'reverted_by_general_as_provincial' => 'bg-warning',
+            'reverted_to_executor' => 'bg-warning',
+            'reverted_to_applicant' => 'bg-warning',
+            'reverted_to_provincial' => 'bg-warning',
+            'reverted_to_coordinator' => 'bg-warning',
         ];
 
         return $badgeClasses[$this->status] ?? 'bg-secondary';
+    }
+
+    /**
+     * Check if report is approved by coordinator or general as coordinator
+     */
+    public function isApproved(): bool
+    {
+        return in_array($this->status, [
+            self::STATUS_APPROVED_BY_COORDINATOR,
+            self::STATUS_APPROVED_BY_GENERAL_AS_COORDINATOR,
+            self::STATUS_APPROVED_BY_GENERAL_AS_PROVINCIAL,
+        ]);
+    }
+
+    /**
+     * Check if report is editable
+     */
+    public function isEditable(): bool
+    {
+        return in_array($this->status, [
+            self::STATUS_DRAFT,
+            self::STATUS_REVERTED_BY_PROVINCIAL,
+            self::STATUS_REVERTED_BY_COORDINATOR,
+            self::STATUS_REVERTED_BY_GENERAL_AS_PROVINCIAL,
+            self::STATUS_REVERTED_BY_GENERAL_AS_COORDINATOR,
+            self::STATUS_REVERTED_TO_EXECUTOR,
+            self::STATUS_REVERTED_TO_APPLICANT,
+            self::STATUS_REVERTED_TO_PROVINCIAL,
+            self::STATUS_REVERTED_TO_COORDINATOR,
+        ]);
+    }
+
+    /**
+     * Check if report is submitted to provincial
+     */
+    public function isSubmittedToProvincial(): bool
+    {
+        return $this->status === self::STATUS_SUBMITTED_TO_PROVINCIAL;
+    }
+
+    /**
+     * Check if report is forwarded to coordinator
+     */
+    public function isForwardedToCoordinator(): bool
+    {
+        return $this->status === self::STATUS_FORWARDED_TO_COORDINATOR;
+    }
+
+    /**
+     * Get approved expenses (only if report is approved)
+     */
+    public function getApprovedExpenses(): float
+    {
+        if (!$this->isApproved()) {
+            return 0.0;
+        }
+
+        if (!$this->relationLoaded('accountDetails')) {
+            $this->load('accountDetails');
+        }
+
+        return $this->accountDetails->sum('total_expenses') ?? 0.0;
+    }
+
+    /**
+     * Get unapproved expenses (only if report is not approved)
+     */
+    public function getUnapprovedExpenses(): float
+    {
+        if ($this->isApproved()) {
+            return 0.0;
+        }
+
+        if (!$this->relationLoaded('accountDetails')) {
+            $this->load('accountDetails');
+        }
+
+        return $this->accountDetails->sum('total_expenses') ?? 0.0;
     }
 }

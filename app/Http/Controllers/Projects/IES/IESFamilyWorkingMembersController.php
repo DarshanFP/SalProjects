@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Projects\IES;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IES\ProjectIESFamilyWorkingMembers;
 use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IES\StoreIESFamilyWorkingMembersRequest;
+use App\Http\Requests\Projects\IES\UpdateIESFamilyWorkingMembersRequest;
 
 class IESFamilyWorkingMembersController extends Controller
 {
@@ -48,8 +50,12 @@ class IESFamilyWorkingMembersController extends Controller
         }
     }*/
     //Updared for both IES and IIES
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
 {
+    // Use all() to get all form data including member_name[], work_nature[], monthly_income[] arrays
+    // These fields are not in StoreProjectRequest validation rules
+    $validated = $request->all();
+    
     DB::beginTransaction();
 
     try {
@@ -64,10 +70,10 @@ class IESFamilyWorkingMembersController extends Controller
         // 3) Delete existing family working members to allow "fresh" save
         ProjectIESFamilyWorkingMembers::where('project_id', $projectId)->delete();
 
-        // 4) Retrieve arrays from the request
-        $memberNames    = $request->input('member_name', []);
-        $workNatures    = $request->input('work_nature', []);
-        $monthlyIncomes = $request->input('monthly_income', []);
+        // 4) Retrieve arrays from validated data
+        $memberNames    = $validated['member_name'] ?? [];
+        $workNatures    = $validated['work_nature'] ?? [];
+        $monthlyIncomes = $validated['monthly_income'] ?? [];
 
         // 5) Loop and create new records
         for ($i = 0; $i < count($memberNames); $i++) {
@@ -134,9 +140,10 @@ class IESFamilyWorkingMembersController extends Controller
     }
 
     // Update family working members for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
-        return $this->store($request, $projectId); // Reuse the store logic for update
+        // Reuse store logic
+        return $this->store($request, $projectId);
     }
 
     // Delete family working members for a project

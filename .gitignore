@@ -20,6 +20,14 @@
 .htaccess
 .history/
 
+# Backup and copy files
+*-copy.*
+*-backup.*
+*.bak
+*.old
+*-OLD.*
+*-old.*
+
 # macOS
 .DS_Store
 .DS_Store?

@@ -10,7 +10,10 @@
     <div class="card-body" id="dla_impact-container">
         <div class="impact-group" data-index="1">
             <div class="card-header d-flex justify-content-between align-items-center">
-                Impact 1
+                <span>
+                    <span class="badge bg-warning me-2">1</span>
+                    Impact 1
+                </span>
                 <button type="button" class="btn btn-danger btn-sm d-none dla_remove-impact" onclick="dla_removeImpactGroup(this)">Remove</button>
             </div>
             <div class="card-body">
@@ -46,11 +49,11 @@
                 </div>
                 <div class="mb-3">
                     <label for="dla_impact[1]" class="form-label">Project’s impact in the life of the beneficiary</label>
-                    <textarea name="dla_impact[1]" id="dla_impact_1" class="form-control"></textarea>
+                    <textarea name="dla_impact[1]" id="dla_impact_1" class="form-control auto-resize-textarea"></textarea>
                 </div>
                 <div class="mb-3">
                     <label for="dla_challenges[1]" class="form-label">Challenges faced if any</label>
-                    <textarea name="dla_challenges[1]" id="dla_challenges_1" class="form-control"></textarea>
+                    <textarea name="dla_challenges[1]" id="dla_challenges_1" class="form-control auto-resize-textarea"></textarea>
                 </div>
             </div>
         </div>
@@ -71,7 +74,10 @@
         const impactTemplate = `
             <div class="impact-group" data-index="${currentIndex}">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    Impact ${currentIndex}
+                    <span>
+                        <span class="badge bg-warning me-2">${currentIndex}</span>
+                        Impact ${currentIndex}
+                    </span>
                     <button type="button" class="btn btn-danger btn-sm dla_remove-impact" onclick="dla_removeImpactGroup(this)">Remove</button>
                 </div>
                 <div class="card-body">
@@ -107,17 +113,24 @@
                     </div>
                     <div class="mb-3">
                         <label for="dla_impact[${currentIndex}]" class="form-label">Project’s impact in the life of the beneficiary</label>
-                        <textarea name="dla_impact[${currentIndex}]" id="dla_impact_${currentIndex}" class="form-control"></textarea>
+                        <textarea name="dla_impact[${currentIndex}]" id="dla_impact_${currentIndex}" class="form-control auto-resize-textarea"></textarea>
                     </div>
                     <div class="mb-3">
                         <label for="dla_challenges[${currentIndex}]" class="form-label">Challenges faced if any</label>
-                        <textarea name="dla_challenges[${currentIndex}]" id="dla_challenges_${currentIndex}" class="form-control"></textarea>
+                        <textarea name="dla_challenges[${currentIndex}]" id="dla_challenges_${currentIndex}" class="form-control auto-resize-textarea"></textarea>
                     </div>
                 </div>
             </div>
         `;
 
         impactContainer.insertAdjacentHTML('beforeend', impactTemplate);
+
+        // Initialize auto-resize for new impact group textareas using global function
+        const newImpactGroup = impactContainer.lastElementChild;
+        if (newImpactGroup && typeof initDynamicTextarea === 'function') {
+            initDynamicTextarea(newImpactGroup);
+        }
+
         dla_updateImpactGroupIndexes();
     }
 
@@ -127,11 +140,129 @@
         dla_updateImpactGroupIndexes();
     }
 
+    /**
+     * Reindex all impact groups in LDP Annexure section after add/remove operations
+     * Updates index badges, data-index attributes, "S No." field, and all form field names/IDs
+     * Ensures sequential numbering (1, 2, 3, ...) for all impact groups
+     *
+     * @returns {void}
+     */
     function dla_updateImpactGroupIndexes() {
         const impactGroups = document.querySelectorAll('.impact-group');
         impactGroups.forEach((group, index) => {
+            const newIndex = index + 1;
+
+            // Update data-index
+            group.dataset.index = newIndex;
+
+            // Update badge and header text
+            const headerSpan = group.querySelector('.card-header span');
+            if (headerSpan) {
+                headerSpan.innerHTML = `<span class="badge bg-warning me-2">${newIndex}</span>Impact ${newIndex}`;
+            }
+
+            // Update S No. field
             const sNoInput = group.querySelector('input[name^="dla_s_no"]');
-            sNoInput.value = index + 1;
+            if (sNoInput) {
+                sNoInput.value = newIndex;
+                sNoInput.name = `dla_s_no[${newIndex}]`;
+                sNoInput.id = `dla_s_no_${newIndex}`;
+                const sNoLabel = group.querySelector('label[for^="dla_s_no"]');
+                if (sNoLabel) {
+                    sNoLabel.setAttribute('for', `dla_s_no_${newIndex}`);
+                }
+            }
+
+            // Update all other name attributes and IDs
+            const beneficiaryNameInput = group.querySelector('input[name^="dla_beneficiary_name"]');
+            if (beneficiaryNameInput) {
+                beneficiaryNameInput.name = `dla_beneficiary_name[${newIndex}]`;
+                beneficiaryNameInput.id = `dla_beneficiary_name_${newIndex}`;
+                const beneficiaryNameLabel = group.querySelector('label[for^="dla_beneficiary_name"]');
+                if (beneficiaryNameLabel) {
+                    beneficiaryNameLabel.setAttribute('for', `dla_beneficiary_name_${newIndex}`);
+                }
+            }
+
+            const supportDateInput = group.querySelector('input[name^="dla_support_date"]');
+            if (supportDateInput) {
+                supportDateInput.name = `dla_support_date[${newIndex}]`;
+                supportDateInput.id = `dla_support_date_${newIndex}`;
+                const supportDateLabel = group.querySelector('label[for^="dla_support_date"]');
+                if (supportDateLabel) {
+                    supportDateLabel.setAttribute('for', `dla_support_date_${newIndex}`);
+                }
+            }
+
+            const selfEmploymentInput = group.querySelector('input[name^="dla_self_employment"]');
+            if (selfEmploymentInput) {
+                selfEmploymentInput.name = `dla_self_employment[${newIndex}]`;
+                selfEmploymentInput.id = `dla_self_employment_${newIndex}`;
+                const selfEmploymentLabel = group.querySelector('label[for^="dla_self_employment"]');
+                if (selfEmploymentLabel) {
+                    selfEmploymentLabel.setAttribute('for', `dla_self_employment_${newIndex}`);
+                }
+            }
+
+            const amountSanctionedInput = group.querySelector('input[name^="dla_amount_sanctioned"]');
+            if (amountSanctionedInput) {
+                amountSanctionedInput.name = `dla_amount_sanctioned[${newIndex}]`;
+                amountSanctionedInput.id = `dla_amount_sanctioned_${newIndex}`;
+                const amountSanctionedLabel = group.querySelector('label[for^="dla_amount_sanctioned"]');
+                if (amountSanctionedLabel) {
+                    amountSanctionedLabel.setAttribute('for', `dla_amount_sanctioned_${newIndex}`);
+                }
+            }
+
+            const monthlyProfitInput = group.querySelector('input[name^="dla_monthly_profit"]');
+            if (monthlyProfitInput) {
+                monthlyProfitInput.name = `dla_monthly_profit[${newIndex}]`;
+                monthlyProfitInput.id = `dla_monthly_profit_${newIndex}`;
+                const monthlyProfitLabel = group.querySelector('label[for^="dla_monthly_profit"]');
+                if (monthlyProfitLabel) {
+                    monthlyProfitLabel.setAttribute('for', `dla_monthly_profit_${newIndex}`);
+                }
+            }
+
+            const annualProfitInput = group.querySelector('input[name^="dla_annual_profit"]');
+            if (annualProfitInput) {
+                annualProfitInput.name = `dla_annual_profit[${newIndex}]`;
+                annualProfitInput.id = `dla_annual_profit_${newIndex}`;
+                const annualProfitLabel = group.querySelector('label[for^="dla_annual_profit"]');
+                if (annualProfitLabel) {
+                    annualProfitLabel.setAttribute('for', `dla_annual_profit_${newIndex}`);
+                }
+            }
+
+            const impactTextarea = group.querySelector('textarea[name^="dla_impact"]');
+            if (impactTextarea) {
+                impactTextarea.name = `dla_impact[${newIndex}]`;
+                impactTextarea.id = `dla_impact_${newIndex}`;
+                const impactLabel = group.querySelector('label[for^="dla_impact"]');
+                if (impactLabel) {
+                    impactLabel.setAttribute('for', `dla_impact_${newIndex}`);
+                }
+            }
+
+            const challengesTextarea = group.querySelector('textarea[name^="dla_challenges"]');
+            if (challengesTextarea) {
+                challengesTextarea.name = `dla_challenges[${newIndex}]`;
+                challengesTextarea.id = `dla_challenges_${newIndex}`;
+                const challengesLabel = group.querySelector('label[for^="dla_challenges"]');
+                if (challengesLabel) {
+                    challengesLabel.setAttribute('for', `dla_challenges_${newIndex}`);
+                }
+            }
+
+            // Update remove button visibility
+            const removeButton = group.querySelector('.dla_remove-impact');
+            if (removeButton) {
+                if (newIndex === 1) {
+                    removeButton.classList.add('d-none');
+                } else {
+                    removeButton.classList.remove('d-none');
+                }
+            }
         });
     }
 

@@ -18,19 +18,19 @@
                     @if(isset($beneficiariesArea) && count($beneficiariesArea) > 0)
                         @foreach($beneficiariesArea as $index => $area)
                             <tr>
-                                <td><input type="text" name="project_area[]" value="{{ $area->project_area }}" class="form-control" style="background-color: #202ba3;"></td>
-                                <td><input type="text" name="category_beneficiary[]" value="{{ $area->category_beneficiary }}" class="form-control" style="background-color: #202ba3;"></td>
-                                <td><input type="number" name="direct_beneficiaries[]" value="{{ $area->direct_beneficiaries }}" class="form-control" style="background-color: #202ba3;"></td>
-                                <td><input type="number" name="indirect_beneficiaries[]" value="{{ $area->indirect_beneficiaries }}" class="form-control" style="background-color: #202ba3;"></td>
+                                <td><input type="text" name="project_area[]" value="{{ $area->project_area }}" class="form-control"></td>
+                                <td><input type="text" name="category_beneficiary[]" value="{{ $area->category_beneficiary }}" class="form-control"></td>
+                                <td><input type="number" name="direct_beneficiaries[]" value="{{ $area->direct_beneficiaries }}" class="form-control"></td>
+                                <td><input type="number" name="indirect_beneficiaries[]" value="{{ $area->indirect_beneficiaries }}" class="form-control"></td>
                                 <td><button type="button" class="btn btn-danger" onclick="removeRSTProjectAreaRow(this)">Remove</button></td>
                             </tr>
                         @endforeach
                     @else
                         <tr>
-                            <td><input type="text" name="project_area[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="text" name="category_beneficiary[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="direct_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="indirect_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
+                            <td><input type="text" name="project_area[]" class="form-control"></td>
+                            <td><input type="text" name="category_beneficiary[]" class="form-control"></td>
+                            <td><input type="number" name="direct_beneficiaries[]" class="form-control"></td>
+                            <td><input type="number" name="indirect_beneficiaries[]" class="form-control"></td>
                             <td><button type="button" class="btn btn-danger" onclick="removeRSTProjectAreaRow(this)">Remove</button></td>
                         </tr>
                     @endif
@@ -48,10 +48,10 @@
         RSTprojectAreaRowIndex++;
         const newRow = `
             <tr>
-                <td><input type="text" name="project_area[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="text" name="category_beneficiary[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="direct_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="indirect_beneficiaries[]" class="form-control" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="project_area[]" class="form-control"></td>
+                <td><input type="text" name="category_beneficiary[]" class="form-control"></td>
+                <td><input type="number" name="direct_beneficiaries[]" class="form-control"></td>
+                <td><input type="number" name="indirect_beneficiaries[]" class="form-control"></td>
                 <td><button type="button" class="btn btn-danger" onclick="removeRSTProjectAreaRow(this)">Remove</button></td>
             </tr>
         `;

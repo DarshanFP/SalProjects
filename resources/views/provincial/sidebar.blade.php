@@ -21,6 +21,12 @@
                     <span class="link-title">Dashboard - Provincial</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('activities.team-activities') }}" class="nav-link">
+                    <i class="link-icon" data-feather="activity"></i>
+                    <span class="link-title">Team Activities</span>
+                </a>
+            </li>
 
             <!-- Web Apps Section -->
             <li class="nav-item nav-category">web apps</li>
@@ -70,6 +76,57 @@
                     </ul>
                 </div>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#centerManagement" role="button" aria-expanded="false" aria-controls="centerManagement">
+                    <i class="link-icon" data-feather="map-pin"></i>
+                    <span class="link-title">Center Management</span>
+                    <i class="link-arrow" data-feather="chevron-down"></i>
+                </a>
+                <div class="collapse" id="centerManagement">
+                    <ul class="nav sub-menu">
+                        <li class="nav-item">
+                            <a href="{{ route('provincial.centers') }}" class="nav-link">View Centers</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('provincial.createCenter') }}" class="nav-link">Create Center</a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#provincialManagement" role="button" aria-expanded="false" aria-controls="provincialManagement">
+                    <i class="link-icon" data-feather="user-check"></i>
+                    <span class="link-title">Provincial Management</span>
+                    <i class="link-arrow" data-feather="chevron-down"></i>
+                </a>
+                <div class="collapse" id="provincialManagement">
+                    <ul class="nav sub-menu">
+                        <li class="nav-item">
+                            <a href="{{ route('provincial.provincials') }}" class="nav-link">View Provincials</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('provincial.createProvincial') }}" class="nav-link">Create Provincial</a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#societyManagement" role="button" aria-expanded="false" aria-controls="societyManagement">
+                    <i class="link-icon" data-feather="users"></i>
+                    <span class="link-title">Society Management</span>
+                    <i class="link-arrow" data-feather="chevron-down"></i>
+                </a>
+                <div class="collapse" id="societyManagement">
+                    <ul class="nav sub-menu">
+                        <li class="nav-item">
+                            <a href="{{ route('provincial.societies') }}" class="nav-link">View Societies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('provincial.createSociety') }}" class="nav-link">Create Society</a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
 
             <!-- Reports Section -->
             <li class="nav-item nav-category">Reports</li>
@@ -109,23 +166,33 @@
             </li>
 
             <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#quarterlyReportsView" role="button" aria-expanded="false" aria-controls="quarterlyReportsView">
+                    <i class="link-icon" data-feather="file-text"></i>
+                    <span class="link-title">Quarterly Reports</span>
+                    <i class="link-arrow" data-feather="chevron-down"></i>
+                </a>
+                <div class="collapse" id="quarterlyReportsView">
+                    <ul class="nav sub-menu">
+                        <li class="nav-item">
+                            <a href="{{ route('aggregated.quarterly.index') }}" class="nav-link">View Quarterly Reports</a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="nav-item">
                 <a class="nav-link" data-bs-toggle="collapse" href="#biannualReports" role="button" aria-expanded="false" aria-controls="biannualReports">
                     <i class="link-icon" data-feather="file"></i>
                     <span class="link-title">Biannual Reports</span>
                     <i class="link-arrow" data-feather="chevron-down"></i>
                 </a>
-                <!-- Uncomment and add routes if needed
                 <div class="collapse" id="biannualReports">
                     <ul class="nav sub-menu">
                         <li class="nav-item">
-                            <a href="#" class="nav-link">Report 1</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="#" class="nav-link">Report 2</a>
+                            <a href="{{ route('aggregated.half-yearly.index') }}" class="nav-link">View Half-Yearly Reports</a>
                         </li>
                     </ul>
                 </div>
-                -->
             </li>
 
             <li class="nav-item">
@@ -134,18 +201,13 @@
                     <span class="link-title">Annual Reports</span>
                     <i class="link-arrow" data-feather="chevron-down"></i>
                 </a>
-                <!-- Uncomment and add routes if needed
                 <div class="collapse" id="annualReports">
                     <ul class="nav sub-menu">
                         <li class="nav-item">
-                            <a href="#" class="nav-link">Report 1</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="#" class="nav-link">Report 2</a>
+                            <a href="{{ route('aggregated.annual.index') }}" class="nav-link">View Annual Reports</a>
                         </li>
                     </ul>
                 </div>
-                -->
             </li>
 
             <!-- Project Application Section -->

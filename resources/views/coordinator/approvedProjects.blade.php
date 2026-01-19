@@ -106,8 +106,8 @@
                                         <td>{{ $project->user->name }}</td>
                                         <td class="project-title">{{ $project->project_title }}</td>
                                         <td class="project-type">{{ $project->project_type }}</td>
-                                        <td class="amount-sanctioned">{{ number_format($project->amount_sanctioned, 2) }}</td>
-                                        <td class="amount-forwarded">{{ number_format($project->amount_forwarded, 2) }}</td>
+                                        <td class="amount-sanctioned">{{ format_indian($project->amount_sanctioned, 2) }}</td>
+                                        <td class="amount-forwarded">{{ format_indian($project->amount_forwarded, 2) }}</td>
                                         <td>
                                             {{ \App\Models\OldProjects\Project::$statusLabels[$project->status] ?? $project->status }}
                                         </td>

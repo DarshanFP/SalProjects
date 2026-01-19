@@ -21,6 +21,13 @@ use Illuminate\Support\Facades\DB;
 use Exception;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Storage;
+use App\Helpers\LogHelper;
+use App\Http\Requests\Reports\Monthly\StoreMonthlyReportRequest;
+use App\Http\Requests\Reports\Monthly\UpdateMonthlyReportRequest;
+use App\Services\ActivityHistoryService;
+use App\Services\NotificationService;
+use App\Services\ReportStatusService;
+use App\Models\User;
 
 class ReportController extends Controller
 {
@@ -51,7 +58,10 @@ class ReportController extends Controller
     {
         Log::info('Entering create method', ['project_id' => $project_id]);
 
-        $project = Project::where('project_id', $project_id)->firstOrFail();
+        // Eager load relationships to prevent N+1 queries
+        $project = Project::where('project_id', $project_id)
+            ->with(['user', 'budgets', 'objectives.results', 'objectives.risks', 'objectives.activities.timeframes'])
+            ->firstOrFail();
         Log::info('Project retrieved successfully', ['project' => $project]);
 
         // Get budget data based on project type
@@ -69,10 +79,9 @@ class ReportController extends Controller
         $attachments = []; // Placeholder, add logic to fetch attachments if required
 
         $amountSanctioned = $project->amount_sanctioned ?? 0.00;
-        $amountForwarded = $project->amount_forwarded ?? 0.00;
-        Log::info('Sanctioned and forwarded amounts', [
+        $amountForwarded = 0.00; // Always set to 0 - no longer used in reports
+        Log::info('Sanctioned amount', [
             'amountSanctioned' => $amountSanctioned,
-            'amountForwarded' => $amountForwarded
         ]);
 
         $lastExpenses = $this->getLastExpenses($project);
@@ -87,301 +96,11 @@ class ReportController extends Controller
      */
     private function getBudgetDataByProjectType($project)
     {
-        switch ($project->project_type) {
-            case 'Development Projects':
-            case 'Livelihood Development Projects':
-            case 'Residential Skill Training Proposal 2':
-            case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
-            case 'CHILD CARE INSTITUTION':
-            case 'Rural-Urban-Tribal':
-                return $this->getDevelopmentProjectBudgets($project);
-
-            case 'Individual - Livelihood Application':
-                return $this->getILPBudgets($project);
-
-            case 'Individual - Access to Health':
-                return $this->getIAHBudgets($project);
-
-            case 'Institutional Ongoing Group Educational proposal':
-                return $this->getIGEBudgets($project);
-
-            case 'Individual - Initial - Educational support':
-                return $this->getIIESBudgets($project);
-
-            case 'Individual - Ongoing Educational support':
-                return $this->getIESBudgets($project);
-
-            default:
-                Log::warning('Unknown project type, using development project budgets as fallback', ['project_type' => $project->project_type]);
-                return $this->getDevelopmentProjectBudgets($project);
-        }
+        return \App\Services\Budget\BudgetCalculationService::getBudgetsForReport($project, true);
     }
 
-    /**
-     * Get Development Project budgets
-     */
-    private function getDevelopmentProjectBudgets($project)
-    {
-        $highestPhase = ProjectBudget::where('project_id', $project->project_id)->max('phase');
-        Log::info('Retrieved highest phase for development project', ['highestPhase' => $highestPhase]);
-
-        return ProjectBudget::where('project_id', $project->project_id)
-            ->where('phase', $highestPhase)
-            ->get();
-    }
-
-    /**
-     * Get ILP (Individual Livelihood) budgets
-     */
-    private function getILPBudgets($project)
-    {
-        $budgets = \App\Models\OldProjects\ILP\ProjectILPBudget::where('project_id', $project->project_id)->get();
-
-        if ($budgets->isEmpty()) {
-            return collect();
-        }
-
-        // Get beneficiary contribution from the first row (since it's repeated in all rows)
-        $beneficiaryContribution = $budgets->first()->beneficiary_contribution ?? 0;
-        $totalRows = $budgets->count();
-
-        // Calculate the amount to subtract from each row
-        $contributionPerRow = $totalRows > 0 ? $beneficiaryContribution / $totalRows : 0;
-
-        Log::info('ILP Budget calculation', [
-            'total_rows' => $totalRows,
-            'beneficiary_contribution' => $beneficiaryContribution,
-            'contribution_per_row' => $contributionPerRow
-        ]);
-
-        // Map the budgets to the expected structure with calculated amounts
-        return $budgets->map(function($budget) use ($contributionPerRow) {
-            $cost = $budget->cost ?? 0;
-            $finalAmount = max(0, $cost - $contributionPerRow); // Ensure amount doesn't go negative
-
-            Log::info('ILP Budget row calculation', [
-                'budget_desc' => $budget->budget_desc,
-                'original_cost' => $cost,
-                'contribution_subtracted' => $contributionPerRow,
-                'final_amount' => $finalAmount
-            ]);
-
-            // Create a new object that maintains the original structure but with calculated amount_sanctioned
-            $budgetObject = (object)[
-                'ILP_budget_id' => $budget->ILP_budget_id,
-                'project_id' => $budget->project_id,
-                'budget_desc' => $budget->budget_desc, // Keep original for view compatibility
-                'cost' => $budget->cost,
-                'beneficiary_contribution' => $budget->beneficiary_contribution,
-                'amount_requested' => $budget->amount_requested,
-                'created_at' => $budget->created_at,
-                'updated_at' => $budget->updated_at,
-                // Add the calculated amount_sanctioned for the AMOUNT SANCTIONED CURRENT YEAR column
-                'amount_sanctioned' => $finalAmount
-            ];
-
-            return $budgetObject;
-        });
-    }
-
-    /**
-     * Get IAH (Individual Access to Health) budgets
-     */
-    private function getIAHBudgets($project)
-    {
-        $budgets = \App\Models\OldProjects\IAH\ProjectIAHBudgetDetails::where('project_id', $project->project_id)->get();
-
-        if ($budgets->isEmpty()) {
-            return collect();
-        }
-
-        // Get family contribution from the first row (since it's repeated in all rows)
-        $familyContribution = $budgets->first()->family_contribution ?? 0;
-        $totalRows = $budgets->count();
-
-        // Calculate the amount to subtract from each row
-        $contributionPerRow = $totalRows > 0 ? $familyContribution / $totalRows : 0;
-
-        Log::info('IAH Budget calculation', [
-            'total_rows' => $totalRows,
-            'family_contribution' => $familyContribution,
-            'contribution_per_row' => $contributionPerRow
-        ]);
-
-        // Map the budgets to the expected structure with calculated amounts
-        return $budgets->map(function($budget) use ($contributionPerRow) {
-            $amount = $budget->amount ?? 0;
-            $finalAmount = max(0, $amount - $contributionPerRow); // Ensure amount doesn't go negative
-
-            Log::info('IAH Budget row calculation', [
-                'particular' => $budget->particular,
-                'original_amount' => $amount,
-                'contribution_subtracted' => $contributionPerRow,
-                'final_amount' => $finalAmount
-            ]);
-
-            // Create a new object that maintains the original structure but with calculated amount_sanctioned
-            $budgetObject = (object)[
-                'IAH_budget_id' => $budget->IAH_budget_id,
-                'project_id' => $budget->project_id,
-                'particular' => $budget->particular, // Keep original for view compatibility
-                'amount' => $budget->amount,
-                'total_expenses' => $budget->total_expenses,
-                'family_contribution' => $budget->family_contribution,
-                'amount_requested' => $budget->amount_requested,
-                'created_at' => $budget->created_at,
-                'updated_at' => $budget->updated_at,
-                // Add the calculated amount_sanctioned for the AMOUNT SANCTIONED CURRENT YEAR column
-                'amount_sanctioned' => $finalAmount
-            ];
-
-            return $budgetObject;
-        });
-    }
-
-    /**
-     * Get IGE (Institutional Group Education) budgets
-     */
-    private function getIGEBudgets($project)
-    {
-        return \App\Models\OldProjects\IGE\ProjectIGEBudget::where('project_id', $project->project_id)->get();
-    }
-
-    /**
-     * Get IIES (Individual Initial Educational Support) budgets
-     */
-    private function getIIESBudgets($project)
-    {
-        $iiesExpenses = \App\Models\OldProjects\IIES\ProjectIIESExpenses::where('project_id', $project->project_id)->first();
-
-        if (!$iiesExpenses) {
-            return collect();
-        }
-
-        // Get the expense details for this project
-        $expenseDetails = $iiesExpenses->expenseDetails;
-
-        if ($expenseDetails->isEmpty()) {
-        return collect();
-        }
-
-        // Calculate total contribution from the three sources
-        $expectedScholarshipGovt = $iiesExpenses->iies_expected_scholarship_govt ?? 0;
-        $supportOtherSources = $iiesExpenses->iies_support_other_sources ?? 0;
-        $beneficiaryContribution = $iiesExpenses->iies_beneficiary_contribution ?? 0;
-
-        $totalContribution = $expectedScholarshipGovt + $supportOtherSources + $beneficiaryContribution;
-        $totalRows = $expenseDetails->count();
-
-        // Calculate the amount to subtract from each row
-        $contributionPerRow = $totalRows > 0 ? $totalContribution / $totalRows : 0;
-
-        Log::info('IIES Budget calculation', [
-            'total_rows' => $totalRows,
-            'expected_scholarship_govt' => $expectedScholarshipGovt,
-            'support_other_sources' => $supportOtherSources,
-            'beneficiary_contribution' => $beneficiaryContribution,
-            'total_contribution' => $totalContribution,
-            'contribution_per_row' => $contributionPerRow
-        ]);
-
-        // Map the expense details to the expected structure with calculated amounts
-        return $expenseDetails->map(function($detail) use ($contributionPerRow) {
-            $amount = $detail->iies_amount ?? 0;
-            $finalAmount = max(0, $amount - $contributionPerRow); // Ensure amount doesn't go negative
-
-            Log::info('IIES Budget row calculation', [
-                'iies_particular' => $detail->iies_particular,
-                'original_amount' => $amount,
-                'contribution_subtracted' => $contributionPerRow,
-                'final_amount' => $finalAmount
-            ]);
-
-            // Create a new object that maintains the original structure but with calculated amount_sanctioned
-            $budgetObject = (object)[
-                'IIES_expense_id' => $detail->IIES_expense_id,
-                'iies_particular' => $detail->iies_particular, // Keep original for view compatibility
-                'iies_amount' => $detail->iies_amount,
-                'created_at' => $detail->created_at,
-                'updated_at' => $detail->updated_at,
-                // Add the calculated amount_sanctioned for the AMOUNT SANCTIONED CURRENT YEAR column
-                'amount_sanctioned' => $finalAmount,
-                // Add additional fields for reference
-                'original_amount' => $amount,
-                'contribution_per_row' => $contributionPerRow
-            ];
-
-            return $budgetObject;
-        });
-    }
-
-    /**
-     * Get IES (Individual Ongoing Educational Support) budgets
-     */
-    private function getIESBudgets($project)
-    {
-        $iesExpenses = \App\Models\OldProjects\IES\ProjectIESExpenses::where('project_id', $project->project_id)->first();
-
-        if (!$iesExpenses) {
-            return collect();
-        }
-
-        // Get the expense details for this project
-        $expenseDetails = $iesExpenses->expenseDetails;
-
-        if ($expenseDetails->isEmpty()) {
-        return collect();
-        }
-
-        // Calculate total contribution from the three sources
-        $expectedScholarshipGovt = $iesExpenses->expected_scholarship_govt ?? 0;
-        $supportOtherSources = $iesExpenses->support_other_sources ?? 0;
-        $beneficiaryContribution = $iesExpenses->beneficiary_contribution ?? 0;
-
-        $totalContribution = $expectedScholarshipGovt + $supportOtherSources + $beneficiaryContribution;
-        $totalRows = $expenseDetails->count();
-
-        // Calculate the amount to subtract from each row
-        $contributionPerRow = $totalRows > 0 ? $totalContribution / $totalRows : 0;
-
-        Log::info('IES Budget calculation', [
-            'total_rows' => $totalRows,
-            'expected_scholarship_govt' => $expectedScholarshipGovt,
-            'support_other_sources' => $supportOtherSources,
-            'beneficiary_contribution' => $beneficiaryContribution,
-            'total_contribution' => $totalContribution,
-            'contribution_per_row' => $contributionPerRow
-        ]);
-
-        // Map the expense details to the expected structure with calculated amounts
-        return $expenseDetails->map(function($detail) use ($contributionPerRow) {
-            $amount = $detail->amount ?? 0;
-            $finalAmount = max(0, $amount - $contributionPerRow); // Ensure amount doesn't go negative
-
-            Log::info('IES Budget row calculation', [
-                'particular' => $detail->particular,
-                'original_amount' => $amount,
-                'contribution_subtracted' => $contributionPerRow,
-                'final_amount' => $finalAmount
-            ]);
-
-            // Create a new object that maintains the original structure but with calculated amount_sanctioned
-            $budgetObject = (object)[
-                'IES_expense_id' => $detail->IES_expense_id,
-                'particular' => $detail->particular, // Keep original for view compatibility
-                'amount' => $detail->amount,
-                'created_at' => $detail->created_at,
-                'updated_at' => $detail->updated_at,
-                // Add the calculated amount_sanctioned for the AMOUNT SANCTIONED CURRENT YEAR column
-                'amount_sanctioned' => $finalAmount,
-                // Add additional fields for reference
-                'original_amount' => $amount,
-                'contribution_per_row' => $contributionPerRow
-            ];
-
-            return $budgetObject;
-        });
-}
+    // Budget calculation methods removed - now using BudgetCalculationService
+    // See: app/Services/Budget/BudgetCalculationService.php
 
     /**
      * Get last expenses for the project
@@ -407,14 +126,21 @@ class ReportController extends Controller
         }
     }
 
-    public function store(Request $request)
+    public function store(StoreMonthlyReportRequest $request)
     {
-        Log::info('Store method initiated with data:', ['data' => $request->all()]);
+        $isDraftSave = $request->has('save_as_draft') && $request->input('save_as_draft') == '1';
+
+        Log::info('Store method initiated', [
+            'project_id' => $request->project_id,
+            'report_month' => $request->report_month,
+            'report_year' => $request->report_year,
+            'save_as_draft' => $isDraftSave,
+        ]);
 
         DB::beginTransaction();
         try {
-            // Validate request data
-            $validatedData = $this->validateRequest($request);
+            // Validation already done by StoreMonthlyReportRequest
+            $validatedData = $request->validated();
 
             // Generate report_id
             $project_id = $validatedData['project_id'];
@@ -423,9 +149,13 @@ class ReportController extends Controller
             // Create the main report
             $report = $this->createReport($validatedData, $report_id);
 
-            // Handle additional report data
-            $this->storeObjectivesAndActivities($request, $report_id, $report);
-            $this->handleAccountDetails($request, $report_id, $project_id);
+            // Handle additional report data (only if not empty/null for draft saves)
+            if (!$isDraftSave || !empty($validatedData['objective'])) {
+                $this->storeObjectivesAndActivities($request, $report_id, $report);
+            }
+            if (!$isDraftSave || !empty($validatedData['particulars'])) {
+                $this->handleAccountDetails($request, $report_id, $project_id);
+            }
             $this->handleOutlooks($request, $report_id);
             $this->handlePhotos($request, $report_id);
             $this->handleSpecificProjectData($request, $report_id);
@@ -433,8 +163,66 @@ class ReportController extends Controller
             // Handle multiple attachments
             $this->handleAttachments($request, $report);
 
+            // Set status based on draft save
+            if ($isDraftSave) {
+                $report->status = DPReport::STATUS_DRAFT;
+                $report->save();
+                Log::info('Report saved as draft', ['report_id' => $report_id]);
+            }
+
             DB::commit();
             Log::info('Transaction committed and report created successfully.');
+
+            // Only send notifications if not a draft save
+            if (!$isDraftSave) {
+                // Query the report again to get the integer id (since model uses report_id as primary key)
+                $reportWithId = DPReport::where('report_id', $report_id)->first();
+                $reportId = $reportWithId ? $reportWithId->getAttribute('id') : null;
+
+                if (!$reportId) {
+                    Log::warning('Could not retrieve report id for notification', ['report_id' => $report_id]);
+                }
+
+                // Notify coordinators about report submission
+                $project = Project::where('project_id', $project_id)->with('user')->first();
+                if ($project && $reportId) {
+                    $coordinators = User::where('role', 'coordinator')->get();
+                    foreach ($coordinators as $coordinator) {
+                        NotificationService::notifyReportSubmission(
+                            $coordinator,
+                            $reportId,
+                            $project->id
+                        );
+                    }
+
+                    // Notify provincial if project has one
+                    if ($project->user && $project->user->parent_id) {
+                        $provincial = User::find($project->user->parent_id);
+                        if ($provincial) {
+                            NotificationService::notifyReportSubmission(
+                                $provincial,
+                                $reportId,
+                                $project->id
+                            );
+                        }
+                    }
+                }
+            }
+
+            // Log activity (for new reports, previous_status should be null)
+            $user = Auth::user();
+            if ($isDraftSave) {
+                ActivityHistoryService::logReportCreate($report, $user, 'Report saved as draft');
+            } else {
+                ActivityHistoryService::logReportCreate($report, $user, 'Report created');
+            }
+
+            // Redirect based on draft save
+            if ($isDraftSave) {
+                return redirect()->route('monthly.report.edit', $report_id)
+                    ->with('success', 'Report saved as draft. You can continue editing later.');
+            }
+
             return redirect()->route('monthly.report.index')->with('success', 'Report submitted successfully.');
         } catch (ValidationException $ve) {
             DB::rollBack();
@@ -554,9 +342,6 @@ class ReportController extends Controller
             'particulars' => 'nullable|array',
             'particulars.*' => 'nullable|string',
 
-            'amount_forwarded' => 'nullable|array',
-            'amount_forwarded.*' => 'nullable|numeric',
-
             'amount_sanctioned' => 'nullable|array',
             'amount_sanctioned.*' => 'nullable|numeric',
 
@@ -584,7 +369,6 @@ class ReportController extends Controller
 
             // Overview amounts
             'amount_sanctioned_overview' => 'nullable|numeric',
-            'amount_forwarded_overview' => 'nullable|numeric',
             'amount_in_hand' => 'nullable|numeric',
             'total_balance_forwarded' => 'nullable|numeric',
 
@@ -620,7 +404,7 @@ class ReportController extends Controller
             'account_period_start' => $validatedData['account_period_start'] ?? null,
             'account_period_end' => $validatedData['account_period_end'] ?? null,
             'amount_sanctioned_overview' => $validatedData['amount_sanctioned_overview'] ?? 0.0,
-            'amount_forwarded_overview' => $validatedData['amount_forwarded_overview'] ?? 0.0,
+            'amount_forwarded_overview' => 0.0, // Always set to 0 for backward compatibility
             'amount_in_hand' => $validatedData['amount_in_hand'] ?? 0.0,
             'total_balance_forwarded' => $validatedData['total_balance_forwarded'] ?? 0.0,
             'status' => 'draft'
@@ -766,17 +550,34 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
                 'is_budget_row' => $isBudgetRow
             ]);
 
+            // Calculate values if not provided (server-side calculation as backup)
+            $amountSanctioned = (float)($request->input("amount_sanctioned.{$index}") ?? 0);
+            $expensesLastMonth = (float)($request->input("expenses_last_month.{$index}") ?? 0);
+            $expensesThisMonth = (float)($request->input("expenses_this_month.{$index}") ?? 0);
+
+            // Calculate total_amount if not provided (no longer includes amount_forwarded)
+            $totalAmountInput = $request->input("total_amount.{$index}");
+            $totalAmount = $totalAmountInput !== null ? (float)$totalAmountInput : $amountSanctioned;
+
+            // Calculate total_expenses if not provided (column 5 + 6)
+            $totalExpensesInput = $request->input("total_expenses.{$index}");
+            $totalExpenses = $totalExpensesInput !== null ? (float)$totalExpensesInput : ($expensesLastMonth + $expensesThisMonth);
+
+            // Calculate balance_amount if not provided
+            $balanceAmountInput = $request->input("balance_amount.{$index}");
+            $balanceAmount = $balanceAmountInput !== null ? (float)$balanceAmountInput : ($totalAmount - $totalExpenses);
+
             $accountDetailData = [
                 'report_id' => $report_id,
                 'project_id' => $project_id,
                 'particulars' => $particular,
-                'amount_forwarded' => $request->input("amount_forwarded.{$index}"),
-                'amount_sanctioned' => $request->input("amount_sanctioned.{$index}"),
-                'total_amount' => $request->input("total_amount.{$index}"),
-                'expenses_last_month' => $request->input("expenses_last_month.{$index}"),
-                'expenses_this_month' => $request->input("expenses_this_month.{$index}"),
-                'total_expenses' => $request->input("total_expenses.{$index}"),
-                'balance_amount' => $request->input("balance_amount.{$index}"),
+                'amount_forwarded' => 0.0, // Always set to 0 for backward compatibility
+                'amount_sanctioned' => $amountSanctioned,
+                'total_amount' => $totalAmount,
+                'expenses_last_month' => $expensesLastMonth,
+                'expenses_this_month' => $expensesThisMonth,
+                'total_expenses' => $totalExpenses,
+                'balance_amount' => $balanceAmount,
                 'is_budget_row' => $isBudgetRow // Add the new field
             ];
 
@@ -952,8 +753,8 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
         } else {
             Log::warning('No photos found in request', [
                 'request_files' => $request->files->all(),
-                'request_input' => $request->all(),
             ]);
+            LogHelper::logSafeRequest('No photos found in request - input data', $request, LogHelper::getReportAllowedFields());
         }
 
         Log::info('Exiting handlePhotos method', ['report_id' => $report_id]);
@@ -1136,9 +937,10 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
         $reportsQuery = DPReport::with('project', 'user');
 
         // Apply role-based filters
-        if ($user->role === 'executor') {
-            // Executors can see their own reports regardless of status
-            $reportsQuery->where('user_id', $user->id);
+        if (in_array($user->role, ['executor', 'applicant'])) {
+            // Executors and applicants can see reports for projects they own or are in-charge of
+            $projectIds = ProjectQueryService::getProjectIdsForUser($user);
+            $reportsQuery->whereIn('project_id', $projectIds);
         } elseif ($user->role === 'provincial') {
             // Provincials can see reports from executors under them
             $reportsQuery->whereHas('user', function ($query) use ($user) {
@@ -1169,7 +971,8 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             'accountDetails',
             'photos',
             'outlooks',
-            'attachments'
+            'attachments',
+            'activityHistory.changedBy'
         ])->where('report_id', $report_id);
 
         // Apply role-based filters
@@ -1178,9 +981,10 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             $report->whereHas('user', function ($query) use ($user) {
                 $query->where('parent_id', $user->id);
             });
-        } elseif ($user->role === 'executor') {
-            // Filter reports to those created by this executor
-            $report->where('user_id', $user->id);
+        } elseif (in_array($user->role, ['executor', 'applicant'])) {
+            // Filter reports to those for projects where user is owner or in-charge
+            $projectIds = ProjectQueryService::getProjectIdsForUser($user);
+            $report->whereIn('project_id', $projectIds);
         } elseif ($user->role === 'coordinator') {
             // Coordinator can see all reports (no filtering needed)
             // No additional filters - coordinators see everything
@@ -1196,8 +1000,10 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
         // Group photos by description
         $groupedPhotos = $report->photos->groupBy('description');
 
-        // Retrieve associated project
-        $project = Project::where('project_id', $report->project_id)->firstOrFail();
+        // Retrieve associated project with eager loading to prevent N+1 queries
+        $project = Project::where('project_id', $report->project_id)
+            ->with(['user', 'budgets'])
+            ->firstOrFail();
         Log::info('Project retrieved successfully', ['project_id' => $project->project_id]);
 
         // Get budget data based on project type
@@ -1293,9 +1099,10 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             $reportQuery->whereHas('user', function ($query) use ($user) {
                 $query->where('parent_id', $user->id);
             });
-        } elseif ($user->role === 'executor') {
-            // Executor can only edit their own reports
-            $reportQuery->where('user_id', $user->id);
+        } elseif (in_array($user->role, ['executor', 'applicant'])) {
+            // Executor and applicant can edit reports for projects they own or are in-charge of
+            $projectIds = ProjectQueryService::getProjectIdsForUser($user);
+            $reportQuery->whereIn('project_id', $projectIds);
         } elseif ($user->role === 'coordinator') {
             // Coordinator can edit all reports (no filtering needed)
             // No additional filters - coordinators can edit everything
@@ -1329,12 +1136,11 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
                                     ->get();
         Log::info('Objectives retrieved with activities and results', ['objectives' => $objectives->toArray()]);
 
-        // Sanctioned and forwarded amounts
+        // Sanctioned amount (amount_forwarded no longer used in reports)
         $amountSanctioned = $project->amount_sanctioned ?? 0.00;
-        $amountForwarded = $project->amount_forwarded ?? 0.00;
-        Log::info('Sanctioned and forwarded amounts', [
+        $amountForwarded = 0.00; // Always set to 0 - no longer used in reports
+        Log::info('Sanctioned amount', [
             'amountSanctioned' => $amountSanctioned,
-            'amountForwarded' => $amountForwarded
         ]);
 
         $months = [
@@ -1430,16 +1236,23 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
         ));
     }
 
-    public function update(Request $request, $report_id)
+    public function update(UpdateMonthlyReportRequest $request, $report_id)
     {
-        Log::info('Update method initiated with data:', ['data' => $request->all(), 'report_id' => $report_id]);
+        $isDraftSave = $request->has('save_as_draft') && $request->input('save_as_draft') == '1';
+
+        Log::info('Update method initiated', [
+            'report_id' => $report_id,
+            'project_id' => $request->project_id,
+            'report_month' => $request->report_month,
+            'report_year' => $request->report_year,
+            'save_as_draft' => $isDraftSave,
+        ]);
 
         DB::beginTransaction();
         try {
-            // Validate request data
-            Log::info('Starting validation...');
-            $validatedData = $this->validateRequest($request);
-            Log::info('Validation passed', ['validatedData' => $validatedData]);
+            // Validation already done by UpdateMonthlyReportRequest
+            $validatedData = $request->validated();
+            Log::info('Validation passed', ['validatedData' => array_keys($validatedData)]);
 
             $user = Auth::user();
             Log::info('User authenticated', ['user_id' => $user->id, 'role' => $user->role]);
@@ -1455,10 +1268,14 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
                     $query->where('parent_id', $user->id);
                 });
                 Log::info('Applied provincial filter');
-            } elseif ($user->role === 'executor') {
-                // Executor can only update their own reports
-                $reportQuery->where('user_id', $user->id);
-                Log::info('Applied executor filter');
+            } elseif (in_array($user->role, ['executor', 'applicant'])) {
+                // Executor and applicant can update reports for projects they own or are in-charge of
+                $projectIds = Project::where(function($query) use ($user) {
+                    $query->where('user_id', $user->id)
+                          ->orWhere('in_charge', $user->id);
+                })->pluck('project_id');
+                $reportQuery->whereIn('project_id', $projectIds);
+                Log::info('Applied executor/applicant filter');
             } elseif ($user->role === 'coordinator') {
                 // Coordinator can update all reports (no filtering needed)
                 Log::info('Applied coordinator filter (no restrictions)');
@@ -1471,18 +1288,23 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             $report = $reportQuery->firstOrFail();
             Log::info('Report found', ['report_id' => $report->report_id, 'user_id' => $report->user_id]);
 
+            // Capture previous status before update (in case status changes)
+            $previousStatus = $report->status;
+
             // Update the main report
             Log::info('Updating main report...');
             $this->updateReport($validatedData, $report);
             Log::info('Main report updated successfully');
 
-            // Handle updated data with proper update methods
-            Log::info('Processing objectives and activities...');
-            $this->storeObjectivesAndActivities($request, $report_id, $report);
-
-            Log::info('Processing account details...');
-            $this->handleAccountDetails($request, $report_id, $validatedData['project_id']);
-
+            // Handle updated data with proper update methods (only if not empty/null for draft saves)
+            if (!$isDraftSave || !empty($validatedData['objective'])) {
+                Log::info('Processing objectives and activities...');
+                $this->storeObjectivesAndActivities($request, $report_id, $report);
+            }
+            if (!$isDraftSave || !empty($validatedData['particulars'])) {
+                Log::info('Processing account details...');
+                $this->handleAccountDetails($request, $report_id, $validatedData['project_id']);
+            }
             Log::info('Processing outlooks...');
             $this->handleOutlooks($request, $report_id);
 
@@ -1496,8 +1318,35 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             Log::info('Processing attachments...');
             $this->handleUpdateAttachments($request, $report);
 
+            // Set status to draft if saving as draft
+            $statusChanged = false;
+            if ($isDraftSave && $previousStatus !== DPReport::STATUS_DRAFT) {
+                $report->status = DPReport::STATUS_DRAFT;
+                $report->save();
+                $statusChanged = true;
+                Log::info('Report saved as draft', ['report_id' => $report_id, 'previous_status' => $previousStatus]);
+            }
+
             DB::commit();
+
+            // Refresh report to get latest data
+            $report->refresh();
+
+            // Log activity update (pass previousStatus if status changed, otherwise it will use current status)
+            if ($isDraftSave) {
+                ActivityHistoryService::logReportUpdate($report, $user, 'Report saved as draft', $statusChanged ? $previousStatus : null);
+            } else {
+                ActivityHistoryService::logReportUpdate($report, $user, 'Report details updated', null);
+            }
+
             Log::info('Transaction committed and report updated successfully.');
+
+            // Redirect based on draft save
+            if ($isDraftSave) {
+                return redirect()->route('monthly.report.edit', $report_id)
+                    ->with('success', 'Report saved as draft. You can continue editing later.');
+            }
+
             return redirect()->route('monthly.report.index')->with('success', 'Report updated successfully.');
         } catch (ValidationException $ve) {
             DB::rollBack();
@@ -1526,7 +1375,7 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             'account_period_start' => $validatedData['account_period_start'] ?? null,
             'account_period_end' => $validatedData['account_period_end'] ?? null,
             'amount_sanctioned_overview' => $validatedData['amount_sanctioned_overview'] ?? 0,
-            'amount_forwarded_overview' => $validatedData['amount_forwarded_overview'] ?? 0,
+            'amount_forwarded_overview' => 0, // Always set to 0 for backward compatibility
             'amount_in_hand' => $validatedData['amount_in_hand'] ?? 0,
             'total_balance_forwarded' => $validatedData['total_balance_forwarded'] ?? 0,
         ]);
@@ -1606,9 +1455,10 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             $reportQuery->whereHas('user', function ($query) use ($user) {
                 $query->where('parent_id', $user->id);
             });
-        } elseif ($user->role === 'executor') {
-            // Executor can only review their own reports
-            $reportQuery->where('user_id', $user->id);
+        } elseif (in_array($user->role, ['executor', 'applicant'])) {
+            // Executor and applicant can review reports for projects they own or are in-charge of
+            $projectIds = ProjectQueryService::getProjectIdsForUser($user);
+            $reportQuery->whereIn('project_id', $projectIds);
         } elseif ($user->role === 'coordinator') {
             // Coordinator can review all reports (no filtering needed)
             // No additional filters - coordinators can review everything
@@ -1625,12 +1475,15 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
 
     public function revert(Request $request, $report_id)
     {
-        Log::info('Entering revert method', ['report_id' => $report_id, 'request' => $request->all()]);
+        Log::info('Entering revert method', [
+            'report_id' => $report_id,
+            'revert_reason' => $request->revert_reason ?? 'No reason provided',
+        ]);
 
         $user = Auth::user();
 
         // Find the report with role-based filtering
-        $reportQuery = DPReport::where('report_id', $report_id);
+        $reportQuery = DPReport::where('report_id', $report_id)->with('user');
 
         // Apply role-based filters
         if ($user->role === 'provincial') {
@@ -1638,9 +1491,10 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             $reportQuery->whereHas('user', function ($query) use ($user) {
                 $query->where('parent_id', $user->id);
             });
-        } elseif ($user->role === 'executor') {
-            // Executor can only revert their own reports
-            $reportQuery->where('user_id', $user->id);
+        } elseif (in_array($user->role, ['executor', 'applicant'])) {
+            // Executor and applicant can revert reports for projects they own or are in-charge of
+            $projectIds = ProjectQueryService::getProjectIdsForUser($user);
+            $reportQuery->whereIn('project_id', $projectIds);
         } elseif ($user->role === 'coordinator') {
             // Coordinator can revert all reports (no filtering needed)
             // No additional filters - coordinators can revert everything
@@ -1651,28 +1505,38 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
 
         $report = $reportQuery->firstOrFail();
 
-        // Determine the new status based on current status and user role
-        $newStatus = 'draft'; // Default fallback
+        try {
+            $reason = $request->input('revert_reason');
 
-        if ($user->role === 'coordinator') {
-            if ($report->status === 'forwarded_to_coordinator') {
-                $newStatus = 'reverted_by_coordinator';
+            // Use ReportStatusService to revert and log status change
+            if ($user->role === 'coordinator') {
+                ReportStatusService::revertByCoordinator($report, $user, $reason);
+            } elseif ($user->role === 'provincial') {
+                ReportStatusService::revertByProvincial($report, $user, $reason);
+            } else {
+                throw new \Exception('Invalid role for reverting report.');
             }
-        } elseif ($user->role === 'provincial') {
-            if ($report->status === 'submitted_to_provincial') {
-                $newStatus = 'reverted_by_provincial';
-            } elseif ($report->status === 'reverted_by_coordinator') {
-                $newStatus = 'reverted_by_provincial';
+
+            // Notify executor about report revert (only if reverting as coordinator or provincial)
+            $executor = $report->user;
+            if ($executor && $report->id && in_array($user->role, ['coordinator', 'provincial'])) {
+                NotificationService::notifyRevert(
+                    $executor,
+                    'report',
+                    $report->id,
+                    "Report {$report->report_id}",
+                    $reason
+                );
             }
+
+            return redirect()->route('monthly.report.index')->with('success', 'Report reverted successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to revert report', [
+                'report_id' => $report_id,
+                'error' => $e->getMessage(),
+            ]);
+            return redirect()->route('monthly.report.index')->with('error', $e->getMessage());
         }
-
-        $report->update([
-            'status' => $newStatus,
-            'revert_reason' => $request->input('revert_reason'),
-        ]);
-        Log::info('Report reverted', ['report' => $report]);
-
-        return redirect()->route('monthly.report.index')->with('success', 'Report reverted successfully.');
     }
 
     public function submit(Request $request, $report_id)
@@ -1681,28 +1545,34 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
 
         $user = Auth::user();
 
-        // Only executors can submit reports
-        if ($user->role !== 'executor') {
-            abort(403, 'Only executors can submit reports.');
+        // Only executors and applicants can submit reports
+        if (!in_array($user->role, ['executor', 'applicant'])) {
+            abort(403, 'Only executors and applicants can submit reports.');
         }
+
+        // Get project IDs where user is owner or in-charge
+        $projectIds = Project::where(function($query) use ($user) {
+            $query->where('user_id', $user->id)
+                  ->orWhere('in_charge', $user->id);
+        })->pluck('project_id');
 
         // Find the report
         $report = DPReport::where('report_id', $report_id)
-                         ->where('user_id', $user->id)
+                         ->whereIn('project_id', $projectIds)
                          ->firstOrFail();
 
-        // Check if report can be submitted
-        if (!in_array($report->status, ['draft', 'reverted_by_provincial', 'reverted_by_coordinator'])) {
-            return redirect()->route('monthly.report.index')->with('error', 'Report cannot be submitted in its current status.');
+        try {
+            // Use ReportStatusService to submit and log status change
+            ReportStatusService::submitToProvincial($report, $user);
+
+            return redirect()->route('monthly.report.index')->with('success', 'Report submitted to Provincial successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to submit report', [
+                'report_id' => $report_id,
+                'error' => $e->getMessage(),
+            ]);
+            return redirect()->route('monthly.report.index')->with('error', $e->getMessage());
         }
-
-        $report->update([
-            'status' => 'submitted_to_provincial',
-        ]);
-
-        Log::info('Report submitted', ['report' => $report]);
-
-        return redirect()->route('monthly.report.index')->with('success', 'Report submitted to Provincial successfully.');
     }
 
     public function forward(Request $request, $report_id)
@@ -1723,18 +1593,18 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
                          })
                          ->firstOrFail();
 
-        // Check if report can be forwarded
-        if ($report->status !== 'submitted_to_provincial') {
-            return redirect()->route('monthly.report.index')->with('error', 'Report cannot be forwarded in its current status.');
+        try {
+            // Use ReportStatusService to forward and log status change
+            ReportStatusService::forwardToCoordinator($report, $user);
+
+            return redirect()->route('monthly.report.index')->with('success', 'Report forwarded to Coordinator successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to forward report', [
+                'report_id' => $report_id,
+                'error' => $e->getMessage(),
+            ]);
+            return redirect()->route('monthly.report.index')->with('error', $e->getMessage());
         }
-
-        $report->update([
-            'status' => 'forwarded_to_coordinator',
-        ]);
-
-        Log::info('Report forwarded', ['report' => $report]);
-
-        return redirect()->route('monthly.report.index')->with('success', 'Report forwarded to Coordinator successfully.');
     }
 
     public function approve(Request $request, $report_id)
@@ -1749,20 +1619,31 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
         }
 
         // Find the report
-        $report = DPReport::where('report_id', $report_id)->firstOrFail();
+        $report = DPReport::where('report_id', $report_id)->with('user')->firstOrFail();
 
-        // Check if report can be approved
-        if ($report->status !== 'forwarded_to_coordinator') {
-            return redirect()->route('monthly.report.index')->with('error', 'Report cannot be approved in its current status.');
+        try {
+            // Use ReportStatusService to approve and log status change
+            ReportStatusService::approve($report, $user);
+
+            // Notify executor about report approval
+            $executor = $report->user;
+            if ($executor && $report->id) {
+                NotificationService::notifyApproval(
+                    $executor,
+                    'report',
+                    $report->id,
+                    "Report {$report->report_id}"
+                );
+            }
+
+            return redirect()->route('monthly.report.index')->with('success', 'Report approved successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to approve report', [
+                'report_id' => $report_id,
+                'error' => $e->getMessage(),
+            ]);
+            return redirect()->route('monthly.report.index')->with('error', $e->getMessage());
         }
-
-        $report->update([
-            'status' => 'approved_by_coordinator',
-        ]);
-
-        Log::info('Report approved', ['report' => $report]);
-
-        return redirect()->route('monthly.report.index')->with('success', 'Report approved successfully.');
     }
 
     // public function downloadAttachment($id)
@@ -1848,8 +1729,13 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
                                         $query->whereHas('user', function ($q) use ($user) {
                                             $q->where('parent_id', $user->id);
                                         });
-                                    } elseif ($user->role === 'executor') {
-                                        $query->where('user_id', $user->id);
+                                    } elseif (in_array($user->role, ['executor', 'applicant'])) {
+                                        // Executor and applicant can remove photos from reports for projects they own or are in-charge of
+                                        $projectIds = Project::where(function($q) use ($user) {
+                                            $q->where('user_id', $user->id)
+                                              ->orWhere('in_charge', $user->id);
+                                        })->pluck('project_id');
+                                        $query->whereIn('project_id', $projectIds);
                                     }
                                     // Coordinator can remove any photo (no additional filter)
                                 });

@@ -41,7 +41,7 @@
 
         <div class="mb-3">
             <label for="address" class="form-label">Full Address:</label>
-            <textarea name="address" class="form-control" rows="2" placeholder="Enter full address"></textarea>
+            <textarea name="address" class="form-control auto-resize-textarea" rows="2" placeholder="Enter full address"></textarea>
         </div>
 
         <div class="mb-3">

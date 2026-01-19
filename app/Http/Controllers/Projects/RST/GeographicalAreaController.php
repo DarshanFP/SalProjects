@@ -3,16 +3,23 @@
 namespace App\Http\Controllers\Projects\RST;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\RST\ProjectRSTGeographicalArea;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\RST\StoreRSTGeographicalAreaRequest;
+use App\Http\Requests\Projects\RST\UpdateRSTGeographicalAreaRequest;
 
 class GeographicalAreaController extends Controller
 {
     // Store or update geographical areas
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+    // Use all() instead of validated() because mandal, village, town, no_of_beneficiaries
+    // fields are not in StoreProjectRequest validation rules
+    // This ensures we get all form data including these fields
+    $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing Geographical Areas for RST', ['project_id' => $projectId]);
@@ -21,13 +28,18 @@ class GeographicalAreaController extends Controller
             ProjectRSTGeographicalArea::where('project_id', $projectId)->delete();
 
             // Insert new geographical area data
-            foreach ($request->mandal as $index => $mandal) {
+            $mandals = $validated['mandal'] ?? [];
+            $villages = $validated['village'] ?? [];
+            $towns = $validated['town'] ?? [];
+            $noOfBeneficiaries = $validated['no_of_beneficiaries'] ?? [];
+            
+            foreach ($mandals as $index => $mandal) {
                 ProjectRSTGeographicalArea::create([
                     'project_id' => $projectId,
                     'mandal' => $mandal,
-                    'villages' => $request->village[$index],
-                    'town' => $request->town[$index],
-                    'no_of_beneficiaries' => $request->no_of_beneficiaries[$index],
+                    'villages' => $villages[$index] ?? null,
+                    'town' => $towns[$index] ?? null,
+                    'no_of_beneficiaries' => $noOfBeneficiaries[$index] ?? null,
                 ]);
             }
 
@@ -76,35 +88,33 @@ class GeographicalAreaController extends Controller
         }
     }
 
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
 {
+    // Use all() instead of validated() because mandal, village, town, no_of_beneficiaries
+    // fields are not in UpdateProjectRequest validation rules
+    // This ensures we get all form data including these fields
+    $validatedData = $request->all();
+    
     DB::beginTransaction();
     try {
         Log::info('Updating Geographical Areas for RST', ['project_id' => $projectId]);
-
-        // Validate the request data
-        $validatedData = $request->validate([
-            'mandal' => 'required|array',
-            'mandal.*' => 'required|string|max:255',
-            'village' => 'required|array',
-            'village.*' => 'required|string|max:255',
-            'town' => 'required|array',
-            'town.*' => 'required|string|max:255',
-            'no_of_beneficiaries' => 'required|array',
-            'no_of_beneficiaries.*' => 'required|integer|min:0',
-        ]);
 
         // Fetch existing geographical areas for the project
         $existingAreas = ProjectRSTGeographicalArea::where('project_id', $projectId)->get();
 
         // Update or insert new geographical area data
-        foreach ($request->mandal as $index => $mandal) {
+        $mandals = $validatedData['mandal'] ?? [];
+        $villages = $validatedData['village'] ?? [];
+        $towns = $validatedData['town'] ?? [];
+        $noOfBeneficiaries = $validatedData['no_of_beneficiaries'] ?? [];
+        
+        foreach ($mandals as $index => $mandal) {
             $areaData = [
                 'project_id' => $projectId,
                 'mandal' => $mandal,
-                'villages' => $request->village[$index],
-                'town' => $request->town[$index],
-                'no_of_beneficiaries' => $request->no_of_beneficiaries[$index],
+                'villages' => $villages[$index] ?? null,
+                'town' => $towns[$index] ?? null,
+                'no_of_beneficiaries' => $noOfBeneficiaries[$index] ?? null,
             ];
 
             // Check if a record exists for the mandal

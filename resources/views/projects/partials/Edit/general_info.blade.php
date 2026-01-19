@@ -15,80 +15,86 @@
         {{-- PROJECT TYPE --}}
         <div class="mb-3">
             <label for="project_type" class="form-label">Project Type</label>
-            <select name="project_type" id="project_type" class="form-control select-input"  style="background-color: #202ba3;">
+            <select name="project_type" id="project_type" class="form-control select-input" >
                 <option value="" disabled>Select Project Type</option>
-                <option value="CHILD CARE INSTITUTION"
-                    {{ $project->project_type == 'CHILD CARE INSTITUTION' ? 'selected' : '' }}>
+                <option value="{{ \App\Constants\ProjectType::CHILD_CARE_INSTITUTION }}"
+                    {{ $project->project_type == \App\Constants\ProjectType::CHILD_CARE_INSTITUTION ? 'selected' : '' }}>
                     CHILD CARE INSTITUTION - Welfare home for children - Ongoing
                 </option>
-                <option value="Development Projects"
-                    {{ $project->project_type == 'Development Projects' ? 'selected' : '' }}>
+                <option value="{{ \App\Constants\ProjectType::DEVELOPMENT_PROJECTS }}"
+                    {{ $project->project_type == \App\Constants\ProjectType::DEVELOPMENT_PROJECTS ? 'selected' : '' }}>
                     Development Projects - Application
                 </option>
-                <option value="Rural-Urban-Tribal"
-                    {{ $project->project_type == 'Rural-Urban-Tribal' ? 'selected' : '' }}>
+                <option value="{{ \App\Constants\ProjectType::RURAL_URBAN_TRIBAL }}"
+                    {{ $project->project_type == \App\Constants\ProjectType::RURAL_URBAN_TRIBAL ? 'selected' : '' }}>
                     Education Rural-Urban-Tribal
                 </option>
-                <option value="Institutional Ongoing Group Educational proposal"
-                    {{ $project->project_type == 'Institutional Ongoing Group Educational proposal' ? 'selected' : '' }}>
+                <option value="{{ \App\Constants\ProjectType::INSTITUTIONAL_ONGOING_GROUP_EDUCATIONAL }}"
+                    {{ $project->project_type == \App\Constants\ProjectType::INSTITUTIONAL_ONGOING_GROUP_EDUCATIONAL ? 'selected' : '' }}>
                     Institutional Ongoing Group Educational proposal
                 </option>
-                <option value="Livelihood Development Projects"
-                    {{ $project->project_type == 'Livelihood Development Projects' ? 'selected' : '' }}>
+                <option value="{{ \App\Constants\ProjectType::LIVELIHOOD_DEVELOPMENT_PROJECTS }}"
+                    {{ $project->project_type == \App\Constants\ProjectType::LIVELIHOOD_DEVELOPMENT_PROJECTS ? 'selected' : '' }}>
                     Livelihood Development Projects
                 </option>
-                <option value="PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER"
-                    {{ $project->project_type == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER' ? 'selected' : '' }}>
+                <option value="{{ \App\Constants\ProjectType::CRISIS_INTERVENTION_CENTER }}"
+                    {{ $project->project_type == \App\Constants\ProjectType::CRISIS_INTERVENTION_CENTER ? 'selected' : '' }}>
                     PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER - Application
                 </option>
-                <option value="NEXT PHASE - DEVELOPMENT PROPOSAL"
-                    {{ $project->project_type == 'NEXT PHASE - DEVELOPMENT PROPOSAL' ? 'selected' : '' }}>
+                <option value="{{ \App\Constants\ProjectType::NEXT_PHASE_DEVELOPMENT_PROPOSAL }}"
+                    {{ $project->project_type == \App\Constants\ProjectType::NEXT_PHASE_DEVELOPMENT_PROPOSAL ? 'selected' : '' }}>
                     NEXT PHASE - DEVELOPMENT PROPOSAL
                 </option>
-                <option value="Residential Skill Training Proposal 2"
-                    {{ $project->project_type == 'Residential Skill Training Proposal 2' ? 'selected' : '' }}>
+                <option value="{{ \App\Constants\ProjectType::RESIDENTIAL_SKILL_TRAINING }}"
+                    {{ $project->project_type == \App\Constants\ProjectType::RESIDENTIAL_SKILL_TRAINING ? 'selected' : '' }}>
                     Residential Skill Training Proposal 2
                 </option>
-                <option value="Individual - Ongoing Educational support"
-                    {{ $project->project_type == 'Individual - Ongoing Educational support' ? 'selected' : '' }}>
+                <option value="{{ \App\Constants\ProjectType::INDIVIDUAL_ONGOING_EDUCATIONAL }}"
+                    {{ $project->project_type == \App\Constants\ProjectType::INDIVIDUAL_ONGOING_EDUCATIONAL ? 'selected' : '' }}>
                     Individual - Ongoing Educational support - Project Application
                 </option>
-                <option value="Individual - Livelihood Application"
-                    {{ $project->project_type == 'Individual - Livelihood Application' ? 'selected' : '' }}>
+                <option value="{{ \App\Constants\ProjectType::INDIVIDUAL_LIVELIHOOD_APPLICATION }}"
+                    {{ $project->project_type == \App\Constants\ProjectType::INDIVIDUAL_LIVELIHOOD_APPLICATION ? 'selected' : '' }}>
                     Individual - Livelihood Application
                 </option>
-                <option value="Individual - Access to Health"
-                    {{ $project->project_type == 'Individual - Access to Health' ? 'selected' : '' }}>
+                <option value="{{ \App\Constants\ProjectType::INDIVIDUAL_ACCESS_TO_HEALTH }}"
+                    {{ $project->project_type == \App\Constants\ProjectType::INDIVIDUAL_ACCESS_TO_HEALTH ? 'selected' : '' }}>
                     Individual - Access to Health - Project Application
                 </option>
-                <option value="Individual - Initial - Educational support"
-                    {{ $project->project_type == 'Individual - Initial - Educational support' ? 'selected' : '' }}>
+                <option value="{{ \App\Constants\ProjectType::INDIVIDUAL_INITIAL_EDUCATIONAL }}"
+                    {{ $project->project_type == \App\Constants\ProjectType::INDIVIDUAL_INITIAL_EDUCATIONAL ? 'selected' : '' }}>
                     Individual - Initial - Educational support - Project Application
                 </option>
             </select>
         </div>
 
-        {{-- PREDECESSOR PROJECT (shown only for Development or Next Phase)--}}
-        <div id="predecessor-project-section" style="display: none;">
+        {{-- Predecessor Project Selection (Always Visible for All Project Types) --}}
             <div class="mb-3">
-                <label for="predecessor_project" class="form-label">Select Predecessor Project</label>
+            <label for="predecessor_project" class="form-label">Select Predecessor Project (Optional)</label>
                 <select name="predecessor_project" id="predecessor_project" class="form-control select-input">
-                    <option value="" {{ empty($project->predecessor_project) ? 'selected' : '' }}>None</option>
+                    <option value="" {{ empty($project->predecessor_project_id) ? 'selected' : '' }}>None</option>
+                @if(isset($developmentProjects) && $developmentProjects->count() > 0)
                     @foreach($developmentProjects as $devProject)
                         <option value="{{ $devProject->project_id }}"
-                            {{ $devProject->project_id == $project->predecessor_project ? 'selected' : '' }}>
+                            {{ old('predecessor_project', $project->predecessor_project_id) == $devProject->project_id ? 'selected' : '' }}>
                             {{ $devProject->project_title }} (Phase {{ $devProject->current_phase }}/{{ $devProject->overall_project_period }})
                         </option>
                     @endforeach
+                @else
+                    <option value="" disabled>No development projects available</option>
+                @endif
                 </select>
-            </div>
+            @error('predecessor_project')
+                <span class="text-danger">{{ $message }}</span>
+            @enderror
+            <small class="form-text text-muted">Select a previous project if this is a continuation or related project.</small>
         </div>
 
         {{-- PROJECT TITLE --}}
         <div class="mb-3">
             <label for="project_title" class="form-label">Project Title</label>
             <input type="text" name="project_title" id="project_title"
-                   class="form-control select-input" style="background-color: #202ba3;"
+                   class="form-control select-input"
                    value="{{ old('project_title', $project->project_title) }}" required>
         </div>
 
@@ -168,7 +174,7 @@
         <div class="mb-3">
             <label for="in_charge" class="form-label">Project In-Charge</label>
             <div class="d-flex">
-                <select name="in_charge" id="in_charge" class="form-control select-input me-2" style="background-color: #202ba3;">
+                <select name="in_charge" id="in_charge" class="form-control select-input me-2 {{ (int)$project->in_charge === (int)$project->user_id ? 'is-invalid' : '' }}">
                     <option value="" disabled>Select In-Charge</option>
                     @foreach($users as $potential_in_charge)
                         @if($potential_in_charge->province == $user->province && ($potential_in_charge->role == 'applicant' || $potential_in_charge->role == 'executor'))
@@ -186,30 +192,39 @@
                 <input type="hidden" name="in_charge_name" id="in_charge_name"
                        value="{{ old('in_charge_name', $project->in_charge_name) }}">
 
+                @php
+                    use App\Constants\ProjectStatus;
+                    $editableStatuses = ProjectStatus::getEditableStatuses();
+                    $canEditInCharge = in_array($project->status, $editableStatuses);
+                @endphp
                 <input type="text" name="in_charge_mobile" id="in_charge_mobile"
-                       class="form-control readonly-input me-2"
+                       class="form-control {{ $canEditInCharge ? 'select-input' : 'readonly-input' }} me-2"
                        value="{{ old('in_charge_mobile', $project->in_charge_mobile) }}"
-                       readonly>
+                       {{ $canEditInCharge ? '' : 'readonly' }}>
 
                 <input type="text" name="in_charge_email" id="in_charge_email"
-                       class="form-control readonly-input"
+                       class="form-control {{ $canEditInCharge ? 'select-input' : 'readonly-input' }}"
                        value="{{ old('in_charge_email', $project->in_charge_email) }}"
-                       readonly>
+                       {{ $canEditInCharge ? '' : 'readonly' }}>
+            </div>
+            {{-- Alert if In-Charge is same as Applicant --}}
+            <div id="in_charge_alert" class="alert alert-danger mt-2" style="display: none;">
+                <strong>Warning:</strong> Project In-Charge cannot be the same as Project Applicant. Please select a different person from the dropdown.
             </div>
         </div>
 
         {{-- FULL ADDRESS --}}
         <div class="mb-3">
             <label for="full_address" class="form-label">Full Address</label>
-            <textarea name="full_address" id="full_address" class="form-control select-input" rows="2"
-                      style="background-color: #091122;">{{ old('full_address', $project->full_address ?? $user->address) }}</textarea>
+            <textarea name="full_address" id="full_address" class="form-control select-input sustainability-textarea" rows="2"
+                     >{{ old('full_address', $project->full_address ?? $user->address) }}</textarea>
         </div>
 
         {{-- OVERALL PROJECT PERIOD --}}
         <div class="mb-3">
             <label for="overall_project_period" class="form-label">Overall Project Period (Years)</label>
             <select name="overall_project_period" id="overall_project_period"
-                    class="form-control select-input" style="background-color: #202ba3;" required>
+                    class="form-control select-input" required>
                 <option value="" disabled>Select Period</option>
                 @for($i=1; $i<=4; $i++)
                     <option value="{{ $i }}" {{ (int)old('overall_project_period', $project->overall_project_period) === $i ? 'selected' : '' }}>
@@ -223,7 +238,7 @@
         <div class="mb-3">
             <label for="current_phase" class="form-label">Current Phase</label>
             <select name="current_phase" id="current_phase"
-                    class="form-control select-input" style="background-color: #202ba3;" >
+                    class="form-control select-input" >
                 <option value="" disabled>Select Phase</option>
                 @php
                     $selectedPeriod = (int)old('overall_project_period', $project->overall_project_period);
@@ -243,7 +258,7 @@
         <div class="mb-3">
             <label for="commencement_month" class="form-label">Commencement Month</label>
             <select name="commencement_month" id="commencement_month"
-                    class="form-control select-input" style="background-color: #202ba3;">
+                    class="form-control select-input">
                 <option value="" disabled>Select Month</option>
                 @for($month = 1; $month <= 12; $month++)
                     <option value="{{ $month }}"
@@ -258,7 +273,7 @@
         <div class="mb-3">
             <label for="commencement_year" class="form-label">Commencement Year</label>
             <select name="commencement_year" id="commencement_year"
-                    class="form-control select-input" style="background-color: #202ba3;">
+                    class="form-control select-input">
                 <option value="" disabled>Select Year</option>
                 @for($year = now()->year; $year >= 2000; $year--)
                     <option value="{{ $year }}"
@@ -273,7 +288,7 @@
         <div class="mb-3">
             <label for="overall_project_budget" class="form-label">Overall Project Budget (Rs.)</label>
             <input type="number" name="overall_project_budget" id="overall_project_budget"
-                   class="form-control select-input" style="background-color: #202ba3;"
+                   class="form-control select-input"
                    value="{{ old('overall_project_budget', $project->overall_project_budget) }}" required>
         </div>
 
@@ -356,10 +371,6 @@
 {{-- Inline Scripts for Dynamic Behavior --}}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const projectTypeDropdown = document.getElementById('project_type');
-        const predecessorProjectSection = document.getElementById('predecessor-project-section');
-        const predecessorProjectDropdown = document.getElementById('predecessor_project');
-
         const overallProjectPeriodSelect = document.getElementById('overall_project_period');
         const currentPhaseSelect = document.getElementById('current_phase');
 
@@ -368,20 +379,7 @@
         const inChargeEmail = document.getElementById('in_charge_email');
         const inChargeNameHidden = document.getElementById('in_charge_name'); // if needed
 
-        // 1. Toggle predecessor project section based on project type
-        function togglePredecessorProjectSection() {
-            const selectedType = projectTypeDropdown.value;
-            if (selectedType === 'Development Projects' ||
-                selectedType === 'NEXT PHASE - DEVELOPMENT PROPOSAL') {
-                predecessorProjectSection.style.display = 'block';
-            } else {
-                predecessorProjectSection.style.display = 'none';
-                // Optionally clear the selection if hidden
-                predecessorProjectDropdown.value = '';
-            }
-        }
-
-        // 2. Update the Current Phase dropdown based on Overall Project Period
+        // 1. Update the Current Phase dropdown based on Overall Project Period
         function updatePhaseOptions() {
             const projectPeriod = parseInt(overallProjectPeriodSelect.value) || 0;
             currentPhaseSelect.innerHTML = '<option value="" disabled>Select Phase</option>';
@@ -394,7 +392,7 @@
             // If there was a previously selected phase, you can re-set it here if needed
         }
 
-        // 3. Auto-fill in-charge phone & email when in-charge changes
+        // 2. Auto-fill in-charge phone & email when in-charge changes
         function handleInChargeChange() {
             const selectedOption = inChargeSelect.options[inChargeSelect.selectedIndex];
             inChargeMobile.value = selectedOption.dataset.mobile || '';
@@ -405,15 +403,14 @@
         }
 
         // Event Listeners
-        projectTypeDropdown.addEventListener('change', togglePredecessorProjectSection);
         overallProjectPeriodSelect.addEventListener('change', updatePhaseOptions);
         inChargeSelect.addEventListener('change', handleInChargeChange);
 
         // Initialize on page load
-        togglePredecessorProjectSection();
         updatePhaseOptions();
         // If the in_charge is already selected, fill phone & email accordingly
         handleInChargeChange();
+
     });
 </script>
 {{--<div class="mb-4 card">
@@ -428,31 +425,18 @@
         </div>
         <div class="mb-3">
             <label for="project_title" class="form-label">Project Title:</label>
-            <input type="text" name="project_title" id="project_title" class="form-control select-input" value="{{ $project->project_title }}" required style="background-color: #202ba3;">
+            <input type="text" name="project_title" id="project_title" class="form-control select-input" value="{{ $project->project_title }}" required>
         </div>
 
         <!-- Project Type -->
         <div class="mb-3">
             <label for="project_type" class="form-label">Project Type:</label>
-            <select name="project_type" id="project_type" class="form-control select-input" required style="background-color: #202ba3;">
+            <select name="project_type" id="project_type" class="form-control select-input" required>
                 <option value="" disabled>Select Project Type</option>
                 @foreach(["CHILD CARE INSTITUTION", "Development Projects", "Rural-Urban-Tribal", "Institutional Ongoing Group Educational proposal", "Livelihood Development Projects", "PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER", "NEXT PHASE - DEVELOPMENT PROPOSAL", "Residential Skill Training Proposal 2", "Individual - Ongoing Educational support", "Individual - Livelihood Application", "Individual - Access to Health", "Individual - Initial - Educational support"] as $type)
                     <option value="{{ $type }}" {{ $project->project_type == $type ? 'selected' : '' }}>{{ $type }}</option>
                 @endforeach
             </select>
-        </div>
-
-        <!-- Predecessor Project Section -->
-        <div id="predecessor-project-section" style="display: none;">
-            <div class="mb-3">
-                <label for="predecessor_project" class="form-label">Select Predecessor Project</label>
-                <select name="predecessor_project" id="predecessor_project" class="form-control select-input">
-                    <option value="" disabled selected>Select Predecessor Project</option>
-                    @foreach($developmentProjects as $devProject)
-                        <option value="{{ $devProject->project_id }}" {{ $project->predecessor_project == $devProject->project_id ? 'selected' : '' }}>{{ $devProject->project_title }}</option>
-                    @endforeach
-                </select>
-            </div>
         </div>
 
         <!-- Society / Trust -->
@@ -469,7 +453,7 @@
         <!-- In-Charge Selection -->
         <div class="mb-3">
             <label for="in_charge" class="form-label">Project In-Charge</label>
-            <select name="in_charge" id="in_charge" class="form-control select-input me-2" required style="background-color: #202ba3;">
+            <select name="in_charge" id="in_charge" class="form-control select-input me-2" required>
                 <option value="" disabled>Select In-Charge</option>
                 @foreach($users as $potential_in_charge)
                     @if($potential_in_charge->province == $user->province && ($potential_in_charge->role == 'applicant' || $potential_in_charge->role == 'executor'))
@@ -482,7 +466,7 @@
         <!-- Overall Project Period & Current Phase -->
         <div class="mb-3">
             <label for="overall_project_period" class="form-label">Overall Project Period</label>
-            <select name="overall_project_period" id="overall_project_period" class="form-control select-input" required style="background-color: #202ba3;">
+            <select name="overall_project_period" id="overall_project_period" class="form-control select-input" required>
                 <option value="" disabled>Select Period</option>
                 @for ($i = 1; $i <= 4; $i++)
                     <option value="{{ $i }}" {{ $project->overall_project_period == $i ? 'selected' : '' }}>{{ $i }} Year(s)</option>
@@ -491,7 +475,7 @@
         </div>
         <div class="mb-3">
             <label for="current_phase" class="form-label">Current Phase</label>
-            <select name="current_phase" id="current_phase" class="form-control select-input" required style="background-color: #202ba3;">
+            <select name="current_phase" id="current_phase" class="form-control select-input" required>
                 <option value="" disabled>Select Phase</option>
                 @for ($i = 1; $i <= $project->overall_project_period; $i++)
                     <option value="{{ $i }}" {{ $project->current_phase == $i ? 'selected' : '' }}>Phase {{ $i }}</option>
@@ -509,14 +493,8 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const projectTypeDropdown = document.getElementById('project_type');
-        const predecessorProjectSection = document.getElementById('predecessor-project-section');
         const overallProjectPeriodDropdown = document.getElementById('overall_project_period');
         const phaseSelect = document.getElementById('current_phase');
-
-        function togglePredecessorProjectSection() {
-            predecessorProjectSection.style.display = (projectTypeDropdown.value === 'NEXT PHASE - DEVELOPMENT PROPOSAL' || projectTypeDropdown.value === 'Development Projects') ? 'block' : 'none';
-        }
 
         function updatePhaseOptions() {
             const projectPeriod = parseInt(overallProjectPeriodDropdown.value) || 0;
@@ -526,9 +504,7 @@
             }
         }
 
-        projectTypeDropdown.addEventListener('change', togglePredecessorProjectSection);
         overallProjectPeriodDropdown.addEventListener('change', updatePhaseOptions);
-        togglePredecessorProjectSection();
     });
 </script>
 
@@ -549,7 +525,7 @@
         <!-- Project Type -->
         <div class="mb-3">
             <label for="project_type" class="form-label">Project Type:</label>
-            <select name="project_type" id="project_type" class="form-control select-input" required style="background-color: #202ba3;">
+            <select name="project_type" id="project_type" class="form-control select-input" required>
                 <option value="" disabled>Select Project Type</option>
                 <!-- Add available project types dynamically here -->
                 <option value="CHILD CARE INSTITUTION" {{ $project->project_type == 'CHILD CARE INSTITUTION' ? 'selected' : '' }}>CHILD CARE INSTITUTION - Welfare home for children - Ongoing</option>
@@ -644,7 +620,7 @@
     const societyNameSelect = document.getElementById('society_name');
 
     societyNameSelect.addEventListener('change', function () {
-        console.log(`Selected Society: ${this.value}`);
+        // Society selected
         // Additional logic can be added here if needed
     });
 });

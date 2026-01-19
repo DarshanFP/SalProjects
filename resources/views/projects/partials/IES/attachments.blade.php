@@ -1,93 +1,11 @@
 {{-- resources/views/projects/partials/IES/attachments.blade.php --}}
-{{-- <div class="mb-3 card">
-    <div class="card-header">
-        <h4>Please Attach the Following Documents</h4>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <!-- Left Column -->
-            <div class="col-md-6">
-                <!-- Aadhar Card -->
-                <div class="form-group">
-                    <label>Aadhar Card (true copy):</label><br>
-                    <input type="file" name="aadhar_card" class="form-control-file" onchange="IESrenameFile(this, 'aadhar')" accept=".pdf,.jpg,.jpeg,.png">
-                </div>
-
-                <!-- Fee Quotation -->
-                <div class="form-group">
-                    <label>Fee Quotation from Educational Institution (original):</label>
-                    <input type="file" name="fee_quotation" class="form-control-file" onchange="IESrenameFile(this, 'fee_quotation')" accept=".pdf,.jpg,.jpeg,.png">
-                </div>
-
-                <!-- Proof of Scholarship -->
-                <div class="form-group">
-                    <label>Proof of Scholarship Received Previous Year:</label>
-                    <input type="file" name="scholarship_proof" class="form-control-file" onchange="IESrenameFile(this, 'scholarship')" accept=".pdf,.jpg,.jpeg,.png">
-                </div>
-
-                <!-- Medical Confirmation -->
-                <div class="form-group">
-                    <label>Medical Confirmation (ill health of parents - original):</label>
-                    <input type="file" name="medical_confirmation" class="form-control-file" onchange="IESrenameFile(this, 'medical')" accept=".pdf,.jpg,.jpeg,.png">
-                </div>
-            </div>
-
-            <!-- Right Column -->
-            <div class="col-md-6">
-                <!-- Caste Certificate -->
-                <div class="form-group">
-                    <label>Caste Certificate (true copy):</label>
-                    <input type="file" name="caste_certificate" class="form-control-file" onchange="IESrenameFile(this, 'caste')" accept=".pdf,.jpg,.jpeg,.png">
-                </div>
-
-                <!-- Self Declaration -->
-                <div class="form-group">
-                    <label>Self Declaration (single parent - original):</label>
-                    <input type="file" name="self_declaration" class="form-control-file" onchange="IESrenameFile(this, 'declaration')" accept=".pdf,.jpg,.jpeg,.png">
-                </div>
-
-                <!-- Death Certificate -->
-                <div class="form-group">
-                    <label>Death Certificate (deceased parents - true copy):</label>
-                    <input type="file" name="death_certificate" class="form-control-file" onchange="IESrenameFile(this, 'death')" accept=".pdf,.jpg,.jpeg,.png">
-                </div>
-
-                <!-- Request Letter -->
-                <div class="form-group">
-                    <label>Request Letter (original copy):</label>
-                    <input type="file" name="request_letter" class="form-control-file" onchange="IESrenameFile(this, 'request')" accept=".pdf,.jpg,.jpeg,.png">
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- JavaScript to rename files based on project_id and label name -->
-<script>
-    (function() {
-        function IESrenameFile(input, shortName) {
-        const projectId = document.querySelector('input[name="project_id"]').value;
-        const file = input.files[0];
-        if (!file) return;
-
-        const extension = file.name.split('.').pop();
-        const newFileName = `${projectId}_${shortName}.${extension}`;
-
-        const dataTransfer = new DataTransfer();
-        const renamedFile = new File([file], newFileName, { type: file.type });
-        dataTransfer.items.add(renamedFile);
-        input.files = dataTransfer.files;
-    }
-
-    })();
-</script> --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Please Attach the Following Documents</h4>
+        <small class="text-muted">You can upload multiple files for each field. Maximum 5 MB per file.</small>
     </div>
     <div class="card-body">
         <div class="row">
-            {{-- <input type="hidden" name="project_id" value="{{ $projectId }}"> --}}
             @php
                 $fields = [
                     'aadhar_card' => 'Aadhar Card (true copy)',
@@ -102,41 +20,128 @@
             @endphp
 
             @foreach ($fields as $field => $label)
-                <div class="col-md-6 form-group">
-                    <label>{{ $label }}</label>
-                    <input type="file" name="{{ $field }}" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png">
+                <div class="col-md-6 form-group mb-4">
+                    <label class="form-label">{{ $label }}</label>
+                    <div class="file-upload-container" data-field="{{ $field }}">
+                        <div class="file-input-wrapper mb-2">
+                            <input type="file"
+                                   name="{{ $field }}[]"
+                                   class="form-control-file file-input"
+                                   accept=".pdf,.jpg,.jpeg,.png"
+                                   onchange="validateIESFile(this, '{{ $field }}')"
+                                   data-field="{{ $field }}">
+                            <input type="text"
+                                   name="{{ $field }}_names[]"
+                                   class="form-control mt-2"
+                                   placeholder="Optional: Custom file name (without extension)"
+                                   data-field="{{ $field }}">
+                            <textarea name="{{ $field }}_descriptions[]"
+                                      class="form-control mt-2"
+                                      rows="2"
+                                      placeholder="Optional: File description"
+                                      data-field="{{ $field }}"></textarea>
+                        </div>
+                        <button type="button"
+                                class="btn btn-sm btn-success add-file-btn"
+                                data-field="{{ $field }}">
+                            <i class="fas fa-plus"></i> Add Another File
+                        </button>
+                    </div>
                 </div>
             @endforeach
         </div>
     </div>
 </div>
 
-
 <!-- Styles -->
 <style>
     .form-group {
-        margin-bottom: 20px; /* Add spacing between fields */
+        margin-bottom: 20px;
     }
 
     .form-control-file {
-        max-width: 100%; /* Ensure full width in each column */
-        background-color: #202ba3;
-        color: white;
+        max-width: 100%;
     }
 
-    label {
-        margin-bottom: 5px; /* Add space between label and input */
+    .file-upload-container {
+        border: 1px solid #4a5568;
+        padding: 15px;
+        border-radius: 5px;
+        background-color: #2d3748;
+        color: #e2e8f0;
     }
 
-    .card-body {
-        padding: 20px;
+    .file-input-wrapper {
+        margin-bottom: 10px;
     }
 
-    .row {
-        margin: 0; /* Ensure the row uses the full width */
+    .file-input-wrapper:not(:first-child) {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px dashed #4a5568;
     }
 
-    .col-md-6 {
-        padding: 10px; /* Add spacing between columns */
+    .file-upload-container .form-control {
+        background-color: #1a202c;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+
+    .file-upload-container .form-control:focus {
+        background-color: #1a202c;
+        border-color: #667eea;
+        color: #e2e8f0;
+    }
+
+    .file-upload-container .form-control::placeholder {
+        color: #718096;
+    }
+
+    .file-upload-container .form-control-file {
+        color: #e2e8f0;
+    }
+
+    .file-upload-container label {
+        color: #e2e8f0;
+    }
+
+    .remove-file-btn {
+        margin-top: 5px;
     }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add file input functionality
+    document.querySelectorAll('.add-file-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const field = this.getAttribute('data-field');
+            const container = this.closest('.file-upload-container');
+            const firstWrapper = container.querySelector('.file-input-wrapper');
+
+            // Clone the first file input wrapper
+            const newWrapper = firstWrapper.cloneNode(true);
+
+            // Clear file input value
+            newWrapper.querySelector('input[type="file"]').value = '';
+            newWrapper.querySelector('input[type="text"]').value = '';
+            newWrapper.querySelector('textarea').value = '';
+
+            // Add remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-sm btn-danger remove-file-btn';
+            removeBtn.innerHTML = '<i class="fas fa-times"></i> Remove';
+            removeBtn.onclick = function() {
+                newWrapper.remove();
+            };
+            newWrapper.appendChild(removeBtn);
+
+            // Insert before the add button
+            container.insertBefore(newWrapper, this);
+        });
+    });
+});
+</script>
+
+<script src="{{ asset('js/attachments-validation.js') }}"></script>

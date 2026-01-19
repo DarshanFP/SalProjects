@@ -27,7 +27,7 @@
 
         <div class="mb-3">
             <label for="support_details" class="form-label">If yes, provide details of the support received:</label>
-            <textarea name="support_details" class="form-control" rows="2" placeholder="Provide details of support received"></textarea>
+            <textarea name="support_details" class="form-control auto-resize-textarea" rows="2" placeholder="Provide details of support received"></textarea>
         </div>
 
         <div class="mb-3">
@@ -40,7 +40,7 @@
 
         <div class="mb-3">
             <label for="govt_support_nature" class="form-label">If yes, provide the nature of the support:</label>
-            <textarea name="govt_support_nature" class="form-control" rows="2" placeholder="Provide details of government or other support"></textarea>
+            <textarea name="govt_support_nature" class="form-control auto-resize-textarea" rows="2" placeholder="Provide details of government or other support"></textarea>
         </div>
     </div>
 </div>

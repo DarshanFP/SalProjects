@@ -1,85 +1,98 @@
 {{-- resources/views/projects/partials/show/IES/attachments.blade.php --}}
+@php
+    use App\Models\OldProjects\IES\ProjectIESAttachments;
+    use App\Models\OldProjects\IES\ProjectIESAttachmentFile;
+    use Illuminate\Support\Facades\Storage;
+
+    if (!isset($IESAttachments) || empty($IESAttachments)) {
+        if (isset($project->project_id) && !empty($project->project_id)) {
+            $IESAttachments = ProjectIESAttachments::where('project_id', $project->project_id)->first();
+        } else {
+            $IESAttachments = null;
+        }
+    }
+
+    $fields = [
+        'aadhar_card' => 'Self-attested Aadhar',
+        'fee_quotation' => 'Fee Quotation from Institution',
+        'scholarship_proof' => 'Proof of Scholarship',
+        'medical_confirmation' => 'Medical Confirmation',
+        'caste_certificate' => 'Caste Certificate',
+        'self_declaration' => 'Self Declaration',
+        'death_certificate' => 'Death Certificate',
+        'request_letter' => 'Request Letter'
+    ];
+@endphp
+
 <div class="mb-4 card">
     <div class="card-header">
         <h4 class="mb-0">Attached Documents:</h4>
     </div>
     <div class="card-body">
         <div class="row">
-            <!-- LEFT COLUMN -->
-            <div class="col-md-6">
-                @foreach ([
-                    'aadhar_card' => 'Self-attested Aadhar',
-                    'fee_quotation' => 'Fee Quotation from Institution',
-                    'scholarship_proof' => 'Proof of Scholarship',
-                    'medical_confirmation' => 'Medical Confirmation'
-                ] as $name => $label)
-                    <div class="mb-3">
-                        <label class="form-label">{{ $label }}:</label>
-                        @if(!empty($IESAttachments->$name))
-                            <p>Attached:</p>
-                            <a href="{{ Storage::url($IESAttachments->$name) }}" target="_blank">
-                                {{ basename($IESAttachments->$name) }}
-                            </a>
-                            <br>
-                            <a href="{{ Storage::url($IESAttachments->$name) }}" download class="btn btn-green">
-                                Download
-                            </a>
+            @foreach ($fields as $field => $label)
+                <div class="col-md-6 mb-4">
+                    <label class="form-label fw-bold">{{ $label }}:</label>
+                    @if(!empty($IESAttachments))
+                        @php
+                            $files = $IESAttachments->getFilesForField($field);
+                        @endphp
+                        @if($files && $files->count() > 0)
+                            <div class="file-list">
+                                @foreach($files as $file)
+                                    @php
+                                        $fileExists = Storage::disk('public')->exists($file->file_path);
+                                    @endphp
+                                    <div class="file-item mb-2 p-2 border rounded">
+                                        @if($fileExists)
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <i class="{{ \App\Helpers\AttachmentFileNamingHelper::getFileIcon($file->file_path) ?? config('attachments.file_icons.default') }}"></i>
+                                                    <strong>{{ $file->file_name }}</strong>
+                                                    @if($file->description)
+                                                        <br><small class="text-muted">{{ $file->description }}</small>
+                                                    @endif
+                                                    <br><small class="text-muted">Serial: {{ $file->serial_number }}</small>
+                                                </div>
+                                                <div>
+                                                    <a href="{{ Storage::url($file->file_path) }}" target="_blank" class="btn btn-sm btn-primary">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </a>
+                                                    <a href="{{ Storage::url($file->file_path) }}" download class="btn btn-sm btn-secondary">
+                                                        <i class="fas fa-download"></i> Download
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <span class="text-danger">
+                                                <i class="fas fa-exclamation-triangle"></i> File not found: {{ $file->file_name }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
                         @else
-                            <p class="text-muted">No file uploaded.</p>
+                            <p class="text-muted">No files uploaded.</p>
                         @endif
-                    </div>
-                @endforeach
-            </div>
-
-            <!-- RIGHT COLUMN -->
-            <div class="col-md-6">
-                @foreach ([
-                    'caste_certificate' => 'Caste Certificate',
-                    'self_declaration' => 'Self Declaration',
-                    'death_certificate' => 'Death Certificate',
-                    'request_letter' => 'Request Letter'
-                ] as $name => $label)
-                    <div class="mb-3">
-                        <label class="form-label">{{ $label }}:</label>
-                        @if(!empty($IESAttachments->$name))
-                            <p>Attached:</p>
-                            <a href="{{ Storage::url($IESAttachments->$name) }}" target="_blank">
-                                {{ basename($IESAttachments->$name) }}
-                            </a>
-                            <br>
-                            <a href="{{ Storage::url($IESAttachments->$name) }}" download class="btn btn-green">
-                                Download
-                            </a>
-                        @else
-                            <p class="text-muted">No file uploaded.</p>
-                        @endif
-                    </div>
-                @endforeach
-            </div>
+                    @else
+                        <p class="text-muted">No files uploaded.</p>
+                    @endif
+                </div>
+            @endforeach
         </div>
     </div>
 </div>
 
-<!-- Styles -->
 <style>
-/* Styling for document display */
-.btn-green {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    cursor: pointer;
-    padding: 5px 10px;
-    font-size: 12px;
-    font-weight: bold;
-    text-align: center;
-    border-radius: 4px;
-}
-
-.btn-green:hover {
-    background-color: #218838;
-}
-
-.text-muted {
-    color: #6c757d;
-}
+    .file-item {
+        background-color: #2d3748;
+        border-color: #4a5568 !important;
+        color: #e2e8f0;
+    }
+    .file-item .text-muted {
+        color: #a0aec0 !important;
+    }
+    .file-list {
+        margin-top: 10px;
+    }
 </style>

@@ -3,36 +3,36 @@
 namespace App\Http\Controllers\Projects\IGE;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IGE\ProjectIGEBeneficiariesSupported;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IGE\StoreIGEBeneficiariesSupportedRequest;
+use App\Http\Requests\Projects\IGE\UpdateIGEBeneficiariesSupportedRequest;
 
 class IGEBeneficiariesSupportedController extends Controller
 {
     // Store or update beneficiaries for a project
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including class[] and total_number[] arrays
+        // These fields are not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing IGE beneficiaries supported', ['project_id' => $projectId]);
-
-            // Validate with nullable fields
-            $this->validate($request, [
-                'class.*' => 'nullable|string|max:255',
-                'total_number.*' => 'nullable|integer|min:0',
-            ]);
 
             // First, delete all existing beneficiaries for the project
             ProjectIGEBeneficiariesSupported::where('project_id', $projectId)->delete();
 
             //  Insert new beneficiaries
-            $classes = $request->input('class', []);
-            $totalNumbers = $request->input('total_number', []);
+            $classes = $validated['class'] ?? [];
+            $totalNumbers = $validated['total_number'] ?? [];
 
             // Store each beneficiary record
             foreach ($classes as $index => $class) {
-                if (!is_null($class) && !is_null($totalNumbers[$index])) {
+                if (!is_null($class) && !is_null($totalNumbers[$index] ?? null)) {
                     ProjectIGEBeneficiariesSupported::create([
                         'project_id' => $projectId,
                         'class' => $class,
@@ -93,9 +93,10 @@ class IGEBeneficiariesSupportedController extends Controller
     }
 
     // Update beneficiaries supported for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
-        return $this->store($request, $projectId); // Reuse the store logic for update
+        // Reuse the store logic for update
+        return $this->store($request, $projectId);
     }
 
     // Delete beneficiaries supported for a project

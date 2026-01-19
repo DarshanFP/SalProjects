@@ -16,9 +16,9 @@
                         <span class="budget-badge">Budget Row</span>
                     @endif
                 </td>
-                <td>{{ number_format($budget->budget_amount ?? 0, 2) }}</td>
-                <td>{{ number_format($budget->expenditure ?? 0, 2) }}</td>
-                <td>{{ number_format(($budget->budget_amount ?? 0) - ($budget->expenditure ?? 0), 2) }}</td>
+                <td>{{ format_indian($budget->budget_amount ?? 0, 2) }}</td>
+                <td>{{ format_indian($budget->expenditure ?? 0, 2) }}</td>
+                <td>{{ format_indian(($budget->budget_amount ?? 0) - ($budget->expenditure ?? 0), 2) }}</td>
                 <td>{{ $budget->remarks ?? 'N/A' }}</td>
             </tr>
         @endforeach

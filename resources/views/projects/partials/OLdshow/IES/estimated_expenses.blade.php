@@ -18,15 +18,15 @@
                     @if($project->iesExpenses && $project->iesExpenses->count())
                         @foreach($project->iesExpenses as $index => $expense)
                         <tr>
-                            <td><input type="text" name="particulars[]" class="form-control" value="{{ old('particulars.' . $index, $expense->particular) }}" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="amounts[]" class="form-control expense-input" step="0.01" value="{{ old('amounts.' . $index, $expense->amount) }}" style="background-color: #202ba3;" oninput="calculateTotalExpenses()"></td>
+                            <td><input type="text" name="particulars[]" class="form-control" value="{{ old('particulars.' . $index, $expense->particular) }}"></td>
+                            <td><input type="number" name="amounts[]" class="form-control expense-input" step="0.01" value="{{ old('amounts.' . $index, $expense->amount) }}" oninput="calculateTotalExpenses()"></td>
                             <td><button type="button" class="btn btn-danger" onclick="removeExpenseRow(this)">Remove</button></td>
                         </tr>
                         @endforeach
                     @else
                         <tr>
-                            <td><input type="text" name="particulars[]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="amounts[]" class="form-control expense-input" step="0.01" style="background-color: #202ba3;" oninput="calculateTotalExpenses()"></td>
+                            <td><input type="text" name="particulars[]" class="form-control"></td>
+                            <td><input type="number" name="amounts[]" class="form-control expense-input" step="0.01" oninput="calculateTotalExpenses()"></td>
                             <td><button type="button" class="btn btn-danger" onclick="removeExpenseRow(this)">Remove</button></td>
                         </tr>
                     @endif
@@ -38,27 +38,27 @@
         <!-- Total Expense -->
         <div class="mt-3 form-group">
             <label>Total expense of the study:</label>
-            <input type="number" name="total_expenses" class="form-control" step="0.01" value="{{ old('total_expenses', $project->total_expenses) }}" style="background-color: #202ba3;" readonly>
+            <input type="number" name="total_expenses" class="form-control" step="0.01" value="{{ old('total_expenses', $project->total_expenses) }}" readonly>
         </div>
 
         <!-- Financial Contributions -->
         <div class="form-group">
             <label>Scholarship expected from government:</label>
-            <input type="number" name="expected_scholarship_govt" class="form-control" step="0.01" value="{{ old('expected_scholarship_govt', $project->expected_scholarship_govt) }}" style="background-color: #202ba3;" oninput="calculateBalanceRequested()">
+            <input type="number" name="expected_scholarship_govt" class="form-control" step="0.01" value="{{ old('expected_scholarship_govt', $project->expected_scholarship_govt) }}" oninput="calculateBalanceRequested()">
         </div>
         <div class="form-group">
             <label>Support from other sources:</label>
-            <input type="number" name="support_other_sources" class="form-control" step="0.01" value="{{ old('support_other_sources', $project->support_other_sources) }}" style="background-color: #202ba3;" oninput="calculateBalanceRequested()">
+            <input type="number" name="support_other_sources" class="form-control" step="0.01" value="{{ old('support_other_sources', $project->support_other_sources) }}" oninput="calculateBalanceRequested()">
         </div>
         <div class="form-group">
             <label>Beneficiaries’ contribution:</label>
-            <input type="number" name="beneficiary_contribution" class="form-control" step="0.01" value="{{ old('beneficiary_contribution', $project->beneficiary_contribution) }}" style="background-color: #202ba3;" oninput="calculateBalanceRequested()">
+            <input type="number" name="beneficiary_contribution" class="form-control" step="0.01" value="{{ old('beneficiary_contribution', $project->beneficiary_contribution) }}" oninput="calculateBalanceRequested()">
         </div>
 
         <!-- Balance Amount Requested -->
         <div class="form-group">
             <label>Balance amount requested:</label>
-            <input type="number" name="balance_requested" class="form-control" step="0.01" value="{{ old('balance_requested', $project->balance_requested) }}" style="background-color: #202ba3;" readonly>
+            <input type="number" name="balance_requested" class="form-control" step="0.01" value="{{ old('balance_requested', $project->balance_requested) }}" readonly>
         </div>
     </div>
 </div>
@@ -68,8 +68,8 @@
     function addExpenseRow() {
         const row = `
             <tr>
-                <td><input type="text" name="particulars[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="amounts[]" class="form-control expense-input" step="0.01" style="background-color: #202ba3;" oninput="calculateTotalExpenses()"></td>
+                <td><input type="text" name="particulars[]" class="form-control"></td>
+                <td><input type="number" name="amounts[]" class="form-control expense-input" step="0.01" oninput="calculateTotalExpenses()"></td>
                 <td><button type="button" class="btn btn-danger" onclick="removeExpenseRow(this)">Remove</button></td>
             </tr>`;
         document.querySelector('#expenses-table').insertAdjacentHTML('beforeend', row);

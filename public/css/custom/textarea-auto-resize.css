@@ -1,0 +1,27 @@
+/* Global TextArea Auto-Resize Styles */
+.sustainability-textarea,
+.logical-textarea,
+.auto-resize-textarea {
+    resize: vertical;
+    min-height: 80px;
+    height: auto;
+    overflow-y: hidden;
+    line-height: 1.5;
+    padding: 8px 12px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.sustainability-textarea:focus,
+.logical-textarea:focus,
+.auto-resize-textarea:focus {
+    overflow-y: auto;
+}
+
+/* For readonly textareas (still need wrap) */
+.sustainability-textarea[readonly],
+.logical-textarea[readonly],
+.auto-resize-textarea[readonly] {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}

@@ -40,7 +40,7 @@
                 @csrf
                 <div class="mb-3">
                     <label for="comment" class="form-label">Your Comment</label>
-                    <textarea name="comment" id="comment" class="form-control" rows="4" required></textarea>
+                    <textarea name="comment" id="comment" class="form-control auto-resize-textarea" rows="4" required></textarea>
                 </div>
                 <button type="submit" class="btn btn-primary">Submit Comment</button>
             </form>

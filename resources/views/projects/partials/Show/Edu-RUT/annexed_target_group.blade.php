@@ -40,7 +40,7 @@
         border-radius: 5px;
     }
     .card-header {
-        background-color: #202ba3;
+        
         color: white;
         padding: 10px;
         font-size: 18px;

@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('DP_AccountDetails', function (Blueprint $table) {
-            $table->boolean('is_budget_row')->default(false)->after('balance_amount');
+            if (!Schema::hasColumn('DP_AccountDetails', 'is_budget_row')) {
+                $table->boolean('is_budget_row')->default(false)->after('balance_amount');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('DP_AccountDetails', function (Blueprint $table) {
-            $table->dropColumn('is_budget_row');
+            if (Schema::hasColumn('DP_AccountDetails', 'is_budget_row')) {
+                $table->dropColumn('is_budget_row');
+            }
         });
     }
 };

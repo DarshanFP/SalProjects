@@ -8,19 +8,13 @@ use App\Models\OldProjects\Project;
 use App\Models\OldProjects\ProjectAttachment;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 
 class AttachmentController extends Controller
 {
     // Allowed file types and their MIME types
-    private const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx'];
-    private const ALLOWED_MIME_TYPES = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ];
-    private const MAX_FILE_SIZE = 2097152; // 2MB in bytes
+    // Configuration moved to config/attachments.php
+    // Using config() helper for better maintainability
 
     public function store(Request $request, Project $project)
     {
@@ -31,20 +25,15 @@ class AttachmentController extends Controller
         // If no file is uploaded, skip attachment processing (attachment is optional)
         if (!$request->hasFile('file')) {
             Log::info('AttachmentController@store - No file uploaded, skipping attachment');
-            return; // Return early, attachment is optional
+            return null; // Explicit return, attachment is optional
         }
 
-        // Validate request data (only if file is present)
-        $validator = Validator::make($request->all(), [
-            'file' => 'file|max:2048', // 2MB max, optional
-            'file_name' => 'nullable|string|max:255',
-            'attachment_description' => 'nullable|string|max:1000'
+        // Validate only when a file is present (ProjectController passes StoreProjectRequest here)
+        $validated = $request->validate([
+            'file' => 'required|file|max:7168', // 7MB (allows buffer for files slightly over 5MB)
+            'file_name' => 'nullable|string|max:255', // Optional - will use original filename if not provided
+            'attachment_description' => 'nullable|string|max:1000',
         ]);
-
-        if ($validator->fails()) {
-            Log::error('AttachmentController@store - Validation failed', ['errors' => $validator->errors()]);
-            return redirect()->back()->withErrors($validator)->withInput();
-        }
 
         if (!$request->file('file')->isValid()) {
             Log::error('AttachmentController@store - Invalid file upload detected');
@@ -59,11 +48,30 @@ class AttachmentController extends Controller
                 'mime_type' => $file->getMimeType(),
                 'extension' => $file->getClientOriginalExtension()
             ]);
-            return redirect()->back()->withErrors(['file' => 'Only PDF, DOC, and DOCX files are allowed'])->withInput();
+            $allowedTypes = config('attachments.allowed_types.project_attachments');
+            $typesList = implode(', ', array_map('strtoupper', $allowedTypes['extensions']));
+            $errorMsg = str_replace(':types', $typesList, config('attachments.error_messages.file_type_invalid'));
+            return redirect()->back()->withErrors(['file' => $errorMsg])->withInput();
         }
 
-        // Sanitize filename
-        $filename = $this->sanitizeFilename($request->input('file_name'), $file->getClientOriginalExtension());
+        // Validate file size (7MB max - allows buffer for files slightly over 5MB)
+        $maxSize = config('attachments.max_size');
+        if ($file->getSize() > $maxSize) {
+            Log::error('AttachmentController@store - File size exceeds limit', [
+                'file_size' => $file->getSize(),
+                'max_size' => $maxSize
+            ]);
+            $maxSizeMB = config('attachments.max_size_mb');
+            $errorMsg = str_replace(':size', $maxSizeMB, config('attachments.error_messages.file_size_exceeded_server'));
+            return redirect()->back()->withErrors(['file' => $errorMsg])->withInput();
+        }
+
+        // Sanitize filename - use provided file_name or fallback to original filename
+        $providedFileName = $validated['file_name'] ?? null;
+        if (empty($providedFileName)) {
+            $providedFileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        }
+        $filename = $this->sanitizeFilename($providedFileName, $file->getClientOriginalExtension());
 
         // Sanitize project type for folder name
         $projectType = $this->sanitizeProjectType($project->project_type);
@@ -187,32 +195,41 @@ class AttachmentController extends Controller
             return redirect()->back()->with('info', 'No new attachment uploaded.');
         }
 
+        $validated = $request->validate([
+            'file' => 'required|file|max:7168', // 7MB (allows buffer for files slightly over 5MB)
+            'file_name' => 'nullable|string|max:255',
+            'attachment_description' => 'nullable|string|max:1000',
+        ]);
+
         if (!$request->file('file')->isValid()) {
             Log::error('AttachmentController@update - Invalid file upload detected');
             return redirect()->back()->withErrors(['file' => 'Invalid file upload']);
-        }
-
-        // Validate request data (only if file is present)
-        $validator = Validator::make($request->all(), [
-            'file' => 'file|max:2048', // 2MB max, optional
-            'file_name' => 'nullable|string|max:255',
-            'attachment_description' => 'nullable|string|max:1000'
-        ]);
-
-        if ($validator->fails()) {
-            Log::error('AttachmentController@update - Validation failed', ['errors' => $validator->errors()]);
-            return redirect()->back()->withErrors($validator)->withInput();
         }
 
         $file = $request->file('file');
 
         // Validate file type
         if (!$this->isValidFileType($file)) {
-            return redirect()->back()->withErrors(['file' => 'Only PDF, DOC, and DOCX files are allowed'])->withInput();
+            $allowedTypes = config('attachments.allowed_types.project_attachments');
+            $typesList = implode(', ', array_map('strtoupper', $allowedTypes['extensions']));
+            $errorMsg = str_replace(':types', $typesList, config('attachments.error_messages.file_type_invalid'));
+            return redirect()->back()->withErrors(['file' => $errorMsg])->withInput();
+        }
+
+        // Validate file size (7MB max - allows buffer for files slightly over 5MB)
+        $maxSize = config('attachments.max_size');
+        if ($file->getSize() > $maxSize) {
+            Log::error('AttachmentController@update - File size exceeds limit', [
+                'file_size' => $file->getSize(),
+                'max_size' => $maxSize
+            ]);
+            $maxSizeMB = config('attachments.max_size_mb');
+            $errorMsg = str_replace(':size', $maxSizeMB, config('attachments.error_messages.file_size_exceeded_server'));
+            return redirect()->back()->withErrors(['file' => $errorMsg])->withInput();
         }
 
         // Sanitize filename - use provided file_name or fallback to original filename
-        $providedFileName = $request->input('file_name');
+        $providedFileName = $validated['file_name'] ?? null;
         if (empty($providedFileName)) {
             $providedFileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         }
@@ -230,22 +247,7 @@ class AttachmentController extends Controller
         try {
             DB::beginTransaction();
 
-            // Delete existing attachment (if any)
-            $existingAttachment = $project->attachments->first();
-            if ($existingAttachment) {
-                Log::info('AttachmentController@update - Deleting existing attachment', [
-                    'attachment_id' => $existingAttachment->id,
-                    'file_path' => $existingAttachment->file_path
-                ]);
-
-                if (Storage::disk('public')->exists($existingAttachment->file_path)) {
-                    Storage::disk('public')->delete($existingAttachment->file_path);
-                }
-                $existingAttachment->delete();
-                Log::info('AttachmentController@update - Existing attachment deleted');
-            }
-
-            // Store new file
+            // Store new file (add to existing attachments, don't replace)
             Log::info('AttachmentController@update - Attempting to store new file', [
                 'filename' => $filename,
                 'storage_path' => $storagePath
@@ -266,7 +268,7 @@ class AttachmentController extends Controller
                 'project_id' => $project->project_id,
                 'file_name' => $filename,
                 'file_path' => $path,
-                'description' => $request->input('attachment_description', ''),
+                'description' => $validated['attachment_description'] ?? '',
                 'public_url' => $publicUrl,
             ]);
 
@@ -277,14 +279,14 @@ class AttachmentController extends Controller
 
             DB::commit();
 
-            Log::info('AttachmentController@update - New attachment replaced successfully', [
+            Log::info('AttachmentController@update - New attachment added successfully', [
                 'file_name' => $filename,
                 'path' => $path,
                 'project_id' => $project->project_id,
                 'attachment_id' => $attachment->id
             ]);
 
-            return redirect()->back()->with('success', 'Attachment replaced successfully');
+            return redirect()->back()->with('success', 'Attachment added successfully');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -295,7 +297,7 @@ class AttachmentController extends Controller
             }
 
             Log::error('AttachmentController@update - Error', ['error' => $e->getMessage()]);
-            return redirect()->back()->withErrors(['file' => 'Failed to replace attachment: ' . $e->getMessage()])->withInput();
+            return redirect()->back()->withErrors(['file' => 'Failed to add attachment: ' . $e->getMessage()])->withInput();
         }
     }
 
@@ -307,8 +309,13 @@ class AttachmentController extends Controller
         $extension = strtolower($file->getClientOriginalExtension());
         $mimeType = $file->getMimeType();
 
-        return in_array($extension, self::ALLOWED_EXTENSIONS) &&
-               in_array($mimeType, self::ALLOWED_MIME_TYPES);
+        // Get allowed types from config
+        $allowedTypes = config('attachments.allowed_types.project_attachments');
+        $allowedExtensions = $allowedTypes['extensions'] ?? [];
+        $allowedMimeTypes = $allowedTypes['mime_types'] ?? [];
+
+        return in_array($extension, $allowedExtensions) &&
+               in_array($mimeType, $allowedMimeTypes);
     }
 
     /**

@@ -74,7 +74,7 @@
                 </div>
                 <div class="form-group">
                     <label for="address">Address</label>
-                    <textarea class="form-control" id="address" name="address"></textarea>
+                    <textarea class="form-control auto-resize-textarea" id="address" name="address"></textarea>
                 </div>
                 <button type="submit" class="btn btn-primary">Add User</button>
             </form>

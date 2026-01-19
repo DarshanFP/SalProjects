@@ -16,10 +16,10 @@
                 @foreach ($budgets ?? [] as $index => $budget)
                 <tr>
                     <td>
-                        <input type="text" name="budget_desc[{{ $index }}]" class="form-control" value="{{ $budget->budget_desc ?? '' }}" placeholder="Enter description" style="background-color: #202ba3;">
+                        <input type="text" name="budget_desc[{{ $index }}]" class="form-control" value="{{ $budget->budget_desc ?? '' }}" placeholder="Enter description">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="cost[{{ $index }}]" class="form-control budget-cost" value="{{ $budget->cost ?? '' }}" placeholder="Enter cost" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="cost[{{ $index }}]" class="form-control budget-cost" value="{{ $budget->cost ?? '' }}" placeholder="Enter cost">
                     </td>
                 </tr>
                 @endforeach
@@ -33,31 +33,31 @@
         <!-- Total Amount -->
         <div class="mt-4 mb-3">
             <label for="total_amount" class="form-label">Total amount:</label>
-            <input type="number" step="0.01" id="total_amount" name="total_amount" class="form-control" readonly style="background-color: #0c1427;" value="{{ $total_amount ?? '' }}">
+            <input type="number" step="0.01" id="total_amount" name="total_amount" class="form-control" readonly value="{{ $total_amount ?? '' }}">
         </div>
 
         <!-- Beneficiary's Contribution -->
         <div class="mb-3">
             <label for="beneficiary_contribution" class="form-label">Beneficiary’s contribution:</label>
-            <input type="number" step="0.01" id="beneficiary_contribution" name="beneficiary_contribution" class="form-control" value="{{ $beneficiary_contribution ?? '' }}" placeholder="Enter beneficiary's contribution" style="background-color: #202ba3;">
+            <input type="number" step="0.01" id="beneficiary_contribution" name="beneficiary_contribution" class="form-control" value="{{ $beneficiary_contribution ?? '' }}" placeholder="Enter beneficiary's contribution">
         </div>
 
         <!-- Amount Requested -->
         <div class="mb-3">
             <label for="amount_requested" class="form-label">Amount requested:</label>
-            <input type="number" step="0.01" id="amount_requested" name="amount_requested" class="form-control" readonly style="background-color: #0c1427;" value="{{ $amount_requested ?? '' }}">
+            <input type="number" step="0.01" id="amount_requested" name="amount_requested" class="form-control" readonly value="{{ $amount_requested ?? '' }}">
         </div>
 
         <!-- Estimated Annual Income -->
         {{-- <div class="mb-3">
             <label for="estimated_annual_income" class="form-label">Estimated Annual Income:</label>
-            <input type="number" step="0.01" id="estimated_annual_income" name="estimated_annual_income" class="form-control" value="{{ $estimated_annual_income ?? '' }}" placeholder="Enter estimated annual income" style="background-color: #202ba3;">
+            <input type="number" step="0.01" id="estimated_annual_income" name="estimated_annual_income" class="form-control" value="{{ $estimated_annual_income ?? '' }}" placeholder="Enter estimated annual income">
         </div>
 
         <!-- Estimated Annual Expenses -->
         <div class="mb-3">
             <label for="estimated_annual_expenses" class="form-label">Estimated Annual Expenses:</label>
-            <input type="number" step="0.01" id="estimated_annual_expenses" name="estimated_annual_expenses" class="form-control" value="{{ $estimated_annual_expenses ?? '' }}" placeholder="Enter estimated annual expenses" style="background-color: #202ba3;">
+            <input type="number" step="0.01" id="estimated_annual_expenses" name="estimated_annual_expenses" class="form-control" value="{{ $estimated_annual_expenses ?? '' }}" placeholder="Enter estimated annual expenses">
         </div> --}}
     </div>
 </div>
@@ -100,10 +100,10 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>
-                        <input type="text" name="budget_desc[${itemIndex}]" class="form-control" placeholder="Enter description" style="background-color: #202ba3;">
+                        <input type="text" name="budget_desc[${itemIndex}]" class="form-control" placeholder="Enter description">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="cost[${itemIndex}]" class="form-control budget-cost" placeholder="Enter cost" style="background-color: #202ba3;">
+                        <input type="number" step="0.01" name="cost[${itemIndex}]" class="form-control budget-cost" placeholder="Enter cost">
                     </td>
                 `;
                 budgetBody.appendChild(row);

@@ -3,44 +3,38 @@
 namespace App\Http\Controllers\Projects\IGE;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IGE\ProjectIGEBudget;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IGE\StoreIGEBudgetRequest;
+use App\Http\Requests\Projects\IGE\UpdateIGEBudgetRequest;
 
 class IGEBudgetController extends Controller
 {
     // Store or update budget for a project
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including name[], study_proposed[], etc. arrays
+        // These fields are not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing IGE budget', ['project_id' => $projectId]);
-
-            // Validate the request data (allowing nullable fields)
-            $this->validate($request, [
-                'name.*' => 'nullable|string|max:255',
-                'study_proposed.*' => 'nullable|string|max:255',
-                'college_fees.*' => 'nullable|numeric|min:0',
-                'hostel_fees.*' => 'nullable|numeric|min:0',
-                'total_amount.*' => 'nullable|numeric|min:0',
-                'scholarship_eligibility.*' => 'nullable|numeric|min:0',
-                'family_contribution.*' => 'nullable|numeric|min:0',
-                'amount_requested.*' => 'nullable|numeric|min:0',
-            ]);
 
             // First, delete all existing budget records for the project
             ProjectIGEBudget::where('project_id', $projectId)->delete();
 
             // Insert new budget entries
-            $names = $request->input('name', []);
-            $studiesProposed = $request->input('study_proposed', []);
-            $collegeFees = $request->input('college_fees', []);
-            $hostelFees = $request->input('hostel_fees', []);
-            $totalAmounts = $request->input('total_amount', []);
-            $scholarshipEligibility = $request->input('scholarship_eligibility', []);
-            $familyContributions = $request->input('family_contribution', []);
-            $amountRequested = $request->input('amount_requested', []);
+            $names = $validated['name'] ?? [];
+            $studiesProposed = $validated['study_proposed'] ?? [];
+            $collegeFees = $validated['college_fees'] ?? [];
+            $hostelFees = $validated['hostel_fees'] ?? [];
+            $totalAmounts = $validated['total_amount'] ?? [];
+            $scholarshipEligibility = $validated['scholarship_eligibility'] ?? [];
+            $familyContributions = $validated['family_contribution'] ?? [];
+            $amountRequested = $validated['amount_requested'] ?? [];
 
             // Store each budget row
             foreach ($names as $i => $name) {
@@ -110,9 +104,10 @@ class IGEBudgetController extends Controller
     }
 
     // Update budget for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
-        return $this->store($request, $projectId); // Reuse the store logic for update
+        // Reuse store logic
+        return $this->store($request, $projectId);
     }
 
     // Delete budget for a project

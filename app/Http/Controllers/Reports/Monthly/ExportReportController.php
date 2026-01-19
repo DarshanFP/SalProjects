@@ -12,6 +12,7 @@ use App\Models\Reports\Monthly\DPOutlook;
 use App\Models\OldProjects\Project;
 use App\Models\OldProjects\ProjectBudget;
 use App\Models\User;
+use App\Helpers\NumberFormatHelper;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Style\Table;
 use PhpOffice\PhpWord\IOFactory;
@@ -56,7 +57,8 @@ class ExportReportController extends Controller
 
             switch ($user->role) {
                 case 'executor':
-                    // Executors can download their own reports
+                case 'applicant':
+                    // Executors/Applicants can download their own reports
                     if ($report->user_id === $user->id) {
                         $hasAccess = true;
                     }
@@ -70,7 +72,8 @@ class ExportReportController extends Controller
                     break;
 
                 case 'coordinator':
-                    // Coordinators can download all reports
+                case 'general':
+                    // Coordinators and General users can download all reports
                     $hasAccess = true;
                     break;
             }
@@ -240,7 +243,8 @@ class ExportReportController extends Controller
 
             switch ($user->role) {
                 case 'executor':
-                    // Executors can download their own reports
+                case 'applicant':
+                    // Executors/Applicants can download their own reports
                     if ($report->user_id === $user->id) {
                         $hasAccess = true;
                     }
@@ -254,7 +258,8 @@ class ExportReportController extends Controller
                     break;
 
                 case 'coordinator':
-                    // Coordinators can download all reports
+                case 'general':
+                    // Coordinators and General users can download all reports
                     $hasAccess = true;
                     break;
             }
@@ -353,96 +358,11 @@ class ExportReportController extends Controller
             return collect();
         }
 
-        switch ($project->project_type) {
-            case 'Development Projects':
-            case 'Livelihood Development Projects':
-            case 'Residential Skill Training Proposal 2':
-            case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
-            case 'CHILD CARE INSTITUTION':
-            case 'Rural-Urban-Tribal':
-                return $this->getDevelopmentProjectBudgets($project);
-
-            case 'Individual - Livelihood Application':
-                return $this->getILPBudgets($project);
-
-            case 'Individual - Access to Health':
-                return $this->getIAHBudgets($project);
-
-            case 'Institutional Ongoing Group Educational proposal':
-                return $this->getIGEBudgets($project);
-
-            case 'Individual - Initial - Educational support':
-                return $this->getIIESBudgets($project);
-
-            case 'Individual - Ongoing Educational support':
-                return $this->getIESBudgets($project);
-
-            default:
-                Log::warning('Unknown project type, using development project budgets as fallback', ['project_type' => $project->project_type]);
-                return $this->getDevelopmentProjectBudgets($project);
-        }
+        return \App\Services\Budget\BudgetCalculationService::getBudgetsForExport($project);
     }
 
-    /**
-     * Get Development Project budgets
-     */
-    private function getDevelopmentProjectBudgets($project)
-    {
-        $highestPhase = ProjectBudget::where('project_id', $project->project_id)->max('phase');
-        Log::info('Retrieved highest phase for development project', ['highestPhase' => $highestPhase]);
-
-        return ProjectBudget::where('project_id', $project->project_id)
-            ->where('phase', $highestPhase)
-            ->get();
-    }
-
-    /**
-     * Get ILP (Individual Livelihood) budgets
-     */
-    private function getILPBudgets($project)
-    {
-        return \App\Models\OldProjects\ILP\ProjectILPBudget::where('project_id', $project->project_id)->get();
-    }
-
-    /**
-     * Get IAH (Individual Access to Health) budgets
-     */
-    private function getIAHBudgets($project)
-    {
-        return \App\Models\OldProjects\IAH\ProjectIAHBudgetDetails::where('project_id', $project->project_id)->get();
-    }
-
-    /**
-     * Get IGE (Institutional Group Education) budgets
-     */
-    private function getIGEBudgets($project)
-    {
-        return \App\Models\OldProjects\IGE\ProjectIGEBudget::where('project_id', $project->project_id)->get();
-    }
-
-    /**
-     * Get IIES (Individual Initial Educational Support) budgets
-     */
-    private function getIIESBudgets($project)
-    {
-        $iiesExpenses = \App\Models\OldProjects\IIES\ProjectIIESExpenses::where('project_id', $project->project_id)->first();
-        if ($iiesExpenses) {
-            return $iiesExpenses->expenseDetails;
-        }
-        return collect();
-    }
-
-    /**
-     * Get IES (Individual Ongoing Educational Support) budgets
-     */
-    private function getIESBudgets($project)
-    {
-        $iesExpenses = \App\Models\OldProjects\IES\ProjectIESExpenses::where('project_id', $project->project_id)->first();
-        if ($iesExpenses) {
-            return $iesExpenses->expenseDetails;
-        }
-        return collect();
-    }
+    // Budget calculation methods removed - now using BudgetCalculationService
+    // See: app/Services/Budget/BudgetCalculationService.php
 
     // General info
     private function addGeneralInfoSection(PhpWord $phpWord, $report, $project)
@@ -512,7 +432,7 @@ class ExportReportController extends Controller
                 $table->addCell(3000)->addText($annexure->beneficiary_name ?? 'N/A');
                 $table->addCell(3000)->addText($annexure->family_situation ?? 'N/A');
                 $table->addCell(3000)->addText($annexure->nature_of_livelihood ?? 'N/A');
-                $table->addCell(2000)->addText($annexure->amount_requested ? 'Rs. ' . number_format($annexure->amount_requested, 2) : 'N/A');
+                $table->addCell(2000)->addText($annexure->amount_requested ? NumberFormatHelper::formatIndianCurrency($annexure->amount_requested, 2) : 'N/A');
             }
         } else {
             $section->addText("No annexure data available.", ['italic' => true]);
@@ -688,10 +608,9 @@ class ExportReportController extends Controller
         // Account Overview
         $section->addText("Account Overview", ['bold' => true, 'size' => 12]);
         $section->addText("Account Period: " . (\Carbon\Carbon::parse($report->account_period_start)->format('d-m-Y') ?? 'N/A') . " to " . (\Carbon\Carbon::parse($report->account_period_end)->format('d-m-Y') ?? 'N/A'));
-        $section->addText("Amount Sanctioned: Rs. " . number_format($report->amount_sanctioned_overview ?? 0, 2));
-        $section->addText("Amount Forwarded: Rs. " . number_format($report->amount_forwarded_overview ?? 0, 2));
-        $section->addText("Total Amount: Rs. " . number_format($report->amount_in_hand ?? 0, 2));
-        $section->addText("Balance Forwarded: Rs. " . number_format($report->total_balance_forwarded ?? 0, 2));
+        $section->addText("Amount Sanctioned: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($report->amount_sanctioned_overview ?? 0, 2));
+        $section->addText("Total Amount: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($report->amount_in_hand ?? 0, 2));
+        $section->addText("Balance Forwarded: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($report->total_balance_forwarded ?? 0, 2));
         $section->addTextBreak(1);
 
         // Account Details Table
@@ -702,7 +621,6 @@ class ExportReportController extends Controller
 
             $table->addRow();
             $table->addCell(2000)->addText("Particulars", ['bold' => true]);
-            $table->addCell(1500)->addText("Amount Forwarded", ['bold' => true]);
             $table->addCell(1500)->addText("Amount Sanctioned", ['bold' => true]);
             $table->addCell(1500)->addText("Total Amount", ['bold' => true]);
             $table->addCell(1500)->addText("Expenses Last Month", ['bold' => true]);
@@ -717,13 +635,12 @@ class ExportReportController extends Controller
                     $particulars .= ' (Budget Row)';
                 }
                 $table->addCell(2000)->addText($particulars);
-                $table->addCell(1500)->addText("Rs. " . number_format($accountDetail->amount_forwarded ?? 0, 2));
-                $table->addCell(1500)->addText("Rs. " . number_format($accountDetail->amount_sanctioned ?? 0, 2));
-                $table->addCell(1500)->addText("Rs. " . number_format($accountDetail->total_amount ?? 0, 2));
-                $table->addCell(1500)->addText("Rs. " . number_format($accountDetail->expenses_last_month ?? 0, 2));
-                $table->addCell(1500)->addText("Rs. " . number_format($accountDetail->expenses_this_month ?? 0, 2));
-                $table->addCell(1500)->addText("Rs. " . number_format($accountDetail->total_expenses ?? 0, 2));
-                $table->addCell(1500)->addText("Rs. " . number_format($accountDetail->balance_amount ?? 0, 2));
+                $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($accountDetail->amount_sanctioned ?? 0, 2));
+                $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($accountDetail->total_amount ?? 0, 2));
+                $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($accountDetail->expenses_last_month ?? 0, 2));
+                $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($accountDetail->expenses_this_month ?? 0, 2));
+                $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($accountDetail->total_expenses ?? 0, 2));
+                $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndianCurrency($accountDetail->balance_amount ?? 0, 2));
             }
         } else {
             $section->addText("No account details available.", ['italic' => true]);

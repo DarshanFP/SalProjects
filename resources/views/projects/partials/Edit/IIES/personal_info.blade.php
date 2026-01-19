@@ -51,7 +51,7 @@
 
         <div class="form-group">
             <label>Full Address:</label>
-            <textarea name="iies_full_address" class="form-control" rows="3">{{ old('iies_full_address', $personalInfo->iies_full_address) }}</textarea>
+            <textarea name="iies_full_address" class="form-control sustainability-textarea" rows="3">{{ old('iies_full_address', $personalInfo->iies_full_address) }}</textarea>
         </div>
 
         <div class="form-group">
@@ -107,13 +107,8 @@
     </div>
 </div>
 
-<!-- Styles -->
 <style>
-    .form-control {
-        background-color: #202ba3;
-        color: white;
-    }
-    .card-header h4 {
-        margin-bottom: 0;
-    }
+.card-header h4 {
+    margin-bottom: 0;
+}
 </style>

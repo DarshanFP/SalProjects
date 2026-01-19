@@ -6,13 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Reports\Monthly\QRDLAnnexure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Helpers\LogHelper;
 
 class PartialDevelopmentLivelihoodController extends Controller
 {
     public function storeAnnexure(Request $request, $report_id)
     {
         Log::info('Store Annexure method called');
-        Log::info('Request data: ', $request->all());
+        LogHelper::logSafeRequest('Request data', $request, LogHelper::getReportAllowedFields());
 
         // Validate the incoming request data
         $validatedData = $request->validate([

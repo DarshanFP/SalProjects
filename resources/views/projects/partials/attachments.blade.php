@@ -6,10 +6,19 @@
     <div class="card-body">
         <div class="mb-3">
             <label for="file" class="form-label">Attachment File</label>
-            <label class="form-label"><i>(PDF, DOC, DOCX files are allowed, maximum 2 MB)</i></label>
+            <label class="form-label">
+                <i>
+                    @php
+                        $allowedTypes = config('attachments.allowed_types.project_attachments');
+                        $typesList = implode(', ', array_map('strtoupper', $allowedTypes['extensions']));
+                        $maxSizeMB = config('attachments.display_max_size_mb');
+                    @endphp
+                    ({{ $typesList }} files are allowed, maximum {{ $maxSizeMB }} MB)
+                </i>
+            </label>
 
             <input type="file" name="file" id="file" class="mb-2 form-control @error('file') is-invalid @enderror"
-                   accept=".pdf, .doc, .docx" onchange="validateFile(this)" style="background-color: #202ba3;">
+                   accept=".pdf, .doc, .docx" onchange="validateFile(this)">
 
             <div id="file-preview" class="mt-2" style="display: none;">
                 <div class="alert alert-info">
@@ -19,11 +28,16 @@
             </div>
 
             <div id="file-size-warning" class="alert alert-danger mt-2" style="display: none;">
-                <i class="fas fa-exclamation-triangle"></i> File size must not exceed 2 MB!
+                <i class="fas fa-exclamation-triangle"></i> {{ str_replace(':size', config('attachments.display_max_size_mb'), config('attachments.error_messages.file_size_exceeded')) }}!
             </div>
 
             <div id="file-type-warning" class="alert alert-danger mt-2" style="display: none;">
-                <i class="fas fa-exclamation-triangle"></i> Only PDF, DOC, and DOCX files are allowed!
+                <i class="fas fa-exclamation-triangle"></i>
+                @php
+                    $allowedTypes = config('attachments.allowed_types.project_attachments');
+                    $typesList = implode(', ', array_map('strtoupper', $allowedTypes['extensions']));
+                @endphp
+                {{ str_replace(':types', $typesList, config('attachments.error_messages.file_type_invalid')) }}!
             </div>
 
             @error('file')
@@ -34,7 +48,7 @@
         <div class="mb-3">
             <label for="file_name" class="form-label">File Name</label>
             <input type="text" name="file_name" id="file_name" class="mb-2 form-control @error('file_name') is-invalid @enderror"
-                   placeholder="Enter a descriptive name for the file" style="background-color: #202ba3;">
+                   placeholder="Enter a descriptive name for the file">
 
             @error('file_name')
                 <div class="invalid-feedback">{{ $message }}</div>
@@ -43,8 +57,8 @@
 
         <div class="mb-3">
             <label for="attachment_description" class="form-label">Brief Description</label>
-            <textarea name="attachment_description" id="attachment_description" class="form-control @error('attachment_description') is-invalid @enderror"
-                      rows="3" placeholder="Describe the content and purpose of this file" style="background-color: #202ba3;"></textarea>
+            <textarea name="attachment_description" id="attachment_description" class="form-control sustainability-textarea @error('attachment_description') is-invalid @enderror"
+                      rows="3" placeholder="Describe the content and purpose of this file"></textarea>
 
             @error('attachment_description')
                 <div class="invalid-feedback">{{ $message }}</div>
@@ -53,49 +67,59 @@
     </div>
 </div>
 
+<script src="{{ asset('js/attachments-validation.js') }}"></script>
 <script>
 function validateFile(input) {
     const file = input.files[0];
     const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    const maxSize = 2097152; // 2MB
+    const maxSize = 7340032; // 7MB (server allows up to 7MB, but we display 5MB to users)
 
-    // Reset warnings
-    document.getElementById('file-size-warning').style.display = 'none';
-    document.getElementById('file-type-warning').style.display = 'none';
-    document.getElementById('file-preview').style.display = 'none';
+    // Reset warnings with null checks
+    const sizeWarning = document.getElementById('file-size-warning');
+    const typeWarning = document.getElementById('file-type-warning');
+    const preview = document.getElementById('file-preview');
+
+    if (sizeWarning) sizeWarning.style.display = 'none';
+    if (typeWarning) typeWarning.style.display = 'none';
+    if (preview) preview.style.display = 'none';
 
     if (file) {
         // Check file type
         if (!validTypes.includes(file.type)) {
-            document.getElementById('file-type-warning').style.display = 'block';
+            if (typeWarning) typeWarning.style.display = 'block';
             input.value = '';
             return;
         }
 
         // Check file size
         if (file.size > maxSize) {
-            document.getElementById('file-size-warning').style.display = 'block';
+            if (sizeWarning) sizeWarning.style.display = 'block';
             input.value = '';
             return;
         }
 
-        // Show file preview with appropriate icon
-        document.getElementById('file-name').textContent = file.name;
-        document.getElementById('file-size').textContent = formatFileSize(file.size);
+        // Show file preview with appropriate icon (with null checks)
+        const fileNameEl = document.getElementById('file-name');
+        const fileSizeEl = document.getElementById('file-size');
+        const fileIcon = document.getElementById('file-icon');
+
+        if (fileNameEl) fileNameEl.textContent = file.name;
+        if (fileSizeEl) fileSizeEl.textContent = formatFileSize(file.size);
 
         // Set appropriate icon based on file type
-        const fileIcon = document.getElementById('file-icon');
-        if (file.type === 'application/pdf') {
-            fileIcon.className = 'fas fa-file-pdf text-danger';
-        } else if (file.type === 'application/msword') {
-            fileIcon.className = 'fas fa-file-word text-primary';
-        } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-            fileIcon.className = 'fas fa-file-word text-primary';
-        } else {
-            fileIcon.className = 'fas fa-file text-secondary';
+        if (fileIcon) {
+            if (file.type === 'application/pdf') {
+                fileIcon.className = 'fas fa-file-pdf text-danger';
+            } else if (file.type === 'application/msword') {
+                fileIcon.className = 'fas fa-file-word text-primary';
+            } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                fileIcon.className = 'fas fa-file-word text-primary';
+            } else {
+                fileIcon.className = 'fas fa-file text-secondary';
+            }
         }
 
-        document.getElementById('file-preview').style.display = 'block';
+        if (preview) preview.style.display = 'block';
     }
 }
 

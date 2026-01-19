@@ -7,20 +7,22 @@ use Illuminate\Http\Request;
 use App\Models\OldProjects\LDP\ProjectLDPNeedAnalysis;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Foundation\Http\FormRequest;
 
 class NeedAnalysisController extends Controller
 {
     // Store or update the Need Analysis
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
-        $request->validate([
-            'need_analysis_file' => 'nullable|file|mimes:pdf,doc,docx|max:2048', // Validation for file type and size
-        ]);
+        // Validation already done by FormRequest
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
 
         try {
             Log::info('Storing Need Analysis', ['project_id' => $projectId]);
 
             // Handle file upload
+            $filePath = null;
             if ($request->hasFile('need_analysis_file')) {
                 $filePath = $request->file('need_analysis_file')->store('ldp/need_analysis', 'public');
             }
@@ -88,11 +90,11 @@ class NeedAnalysisController extends Controller
         }
     }
 
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
-        $request->validate([
-            'need_analysis_file' => 'nullable|file|mimes:pdf,doc,docx|max:2048', // Validation for file type and size
-        ]);
+        // Validation and authorization already done by FormRequest
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
 
         try {
             Log::info('Updating Need Analysis', ['project_id' => $projectId]);

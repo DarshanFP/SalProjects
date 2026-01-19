@@ -39,7 +39,7 @@
             </div>
             <div class="form-group">
                 <label>Any other:</label>
-                <input type="text" name="other_family_details" class="form-control" value="{{ old('other_family_details', $familyDetails->other_family_details) }}" style="background-color: #202ba3;">
+                <input type="text" name="other_family_details" class="form-control" value="{{ old('other_family_details', $familyDetails->other_family_details) }}">
             </div>
         </div>
 
@@ -64,7 +64,7 @@
             </div>
             <div class="form-group">
                 <label>Others:</label>
-                <input type="text" name="father_health_others" class="form-control" value="{{ old('father_health_others', $familyDetails->father_health_others) }}" style="background-color: #202ba3;">
+                <input type="text" name="father_health_others" class="form-control" value="{{ old('father_health_others', $familyDetails->father_health_others) }}">
             </div>
         </div>
 
@@ -89,7 +89,7 @@
             </div>
             <div class="form-group">
                 <label>Others:</label>
-                <input type="text" name="mother_health_others" class="form-control" value="{{ old('mother_health_others', $familyDetails->mother_health_others) }}" style="background-color: #202ba3;">
+                <input type="text" name="mother_health_others" class="form-control" value="{{ old('mother_health_others', $familyDetails->mother_health_others) }}">
             </div>
         </div>
 
@@ -106,20 +106,20 @@
             </div>
             <div class="form-group">
                 <label>Others:</label>
-                <input type="text" name="residential_others" class="form-control" value="{{ old('residential_others', $familyDetails->residential_others) }}" style="background-color: #202ba3;">
+                <input type="text" name="residential_others" class="form-control" value="{{ old('residential_others', $familyDetails->residential_others) }}">
             </div>
         </div>
 
         <!-- Family Situation -->
         <div class="form-group">
             <label><strong>Family Situation</strong></label>
-            <textarea name="family_situation" class="form-control" rows="3" style="background-color: #202ba3;">{{ old('family_situation', $familyDetails->family_situation) }}</textarea>
+            <textarea name="family_situation" class="form-control" rows="3">{{ old('family_situation', $familyDetails->family_situation) }}</textarea>
         </div>
 
         <!-- Need of Project Assistance -->
         <div class="form-group">
             <label><strong>Need of Project Assistance</strong></label>
-            <textarea name="assistance_need" class="form-control" rows="3" style="background-color: #202ba3;">{{ old('assistance_need', $familyDetails->assistance_need) }}</textarea>
+            <textarea name="assistance_need" class="form-control" rows="3">{{ old('assistance_need', $familyDetails->assistance_need) }}</textarea>
         </div>
 
         <!-- Financial Support -->
@@ -135,7 +135,7 @@
             </div>
             <div class="form-group">
                 <label>If yes, give details:</label>
-                <textarea name="support_details" class="form-control" rows="3" style="background-color: #202ba3;">{{ old('support_details', $familyDetails->support_details) }}</textarea>
+                <textarea name="support_details" class="form-control" rows="3">{{ old('support_details', $familyDetails->support_details) }}</textarea>
             </div>
         </div>
 
@@ -152,7 +152,7 @@
             </div>
             <div class="form-group">
                 <label>If yes, give details:</label>
-                <textarea name="employment_details" class="form-control" rows="3" style="background-color: #202ba3;">{{ old('employment_details', $familyDetails->employment_details) }}</textarea>
+                <textarea name="employment_details" class="form-control" rows="3">{{ old('employment_details', $familyDetails->employment_details) }}</textarea>
             </div>
         </div>
     </div>

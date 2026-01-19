@@ -18,9 +18,9 @@
                 <tbody id="IESfamily-working-members-rows">
                     <tr>
                         <td>1</td>
-                        <td><input type="text" name="member_name[0]" class="form-control" style="background-color: #202ba3;"></td>
-                        <td><input type="text" name="work_nature[0]" class="form-control" style="background-color: #202ba3;"></td>
-                        <td><input type="number" name="monthly_income[0]" class="form-control" step="0.01" style="background-color: #202ba3;"></td>
+                        <td><input type="text" name="member_name[0]" class="form-control"></td>
+                        <td><input type="text" name="work_nature[0]" class="form-control"></td>
+                        <td><input type="number" name="monthly_income[0]" class="form-control" step="0.01"></td>
                         <td><button type="button" class="btn btn-danger" onclick="IESremoveFamilyMemberRow(this)">Remove</button></td>
                     </tr>
                 </tbody>
@@ -39,9 +39,9 @@
         const newRow = `
             <tr>
                 <td>${rowCount + 1}</td>
-                <td><input type="text" name="member_name[${rowCount}]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="text" name="work_nature[${rowCount}]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="monthly_income[${rowCount}]" class="form-control" step="0.01" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="member_name[${rowCount}]" class="form-control"></td>
+                <td><input type="text" name="work_nature[${rowCount}]" class="form-control"></td>
+                <td><input type="number" name="monthly_income[${rowCount}]" class="form-control" step="0.01"></td>
                 <td><button type="button" class="btn btn-danger" onclick="IESremoveFamilyMemberRow(this)">Remove</button></td>
             </tr>
         `;

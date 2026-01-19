@@ -57,13 +57,15 @@ use App\Models\OldProjects\ILP\ProjectILPRevenueIncome;
 use App\Models\OldProjects\ILP\ProjectILPRevenuePlanItem;
 use App\Models\OldProjects\ILP\ProjectILPRiskAnalysis;
 use App\Models\OldProjects\RST\ProjectDPRSTBeneficiariesArea;
+use App\Models\ActivityHistory;
 use App\Models\ProjectComment;
+use App\Models\ProjectStatusHistory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $project_id
@@ -94,7 +96,12 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $coordinator_luzern_phone
  * @property string|null $coordinator_luzern_email
  * @property string $status
- * @property string $goal
+ * @property string|null $initial_information
+ * @property string|null $target_beneficiaries
+ * @property string|null $general_situation
+ * @property string|null $need_of_project
+ * @property string|null $goal
+ * @property string|null $predecessor_project_id
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectDPRSTBeneficiariesArea> $DPRSTBeneficiariesAreas
@@ -241,6 +248,11 @@ class Project extends Model
     use HasFactory;
     // protected $primaryKey = 'project_id';
 
+    protected static function newFactory()
+    {
+        return \Database\Factories\ProjectFactory::new();
+    }
+
     protected $fillable = [
         'user_id',
         'project_id',
@@ -261,6 +273,7 @@ class Project extends Model
         'commencement_month_year',
         'overall_project_budget',
         'amount_forwarded',
+        'local_contribution',
         'amount_sanctioned',
         'opening_balance',
         'coordinator_india_name',
@@ -269,10 +282,45 @@ class Project extends Model
         'coordinator_luzern_name',
         'coordinator_luzern_phone',
         'coordinator_luzern_email',
+        'initial_information',
+        'target_beneficiaries',
+        'general_situation',
+        'need_of_project',
         'goal',
         'status',
-        'predecessor_project_id'
+        'predecessor_project_id',
+        'completed_at',
+        'completion_notes'
     ];
+
+    protected $casts = [
+        'completed_at' => 'datetime',
+    ];
+
+    /**
+     * Get the completion status
+     */
+    public function getIsCompletedAttribute(): bool
+    {
+        return !is_null($this->completed_at);
+    }
+
+    /**
+     * Scope a query to only include completed projects.
+     */
+    public function scopeCompleted($query)
+    {
+        return $query->whereNotNull('completed_at');
+    }
+
+    /**
+     * Scope a query to only include non-completed projects.
+     */
+    public function scopeNotCompleted($query)
+    {
+        return $query->whereNull('completed_at');
+    }
+
 // In your Project model or a helper:
 public static $statusLabels = [
     'draft' => 'Draft (Executor still working)',
@@ -282,6 +330,17 @@ public static $statusLabels = [
     'reverted_by_coordinator' => 'Coordinator sent back for changes',
     'approved_by_coordinator' => 'Approved by Coordinator',
     'rejected_by_coordinator' => 'Rejected by Coordinator',
+    // General user acting as Coordinator
+    'approved_by_general_as_coordinator' => 'Approved by General (as Coordinator)',
+    'reverted_by_general_as_coordinator' => 'Reverted by General (as Coordinator)',
+    // General user acting as Provincial
+    'approved_by_general_as_provincial' => 'Approved by General (as Provincial)',
+    'reverted_by_general_as_provincial' => 'Reverted by General (as Provincial)',
+    // Granular revert statuses
+    'reverted_to_executor' => 'Reverted to Executor',
+    'reverted_to_applicant' => 'Reverted to Applicant',
+    'reverted_to_provincial' => 'Reverted to Provincial',
+    'reverted_to_coordinator' => 'Reverted to Coordinator',
 ];
 
     protected static function boot()
@@ -641,6 +700,18 @@ public function successors()
 public function reports()
 {
     return $this->hasMany(\App\Models\Reports\Monthly\DPReport::class, 'project_id', 'project_id');
+}
+
+public function statusHistory()
+{
+    return $this->hasMany(ProjectStatusHistory::class, 'project_id', 'project_id')->orderBy('created_at', 'desc');
+}
+
+public function activityHistory()
+{
+    return $this->hasMany(ActivityHistory::class, 'related_id', 'project_id')
+        ->where('type', 'project')
+        ->orderBy('created_at', 'desc');
 }
 
 }

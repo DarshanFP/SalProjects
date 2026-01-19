@@ -3,22 +3,26 @@
 namespace App\Http\Controllers\Projects\IAH;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IAH\ProjectIAHHealthCondition;
 use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IAH\StoreIAHHealthConditionRequest;
+use App\Http\Requests\Projects\IAH\UpdateIAHHealthConditionRequest;
 
 class IAHHealthConditionController extends Controller
 {
     /**
      * Store (create) health condition info for a project.
      */
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('IAHHealthConditionController@store - Start', [
-            'project_id' => $projectId,
-            'request_data' => $request->all()
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
@@ -28,13 +32,13 @@ class IAHHealthConditionController extends Controller
 
             $healthCondition = new ProjectIAHHealthCondition();
             $healthCondition->project_id       = $projectId;
-            $healthCondition->illness          = $request->input('illness');
-            $healthCondition->treatment        = $request->input('treatment');
-            $healthCondition->doctor           = $request->input('doctor');
-            $healthCondition->hospital         = $request->input('hospital');
-            $healthCondition->doctor_address   = $request->input('doctor_address');
-            $healthCondition->health_situation = $request->input('health_situation');
-            $healthCondition->family_situation = $request->input('family_situation');
+            $healthCondition->illness          = $validated['illness'] ?? null;
+            $healthCondition->treatment        = $validated['treatment'] ?? null;
+            $healthCondition->doctor           = $validated['doctor'] ?? null;
+            $healthCondition->hospital         = $validated['hospital'] ?? null;
+            $healthCondition->doctor_address   = $validated['doctor_address'] ?? null;
+            $healthCondition->health_situation = $validated['health_situation'] ?? null;
+            $healthCondition->family_situation = $validated['family_situation'] ?? null;
             $healthCondition->save();
 
             DB::commit();
@@ -55,11 +59,13 @@ class IAHHealthConditionController extends Controller
     /**
      * Update an existing health condition record.
      */
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('IAHHealthConditionController@update - Start', [
-            'project_id'   => $projectId,
-            'request_data' => $request->all()
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
@@ -69,13 +75,13 @@ class IAHHealthConditionController extends Controller
                 'health_condition_id' => $healthCondition->id
             ]);
 
-            $healthCondition->illness          = $request->input('illness');
-            $healthCondition->treatment        = $request->input('treatment');
-            $healthCondition->doctor           = $request->input('doctor');
-            $healthCondition->hospital         = $request->input('hospital');
-            $healthCondition->doctor_address   = $request->input('doctor_address');
-            $healthCondition->health_situation = $request->input('health_situation');
-            $healthCondition->family_situation = $request->input('family_situation');
+            $healthCondition->illness          = $validated['illness'] ?? null;
+            $healthCondition->treatment        = $validated['treatment'] ?? null;
+            $healthCondition->doctor           = $validated['doctor'] ?? null;
+            $healthCondition->hospital         = $validated['hospital'] ?? null;
+            $healthCondition->doctor_address   = $validated['doctor_address'] ?? null;
+            $healthCondition->health_situation = $validated['health_situation'] ?? null;
+            $healthCondition->family_situation = $validated['family_situation'] ?? null;
             $healthCondition->save();
 
             DB::commit();

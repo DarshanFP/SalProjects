@@ -21,12 +21,12 @@ class AdminController extends Controller
         });
     }
 
-    public function AdminDashboard()
+    public function adminDashboard()
     {
         return view('admin.dashboard');
     }
 
-    public function AdminLogout(Request $request)
+    public function adminLogout(Request $request)
     {
         Auth::guard('web')->logout();
 

@@ -2,38 +2,47 @@
 <div class="card-body">
     <div class="mb-3">
         <label for="project_type" class="form-label">Project Type</label>
-        <select name="project_type" id="project_type" class="form-control select-input" required style="background-color: #202ba3;">
+        <select name="project_type" id="project_type" class="form-control select-input" required>
             <option value="" disabled selected>Select Project Type</option>
-            <option value="CHILD CARE INSTITUTION" {{ old('project_type') == 'CHILD CARE INSTITUTION' ? 'selected' : '' }}>CHILD CARE INSTITUTION - Welfare home for children - Ongoing</option>
-            <option value="Development Projects" {{ old('project_type') == 'Development Projects' ? 'selected' : '' }}>Development Projects - Application</option>
-            <option value="Rural-Urban-Tribal" {{ old('project_type') == 'Rural-Urban-Tribal' ? 'selected' : '' }}>Education Rural-Urban-Tribal</option>
-            <option value="Institutional Ongoing Group Educational proposal" {{ old('project_type') == 'Institutional Ongoing Group Educational proposal' ? 'selected' : '' }}>Institutional Ongoing Group Educational proposal</option>
-            <option value="Livelihood Development Projects" {{ old('project_type') == 'Livelihood Development Projects' ? 'selected' : '' }}>Livelihood Development Projects</option>
-            <option value="PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER" {{ old('project_type') == 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER' ? 'selected' : '' }}>PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER - Application</option>
-            <option value="NEXT PHASE - DEVELOPMENT PROPOSAL" {{ old('project_type') == 'NEXT PHASE - DEVELOPMENT PROPOSAL' ? 'selected' : '' }}>NEXT PHASE - DEVELOPMENT PROPOSAL</option>
-            <option value="Residential Skill Training Proposal 2" {{ old('project_type') == 'Residential Skill Training Proposal 2' ? 'selected' : '' }}>Residential Skill Training Proposal 2</option>
-            <option value="Individual - Ongoing Educational support" {{ old('project_type') == 'Individual - Ongoing Educational support' ? 'selected' : '' }}>Individual - Ongoing Educational support - Project Application</option>
-            <option value="Individual - Livelihood Application" {{ old('project_type') == 'Individual - Livelihood Application' ? 'selected' : '' }}>Individual - Livelihood Application</option>
-            <option value="Individual - Access to Health" {{ old('project_type') == 'Individual - Access to Health' ? 'selected' : '' }}>Individual - Access to Health - Project Application</option>
-            <option value="Individual - Initial - Educational support" {{ old('project_type') == 'Individual - Initial - Educational support' ? 'selected' : '' }}>Individual - Initial - Educational support - Project Application</option>
+            <option value="{{ \App\Constants\ProjectType::CHILD_CARE_INSTITUTION }}" {{ old('project_type') == \App\Constants\ProjectType::CHILD_CARE_INSTITUTION ? 'selected' : '' }}>CHILD CARE INSTITUTION - Welfare home for children - Ongoing</option>
+            <option value="{{ \App\Constants\ProjectType::DEVELOPMENT_PROJECTS }}" {{ old('project_type') == \App\Constants\ProjectType::DEVELOPMENT_PROJECTS ? 'selected' : '' }}>Development Projects - Application</option>
+            <option value="{{ \App\Constants\ProjectType::RURAL_URBAN_TRIBAL }}" {{ old('project_type') == \App\Constants\ProjectType::RURAL_URBAN_TRIBAL ? 'selected' : '' }}>Education Rural-Urban-Tribal</option>
+            <option value="{{ \App\Constants\ProjectType::INSTITUTIONAL_ONGOING_GROUP_EDUCATIONAL }}" {{ old('project_type') == \App\Constants\ProjectType::INSTITUTIONAL_ONGOING_GROUP_EDUCATIONAL ? 'selected' : '' }}>Institutional Ongoing Group Educational proposal</option>
+            <option value="{{ \App\Constants\ProjectType::LIVELIHOOD_DEVELOPMENT_PROJECTS }}" {{ old('project_type') == \App\Constants\ProjectType::LIVELIHOOD_DEVELOPMENT_PROJECTS ? 'selected' : '' }}>Livelihood Development Projects</option>
+            <option value="{{ \App\Constants\ProjectType::CRISIS_INTERVENTION_CENTER }}" {{ old('project_type') == \App\Constants\ProjectType::CRISIS_INTERVENTION_CENTER ? 'selected' : '' }}>PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER - Application</option>
+            <option value="{{ \App\Constants\ProjectType::NEXT_PHASE_DEVELOPMENT_PROPOSAL }}" {{ old('project_type') == \App\Constants\ProjectType::NEXT_PHASE_DEVELOPMENT_PROPOSAL ? 'selected' : '' }}>NEXT PHASE - DEVELOPMENT PROPOSAL</option>
+            <option value="{{ \App\Constants\ProjectType::RESIDENTIAL_SKILL_TRAINING }}" {{ old('project_type') == \App\Constants\ProjectType::RESIDENTIAL_SKILL_TRAINING ? 'selected' : '' }}>Residential Skill Training Proposal 2</option>
+            <option value="{{ \App\Constants\ProjectType::INDIVIDUAL_ONGOING_EDUCATIONAL }}" {{ old('project_type') == \App\Constants\ProjectType::INDIVIDUAL_ONGOING_EDUCATIONAL ? 'selected' : '' }}>Individual - Ongoing Educational support - Project Application</option>
+            <option value="{{ \App\Constants\ProjectType::INDIVIDUAL_LIVELIHOOD_APPLICATION }}" {{ old('project_type') == \App\Constants\ProjectType::INDIVIDUAL_LIVELIHOOD_APPLICATION ? 'selected' : '' }}>Individual - Livelihood Application</option>
+            <option value="{{ \App\Constants\ProjectType::INDIVIDUAL_ACCESS_TO_HEALTH }}" {{ old('project_type') == \App\Constants\ProjectType::INDIVIDUAL_ACCESS_TO_HEALTH ? 'selected' : '' }}>Individual - Access to Health - Project Application</option>
+            <option value="{{ \App\Constants\ProjectType::INDIVIDUAL_INITIAL_EDUCATIONAL }}" {{ old('project_type') == \App\Constants\ProjectType::INDIVIDUAL_INITIAL_EDUCATIONAL ? 'selected' : '' }}>Individual - Initial - Educational support - Project Application</option>
         </select>
     </div>
 
-    <div id="predecessor-project-section" style="display: none;">
+    <!-- Predecessor Project Selection (Always Visible for All Project Types) -->
         <div class="mb-3">
-            <label for="predecessor_project_id" class="form-label">Select Predecessor Project</label>
+        <label for="predecessor_project_id" class="form-label">Select Predecessor Project (Optional)</label>
             <select name="predecessor_project_id" id="predecessor_project_id" class="form-control select-input">
                 <option value="" selected>None</option>
+            @if(isset($developmentProjects) && $developmentProjects->count() > 0)
                 @foreach($developmentProjects as $project)
-                    <option value="{{ $project->project_id }}">{{ $project->project_title }} (Phase {{ $project->current_phase }}/{{ $project->overall_project_period }})</option>
+                    <option value="{{ $project->project_id }}" {{ old('predecessor_project_id') == $project->project_id ? 'selected' : '' }}>
+                        {{ $project->project_title }} (Phase {{ $project->current_phase }}/{{ $project->overall_project_period }})
+                    </option>
                 @endforeach
+            @else
+                <option value="" disabled>No development projects available</option>
+            @endif
             </select>
-        </div>
+        @error('predecessor_project_id')
+            <span class="text-danger">{{ $message }}</span>
+        @enderror
+        <small class="form-text text-muted">Select a previous project if this is a continuation or related project.</small>
     </div>
 
     <div class="mb-3">
         <label for="project_title" class="form-label">Project Title</label>
-        <input type="text" name="project_title" id="project_title" class="form-control select-input" value="{{ old('project_title') }}" required style="background-color: #202ba3;">
+        <input type="text" name="project_title" id="project_title" class="form-control select-input" value="{{ old('project_title') }}" required>
     </div>
     <div class="mb-3">
         <label for="society_name" class="form-label">Name of the Society / Trust</label>
@@ -65,7 +74,7 @@
     <div class="mb-3">
         <label for="in_charge" class="form-label">Project In-Charge</label>
         <div class="d-flex">
-            <select name="in_charge" id="in_charge" class="form-control select-input me-2" style="background-color: #202ba3;">
+            <select name="in_charge" id="in_charge" class="form-control select-input me-2">
                 <option value="" disabled selected>Select In-Charge</option>
                 @foreach($users as $potential_in_charge)
                     @if($potential_in_charge->province == $user->province && ($potential_in_charge->role == 'applicant' || $potential_in_charge->role == 'executor'))
@@ -75,18 +84,18 @@
                     @endif
                 @endforeach
             </select>
-            <input type="hidden" name="in_charge_name" id="in_charge_name" style="background-color: #202ba3;">
+            <input type="hidden" name="in_charge_name" id="in_charge_name" class="select-input">
             <input type="text" name="in_charge_mobile" id="in_charge_mobile" class="form-control readonly-input me-2" readonly>
             <input type="text" name="in_charge_email" id="in_charge_email" class="form-control readonly-input" readonly>
         </div>
     </div>
     <div class="mb-3">
         <label for="full_address" class="form-label">Full Address</label>
-        <textarea name="full_address" class="form-control select-input" rows="2" style="background-color: #091122;">{{ old('full_address', $user->address) }}</textarea>
+        <textarea name="full_address" id="full_address" class="form-control textarea-secondary sustainability-textarea" rows="2">{{ old('full_address', $user->address) }}</textarea>
     </div>
     <div class="mb-3">
         <label for="overall_project_period" class="form-label">Overall Project Period</label>
-        <select name="overall_project_period" id="overall_project_period" class="form-control select-input" style="background-color: #202ba3;">
+        <select name="overall_project_period" id="overall_project_period" class="form-control select-input">
             <option value="" disabled selected>Select Period</option>
             <option value="1" {{ old('overall_project_period') == 1 ? 'selected' : '' }}>1 Year</option>
             <option value="2" {{ old('overall_project_period') == 2 ? 'selected' : '' }}>2 Years</option>
@@ -96,7 +105,7 @@
     </div>
     <div class="mb-3">
         <label for="current_phase" class="form-label">Current Phase</label>
-        <select name="current_phase" id="current_phase" class="form-control select-input" style="background-color: #202ba3;">
+        <select name="current_phase" id="current_phase" class="form-control select-input">
             <option value="" disabled selected>Select Phase</option>
             @for ($i = 1; $i <= 10; $i++)
                 <option value="{{ $i }}" {{ old('current_phase') == $i ? 'selected' : '' }}>Phase {{ $i }}</option>
@@ -105,7 +114,7 @@
     </div>
     <div class="mb-3">
         <label for="commencement_month" class="form-label">Commencement Month</label>
-        <select name="commencement_month" id="commencement_month" class="form-control select-input" style="background-color: #202ba3;">
+        <select name="commencement_month" id="commencement_month" class="form-control select-input">
             <option value="" disabled selected>Select Month</option>
             @for ($month = 1; $month <= 12; $month++)
                 <option value="{{ $month }}">{{ date('F', mktime(0, 0, 0, $month, 1)) }}</option>
@@ -114,7 +123,7 @@
     </div>
     <div class="mb-3">
         <label for="commencement_year" class="form-label">Commencement Year</label>
-        <select name="commencement_year" id="commencement_year" class="form-control select-input" style="background-color: #202ba3;">
+        <select name="commencement_year" id="commencement_year" class="form-control select-input">
             <option value="" disabled selected>Select Year</option>
             @for ($year = now()->year; $year >= 2000; $year--)
                 <option value="{{ $year }}">{{ $year }}</option>
@@ -163,25 +172,15 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const projectTypeDropdown = document.getElementById('project_type');
     const predecessorProjectDropdown = document.getElementById('predecessor_project_id');
-    const predecessorProjectSection = document.getElementById('predecessor-project-section');
-
-    // Toggle Predecessor Project section based on project type
-    function togglePredecessorProjectSection() {
-        const projectType = projectTypeDropdown.value;
-        predecessorProjectSection.style.display = (projectType === 'NEXT PHASE - DEVELOPMENT PROPOSAL') ? 'block' : 'none';
-        console.log('Toggled predecessor section visibility:', { projectType, display: predecessorProjectSection.style.display });
-    }
 
     // Populate fields based on selected predecessor project
+    if (predecessorProjectDropdown) {
     predecessorProjectDropdown.addEventListener('change', function () {
         const selectedProjectId = this.value;
-        console.log('Predecessor project selected:', { selectedProjectId });
 
         if (selectedProjectId) {
             const url = '/executor/projects/' + selectedProjectId + '/details';
-            console.log('Initiating fetch request:', { url });
 
             fetch(url, {
                 method: 'GET',
@@ -192,21 +191,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             })
             .then(response => {
-                console.log('Fetch response received:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    headers: Object.fromEntries(response.headers.entries())
-                });
                 if (!response.ok) {
                     return response.text().then(text => {
-                        console.log('Raw response text:', text);
                         throw new Error(`Network response was not ok: ${response.status} - ${text}`);
                     });
                 }
                 return response.json();
             })
             .then(data => {
-                console.log('Project details fetched successfully:', data);
+                    // Populate form fields with predecessor project data
                 const fields = {
                     'project_title': data.project_title,
                     'society_name': data.society_name,
@@ -223,42 +216,59 @@ document.addEventListener('DOMContentLoaded', function () {
                     'current_phase': data.current_phase,
                     'commencement_month': data.commencement_month,
                     'commencement_year': data.commencement_year,
-                    'overall_project_budget': data.overall_project_budget
+                        'overall_project_budget': data.overall_project_budget,
+                        // Populate new Key Information fields
+                        'initial_information': data.initial_information,
+                        'target_beneficiaries': data.target_beneficiaries,
+                        'general_situation': data.general_situation,
+                        'need_of_project': data.need_of_project,
+                        'goal': data.goal
                 };
 
                 for (const [id, value] of Object.entries(fields)) {
                     const element = document.getElementById(id);
                     if (element) {
                         element.value = value || '';
-                    } else {
-                        console.warn(`Element with ID '${id}' not found in DOM`);
+                            // Auto-resize Key Information textareas after populating
+                            if (['initial_information', 'target_beneficiaries', 'general_situation', 'need_of_project', 'goal'].includes(id)) {
+                                element.style.height = 'auto';
+                                element.style.height = (element.scrollHeight) + 'px';
+                            }
                     }
                 }
 
                 // Pass beneficiaries data to the parent view
                 window.predecessorBeneficiaries = data.beneficiaries_areas || [];
-                console.log('Predecessor beneficiaries set:', window.predecessorBeneficiaries);
 
                 // Trigger an event to notify the parent view
                 const event = new CustomEvent('predecessorDataFetched', { detail: data });
                 document.dispatchEvent(event);
             })
             .catch(error => {
-                console.error('Error fetching predecessor project data:', {
-                    message: error.message,
-                    stack: error.stack
+                    console.error('Error fetching predecessor project data:', error);
+                    alert('Failed to fetch project details. Please try again.');
                 });
-                alert('Failed to fetch project details. Please try again.');
-            });
-        } else {
-            console.log('No predecessor project selected');
         }
     });
+    }
 
-    // Initialize visibility on page load
-    togglePredecessorProjectSection();
-    projectTypeDropdown.addEventListener('change', togglePredecessorProjectSection);
 });
 </script>
+
+<style>
+/* Auto-resize textarea for general info section */
+.sustainability-textarea {
+    resize: vertical;
+    min-height: 80px;
+    height: auto;
+    overflow-y: hidden;
+    line-height: 1.5;
+    padding: 8px 12px;
+}
+
+.sustainability-textarea:focus {
+    overflow-y: auto;
+}
+</style>
 
 <meta name="csrf-token" content="{{ csrf_token() }}">

@@ -20,7 +20,7 @@
                     @if($newBeneficiaries->isNotEmpty())
                         @foreach($newBeneficiaries as $index => $beneficiary)
                         <tr>
-                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ $index + 1 }}</td>
                             <td>{{ $beneficiary->beneficiary_name ?? 'N/A' }}</td>
                             <td>{{ $beneficiary->caste ?? 'N/A' }}</td>
                             <td>{{ $beneficiary->address ?? 'N/A' }}</td>

@@ -5,7 +5,7 @@
 <div class="page-content">
     <div class="row justify-content-center">
         <div class="col-md-12 col-xl-12">
-            <form action="{{ route('projects.store') }}" method="POST" enctype="multipart/form-data">
+            <form id="createProjectForm" action="{{ route('projects.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
 
                 <div class="mb-3 card">
@@ -142,7 +142,10 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary me-2">Save Project Application</button>
+                <div class="card-footer">
+                    <button type="submit" id="createProjectBtn" class="btn btn-primary me-2">Save Project Application</button>
+                    <button type="button" id="saveDraftBtn" class="btn btn-secondary me-2">Save as Draft</button>
+                </div>
             </form>
         </div>
     </div>
@@ -152,10 +155,10 @@
 <div id="activity-template" style="display: none;">
     <tr class="activity-row">
         <td>
-            <textarea name="objectives[0][activities][0][activity]" class="form-control activity-description" rows="2" placeholder="Enter Activity" style="background-color: #202ba3;"></textarea>
+            <textarea name="objectives[0][activities][0][activity]" class="form-control activity-description logical-textarea" rows="2" placeholder="Enter Activity" style="background-color: #202ba3;"></textarea>
         </td>
         <td>
-            <textarea name="objectives[0][activities][0][verification]" class="form-control activity-verification" rows="2" placeholder="Means of Verification" style="background-color: #202ba3;"></textarea>
+            <textarea name="objectives[0][activities][0][verification]" class="form-control activity-verification logical-textarea" rows="2" placeholder="Means of Verification" style="background-color: #202ba3;"></textarea>
         </td>
         <td><button type="button" class="btn btn-danger btn-sm" onclick="removeActivity(this)">Remove</button></td>
     </tr>
@@ -325,9 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Enhance logical framework with predecessor data (sync activities and timeframes)
         if (objectives.length > 0 && projectTypeDropdown.value === 'NEXT PHASE - DEVELOPMENT PROPOSAL') {
             const container = document.getElementById('objectives-container');
-            console.log('Container found:', container);
             const objectiveCards = container.querySelectorAll('.objective-card:not(#objective-template .objective-card)');
-            console.log('Objective cards found:', objectiveCards.length);
 
             objectiveCards.forEach((objectiveCard, index) => {
                 if (index < objectives.length) {
@@ -403,18 +404,125 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             updateObjectiveNumbers();
-            console.log('Final objective count:', window.objectiveCount);
+            // Objective count updated
         }
     });
 
     toggleSections();
     projectTypeDropdown.addEventListener('change', toggleSections);
 
-    const theForm = document.querySelector('form');
-    theForm.addEventListener('submit', function() {
-        hideAndDisableAll();
-        toggleSections();
-    });
+    const createBtn = document.getElementById('createProjectBtn');
+    const saveDraftBtn = document.getElementById('saveDraftBtn');
+    const createForm = document.getElementById('createProjectForm');
+
+    // Handle "Save as Draft" button click
+    if (saveDraftBtn && createForm) {
+        saveDraftBtn.addEventListener('click', function(e) {
+            try {
+                e.preventDefault();
+                
+                // Remove required attributes temporarily to allow submission
+                const requiredFields = createForm.querySelectorAll('[required]');
+                requiredFields.forEach(field => {
+                    field.removeAttribute('required');
+                });
+                
+                // Add hidden input to indicate draft save
+                let draftInput = createForm.querySelector('input[name="save_as_draft"]');
+                if (!draftInput) {
+                    draftInput = document.createElement('input');
+                    draftInput.type = 'hidden';
+                    draftInput.name = 'save_as_draft';
+                    draftInput.value = '1';
+                    createForm.appendChild(draftInput);
+                } else {
+                    draftInput.value = '1';
+                }
+                
+                // Enable all disabled fields before submission to ensure their values are included
+                const disabledFields = createForm.querySelectorAll('[disabled]');
+                disabledFields.forEach(field => {
+                    field.disabled = false;
+                });
+                
+                // Show all hidden sections temporarily to ensure values are submitted
+                const hiddenSections = createForm.querySelectorAll('[style*="display: none"]');
+                hiddenSections.forEach(section => {
+                    section.style.display = '';
+                });
+                
+                // Show loading indicator
+                saveDraftBtn.disabled = true;
+                saveDraftBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving Draft...';
+                
+                // Submit form
+                createForm.submit();
+            } catch (error) {
+                // console.error('Draft save error:', error);
+                alert('An error occurred while saving the draft. Please try again.');
+                
+                // Re-enable button
+                saveDraftBtn.disabled = false;
+                saveDraftBtn.innerHTML = 'Save as Draft';
+            }
+        });
+    }
+
+    // Handle regular form submission
+    if (createForm) {
+        createForm.addEventListener('submit', function(e) {
+            try {
+                // Check if this is a draft save (bypass validation)
+                const isDraftSave = this.querySelector('input[name="save_as_draft"]');
+                if (isDraftSave && isDraftSave.value === '1') {
+                    // Allow draft save without validation
+                    return true;
+                }
+                
+                // For regular submission, check HTML5 validation
+                if (!this.checkValidity()) {
+                    this.reportValidity();
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Enable all disabled fields before submission to ensure their values are included
+                const disabledFields = this.querySelectorAll('[disabled]');
+                disabledFields.forEach(field => {
+                    field.disabled = false;
+                });
+                
+                // Show all hidden sections temporarily to ensure values are submitted
+                const hiddenSections = this.querySelectorAll('[style*="display: none"]');
+                hiddenSections.forEach(section => {
+                    section.style.display = '';
+                });
+                
+                // Show loading indicator
+                if (createBtn) {
+                    createBtn.disabled = true;
+                    createBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
+                }
+                
+                // Allow form to submit normally
+                return true;
+            } catch (error) {
+                // console.error('Form submission error:', error);
+                e.preventDefault();
+                
+                // Show user-friendly error message
+                alert('An error occurred while submitting the form. Please try again or contact support if the problem persists.');
+                
+                // Re-enable button
+                if (createBtn) {
+                    createBtn.disabled = false;
+                    createBtn.innerHTML = 'Save Project Application';
+                }
+                
+                return false;
+            }
+        });
+    }
 });
 </script>
 

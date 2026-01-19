@@ -29,7 +29,7 @@
             </div>
             <div class="form-group">
                 <label>Any other:</label>
-                <input type="text" name="iies_family_details_others" class="form-control" style="background-color: #202ba3;">
+                <input type="text" name="iies_family_details_others" class="form-control">
             </div>
         </div>
 
@@ -54,7 +54,7 @@
             </div>
             <div class="form-group">
                 <label>Others:</label>
-                <input type="text" name="iies_father_health_others" class="form-control" style="background-color: #202ba3;">
+                <input type="text" name="iies_father_health_others" class="form-control">
             </div>
         </div>
 
@@ -79,7 +79,7 @@
             </div>
             <div class="form-group">
                 <label>Others:</label>
-                <input type="text" name="iies_mother_health_others" class="form-control" style="background-color: #202ba3;">
+                <input type="text" name="iies_mother_health_others" class="form-control">
             </div>
         </div>
 
@@ -96,20 +96,20 @@
             </div>
             <div class="form-group">
                 <label>Others:</label>
-                <input type="text" name="iies_residential_others" class="form-control" style="background-color: #202ba3;">
+                <input type="text" name="iies_residential_others" class="form-control">
             </div>
         </div>
 
         <!-- Family Situation -->
         <div class="form-group">
             <label><strong>Family Situation</strong></label>
-            <textarea name="iies_family_situation" class="form-control" rows="3" style="background-color: #202ba3;"></textarea>
+            <textarea name="iies_family_situation" class="form-control sustainability-textarea" rows="3"></textarea>
         </div>
 
         <!-- Need of Project Assistance -->
         <div class="form-group">
             <label><strong>Need of Project Assistance</strong></label>
-            <textarea name="iies_assistance_need" class="form-control" rows="3" style="background-color: #202ba3;"></textarea>
+            <textarea name="iies_assistance_need" class="form-control sustainability-textarea" rows="3"></textarea>
         </div>
 
         <!-- Financial Support -->
@@ -125,7 +125,7 @@
             </div>
             <div class="form-group">
                 <label>If yes, give details:</label>
-                <textarea name="iies_support_details" class="form-control" rows="3" style="background-color: #202ba3;"></textarea>
+                <textarea name="iies_support_details" class="form-control sustainability-textarea" rows="3"></textarea>
             </div>
         </div>
 
@@ -142,16 +142,8 @@
             </div>
             <div class="form-group">
                 <label>If yes, give details:</label>
-                <textarea name="iies_employment_details" class="form-control" rows="3" style="background-color: #202ba3;"></textarea>
+                <textarea name="iies_employment_details" class="form-control sustainability-textarea" rows="3"></textarea>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Styles -->
-<style>
-    .form-control {
-        background-color: #202ba3;
-        color: white;
-    }
-</style>

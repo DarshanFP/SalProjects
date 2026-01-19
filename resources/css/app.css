@@ -2,8 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom form-control for justified text in display fields */
+/* Custom form-control for justified text in display fields - Dark Theme Compatible */
 .form-control {
-    @apply w-full p-2 border border-gray-300 rounded text-base bg-white text-gray-900 mb-2;
+    @apply w-full p-2 border rounded text-base mb-2;
     text-align: justify;
+    /* Dark theme colors - will be overridden by project-forms.css if included */
+    background-color: #0c1427;
+    color: #d0d6e1;
+    border-color: #172340;
+}
+
+/* Dark theme compatibility for Tailwind classes */
+@media (prefers-color-scheme: dark) {
+    .form-control {
+        background-color: #0c1427;
+        color: #d0d6e1;
+        border-color: #172340;
+    }
 }

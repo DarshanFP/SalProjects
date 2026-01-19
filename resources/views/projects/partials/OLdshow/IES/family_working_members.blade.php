@@ -20,18 +20,18 @@
                         @foreach($project->iesFamilyWorkingMembers as $index => $member)
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td><input type="text" name="member_name[{{ $index }}]" class="form-control" value="{{ old('member_name.' . $index, $member->member_name) }}" style="background-color: #202ba3;"></td>
-                            <td><input type="text" name="work_nature[{{ $index }}]" class="form-control" value="{{ old('work_nature.' . $index, $member->work_nature) }}" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="monthly_income[{{ $index }}]" class="form-control" step="0.01" value="{{ old('monthly_income.' . $index, $member->monthly_income) }}" style="background-color: #202ba3;"></td>
+                            <td><input type="text" name="member_name[{{ $index }}]" class="form-control" value="{{ old('member_name.' . $index, $member->member_name) }}"></td>
+                            <td><input type="text" name="work_nature[{{ $index }}]" class="form-control" value="{{ old('work_nature.' . $index, $member->work_nature) }}"></td>
+                            <td><input type="number" name="monthly_income[{{ $index }}]" class="form-control" step="0.01" value="{{ old('monthly_income.' . $index, $member->monthly_income) }}"></td>
                             <td><button type="button" class="btn btn-danger" onclick="removeFamilyMemberRow(this)">Remove</button></td>
                         </tr>
                         @endforeach
                     @else
                         <tr>
                             <td>1</td>
-                            <td><input type="text" name="member_name[0]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="text" name="work_nature[0]" class="form-control" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="monthly_income[0]" class="form-control" step="0.01" style="background-color: #202ba3;"></td>
+                            <td><input type="text" name="member_name[0]" class="form-control"></td>
+                            <td><input type="text" name="work_nature[0]" class="form-control"></td>
+                            <td><input type="number" name="monthly_income[0]" class="form-control" step="0.01"></td>
                             <td><button type="button" class="btn btn-danger" onclick="removeFamilyMemberRow(this)">Remove</button></td>
                         </tr>
                     @endif
@@ -50,9 +50,9 @@
         const newRow = `
             <tr>
                 <td>${rowCount + 1}</td>
-                <td><input type="text" name="member_name[${rowCount}]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="text" name="work_nature[${rowCount}]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="number" name="monthly_income[${rowCount}]" class="form-control" step="0.01" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="member_name[${rowCount}]" class="form-control"></td>
+                <td><input type="text" name="work_nature[${rowCount}]" class="form-control"></td>
+                <td><input type="number" name="monthly_income[${rowCount}]" class="form-control" step="0.01"></td>
                 <td><button type="button" class="btn btn-danger" onclick="removeFamilyMemberRow(this)">Remove</button></td>
             </tr>
         `;

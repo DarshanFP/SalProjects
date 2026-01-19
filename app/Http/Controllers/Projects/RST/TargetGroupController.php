@@ -3,32 +3,30 @@
 namespace App\Http\Controllers\Projects\RST;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\RST\ProjectRSTTargetGroup;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\RST\StoreRSTTargetGroupRequest;
+use App\Http\Requests\Projects\RST\UpdateRSTTargetGroupRequest;
 
 class TargetGroupController extends Controller
 {
     // Store or update target group
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() instead of validated() because tg_no_of_beneficiaries, beneficiaries_description_problems
+        // fields are not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('Storing Target Group for RST', [
-            'project_id' => $projectId,
-            'tg_no_of_beneficiaries' => $request->input('tg_no_of_beneficiaries'),
-            'beneficiaries_description_problems' => $request->input('beneficiaries_description_problems'),
-        ]);
-
-        // Validation
-        $request->validate([
-            'tg_no_of_beneficiaries' => 'nullable|integer',
-            'beneficiaries_description_problems' => 'nullable|string',
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
         try {
             // Retrieve the value
-            $tg_no_of_beneficiaries = $request->input('tg_no_of_beneficiaries');
+            $tg_no_of_beneficiaries = $validated['tg_no_of_beneficiaries'] ?? null;
 
             // Check if an entry already exists, if yes, then update, otherwise create
             $targetGroup = ProjectRSTTargetGroup::where('project_id', $projectId)->first();
@@ -37,7 +35,7 @@ class TargetGroupController extends Controller
                 // If exists, update the target group
                 $targetGroup->update([
                     'tg_no_of_beneficiaries' => $tg_no_of_beneficiaries,
-                    'beneficiaries_description_problems' => $request->input('beneficiaries_description_problems'),
+                    'beneficiaries_description_problems' => $validated['beneficiaries_description_problems'] ?? null,
                 ]);
                 Log::info('Target Group updated successfully for RST', ['project_id' => $projectId]);
             } else {
@@ -70,8 +68,9 @@ class TargetGroupController extends Controller
     }
 
     // Update function - this calls the same store function
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Reuse store logic; FormRequest will provide validated() when available
         return $this->store($request, $projectId);
     }
 

@@ -11,8 +11,8 @@
                         <strong>Attachment:</strong>
                     </div>
                     <div class="info-value">
-                        <a href="{{ route('download.attachment', $attachment->id) }}" target="_blank" class="btn btn-sm btn-primary">View Document</a>
-                        <a href="{{ route('download.attachment', $attachment->id) }}" class="btn btn-sm btn-secondary">Download</a>
+                        <a href="{{ route('projects.attachments.download', $attachment->id) }}" target="_blank" class="btn btn-sm btn-primary">View Document</a>
+                        <a href="{{ route('projects.attachments.download', $attachment->id) }}" class="btn btn-sm btn-secondary">Download</a>
                     </div>
 
                     <div class="info-label"><strong>Description:</strong></div>

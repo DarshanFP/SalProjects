@@ -31,7 +31,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('monthly.report.update', $report->report_id) }}" method="POST" enctype="multipart/form-data">
+            <form id="editReportForm" action="{{ route('monthly.report.update', $report->report_id) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT') <!-- Use PUT method for updating -->
                 <input type="hidden" name="project_id" value="{{ $report->project_id }}">
@@ -125,7 +125,10 @@
                     @foreach($report->outlooks as $index => $outlook)
                     <div class="mb-3 card outlook" data-index="{{ $index }}">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            Outlook {{ $index + 1 }}
+                            <span>
+                                <span class="badge bg-primary me-2">{{ $index + 1 }}</span>
+                                Outlook {{ $index + 1 }}
+                            </span>
                             <button type="button" class="btn btn-danger btn-sm remove-outlook" onclick="removeOutlook(this)">Remove</button>
                         </div>
                         <div class="card-body">
@@ -135,7 +138,7 @@
                             </div>
                             <div class="mb-3">
                                 <label for="plan_next_month[{{ $index }}]" class="form-label">Action Plan for Next Month</label>
-                                <textarea name="plan_next_month[{{ $index }}]" class="form-control" rows="3" style="background-color: #202ba3;">{{ old("plan_next_month.$index", $outlook->plan_next_month) }}</textarea>
+                                <textarea name="plan_next_month[{{ $index }}]" class="form-control auto-resize-textarea" rows="3" style="background-color: #202ba3;">{{ old("plan_next_month.$index", $outlook->plan_next_month) }}</textarea>
                             </div>
                         </div>
                     </div>
@@ -146,20 +149,20 @@
 
                 <!-- Statements of Account Section -->
                 @if($project->project_type === 'Individual - Livelihood Application')
-                    @include('reports.monthly.partials.edit.statements_of_account.individual_livelihood', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                    @include('reports.monthly.partials.edit.statements_of_account.individual_livelihood', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report, 'project' => $project])
                 @elseif($project->project_type === 'Individual - Access to Health')
-                    @include('reports.monthly.partials.edit.statements_of_account.individual_health', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                    @include('reports.monthly.partials.edit.statements_of_account.individual_health', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report, 'project' => $project])
                 @elseif($project->project_type === 'Individual - Ongoing Educational support')
-                    @include('reports.monthly.partials.edit.statements_of_account.individual_ongoing_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                    @include('reports.monthly.partials.edit.statements_of_account.individual_ongoing_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report, 'project' => $project])
                 @elseif($project->project_type === 'Individual - Initial - Educational support')
-                    @include('reports.monthly.partials.edit.statements_of_account.individual_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                    @include('reports.monthly.partials.edit.statements_of_account.individual_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report, 'project' => $project])
                 @elseif($project->project_type === 'Institutional Ongoing Group Educational proposal')
-                    @include('reports.monthly.partials.edit.statements_of_account.institutional_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                    @include('reports.monthly.partials.edit.statements_of_account.institutional_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report, 'project' => $project])
                 @elseif($project->project_type === 'Development Projects')
-                    @include('reports.monthly.partials.edit.statements_of_account.development_projects', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                    @include('reports.monthly.partials.edit.statements_of_account.development_projects', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report, 'project' => $project])
                 @else
                     {{-- Fallback to generic for other project types --}}
-                    @include('reports.monthly.partials.edit.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report])
+                    @include('reports.monthly.partials.edit.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report, 'project' => $project])
                 @endif
 
                 <!-- Photos Section -->
@@ -168,11 +171,99 @@
                 <!-- Attachments Section -->
                 @include('reports.monthly.partials.edit.attachments', ['report' => $report])
 
-                <button type="submit" class="btn btn-primary me-2">Update Report</button>
+                <div class="d-flex justify-content-end mt-4 mb-4">
+                    <button type="button" id="saveDraftBtn" class="btn btn-secondary me-2">
+                        <i class="fas fa-save me-2"></i>Save as Draft
+                    </button>
+                    <button type="submit" id="updateReportBtn" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Update Report
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Save Draft Functionality for Edit Form
+    const saveDraftBtn = document.getElementById('saveDraftBtn');
+    const editForm = document.getElementById('editReportForm');
+
+    // Handle "Save as Draft" button click
+    if (saveDraftBtn && editForm) {
+        saveDraftBtn.addEventListener('click', function(e) {
+            try {
+                e.preventDefault();
+
+                // Remove required attributes temporarily
+                const requiredFields = editForm.querySelectorAll('[required]');
+                const removedRequired = [];
+                requiredFields.forEach(field => {
+                    if (field.hasAttribute('required')) {
+                        removedRequired.push(field);
+                        field.removeAttribute('required');
+                    }
+                });
+
+                // Add hidden input to indicate draft save
+                let draftInput = editForm.querySelector('input[name="save_as_draft"]');
+                if (!draftInput) {
+                    draftInput = document.createElement('input');
+                    draftInput.type = 'hidden';
+                    draftInput.name = 'save_as_draft';
+                    draftInput.value = '1';
+                    editForm.appendChild(draftInput);
+                } else {
+                    draftInput.value = '1';
+                }
+
+                // Enable all disabled fields
+                const disabledFields = editForm.querySelectorAll('[disabled]');
+                const enabledFields = [];
+                disabledFields.forEach(field => {
+                    if (field.disabled) {
+                        enabledFields.push(field);
+                        field.disabled = false;
+                    }
+                });
+
+                // Show loading indicator
+                saveDraftBtn.disabled = true;
+                const originalText = saveDraftBtn.innerHTML;
+                saveDraftBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving Draft...';
+
+                // Submit form
+                editForm.submit();
+
+            } catch (error) {
+                console.error('Draft save error:', error);
+                saveDraftBtn.disabled = false;
+                saveDraftBtn.innerHTML = 'Save as Draft';
+                alert('An error occurred while saving the draft. Please try again.');
+            }
+        });
+    }
+
+    // Handle form submission
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            const isDraftSave = this.querySelector('input[name="save_as_draft"]');
+            if (isDraftSave && isDraftSave.value === '1') {
+                return true; // Allow draft save
+            }
+
+            // For normal submission, validate
+            if (!this.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.add('was-validated');
+                return false;
+            }
+        });
+    }
+});
+</script>
 
 <!-- Include JavaScript for dynamic sections -->
 <script>
@@ -183,7 +274,10 @@
         const newOutlookHtml = `
             <div class="mb-3 card outlook" data-index="${index}">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    Outlook ${index + 1}
+                    <span>
+                        <span class="badge bg-primary me-2">${index + 1}</span>
+                        Outlook ${index + 1}
+                    </span>
                     <button type="button" class="btn btn-danger btn-sm remove-outlook" onclick="removeOutlook(this)">Remove</button>
                 </div>
                 <div class="card-body">
@@ -193,18 +287,60 @@
                     </div>
                     <div class="mb-3">
                         <label for="plan_next_month[${index}]" class="form-label">Action Plan for Next Month</label>
-                        <textarea name="plan_next_month[${index}]" class="form-control" rows="3" style="background-color: #202ba3;"></textarea>
+                        <textarea name="plan_next_month[${index}]" class="form-control auto-resize-textarea" rows="3" style="background-color: #202ba3;"></textarea>
                     </div>
                 </div>
             </div>
         `;
         outlookContainer.insertAdjacentHTML('beforeend', newOutlookHtml);
-        updateOutlookRemoveButtons();
+
+        // Initialize auto-resize for new outlook textarea using global function
+        const newOutlook = outlookContainer.lastElementChild;
+        if (newOutlook && typeof initDynamicTextarea === 'function') {
+            initDynamicTextarea(newOutlook);
+        }
+
+        reindexOutlooks();
     }
 
     function removeOutlook(button) {
         const outlook = button.closest('.outlook');
         outlook.remove();
+        reindexOutlooks();
+    }
+
+    /**
+     * Reindexes all outlook entries after add/remove operations
+     * Updates index badges, data-index attributes, and form field names/IDs
+     * Ensures sequential numbering (1, 2, 3, ...) for all outlook entries
+     *
+     * @returns {void}
+     */
+    function reindexOutlooks() {
+        const outlooks = document.querySelectorAll('.outlook');
+        outlooks.forEach((outlook, index) => {
+            // Update data-index attribute
+            outlook.dataset.index = index;
+
+            // Update badge and header text
+            const headerSpan = outlook.querySelector('.card-header span');
+            if (headerSpan) {
+                headerSpan.innerHTML = `<span class="badge bg-primary me-2">${index + 1}</span>Outlook ${index + 1}`;
+            }
+
+            // Update name attributes for inputs
+            const dateInput = outlook.querySelector('input[name^="date"]');
+            const planTextarea = outlook.querySelector('textarea[name^="plan_next_month"]');
+
+            if (dateInput) {
+                dateInput.setAttribute('name', `date[${index}]`);
+                dateInput.setAttribute('id', `date[${index}]`);
+            }
+            if (planTextarea) {
+                planTextarea.setAttribute('name', `plan_next_month[${index}]`);
+                planTextarea.setAttribute('id', `plan_next_month[${index}]`);
+            }
+        });
         updateOutlookRemoveButtons();
     }
 
@@ -212,16 +348,18 @@
         const outlooks = document.querySelectorAll('.outlook');
         outlooks.forEach((outlook, index) => {
             const removeButton = outlook.querySelector('.remove-outlook');
-            if (index === 0) {
-                removeButton.classList.add('d-none');
-            } else {
-                removeButton.classList.remove('d-none');
+            if (removeButton) {
+                if (index === 0) {
+                    removeButton.classList.add('d-none');
+                } else {
+                    removeButton.classList.remove('d-none');
+                }
             }
         });
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        updateOutlookRemoveButtons();
+        reindexOutlooks();
     });
 
     // Photo and Description Section
@@ -235,11 +373,18 @@
                 <div class="mb-3 photo-group" data-index="${index}">
                     <label for="photo_${index}" class="form-label">Photo ${index + 1}</label>
                     <input type="file" name="new_photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" style="background-color: #202ba3;">
-                    <textarea name="new_photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
+                    <textarea name="new_photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
                     <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
                 </div>
             `;
             photosContainer.insertAdjacentHTML('beforeend', newPhotoHtml);
+
+            // Initialize auto-resize for new photo textarea using global function
+            const newPhoto = photosContainer.lastElementChild;
+            if (newPhoto && typeof initDynamicTextarea === 'function') {
+                initDynamicTextarea(newPhoto);
+            }
+
             updatePhotoLabels();
         } else {
             alert('You can upload a maximum of 10 photos.');

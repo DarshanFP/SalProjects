@@ -9,6 +9,7 @@ use App\Models\OldProjects\ProjectEduRUTTargetGroup;
 use App\Imports\EduRUTTargetGroupImport;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Foundation\Http\FormRequest;
 
 class EduRUTTargetGroupController extends Controller
 {
@@ -19,34 +20,27 @@ class EduRUTTargetGroupController extends Controller
     }
 
     // Store target group information for a project
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including target_group[] arrays
+        // These fields are not in StoreProjectRequest validation rules
+        $validatedData = $request->all();
+
         DB::beginTransaction();
         try {
             Log::info('Storing target group data', ['project_id' => $projectId]);
 
-            $validatedData = $request->validate([
-                'target_group.*.beneficiary_name' => 'nullable|string|max:255',
-                'target_group.*.caste' => 'nullable|string|max:255',
-                'target_group.*.institution_name' => 'nullable|string|max:255',
-                'target_group.*.class_standard' => 'nullable|string|max:255',
-                'target_group.*.total_tuition_fee' => 'nullable|numeric',
-                'target_group.*.eligibility_scholarship' => 'nullable|boolean',
-                'target_group.*.expected_amount' => 'nullable|numeric',
-                'target_group.*.contribution_from_family' => 'nullable|numeric',
-            ]);
-
-            foreach ($validatedData['target_group'] as $group) {
+            foreach (($validatedData['target_group'] ?? []) as $group) {
                 ProjectEduRUTTargetGroup::create([
                     'project_id' => $projectId,
-                    'beneficiary_name' => $group['beneficiary_name'],
-                    'caste' => $group['caste'],
-                    'institution_name' => $group['institution_name'],
-                    'class_standard' => $group['class_standard'],
-                    'total_tuition_fee' => $group['total_tuition_fee'],
-                    'eligibility_scholarship' => $group['eligibility_scholarship'],
-                    'expected_amount' => $group['expected_amount'],
-                    'contribution_from_family' => $group['contribution_from_family'],
+                    'beneficiary_name' => $group['beneficiary_name'] ?? null,
+                    'caste' => $group['caste'] ?? null,
+                    'institution_name' => $group['institution_name'] ?? null,
+                    'class_standard' => $group['class_standard'] ?? null,
+                    'total_tuition_fee' => $group['total_tuition_fee'] ?? null,
+                    'eligibility_scholarship' => $group['eligibility_scholarship'] ?? null,
+                    'expected_amount' => $group['expected_amount'] ?? null,
+                    'contribution_from_family' => $group['contribution_from_family'] ?? null,
                 ]);
             }
 
@@ -95,26 +89,19 @@ class EduRUTTargetGroupController extends Controller
 
 
     // Update target group data for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including target_group[] arrays
+        // These fields are not in UpdateProjectRequest validation rules
+        $validatedData = $request->all();
+
         DB::beginTransaction();
         try {
             Log::info('Updating target group data', ['project_id' => $projectId]);
 
             ProjectEduRUTTargetGroup::where('project_id', $projectId)->delete(); // Delete old data first
 
-            $validatedData = $request->validate([
-                'target_group.*.beneficiary_name' => 'nullable|string|max:255',
-                'target_group.*.caste' => 'nullable|string|max:255',
-                'target_group.*.institution_name' => 'nullable|string|max:255',
-                'target_group.*.class_standard' => 'nullable|string|max:255',
-                'target_group.*.total_tuition_fee' => 'nullable|numeric',
-                'target_group.*.eligibility_scholarship' => 'nullable|boolean',
-                'target_group.*.expected_amount' => 'nullable|numeric',
-                'target_group.*.contribution_from_family' => 'nullable|numeric',
-            ]);
-
-            foreach ($validatedData['target_group'] as $group) {
+            foreach (($validatedData['target_group'] ?? []) as $group) {
                 ProjectEduRUTTargetGroup::create([
                     'project_id' => $projectId,
                     'beneficiary_name' => $group['beneficiary_name'] ?? null,

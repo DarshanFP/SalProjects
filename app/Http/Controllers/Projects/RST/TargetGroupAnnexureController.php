@@ -3,16 +3,22 @@
 namespace App\Http\Controllers\Projects\RST;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\RST\ProjectRSTTargetGroupAnnexure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\RST\StoreRSTTargetGroupAnnexureRequest;
+use App\Http\Requests\Projects\RST\UpdateRSTTargetGroupAnnexureRequest;
 
 class TargetGroupAnnexureController extends Controller
 {
     // Store or update target group annexure
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() instead of validated() because rst_name, rst_religion, rst_caste, etc.
+        // fields are not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing Target Group Annexure for RST', ['project_id' => $projectId]);
@@ -21,16 +27,23 @@ class TargetGroupAnnexureController extends Controller
             ProjectRSTTargetGroupAnnexure::where('project_id', $projectId)->delete();
 
             // Loop through the arrays and store the target group annexure information
-            if ($request->rst_name) {
-                foreach ($request->rst_name as $index => $rst_name) {
+            $rstNames = $validated['rst_name'] ?? [];
+            $rstReligions = $validated['rst_religion'] ?? [];
+            $rstCastes = $validated['rst_caste'] ?? [];
+            $rstEducationBackgrounds = $validated['rst_education_background'] ?? [];
+            $rstFamilySituations = $validated['rst_family_situation'] ?? [];
+            $rstParagraphs = $validated['rst_paragraph'] ?? [];
+            
+            if (!empty($rstNames)) {
+                foreach ($rstNames as $index => $rst_name) {
                     ProjectRSTTargetGroupAnnexure::create([
                         'project_id'             => $projectId,
                         'rst_name'               => $rst_name,
-                        'rst_religion'           => $request->rst_religion[$index] ?? null,
-                        'rst_caste'              => $request->rst_caste[$index] ?? null,
-                        'rst_education_background' => $request->rst_education_background[$index] ?? null,
-                        'rst_family_situation'   => $request->rst_family_situation[$index] ?? null,
-                        'rst_paragraph'          => $request->rst_paragraph[$index] ?? null,
+                        'rst_religion'           => $rstReligions[$index] ?? null,
+                        'rst_caste'              => $rstCastes[$index] ?? null,
+                        'rst_education_background' => $rstEducationBackgrounds[$index] ?? null,
+                        'rst_family_situation'   => $rstFamilySituations[$index] ?? null,
+                        'rst_paragraph'          => $rstParagraphs[$index] ?? null,
                     ]);
                 }
             }
@@ -82,8 +95,12 @@ class TargetGroupAnnexureController extends Controller
     }
 
     // Update target group annexure for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() instead of validated() because rst_name, rst_religion, rst_caste, etc.
+        // fields are not in UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Updating Target Group Annexure for RST', ['project_id' => $projectId]);
@@ -92,16 +109,23 @@ class TargetGroupAnnexureController extends Controller
             ProjectRSTTargetGroupAnnexure::where('project_id', $projectId)->delete();
 
             // Loop through the arrays and store the target group annexure information
-            if ($request->rst_name) {
-                foreach ($request->rst_name as $index => $rst_name) {
+            $rstNames = $validated['rst_name'] ?? [];
+            $rstReligions = $validated['rst_religion'] ?? [];
+            $rstCastes = $validated['rst_caste'] ?? [];
+            $rstEducationBackgrounds = $validated['rst_education_background'] ?? [];
+            $rstFamilySituations = $validated['rst_family_situation'] ?? [];
+            $rstParagraphs = $validated['rst_paragraph'] ?? [];
+            
+            if (!empty($rstNames)) {
+                foreach ($rstNames as $index => $rst_name) {
                     ProjectRSTTargetGroupAnnexure::create([
                         'project_id'             => $projectId,
                         'rst_name'               => $rst_name,
-                        'rst_religion'           => $request->rst_religion[$index] ?? null,
-                        'rst_caste'              => $request->rst_caste[$index] ?? null,
-                        'rst_education_background' => $request->rst_education_background[$index] ?? null,
-                        'rst_family_situation'   => $request->rst_family_situation[$index] ?? null,
-                        'rst_paragraph'          => $request->rst_paragraph[$index] ?? null,
+                        'rst_religion'           => $rstReligions[$index] ?? null,
+                        'rst_caste'              => $rstCastes[$index] ?? null,
+                        'rst_education_background' => $rstEducationBackgrounds[$index] ?? null,
+                        'rst_family_situation'   => $rstFamilySituations[$index] ?? null,
+                        'rst_paragraph'          => $rstParagraphs[$index] ?? null,
                     ]);
                 }
             }

@@ -7,27 +7,27 @@
         <!-- Previous Class/Studies Information -->
         <div class="form-group">
             <label>Mention the previous class/studies for which the project support is given:</label>
-            <input type="text" name="previous_class" class="form-control" style="background-color: #202ba3;">
+            <input type="text" name="previous_class" class="form-control">
         </div>
 
         <div class="form-group">
             <label>Amount sanctioned in the previous year:</label>
-            <input type="number" step="0.01" name="amount_sanctioned" class="form-control" style="background-color: #202ba3;">
+            <input type="number" step="0.01" name="amount_sanctioned" class="form-control">
         </div>
 
         <div class="form-group">
             <label>Amount utilized:</label>
-            <input type="number" step="0.01" name="amount_utilized" class="form-control" style="background-color: #202ba3;">
+            <input type="number" step="0.01" name="amount_utilized" class="form-control">
         </div>
 
         <div class="form-group">
             <label>The total amount of scholarship availed by the beneficiary from the government / any other agency in the previous year:</label>
-            <input type="number" step="0.01" name="scholarship_previous_year" class="form-control" style="background-color: #202ba3;">
+            <input type="number" step="0.01" name="scholarship_previous_year" class="form-control">
         </div>
 
         <div class="form-group">
             <label>Explain the academic and overall performance of the beneficiary:</label>
-            <textarea name="academic_performance" class="form-control" rows="4" style="background-color: #202ba3;"></textarea>
+            <textarea name="academic_performance" class="form-control sustainability-textarea" rows="4"></textarea>
         </div>
     </div>
 
@@ -38,30 +38,22 @@
         <!-- Present Class/Year of Study -->
         <div class="form-group">
             <label>Present class / year of study:</label>
-            <input type="text" name="present_class" class="form-control" style="background-color: #202ba3;">
+            <input type="text" name="present_class" class="form-control">
         </div>
 
         <div class="form-group">
             <label>Expected amount of Scholarship:</label>
-            <input type="number" step="0.01" name="expected_scholarship" class="form-control" style="background-color: #202ba3;">
+            <input type="number" step="0.01" name="expected_scholarship" class="form-control">
         </div>
 
         <div class="form-group">
             <label>Financial contribution from the family:</label>
-            <input type="number" step="0.01" name="family_contribution" class="form-control" style="background-color: #202ba3;">
+            <input type="number" step="0.01" name="family_contribution" class="form-control">
         </div>
 
         <div class="form-group">
             <label>If no support from the family, mention the reasons:</label>
-            <textarea name="reason_no_support" class="form-control" rows="3" style="background-color: #202ba3;"></textarea>
+            <textarea name="reason_no_support" class="form-control sustainability-textarea" rows="3"></textarea>
         </div>
     </div>
 </div>
-
-<!-- Styles -->
-<style>
-    .form-control {
-        background-color: #202ba3;
-        color: white;
-    }
-</style>

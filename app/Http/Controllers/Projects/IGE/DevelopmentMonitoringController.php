@@ -3,16 +3,21 @@
 namespace App\Http\Controllers\Projects\IGE;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IGE\ProjectIGEDevelopmentMonitoring;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IGE\StoreIGEDevelopmentMonitoringRequest;
+use App\Http\Requests\Projects\IGE\UpdateIGEDevelopmentMonitoringRequest;
 
 class DevelopmentMonitoringController extends Controller
 {
     // Store or update Development Monitoring data for a project
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing IGE Development Monitoring', ['project_id' => $projectId]);
@@ -21,10 +26,10 @@ class DevelopmentMonitoringController extends Controller
             $developmentMonitoring = ProjectIGEDevelopmentMonitoring::updateOrCreate(
                 ['project_id' => $projectId],
                 [
-                    'proposed_activities' => $request->input('proposed_activities'),
-                    'monitoring_methods' => $request->input('monitoring_methods'),
-                    'evaluation_process' => $request->input('evaluation_process'),
-                    'conclusion' => $request->input('conclusion'),
+                    'proposed_activities' => $validated['proposed_activities'] ?? null,
+                    'monitoring_methods' => $validated['monitoring_methods'] ?? null,
+                    'evaluation_process' => $validated['evaluation_process'] ?? null,
+                    'conclusion' => $validated['conclusion'] ?? null,
                 ]
             );
 
@@ -81,9 +86,10 @@ class DevelopmentMonitoringController extends Controller
 
 
     // Update Development Monitoring for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
-        return $this->store($request, $projectId); // Reuse store method for update
+        // Reuse store method for update
+        return $this->store($request, $projectId);
     }
 
     // Delete Development Monitoring for a project

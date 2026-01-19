@@ -3,21 +3,25 @@
 namespace App\Http\Controllers\Projects\IAH;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IAH\ProjectIAHSupportDetails;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IAH\StoreIAHSupportDetailsRequest;
+use App\Http\Requests\Projects\IAH\UpdateIAHSupportDetailsRequest;
 
 class IAHSupportDetailsController extends Controller
 {
     /**
      * Store (create) a single row of support details for a project.
      */
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('IAHSupportDetailsController@store - Start', [
-            'project_id'   => $projectId,
-            'request_data' => $request->all()
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
@@ -27,12 +31,12 @@ class IAHSupportDetailsController extends Controller
 
             $supportDetails = new ProjectIAHSupportDetails();
             $supportDetails->project_id          = $projectId;
-            $supportDetails->employed_at_st_ann  = $request->input('employed_at_st_ann');
-            $supportDetails->employment_details  = $request->input('employment_details');
-            $supportDetails->received_support    = $request->input('received_support');
-            $supportDetails->support_details     = $request->input('support_details');
-            $supportDetails->govt_support        = $request->input('govt_support');
-            $supportDetails->govt_support_nature = $request->input('govt_support_nature');
+            $supportDetails->employed_at_st_ann  = $validated['employed_at_st_ann'] ?? null;
+            $supportDetails->employment_details  = $validated['employment_details'] ?? null;
+            $supportDetails->received_support    = $validated['received_support'] ?? null;
+            $supportDetails->support_details     = $validated['support_details'] ?? null;
+            $supportDetails->govt_support        = $validated['govt_support'] ?? null;
+            $supportDetails->govt_support_nature = $validated['govt_support_nature'] ?? null;
             $supportDetails->save();
 
             DB::commit();
@@ -53,11 +57,13 @@ class IAHSupportDetailsController extends Controller
     /**
      * Update an existing support details row.
      */
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('IAHSupportDetailsController@update - Start', [
-            'project_id'   => $projectId,
-            'request_data' => $request->all()
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
@@ -67,12 +73,12 @@ class IAHSupportDetailsController extends Controller
                 'id' => $supportDetails->id
             ]);
 
-            $supportDetails->employed_at_st_ann  = $request->input('employed_at_st_ann');
-            $supportDetails->employment_details  = $request->input('employment_details');
-            $supportDetails->received_support    = $request->input('received_support');
-            $supportDetails->support_details     = $request->input('support_details');
-            $supportDetails->govt_support        = $request->input('govt_support');
-            $supportDetails->govt_support_nature = $request->input('govt_support_nature');
+            $supportDetails->employed_at_st_ann  = $validated['employed_at_st_ann'] ?? null;
+            $supportDetails->employment_details  = $validated['employment_details'] ?? null;
+            $supportDetails->received_support    = $validated['received_support'] ?? null;
+            $supportDetails->support_details     = $validated['support_details'] ?? null;
+            $supportDetails->govt_support        = $validated['govt_support'] ?? null;
+            $supportDetails->govt_support_nature = $validated['govt_support_nature'] ?? null;
             $supportDetails->save();
 
             DB::commit();

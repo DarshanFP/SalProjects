@@ -11,9 +11,30 @@
         }
         /* Structural, print-friendly styles for PDF, matching web view structure but no dark theme */
         textarea {
-    color: black !important;
-    background: #fff !important;
-}
+            color: black !important;
+            background: #fff !important;
+        }
+        
+        /* Preserve line breaks for all textarea content in PDF */
+        .info-value,
+        .card-body .info-value,
+        .info-grid .info-value,
+        .form-control:not(input):not(select):not(textarea),
+        textarea,
+        div.form-control {
+            white-space: pre-wrap !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            line-height: 1.6 !important;
+        }
+        
+        /* Preserve line breaks in table cells displaying textarea content */
+        .table td,
+        .table-bordered td {
+            white-space: pre-wrap !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+        }
         .container {
             width: 100%;
             margin: 0 auto;
@@ -110,6 +131,37 @@
             line-height: 1;
         }
 
+        /* Override web dark theme cards for PDF: keep clean white cells */
+        /* Force white background for budget summary cards in PDF using high specificity */
+        .pdf-document .budget-summary-grid { 
+            gap: 8px; 
+        }
+        .pdf-document .budget-summary-card,
+        .pdf-document div.budget-summary-card,
+        .pdf-document .card-body .budget-summary-card,
+        .pdf-document .mb-3 .budget-summary-card,
+        body.pdf-document .budget-summary-card {
+            background-color: #ffffff !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            border: 1px solid #000000 !important;
+            border-radius: 4px;
+            padding: 10px 12px;
+        }
+        .pdf-document .budget-summary-label,
+        .pdf-document .budget-summary-label span,
+        .pdf-document div.budget-summary-label,
+        .pdf-document .budget-summary-value,
+        .pdf-document div.budget-summary-value,
+        body.pdf-document .budget-summary-label,
+        body.pdf-document .budget-summary-value {
+            color: #000000 !important;
+        }
+        /* Override any inline styles from budget partial */
+        .pdf-document .card-body .budget-summary-card * {
+            color: #000000 !important;
+        }
+
         /* PDF-specific signature table styles (from history, with unique class names) */
         .pdf-signature-table {
             width: 100%;
@@ -152,7 +204,7 @@
         }
     </style>
 </head>
-<body>
+<body class="pdf-document">
 
     <div class="page-header">
         Project ID: {{ $project->project_id }}
@@ -738,8 +790,12 @@
         <table class="pdf-signature-table">
             <tbody>
                 <tr>
-                    <td>Amount approved</td>
-                    <td>Rs. {{ number_format($project->overall_project_budget, 2) }}</td>
+                    <td>Amount approved (Sanctioned)</td>
+                    <td>{{ format_indian_currency($project->amount_sanctioned ?? max(0, ($project->overall_project_budget ?? 0) - (($project->amount_forwarded ?? 0) + ($project->local_contribution ?? 0))), 2) }}</td>
+                </tr>
+                <tr>
+                    <td>Contributions considered</td>
+                    <td>Forwarded: {{ format_indian_currency($project->amount_forwarded ?? 0, 2) }} | Local: {{ format_indian_currency($project->local_contribution ?? 0, 2) }}</td>
                 </tr>
                 <tr>
                     <td>Remarks if any</td>
@@ -763,6 +819,27 @@
     <div class="page-header">
         Downloaded by: {{ auth()->user()->name }}
     </div>
+
+    <!-- Final override for budget summary cards - must come after all partials -->
+    <style>
+        /* Final override: Force white background for budget cards in PDF with maximum specificity */
+        body.pdf-document .budget-summary-card,
+        .pdf-document .budget-summary-card {
+            background-color: #ffffff !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            border: 1px solid #000000 !important;
+        }
+        body.pdf-document .budget-summary-card *,
+        .pdf-document .budget-summary-card *,
+        body.pdf-document .budget-summary-label,
+        body.pdf-document .budget-summary-label span,
+        body.pdf-document .budget-summary-value,
+        .pdf-document .budget-summary-label,
+        .pdf-document .budget-summary-value {
+            color: #000000 !important;
+        }
+    </style>
 
 </body>
 </html>

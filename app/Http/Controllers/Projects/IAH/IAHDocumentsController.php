@@ -3,29 +3,31 @@
 namespace App\Http\Controllers\Projects\IAH;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IAH\ProjectIAHDocuments;
 use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Requests\Projects\IAH\StoreIAHDocumentsRequest;
+use App\Http\Requests\Projects\IAH\UpdateIAHDocumentsRequest;
 
 class IAHDocumentsController extends Controller
 {
     /**
      * STORE: handle initial file uploads for IAH Documents.
      */
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('IAHDocumentsController@store - Start', [
-            'project_id' => $projectId,
-            'request_data' => $request->all(),
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
         try {
-            // Validate file fields (optional).
-            $request->validate($this->validationRules());
 
             // Ensure project exists
             if (!Project::where('project_id', $projectId)->exists()) {
@@ -64,27 +66,25 @@ class IAHDocumentsController extends Controller
         try {
             Log::info('IAHDocumentsController@show - Fetching documents', ['project_id' => $projectId]);
 
-            // Fetch documents for the given project ID
-            $documents = ProjectIAHDocuments::where('project_id', $projectId)->first();
+            // Fetch documents for the given project ID with files relationship
+            $documents = ProjectIAHDocuments::where('project_id', $projectId)
+                ->with('files')
+                ->first();
 
             if (!$documents) {
                 Log::warning('IAHDocumentsController@show - No documents found', ['project_id' => $projectId]);
-                return []; // ✅ Always return an empty array instead of null
+                return null; // Return null so Blade can handle it properly
             }
 
-            return [
-                'aadhar_copy'     => $documents->aadhar_copy ? Storage::url($documents->aadhar_copy) : null,
-                'request_letter'  => $documents->request_letter ? Storage::url($documents->request_letter) : null,
-                'medical_reports' => $documents->medical_reports ? Storage::url($documents->medical_reports) : null,
-                'other_docs'      => $documents->other_docs ? Storage::url($documents->other_docs) : null,
-            ];
+            // Return the document object (views will use getFilesForField method)
+            return $documents;
         } catch (\Exception $e) {
             Log::error('IAHDocumentsController@show - Error retrieving documents', [
                 'project_id' => $projectId,
                 'error' => $e->getMessage(),
             ]);
 
-            return []; // ✅ Always return an array, even on error
+            return null; // Return null to prevent errors in Blade template
         }
     }
 
@@ -127,17 +127,17 @@ class IAHDocumentsController extends Controller
     /**
      * UPDATE: handle new file uploads that overwrite old files, if present.
      */
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('IAHDocumentsController@update - Start', [
-            'project_id' => $projectId,
-            'request_data' => $request->all()
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
         try {
-            // Validate new files (optional)
-            $request->validate($this->validationRules());
 
             $documents = ProjectIAHDocuments::handleDocuments($request, $projectId);
 
@@ -195,16 +195,4 @@ class IAHDocumentsController extends Controller
         }
     }
 
-    /**
-     * Validation rules for each file input.
-     */
-    private function validationRules(): array
-    {
-        return [
-            'aadhar_copy'     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'request_letter'  => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'medical_reports' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'other_docs'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-        ];
-    }
 }

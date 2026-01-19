@@ -3,16 +3,21 @@
 namespace App\Http\Controllers\Projects\IIES;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IIES\ProjectIIESEducationBackground;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\IIES\StoreIIESEducationBackgroundRequest;
+use App\Http\Requests\Projects\IIES\UpdateIIESEducationBackgroundRequest;
 
 class EducationBackgroundController extends Controller
 {
     // Store or update education background
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing IIES Educational Background', ['project_id' => $projectId]);
@@ -21,15 +26,15 @@ class EducationBackgroundController extends Controller
             ProjectIIESEducationBackground::updateOrCreate(
                 ['project_id' => $projectId],
                 [
-                    'prev_education' => $request->prev_education,
-                    'prev_institution' => $request->prev_institution,
-                    'prev_insti_address' => $request->prev_insti_address,
-                    'prev_marks' => $request->prev_marks,
-                    'current_studies' => $request->current_studies,
-                    'curr_institution' => $request->curr_institution,
-                    'curr_insti_address' => $request->curr_insti_address,
-                    'aspiration' => $request->aspiration,
-                    'long_term_effect' => $request->long_term_effect,
+                    'prev_education' => $validated['prev_education'] ?? null,
+                    'prev_institution' => $validated['prev_institution'] ?? null,
+                    'prev_insti_address' => $validated['prev_insti_address'] ?? null,
+                    'prev_marks' => $validated['prev_marks'] ?? null,
+                    'current_studies' => $validated['current_studies'] ?? null,
+                    'curr_institution' => $validated['curr_institution'] ?? null,
+                    'curr_insti_address' => $validated['curr_insti_address'] ?? null,
+                    'aspiration' => $validated['aspiration'] ?? null,
+                    'long_term_effect' => $validated['long_term_effect'] ?? null,
                 ]
             );
 
@@ -110,25 +115,15 @@ public function edit($projectId)
 
 
 // Update education background for a project
-public function update(Request $request, $projectId)
+public function update(FormRequest $request, $projectId)
 {
+    // Use all() to get all form data including fields not in UpdateProjectRequest validation rules
+    $validatedData = $request->all();
+    
     DB::beginTransaction();
 
     try {
         Log::info('Updating IIES Educational Background', ['project_id' => $projectId]);
-
-        // Validate input data
-        $validatedData = $request->validate([
-            'prev_education'     => 'nullable|string|max:255',
-            'prev_institution'   => 'nullable|string|max:255',
-            'prev_insti_address' => 'nullable|string|max:500',
-            'prev_marks'         => 'nullable|numeric|min:0|max:100',
-            'current_studies'    => 'nullable|string|max:255',
-            'curr_institution'   => 'nullable|string|max:255',
-            'curr_insti_address' => 'nullable|string|max:500',
-            'aspiration'         => 'nullable|string|max:500',
-            'long_term_effect'   => 'nullable|string|max:500',
-        ]);
 
         // Find existing record
         $educationBackground = ProjectIIESEducationBackground::where('project_id', $projectId)->first();

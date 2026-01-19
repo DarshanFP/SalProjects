@@ -65,7 +65,7 @@
                     <div class="card-body">
                         <div class="mb-3">
                             <label for="goal" class="form-label">Goal of the Project</label>
-                            <textarea name="goal" class="form-control" rows="3" readonly>{{ old('goal', $project->goal) }}</textarea>
+                            <textarea name="goal" class="form-control auto-resize-textarea" rows="3" readonly>{{ old('goal', $project->goal) }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -83,11 +83,11 @@
                         <div class="card-body">
                             <div class="mb-3">
                                 <label for="objective[1]" class="form-label">Objective</label>
-                                <textarea name="objective[1]" class="form-control" rows="2"></textarea>
+                                <textarea name="objective[1]" class="form-control auto-resize-textarea" rows="2"></textarea>
                             </div>
                             <div class="mb-3">
                                 <label for="expected_outcome[1]" class="form-label">Expected Outcome</label>
-                                <textarea name="expected_outcome[1]" class="form-control" rows="2"></textarea>
+                                <textarea name="expected_outcome[1]" class="form-control auto-resize-textarea" rows="2"></textarea>
                             </div>
                             <h4>Monthly Summary</h4>
                             <div class="monthly-summary-container" data-index="1">
@@ -106,15 +106,15 @@
                                     <div class="card-body">
                                         <div class="mb-3">
                                             <label for="summary_activities[1][1][1]" class="form-label">Summary of Activities Undertaken During the Month</label>
-                                            <textarea name="summary_activities[1][1][1]" class="form-control" rows="3"></textarea>
+                                            <textarea name="summary_activities[1][1][1]" class="form-control auto-resize-textarea" rows="3"></textarea>
                                         </div>
                                         <div class="mb-3">
                                             <label for="qualitative_quantitative_data[1][1][1]" class="form-label">Qualitative & Quantitative Data</label>
-                                            <textarea name="qualitative_quantitative_data[1][1][1]" class="form-control" rows="3"></textarea>
+                                            <textarea name="qualitative_quantitative_data[1][1][1]" class="form-control auto-resize-textarea" rows="3"></textarea>
                                         </div>
                                         <div class="mb-3">
                                             <label for="intermediate_outcomes[1][1][1]" class="form-label">Intermediate Outcomes</label>
-                                            <textarea name="intermediate_outcomes[1][1][1]" class="form-control" rows="3"></textarea>
+                                            <textarea name="intermediate_outcomes[1][1][1]" class="form-control auto-resize-textarea" rows="3"></textarea>
                                         </div>
                                     </div>
                                     <button type="button" class="btn btn-primary btn-sm" onclick="addActivity(1)">Add Activity</button>
@@ -123,11 +123,11 @@
                             </div>
                             <div class="mb-3">
                                 <label for="not_happened[1]" class="form-label">What Did Not Happen?</label>
-                                <textarea name="not_happened[1]" class="form-control" rows="3"></textarea>
+                                <textarea name="not_happened[1]" class="form-control auto-resize-textarea" rows="3"></textarea>
                             </div>
                             <div class="mb-3">
                                 <label for="why_not_happened[1]" class="form-label">Explain Why Some Activities Could Not Be Undertaken</label>
-                                <textarea name="why_not_happened[1]" class="form-control" rows="3"></textarea>
+                                <textarea name="why_not_happened[1]" class="form-control auto-resize-textarea" rows="3"></textarea>
                             </div>
                             <div class="mb-3">
                                 <label for="changes[1]" class="form-label">Have You Made Any Changes in the Project Such as New Activities or Modified the Activities Contextually?</label>
@@ -138,15 +138,15 @@
                             </div>
                             <div class="mb-3 d-none" id="why_changes_container_1">
                                 <label for="why_changes[1]" class="form-label">Explain Why the Changes Were Needed</label>
-                                <textarea name="why_changes[1]" class="form-control" rows="3"></textarea>
+                                <textarea name="why_changes[1]" class="form-control auto-resize-textarea" rows="3"></textarea>
                             </div>
                             <div class="mb-3">
                                 <label for="lessons_learnt[1]" class="form-label">What Are the Lessons Learnt?</label>
-                                <textarea name="lessons_learnt[1]" class="form-control" rows="3"></textarea>
+                                <textarea name="lessons_learnt[1]" class="form-control auto-resize-textarea" rows="3"></textarea>
                             </div>
                             <div class="mb-3">
                                 <label for="todo_lessons_learnt[1]" class="form-label">What Will Be Done Differently Because of the Learnings?</label>
-                                <textarea name="todo_lessons_learnt[1]" class="form-control" rows="3"></textarea>
+                                <textarea name="todo_lessons_learnt[1]" class="form-control auto-resize-textarea" rows="3"></textarea>
                             </div>
                         </div>
                     </div>
@@ -170,7 +170,7 @@
                             </div>
                             <div class="mb-3">
                                 <label for="plan_next_month[1]" class="form-label">Action Plan for Next Month</label>
-                                <textarea name="plan_next_month[1]" class="form-control" rows="3"></textarea>
+                                <textarea name="plan_next_month[1]" class="form-control auto-resize-textarea" rows="3"></textarea>
                             </div>
                         </div>
                     </div>
@@ -266,7 +266,7 @@
                             <div class="mb-3 photo-group" data-index="1">
                                 <label for="photo_1" class="form-label">Photo 1</label>
                                 <input type="file" name="photos[]" class="mb-2 form-control" accept="image/*" onchange="checkFileSize(this)">
-                                <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)"></textarea>
+                                <textarea name="photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)"></textarea>
                                 <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
                             </div>
                         </div>
@@ -304,11 +304,11 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label for="objective[${index}]" class="form-label">Objective</label>
-                        <textarea name="objective[${index}]" class="form-control" rows="2"></textarea>
+                        <textarea name="objective[${index}]" class="form-control auto-resize-textarea" rows="2"></textarea>
                     </div>
                     <div class="mb-3">
                         <label for="expected_outcome[${index}]" class="form-label">Expected Outcome</label>
-                        <textarea name="expected_outcome[${index}]" class="form-control" rows="2"></textarea>
+                        <textarea name="expected_outcome[${index}]" class="form-control auto-resize-textarea" rows="2"></textarea>
                     </div>
                     <h4>Monthly Summary</h4>
                     <div class="monthly-summary-container" data-index="${index}">
@@ -326,15 +326,15 @@
                             <div class="card-body">
                                 <div class="mb-3">
                                     <label for="summary_activities[${index}][1][1]" class="form-label">Summary of Activities</label>
-                                    <textarea name="summary_activities[${index}][1][1]" class="form-control" rows="3"></textarea>
+                                    <textarea name="summary_activities[${index}][1][1]" class="form-control auto-resize-textarea" rows="3"></textarea>
                                 </div>
                                 <div class="mb-3">
                                     <label for="qualitative_quantitative_data[${index}][1][1]" class="form-label">Qualitative & Quantitative Data</label>
-                                    <textarea name="qualitative_quantitative_data[${index}][1][1]" class="form-control" rows="3"></textarea>
+                                    <textarea name="qualitative_quantitative_data[${index}][1][1]" class="form-control auto-resize-textarea" rows="3"></textarea>
                                 </div>
                                 <div class="mb-3">
                                     <label for="intermediate_outcomes[${index}][1][1]" class="form-label">Intermediate Outcomes</label>
-                                    <textarea name="intermediate_outcomes[${index}][1][1]" class="form-control" rows="3"></textarea>
+                                    <textarea name="intermediate_outcomes[${index}][1][1]" class="form-control auto-resize-textarea" rows="3"></textarea>
                                 </div>
                             </div>
                             <button type="button" class="btn btn-primary btn-sm" onclick="addActivity(${index})">Add Activity</button>
@@ -342,11 +342,11 @@
                     </div>
                     <div class="mb-3">
                         <label for="not_happened[${index}]" class="form-label">What Did Not Happen?</label>
-                        <textarea name="not_happened[${index}]" class="form-control" rows="3"></textarea>
+                        <textarea name="not_happened[${index}]" class="form-control auto-resize-textarea" rows="3"></textarea>
                     </div>
                     <div class="mb-3">
                         <label for="why_not_happened[${index}]" class="form-label">Explain Why Some Activities Could Not Be Undertaken</label>
-                        <textarea name="why_not_happened[${index}]" class="form-control" rows="3"></textarea>
+                        <textarea name="why_not_happened[${index}]" class="form-control auto-resize-textarea" rows="3"></textarea>
                     </div>
                     <div class="mb-3">
                         <label for="changes[${index}]" class="form-label">Have You Made Any Changes in the Project Such as New Activities or Modified the Activities Contextually?</label>
@@ -357,21 +357,27 @@
                     </div>
                     <div class="mb-3 d-none" id="why_changes_container_${index}">
                         <label for="why_changes[${index}]" class="form-label">Explain Why the Changes Were Needed</label>
-                        <textarea name="why_changes[${index}]" class="form-control" rows="3"></textarea>
+                        <textarea name="why_changes[${index}]" class="form-control auto-resize-textarea" rows="3"></textarea>
                     </div>
                     <div class="mb-3">
                         <label for="lessons_learnt[${index}]" class="form-label">What Are the Lessons Learnt?</label>
-                        <textarea name="lessons_learnt[${index}]" class="form-control" rows="3"></textarea>
+                        <textarea name="lessons_learnt[${index}]" class="form-control auto-resize-textarea" rows="3"></textarea>
                     </div>
                     <div class="mb-3">
                         <label for="todo_lessons_learnt[${index}]" class="form-label">What Will Be Done Differently Because of the Learnings?</label>
-                        <textarea name="todo_lessons_learnt[${index}]" class="form-control" rows="3"></textarea>
+                        <textarea name="todo_lessons_learnt[${index}]" class="form-control auto-resize-textarea" rows="3"></textarea>
                     </div>
                 </div>
             </div>
         `;
         objectivesContainer.insertAdjacentHTML('beforeend', objectiveTemplate);
         updateRemoveButtons();
+
+        // Initialize auto-resize for newly added textareas
+        const newObjective = objectivesContainer.lastElementChild;
+        if (newObjective && typeof window.initDynamicTextarea === 'function') {
+            window.initDynamicTextarea(newObjective);
+        }
     }
 
     function addActivity(objectiveIndex) {
@@ -392,15 +398,15 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label for="summary_activities[${objectiveIndex}][${activityIndex}][1]" class="form-label">Summary of Activities</label>
-                        <textarea name="summary_activities[${objectiveIndex}][${activityIndex}][1]" class="form-control" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="qualitative_quantitative_data[${objectiveIndex}][${activityIndex}][1]" class="form-label">Qualitative & Quantitative Data</label>
-                        <textarea name="qualitative_quantitative_data[${objectiveIndex}][${activityIndex}][1]" class="form-control" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="intermediate_outcomes[${objectiveIndex}][${activityIndex}][1]" class="form-label">Intermediate Outcomes</label>
-                        <textarea name="intermediate_outcomes[${objectiveIndex}][${activityIndex}][1]" class="form-control" rows="3"></textarea>
+                                    <textarea name="summary_activities[${objectiveIndex}][${activityIndex}][1]" class="form-control auto-resize-textarea" rows="3"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="qualitative_quantitative_data[${objectiveIndex}][${activityIndex}][1]" class="form-label">Qualitative & Quantitative Data</label>
+                                    <textarea name="qualitative_quantitative_data[${objectiveIndex}][${activityIndex}][1]" class="form-control auto-resize-textarea" rows="3"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="intermediate_outcomes[${objectiveIndex}][${activityIndex}][1]" class="form-label">Intermediate Outcomes</label>
+                                    <textarea name="intermediate_outcomes[${objectiveIndex}][${activityIndex}][1]" class="form-control auto-resize-textarea" rows="3"></textarea>
                     </div>
                 </div>
                 <button type="button" class="btn btn-primary btn-sm" onclick="addActivity(${objectiveIndex})">Add Activity</button>
@@ -408,6 +414,12 @@
         `;
         monthlySummaryContainer.insertAdjacentHTML('beforeend', activityTemplate);
         updateRemoveButtons();
+
+        // Initialize auto-resize for newly added activity textareas
+        const newActivity = monthlySummaryContainer.lastElementChild;
+        if (newActivity && typeof window.initDynamicTextarea === 'function') {
+            window.initDynamicTextarea(newActivity);
+        }
     }
 
     function removeObjective(button) {
@@ -464,13 +476,19 @@
                     </div>
                     <div class="mb-3">
                         <label for="plan_next_month[${index}]" class="form-label">Action Plan for Next Month</label>
-                        <textarea name="plan_next_month[${index}]" class="form-control" rows="3"></textarea>
+                        <textarea name="plan_next_month[${index}]" class="form-control auto-resize-textarea" rows="3"></textarea>
                     </div>
                 </div>
             </div>
         `;
         outlookContainer.insertAdjacentHTML('beforeend', outlookTemplate);
         updateOutlookRemoveButtons();
+
+        // Initialize auto-resize for newly added outlook textarea
+        const newOutlook = outlookContainer.lastElementChild;
+        if (newOutlook && typeof window.initDynamicTextarea === 'function') {
+            window.initDynamicTextarea(newOutlook);
+        }
     }
 
     function removeOutlook(button) {
@@ -504,11 +522,22 @@
             calculateTotal();
         });
 
+        // Calculate all rows on page load to initialize total_expenses and balance_amount
+        const rows = document.querySelectorAll('#account-rows tr');
+        rows.forEach(row => {
+            calculateRowTotals(row);
+        });
+        calculateTotal(); // Calculate totals after initializing all rows
+
         const prjctAmountSanctioned = document.querySelector('[name="amount_sanctioned_overview"]');
         const lyAmountForwarded = document.querySelector('[name="amount_forwarded_overview"]');
 
-        prjctAmountSanctioned.addEventListener('input', calculateTotalAmount);
-        lyAmountForwarded.addEventListener('input', calculateTotalAmount);
+        if (prjctAmountSanctioned) {
+            prjctAmountSanctioned.addEventListener('input', calculateTotalAmount);
+        }
+        if (lyAmountForwarded) {
+            lyAmountForwarded.addEventListener('input', calculateTotalAmount);
+        }
     });
 
     function calculateRowTotals(row) {
@@ -658,12 +687,18 @@
             <div class="mb-3 photo-group" data-index="${index}">
                 <label for="photo_${index}" class="form-label">Photo ${index}</label>
                 <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="checkFile(this)">
-                <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)"></textarea>
+                <textarea name="photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)"></textarea>
                 <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
             </div>
         `;
         photosContainer.insertAdjacentHTML('beforeend', photoTemplate);
         updatePhotoLabels();
+
+        // Initialize auto-resize for newly added photo textarea
+        const newPhoto = photosContainer.lastElementChild;
+        if (newPhoto && typeof window.initDynamicTextarea === 'function') {
+            window.initDynamicTextarea(newPhoto);
+        }
     } else {
         alert('You can upload a maximum of 10 photos.');
     }

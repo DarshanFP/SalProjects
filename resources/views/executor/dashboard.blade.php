@@ -35,6 +35,14 @@
     <link rel="stylesheet" href="{{ asset('backend/assets/css/demo2/style.css') }}">
     <!-- End layout styles -->
 
+    <!-- Custom form styles for dark theme -->
+    <link rel="stylesheet" href="{{ asset('css/custom/project-forms.css') }}">
+    <!-- TextArea auto-resize styles -->
+    <link rel="stylesheet" href="{{ asset('css/custom/textarea-auto-resize.css') }}">
+    <!-- Common table styles -->
+    <link rel="stylesheet" href="{{ asset('css/custom/common-tables.css') }}">
+    <!-- End custom form styles -->
+
     <link rel="shortcut icon" href="{{ asset('backend/assets/images/favicon.png') }}" />
 </head>
 <body>
@@ -64,6 +72,8 @@
     <!-- Plugin js for this page -->
     <script src="{{ asset('backend/assets/vendors/flatpickr/flatpickr.min.js') }}"></script>
     <script src="{{ asset('backend/assets/vendors/apexcharts/apexcharts.min.js') }}"></script>
+    <!-- SortableJS for drag & drop (optional, for dashboard customization) -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <!-- End plugin js for this page -->
 
     <!-- inject:js -->
@@ -76,8 +86,11 @@
 
     <!-- Custom js for this page -->
     <script src="{{ asset('backend/assets/js/dashboard-dark.js') }}"></script>
+    <!-- TextArea auto-resize functionality -->
+    <script src="{{ asset('js/textarea-auto-resize.js') }}"></script>
     <!-- End custom js for this page -->
 
+    @stack('scripts')
 </body>
 </html>
 <style>

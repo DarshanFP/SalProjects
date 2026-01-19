@@ -20,7 +20,7 @@
             <div class="mb-4 text-white card bg-primary">
                 <div class="card-body">
                     <h5 class="card-title">Total Budget</h5>
-                    <h3 class="card-text">₹{{ number_format($overallTotals['total_budget'], 2) }}</h3>
+                    <h3 class="card-text">{{ format_indian_currency($overallTotals['total_budget'], 2) }}</h3>
                 </div>
             </div>
         </div>
@@ -28,7 +28,7 @@
             <div class="mb-4 text-white card bg-success">
                 <div class="card-body">
                     <h5 class="card-title">Total Expenses</h5>
-                    <h3 class="card-text">₹{{ number_format($overallTotals['total_expenses'], 2) }}</h3>
+                    <h3 class="card-text">{{ format_indian_currency($overallTotals['total_expenses'], 2) }}</h3>
                 </div>
             </div>
         </div>
@@ -36,7 +36,7 @@
             <div class="mb-4 text-white card bg-info">
                 <div class="card-body">
                     <h5 class="card-title">Total Remaining</h5>
-                    <h3 class="card-text">₹{{ number_format($overallTotals['total_remaining'], 2) }}</h3>
+                    <h3 class="card-text">{{ format_indian_currency($overallTotals['total_remaining'], 2) }}</h3>
                 </div>
             </div>
         </div>
@@ -121,16 +121,16 @@
                                     @foreach($projectTypeData as $item)
                                     <tr>
                                         <td>{{ $item['type'] }}</td>
-                                        <td class="text-end">₹{{ number_format($item['budget'], 2) }}</td>
-                                        <td class="text-end">₹{{ number_format($item['expenses'], 2) }}</td>
-                                        <td class="text-end">₹{{ number_format($item['budget'] - $item['expenses'], 2) }}</td>
+                                        <td class="text-end">{{ format_indian_currency($item['budget'], 2) }}</td>
+                                        <td class="text-end">{{ format_indian_currency($item['expenses'], 2) }}</td>
+                                        <td class="text-end">{{ format_indian_currency($item['budget'] - $item['expenses'], 2) }}</td>
                                     </tr>
                                     @endforeach
-                                    <tr class="table-primary">
+                                    <tr>
                                         <td><strong>Total</strong></td>
-                                        <td class="text-end"><strong>₹{{ number_format(array_sum(array_column($projectTypeData, 'budget')), 2) }}</strong></td>
-                                        <td class="text-end"><strong>₹{{ number_format(array_sum(array_column($projectTypeData, 'expenses')), 2) }}</strong></td>
-                                        <td class="text-end"><strong>₹{{ number_format(array_sum(array_column($projectTypeData, 'budget')) - array_sum(array_column($projectTypeData, 'expenses')), 2) }}</strong></td>
+                                        <td class="text-end"><strong>{{ format_indian_currency(array_sum(array_column($projectTypeData, 'budget')), 2) }}</strong></td>
+                                        <td class="text-end"><strong>{{ format_indian_currency(array_sum(array_column($projectTypeData, 'expenses')), 2) }}</strong></td>
+                                        <td class="text-end"><strong>{{ format_indian_currency(array_sum(array_column($projectTypeData, 'budget')) - array_sum(array_column($projectTypeData, 'expenses')), 2) }}</strong></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -169,16 +169,16 @@
                                     @foreach($provinceData as $item)
                                     <tr>
                                         <td>{{ $item['province'] }}</td>
-                                        <td class="text-end">₹{{ number_format($item['budget'], 2) }}</td>
-                                        <td class="text-end">₹{{ number_format($item['expenses'], 2) }}</td>
-                                        <td class="text-end">₹{{ number_format($item['budget'] - $item['expenses'], 2) }}</td>
+                                        <td class="text-end">{{ format_indian_currency($item['budget'], 2) }}</td>
+                                        <td class="text-end">{{ format_indian_currency($item['expenses'], 2) }}</td>
+                                        <td class="text-end">{{ format_indian_currency($item['budget'] - $item['expenses'], 2) }}</td>
                                     </tr>
                                     @endforeach
-                                    <tr class="table-primary">
+                                    <tr>
                                         <td><strong>Total</strong></td>
-                                        <td class="text-end"><strong>₹{{ number_format(array_sum(array_column($provinceData, 'budget')), 2) }}</strong></td>
-                                        <td class="text-end"><strong>₹{{ number_format(array_sum(array_column($provinceData, 'expenses')), 2) }}</strong></td>
-                                        <td class="text-end"><strong>₹{{ number_format(array_sum(array_column($provinceData, 'budget')) - array_sum(array_column($provinceData, 'expenses')), 2) }}</strong></td>
+                                        <td class="text-end"><strong>{{ format_indian_currency(array_sum(array_column($provinceData, 'budget')), 2) }}</strong></td>
+                                        <td class="text-end"><strong>{{ format_indian_currency(array_sum(array_column($provinceData, 'expenses')), 2) }}</strong></td>
+                                        <td class="text-end"><strong>{{ format_indian_currency(array_sum(array_column($provinceData, 'budget')) - array_sum(array_column($provinceData, 'expenses')), 2) }}</strong></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -273,9 +273,9 @@
                                 <tr>
                                     <td>{{ $type }}</td>
                                     <td>{{ $province }}</td>
-                                    <td>₹{{ number_format($data['total_budget'], 2) }}</td>
-                                    <td>₹{{ number_format($data['total_expenses'], 2) }}</td>
-                                    <td>₹{{ number_format($data['total_remaining'], 2) }}</td>
+                                    <td>{{ format_indian_currency($data['total_budget'], 2) }}</td>
+                                    <td>{{ format_indian_currency($data['total_expenses'], 2) }}</td>
+                                    <td>{{ format_indian_currency($data['total_remaining'], 2) }}</td>
                                     <td>
                                         @php
                                             $utilization = $data['total_budget'] > 0
@@ -289,7 +289,7 @@
                                                  aria-valuenow="{{ $utilization }}"
                                                  aria-valuemin="0"
                                                  aria-valuemax="100">
-                                                {{ number_format($utilization, 1) }}%
+                                                {{ format_indian_percentage($utilization, 1) }}
                                             </div>
                                         </div>
                                     </td>
@@ -368,16 +368,16 @@
 @push('scripts')
 <script>
 // Debug: Check if jQuery and ApexCharts are available
-console.log('jQuery available:', typeof jQuery !== 'undefined');
-console.log('ApexCharts available:', typeof ApexCharts !== 'undefined');
+// console.log('jQuery available:', typeof jQuery !== 'undefined');
+// console.log('ApexCharts available:', typeof ApexCharts !== 'undefined');
 
 // Debug: Check if chart containers exist
-console.log('Project Type Chart container:', document.querySelector("#projectTypeChart"));
-console.log('Province Chart container:', document.querySelector("#provinceChart"));
+// console.log('Project Type Chart container:', document.querySelector("#projectTypeChart"));
+// console.log('Province Chart container:', document.querySelector("#provinceChart"));
 
 // Initialize DataTable
 $(document).ready(function() {
-    console.log('Document ready - Initializing charts and table');
+    // console.log('Document ready - Initializing charts and table');
 
     try {
         // Verify dependencies are available
@@ -395,8 +395,8 @@ $(document).ready(function() {
         // Debug: Log the data being passed to charts
         const projectTypeData = @json($projectTypeData);
         const provinceData = @json($provinceData);
-        console.log('Project Type Data for chart:', projectTypeData);
-        console.log('Province Data for chart:', provinceData);
+        // console.log('Project Type Data for chart:', projectTypeData);
+        // console.log('Province Data for chart:', provinceData);
 
         const table = $('#budgetTable').DataTable({
             responsive: true,
@@ -405,7 +405,7 @@ $(document).ready(function() {
                 'copy', 'csv', 'excel', 'pdf', 'print'
             ]
         });
-        console.log('DataTable initialized successfully');
+        // console.log('DataTable initialized successfully');
 
         // Initialize Charts
         initializeCharts();
@@ -430,9 +430,9 @@ $(document).ready(function() {
         });
 
         // Add detailed debugging for province chart data
-        console.log('Raw Province Data:', @json($provinceData));
-        console.log('Province Budgets:', @json(array_column($provinceData, 'budget')));
-        console.log('Province Expenses:', @json(array_column($provinceData, 'expenses')));
+        // console.log('Raw Province Data:', @json($provinceData));
+        // console.log('Province Budgets:', @json(array_column($provinceData, 'budget')));
+        // console.log('Province Expenses:', @json(array_column($provinceData, 'expenses')));
     } catch (error) {
         console.error('Error in initialization:', error);
         // Show error in chart containers
@@ -443,7 +443,7 @@ $(document).ready(function() {
 
 // Update chart options for dark theme
 function initializeCharts() {
-    console.log('Starting chart initialization');
+    // console.log('Starting chart initialization');
 
     try {
         // Common chart options for dark theme
@@ -623,16 +623,17 @@ function showProjectDetails(type, province) {
 }
 
 .table-hover tbody tr:hover {
-    background-color: #334155;
+    background-color: rgba(51, 65, 85, 0.5);
 }
 
+/* Total rows should use clear background matching theme */
 .table-primary {
-    background-color: #1e40af !important;
-    color: #fff;
+    background-color: transparent !important;
+    color: inherit;
 }
 
 .table-primary td {
-    border-color: #2563eb;
+    border-color: #334155;
 }
 
 .text-end {

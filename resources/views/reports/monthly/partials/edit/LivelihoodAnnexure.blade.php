@@ -54,12 +54,12 @@
                     <!-- Project’s impact in the life of the beneficiary -->
                     <div class="mb-3">
                         <label for="dla_impact[{{ $index }}]" class="form-label">Project’s impact in the life of the beneficiary</label>
-                        <textarea name="dla_impact[{{ $index }}]" class="form-control" style="background-color: #202ba3;">{{ $annexure->dla_impact }}</textarea>
+                        <textarea name="dla_impact[{{ $index }}]" class="form-control auto-resize-textarea" style="background-color: #202ba3;">{{ $annexure->dla_impact }}</textarea>
                     </div>
                     <!-- Challenges faced if any -->
                     <div class="mb-3">
                         <label for="dla_challenges[{{ $index }}]" class="form-label">Challenges faced if any is it</label>
-                        <textarea name="dla_challenges[{{ $index }}]" class="form-control" style="background-color: #202ba3;">{{ $annexure->dla_challenges }}</textarea>
+                        <textarea name="dla_challenges[{{ $index }}]" class="form-control auto-resize-textarea" style="background-color: #202ba3;">{{ $annexure->dla_challenges }}</textarea>
                     </div>
                 </div>
             </div>
@@ -121,18 +121,25 @@
                     <!-- Project’s impact in the life of the beneficiary -->
                     <div class="mb-3">
                         <label for="dla_impact[${currentIndex}]" class="form-label">Project’s impact in the life of the beneficiary</label>
-                        <textarea name="dla_impact[${currentIndex}]" class="form-control" style="background-color: #202ba3;"></textarea>
+                        <textarea name="dla_impact[${currentIndex}]" class="form-control auto-resize-textarea" style="background-color: #202ba3;"></textarea>
                     </div>
                     <!-- Challenges faced if any -->
                     <div class="mb-3">
                         <label for="dla_challenges[${currentIndex}]" class="form-label">Challenges faced if any is it</label>
-                        <textarea name="dla_challenges[${currentIndex}]" class="form-control" style="background-color: #202ba3;"></textarea>
+                        <textarea name="dla_challenges[${currentIndex}]" class="form-control auto-resize-textarea" style="background-color: #202ba3;"></textarea>
                     </div>
                 </div>
             </div>
         `;
 
         impactContainer.insertAdjacentHTML('beforeend', impactTemplate);
+
+        // Initialize auto-resize for new impact group textareas using global function
+        const newImpactGroup = impactContainer.lastElementChild;
+        if (newImpactGroup && typeof initDynamicTextarea === 'function') {
+            initDynamicTextarea(newImpactGroup);
+        }
+
         dla_updateImpactGroupIndexes();
     }
 
@@ -184,7 +191,17 @@
 
             // Update Challenges faced if any
             const challengesTextarea = group.querySelector('textarea[name^="dla_challenges"]');
-            challengesTextarea.name = `dla_challenges[${index}]`;
+            if (challengesTextarea) {
+                challengesTextarea.name = `dla_challenges[${index}]`;
+            }
+
+            // Re-initialize textarea auto-resize after reindexing
+            if (impactTextarea && typeof autoResizeTextarea === 'function') {
+                autoResizeTextarea(impactTextarea);
+            }
+            if (challengesTextarea && typeof autoResizeTextarea === 'function') {
+                autoResizeTextarea(challengesTextarea);
+            }
         });
     }
 

@@ -3,16 +3,22 @@
 namespace App\Http\Controllers\Projects\RST;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\RST\ProjectDPRSTBeneficiariesArea;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\RST\StoreRSTBeneficiariesAreaRequest;
+use App\Http\Requests\Projects\RST\UpdateRSTBeneficiariesAreaRequest;
 
 class BeneficiariesAreaController extends Controller
 {
     // Store or update beneficiaries area
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
 {
+    // Use all() instead of validated() because project_area fields are not in StoreProjectRequest validation rules
+    // This ensures we get all form data including project_area, category_beneficiary, etc.
+    $validated = $request->all();
+    
     DB::beginTransaction();
     try {
         Log::info('Storing Beneficiaries Area for DPRST', ['project_id' => $projectId]);
@@ -21,13 +27,18 @@ class BeneficiariesAreaController extends Controller
         ProjectDPRSTBeneficiariesArea::where('project_id', $projectId)->delete();
 
         // Loop through the arrays and store the project area information
-        foreach ($request->project_area as $index => $projectArea) {
+        $projectAreas = $validated['project_area'] ?? [];
+        $categoryBeneficiaries = $validated['category_beneficiary'] ?? [];
+        $directBeneficiaries = $validated['direct_beneficiaries'] ?? [];
+        $indirectBeneficiaries = $validated['indirect_beneficiaries'] ?? [];
+        
+        foreach ($projectAreas as $index => $projectArea) {
             ProjectDPRSTBeneficiariesArea::create([
                 'project_id' => $projectId,
                 'project_area' => $projectArea,
-                'category_beneficiary' => $request->category_beneficiary[$index] ?? null,
-                'direct_beneficiaries' => $request->direct_beneficiaries[$index] ?? null,
-                'indirect_beneficiaries' => $request->indirect_beneficiaries[$index] ?? null,
+                'category_beneficiary' => $categoryBeneficiaries[$index] ?? null,
+                'direct_beneficiaries' => $directBeneficiaries[$index] ?? null,
+                'indirect_beneficiaries' => $indirectBeneficiaries[$index] ?? null,
             ]);
         }
 
@@ -120,19 +131,15 @@ class BeneficiariesAreaController extends Controller
 
     // Delete beneficiaries area for a project
 
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
 {
+    // Use all() instead of validated() because project_area fields are not in UpdateProjectRequest validation rules
+    // This ensures we get all form data including project_area, category_beneficiary, etc.
+    $validatedData = $request->all();
+    
     DB::beginTransaction();
     try {
         Log::info('Updating Beneficiaries Area for DPRST', ['project_id' => $projectId]);
-
-        // Validate the incoming data
-        $validatedData = $request->validate([
-            'project_area' => 'required|array',
-            'category_beneficiary' => 'array',
-            'direct_beneficiaries' => 'array',
-            'indirect_beneficiaries' => 'array',
-        ]);
 
         // Check if there are existing records
         $existingAreas = ProjectDPRSTBeneficiariesArea::where('project_id', $projectId)->get();
@@ -147,13 +154,18 @@ class BeneficiariesAreaController extends Controller
         }
 
         // Create new entries based on the provided data
-        foreach ($request->project_area as $index => $projectArea) {
+        $projectAreas = $validatedData['project_area'] ?? [];
+        $categoryBeneficiaries = $validatedData['category_beneficiary'] ?? [];
+        $directBeneficiaries = $validatedData['direct_beneficiaries'] ?? [];
+        $indirectBeneficiaries = $validatedData['indirect_beneficiaries'] ?? [];
+        
+        foreach ($projectAreas as $index => $projectArea) {
             ProjectDPRSTBeneficiariesArea::create([
                 'project_id' => $projectId,
                 'project_area' => $projectArea,
-                'category_beneficiary' => $request->category_beneficiary[$index] ?? null,
-                'direct_beneficiaries' => $request->direct_beneficiaries[$index] ?? null,
-                'indirect_beneficiaries' => $request->indirect_beneficiaries[$index] ?? null,
+                'category_beneficiary' => $categoryBeneficiaries[$index] ?? null,
+                'direct_beneficiaries' => $directBeneficiaries[$index] ?? null,
+                'indirect_beneficiaries' => $indirectBeneficiaries[$index] ?? null,
             ]);
         }
 

@@ -31,7 +31,7 @@
                 @csrf
                 <div class="mb-3">
                     <label for="comment" class="form-label">Add Comment</label>
-                    <textarea name="comment" id="comment" rows="3" class="form-control" required></textarea>
+                    <textarea name="comment" id="comment" rows="3" class="form-control auto-resize-textarea" required></textarea>
                 </div>
                 <button type="submit" class="btn btn-primary btn-sm">Submit Comment</button>
             </form>

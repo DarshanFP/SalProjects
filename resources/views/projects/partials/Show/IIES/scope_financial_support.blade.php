@@ -47,7 +47,7 @@
 {{--
 <style>
     .card-body {
-        background-color: #f8f9fa;
+        
         padding: 15px;
     }
     .col-md-6, .col-md-12 {

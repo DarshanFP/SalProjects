@@ -1,13 +1,56 @@
-
-{{-- resources/views/projects/partials/show/key_information.blade.php --}}
+{{-- resources/views/projects/partials/Show/key_information.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Key Information</h4>
     </div>
     <div class="card-body">
-        <div class="info-grid">
+        @if($project->initial_information)
+            <div class="mb-3">
+                <div class="info-label"><strong>Initial Information:</strong></div>
+                <div class="info-value">{{ $project->initial_information }}</div>
+            </div>
+        @endif
+
+        @if($project->target_beneficiaries)
+            <div class="mb-3">
+                <div class="info-label"><strong>Target Beneficiaries:</strong></div>
+                <div class="info-value">{{ $project->target_beneficiaries }}</div>
+            </div>
+        @endif
+
+        @if($project->general_situation)
+            <div class="mb-3">
+                <div class="info-label"><strong>General Situation:</strong></div>
+                <div class="info-value">{{ $project->general_situation }}</div>
+            </div>
+        @endif
+
+        @if($project->need_of_project)
+            <div class="mb-3">
+                <div class="info-label"><strong>Need of the Project:</strong></div>
+                <div class="info-value">{{ $project->need_of_project }}</div>
+            </div>
+        @endif
+
+        @if($project->goal)
+            <div class="mb-3">
             <div class="info-label"><strong>Goal of the Project:</strong></div>
             <div class="info-value">{{ $project->goal }}</div>
         </div>
+        @endif
+
+        @if(!$project->initial_information && !$project->target_beneficiaries && !$project->general_situation && !$project->need_of_project && !$project->goal)
+            <div class="text-muted">No key information provided yet.</div>
+        @endif
     </div>
 </div>
+
+<style>
+/* Preserve line breaks in Key Information display */
+.info-value {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    line-height: 1.6 !important;
+}
+</style>

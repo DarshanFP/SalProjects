@@ -20,14 +20,14 @@
                             @foreach($achievements->academic_achievements as $index => $achievement)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
-                                    <td><input type="text" name="academic_achievements[{{ $index }}]" value="{{ $achievement }}" class="form-control" style="background-color: #202ba3;"></td>
+                                    <td><input type="text" name="academic_achievements[{{ $index }}]" value="{{ $achievement }}" class="form-control"></td>
                                     <td><button type="button" class="btn btn-danger" onclick="removeAchievementRow(this, 'academic')">Remove</button></td>
                                 </tr>
                             @endforeach
                         @else
                             <tr>
                                 <td>1</td>
-                                <td><input type="text" name="academic_achievements[0]" class="form-control" style="background-color: #202ba3;"></td>
+                                <td><input type="text" name="academic_achievements[0]" class="form-control"></td>
                                 <td><button type="button" class="btn btn-danger" onclick="removeAchievementRow(this, 'academic')">Remove</button></td>
                             </tr>
                         @endif
@@ -54,14 +54,14 @@
                             @foreach($achievements->sport_achievements as $index => $achievement)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
-                                    <td><input type="text" name="sport_achievements[{{ $index }}]" value="{{ $achievement }}" class="form-control" style="background-color: #202ba3;"></td>
+                                    <td><input type="text" name="sport_achievements[{{ $index }}]" value="{{ $achievement }}" class="form-control"></td>
                                     <td><button type="button" class="btn btn-danger" onclick="removeAchievementRow(this, 'sport')">Remove</button></td>
                                 </tr>
                             @endforeach
                         @else
                             <tr>
                                 <td>1</td>
-                                <td><input type="text" name="sport_achievements[0]" class="form-control" style="background-color: #202ba3;"></td>
+                                <td><input type="text" name="sport_achievements[0]" class="form-control"></td>
                                 <td><button type="button" class="btn btn-danger" onclick="removeAchievementRow(this, 'sport')">Remove</button></td>
                             </tr>
                         @endif
@@ -88,14 +88,14 @@
                             @foreach($achievements->other_achievements as $index => $achievement)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
-                                    <td><input type="text" name="other_achievements[{{ $index }}]" value="{{ $achievement }}" class="form-control" style="background-color: #202ba3;"></td>
+                                    <td><input type="text" name="other_achievements[{{ $index }}]" value="{{ $achievement }}" class="form-control"></td>
                                     <td><button type="button" class="btn btn-danger" onclick="removeAchievementRow(this, 'other')">Remove</button></td>
                                 </tr>
                             @endforeach
                         @else
                             <tr>
                                 <td>1</td>
-                                <td><input type="text" name="other_achievements[0]" class="form-control" style="background-color: #202ba3;"></td>
+                                <td><input type="text" name="other_achievements[0]" class="form-control"></td>
                                 <td><button type="button" class="btn btn-danger" onclick="removeAchievementRow(this, 'other')">Remove</button></td>
                             </tr>
                         @endif
@@ -115,7 +115,7 @@
             const newRow = `
                 <tr>
                     <td>${rowCount + 1}</td>
-                    <td><input type="text" name="${type}_achievements[${rowCount}]" class="form-control" style="background-color: #202ba3;"></td>
+                    <td><input type="text" name="${type}_achievements[${rowCount}]" class="form-control"></td>
                     <td><button type="button" class="btn btn-danger" onclick="removeAchievementRow(this, '${type}')">Remove</button></td>
                 </tr>
             `;

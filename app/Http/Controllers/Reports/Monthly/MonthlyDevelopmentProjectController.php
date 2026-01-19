@@ -15,6 +15,7 @@ use App\Models\Reports\Monthly\DPOutlook;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Helpers\LogHelper;
 
 class MonthlyDevelopmentProjectController extends Controller
 {
@@ -33,7 +34,7 @@ class MonthlyDevelopmentProjectController extends Controller
 
         // Use the actual columns from the Project model
         $amountSanctioned = $project->amount_sanctioned ?? 0;  // total sanctioned amount for the project
-        $amountForwarded = $project->amount_forwarded ?? 0;    // total amount forwarded for the project
+        $amountForwarded = 0;  // Always set to 0 - no longer used in reports
 
         // Calculate expenses up to last month for each particular
         $expensesUpToLastMonth = DPAccountDetail::where('report_id', function($query) use ($project) {
@@ -53,7 +54,7 @@ class MonthlyDevelopmentProjectController extends Controller
     {
         // Log the request data
         Log::info('Store method called');
-        Log::info('Request data: ', $request->all());
+        LogHelper::logSafeRequest('Request data', $request, LogHelper::getReportAllowedFields());
 
         // Validate the incoming request data
         $validatedData = $request->validate([
@@ -66,7 +67,6 @@ class MonthlyDevelopmentProjectController extends Controller
             'account_period_end' => 'nullable|date',
             'total_balance_forwarded' => 'nullable|numeric',
             'amount_sanctioned_overview' => 'nullable|numeric',
-            'amount_forwarded_overview' => 'nullable|numeric',
             'amount_in_hand' => 'nullable|numeric',
             'photos' => 'nullable|array',
             'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -178,7 +178,7 @@ class MonthlyDevelopmentProjectController extends Controller
             $accountDetailData = [
                 'report_id' => $report->report_id,
                 'particulars' => $particularsItem,
-                'amount_forwarded' => $request->input("amount_forwarded.$index"),
+                'amount_forwarded' => 0.0, // Always set to 0 for backward compatibility
                 'amount_sanctioned' => $request->input("amount_sanctioned.$index"),
                 'total_amount' => $request->input("total_amount.$index"),
                 'expenses_last_month' => $request->input("expenses_last_month.$index"),
@@ -214,7 +214,10 @@ class MonthlyDevelopmentProjectController extends Controller
 
     public function index()
     {
-        $reports = DPReport::where('user_id', Auth::id())->get();
+        // Eager load relationships to prevent N+1 queries
+        $reports = DPReport::where('user_id', Auth::id())
+            ->with(['user', 'project', 'accountDetails'])
+            ->get();
         return view('reports.monthly.developmentProject.list', compact('reports'));
     }
 

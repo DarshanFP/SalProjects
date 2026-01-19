@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Helpers\LogHelper;
 
 class WomenInDistressController extends Controller
 {
@@ -26,7 +27,7 @@ class WomenInDistressController extends Controller
 {
     // Log the request data
     Log::info('Store method called');
-    Log::info('Request data: ', $request->all());
+    LogHelper::logSafeRequest('Request data', $request, LogHelper::getReportAllowedFields());
 
     // Validate the incoming request data
     $validatedData = $request->validate([
@@ -222,7 +223,10 @@ class WomenInDistressController extends Controller
     //LIST REPORTS
     public function index()
     {
-        $reports = RQWDReport::where('user_id', Auth::id())->get();
+        // Eager load relationships to prevent N+1 queries
+        $reports = RQWDReport::where('user_id', Auth::id())
+            ->with(['user', 'project', 'accountDetails'])
+            ->get();
         return view('reports.quarterly.womenInDistress.list', compact('reports'));
     }
 

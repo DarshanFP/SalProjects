@@ -7,43 +7,45 @@
     <div class="card-body">
         <div class="row">
             <!-- Heading Row -->
-            <div class="col-6"><strong>Education of Trainees</strong></div>
-            <div class="col-6"><strong>Number</strong></div>
+            <div class="col-2 report-label-col"><strong>Education of Trainees</strong></div>
+            <div class="col-10 report-value-col"><strong>Number</strong></div>
         </div>
         <div class="row">
             <!-- Education of Trainees -->
-            <div class="col-6">Below 9th standard</div>
-            <div class="col-6">{{ $report->education['below_9'] ?? 0 }}</div>
-
-            <div class="col-6">10th class failed</div>
-            <div class="col-6">{{ $report->education['class_10_fail'] ?? 0 }}</div>
-
-            <div class="col-6">10th class passed</div>
-            <div class="col-6">{{ $report->education['class_10_pass'] ?? 0 }}</div>
-
-            <div class="col-6">Intermediate</div>
-            <div class="col-6">{{ $report->education['intermediate'] ?? 0 }}</div>
-
-            <div class="col-6">Intermediate and above</div>
-            <div class="col-6">{{ $report->education['above_intermediate'] ?? 0 }}</div>
-
-            <div class="col-6">{{ $report->education['other'] ?? 'Other (if any)' }}</div>
-            <div class="col-6">{{ $report->education['other_count'] ?? 0 }}</div>
-
+            <div class="col-2 report-label-col">Below 9th standard</div>
+            <div class="col-10 report-value-col">{{ $report->education['below_9'] ?? 0 }}</div>
+        </div>
+        <div class="row">
+            <div class="col-2 report-label-col">10th class failed</div>
+            <div class="col-10 report-value-col">{{ $report->education['class_10_fail'] ?? 0 }}</div>
+        </div>
+        <div class="row">
+            <div class="col-2 report-label-col">10th class passed</div>
+            <div class="col-10 report-value-col">{{ $report->education['class_10_pass'] ?? 0 }}</div>
+        </div>
+        <div class="row">
+            <div class="col-2 report-label-col">Intermediate</div>
+            <div class="col-10 report-value-col">{{ $report->education['intermediate'] ?? 0 }}</div>
+        </div>
+        <div class="row">
+            <div class="col-2 report-label-col">Intermediate and above</div>
+            <div class="col-10 report-value-col">{{ $report->education['above_intermediate'] ?? 0 }}</div>
+        </div>
+        <div class="row">
+            <div class="col-2 report-label-col">{{ $report->education['other'] ?? 'Other (if any)' }}</div>
+            <div class="col-10 report-value-col">{{ $report->education['other_count'] ?? 0 }}</div>
+        </div>
+        <div class="row">
             <!-- Total -->
-            <div class="col-6"><strong>Total</strong></div>
-            <div class="col-6"><strong>{{ $report->education['total'] ?? 0 }}</strong></div>
+            <div class="col-2 report-label-col"><strong>Total</strong></div>
+            <div class="col-10 report-value-col"><strong>{{ $report->education['total'] ?? 0 }}</strong></div>
         </div>
     </div>
 </div>
 
 <style>
-    .card-body .row > .col-6 {
-        margin-bottom: 10px; /* Consistent spacing between rows */
-    }
-
     .card-body .row {
-        margin: 0; /* Ensure proper alignment */
+        margin-bottom: 10px; /* Consistent spacing between rows */
     }
 
     .card-header h4 {

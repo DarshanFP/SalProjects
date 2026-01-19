@@ -19,11 +19,11 @@
                 <tbody id="IGS-new-beneficiaries-rows">
                     <tr>
                         <td>1</td>
-                        <td><input type="text" name="beneficiary_name[]" class="form-control" style="background-color: #202ba3;"></td>
-                        <td><input type="text" name="caste[]" class="form-control" style="background-color: #202ba3;"></td>
-                        <td><textarea name="address[]" class="form-control" rows="2" style="background-color: #202ba3;"></textarea></td>
-                        <td><input type="text" name="group_year_of_study[]" class="form-control" style="background-color: #202ba3;"></td>
-                        <td><textarea name="family_background_need[]" class="form-control" rows="2" style="background-color: #202ba3;"></textarea></td>
+                        <td><input type="text" name="beneficiary_name[]" class="form-control"></td>
+                        <td><input type="text" name="caste[]" class="form-control"></td>
+                        <td><textarea name="address[]" class="form-control sustainability-textarea" rows="2"></textarea></td>
+                        <td><input type="text" name="group_year_of_study[]" class="form-control"></td>
+                        <td><textarea name="family_background_need[]" class="form-control sustainability-textarea" rows="2"></textarea></td>
                         <td><button type="button" class="btn btn-danger" onclick="IGSremoveNewBeneficiaryRow(this)">Remove</button></td>
                     </tr>
                 </tbody>
@@ -42,15 +42,24 @@
         const newRow = `
             <tr>
                 <td>${IGSnewBeneficiaryRowIndex}</td>
-                <td><input type="text" name="beneficiary_name[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><input type="text" name="caste[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><textarea name="address[]" class="form-control" rows="2" style="background-color: #202ba3;"></textarea></td>
-                <td><input type="text" name="group_year_of_study[]" class="form-control" style="background-color: #202ba3;"></td>
-                <td><textarea name="family_background_need[]" class="form-control" rows="2" style="background-color: #202ba3;"></textarea></td>
+                <td><input type="text" name="beneficiary_name[]" class="form-control"></td>
+                <td><input type="text" name="caste[]" class="form-control"></td>
+                <td><textarea name="address[]" class="form-control sustainability-textarea" rows="2"></textarea></td>
+                <td><input type="text" name="group_year_of_study[]" class="form-control"></td>
+                <td><textarea name="family_background_need[]" class="form-control sustainability-textarea" rows="2"></textarea></td>
                 <td><button type="button" class="btn btn-danger" onclick="IGSremoveNewBeneficiaryRow(this)">Remove</button></td>
             </tr>
         `;
         document.getElementById('IGS-new-beneficiaries-rows').insertAdjacentHTML('beforeend', newRow);
+
+        // Initialize auto-resize for newly added textareas using global function
+        const newRowElement = document.getElementById('IGS-new-beneficiaries-rows').lastElementChild;
+        const newTextareas = newRowElement.querySelectorAll('.sustainability-textarea');
+        if (newTextareas.length > 0 && typeof window.initTextareaAutoResize === 'function') {
+            newTextareas.forEach(textarea => {
+                window.initTextareaAutoResize(textarea);
+            });
+        }
     }
 
     window.IGSremoveNewBeneficiaryRow = function(button) {

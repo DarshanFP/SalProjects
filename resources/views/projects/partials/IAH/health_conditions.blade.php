@@ -29,17 +29,18 @@
 
         <div class="mb-3">
             <label for="doctor_address" class="form-label">Address of Doctor/Hospital:</label>
-            <textarea name="doctor_address" class="form-control" rows="2" placeholder="Enter doctor's or hospital's address"></textarea>
+            <textarea name="doctor_address" class="form-control sustainability-textarea" rows="2" placeholder="Enter doctor's or hospital's address"></textarea>
         </div>
 
         <div class="mb-3">
             <label for="health_situation" class="form-label">Please mention clearly about the health situation of the beneficiary:</label>
-            <textarea name="health_situation" class="form-control" rows="3" placeholder="Provide details on the health situation"></textarea>
+            <textarea name="health_situation" class="form-control sustainability-textarea" rows="3" placeholder="Provide details on the health situation"></textarea>
         </div>
 
         <div class="mb-3">
             <label for="family_situation" class="form-label">Give information about the present situation of the family:</label>
-            <textarea name="family_situation" class="form-control" rows="3" placeholder="Provide details on the family situation"></textarea>
+            <textarea name="family_situation" class="form-control sustainability-textarea" rows="3" placeholder="Provide details on the family situation"></textarea>
         </div>
     </div>
 </div>
+

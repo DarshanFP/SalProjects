@@ -3,32 +3,29 @@
 namespace App\Http\Controllers\Projects\ILP;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\ILP\ProjectILPAttachedDocuments;
 use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\ILP\StoreILPAttachedDocumentsRequest;
+use App\Http\Requests\Projects\ILP\UpdateILPAttachedDocumentsRequest;
 
 class AttachedDocumentsController extends Controller
 {
     // 🟢 STORE DOCUMENTS
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             // Ensure the project exists before proceeding
             if (!Project::where('project_id', $projectId)->exists()) {
                 return response()->json(['error' => 'Project not found.'], 404);
             }
-
-            // Adjust validation to match the nested 'attachments' fields
-            $validatedData = $request->validate([
-                'attachments.aadhar_doc' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'attachments.request_letter_doc' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'attachments.purchase_quotation_doc' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-                'attachments.other_doc' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            ]);
 
             // Log which files exist
             Log::info('Files received in request:', [
@@ -84,28 +81,30 @@ class AttachedDocumentsController extends Controller
     //     }
     // }
     public function show($projectId)
-{
-    try {
-        Log::info('Fetching ILP Attached Documents', ['project_id' => $projectId]);
+    {
+        try {
+            Log::info('Fetching ILP Attached Documents', ['project_id' => $projectId]);
+            
+            // Fetch documents for the given project ID with files relationship
+            $documents = ProjectILPAttachedDocuments::where('project_id', $projectId)
+                ->with('files')
+                ->first();
 
-        $documents = ProjectILPAttachedDocuments::where('project_id', $projectId)->first();
+            if (!$documents) {
+                Log::warning('ILP AttachedDocumentsController@show - No documents found', ['project_id' => $projectId]);
+                return null; // Return null so Blade can handle it properly
+            }
 
-        return [
-            'aadhar_doc' => $documents && $documents->aadhar_doc ? Storage::url($documents->aadhar_doc) : null,
-            'request_letter_doc' => $documents && $documents->request_letter_doc ? Storage::url($documents->request_letter_doc) : null,
-            'purchase_quotation_doc' => $documents && $documents->purchase_quotation_doc ? Storage::url($documents->purchase_quotation_doc) : null,
-            'other_doc' => $documents && $documents->other_doc ? Storage::url($documents->other_doc) : null,
-        ];
-    } catch (\Exception $e) {
-        Log::error('Error fetching ILP Attached Documents', ['error' => $e->getMessage()]);
-        return [
-            'aadhar_doc' => null,
-            'request_letter_doc' => null,
-            'purchase_quotation_doc' => null,
-            'other_doc' => null,
-        ];
+            // Return the document object (views will use getFilesForField method)
+            return $documents;
+        } catch (\Exception $e) {
+            Log::error('Error fetching ILP Attached Documents', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage(),
+            ]);
+            return null; // Return null to prevent errors in Blade template
+        }
     }
-}
 
 
     // 🟡 EDIT DOCUMENTS (LOAD EDIT PARTIAL)
@@ -138,19 +137,14 @@ class AttachedDocumentsController extends Controller
 
 
     // 🟢 UPDATE DOCUMENTS
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
 {
+    // Use all() to get all form data including fields not in UpdateProjectRequest validation rules
+    $validated = $request->all();
+    
     DB::beginTransaction();
     try {
         Log::info('Updating ILP Attached Documents', ['project_id' => $projectId]);
-
-        // Validate request inputs
-        $validatedData = $request->validate([
-            'attachments.aadhar_doc' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'attachments.request_letter_doc' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'attachments.purchase_quotation_doc' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'attachments.other_doc' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-        ]);
 
         // Call the new handleDocuments with extra logging
         $documents = ProjectILPAttachedDocuments::handleDocuments($request, $projectId);

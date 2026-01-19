@@ -12,7 +12,7 @@ use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Auth\Passwords\CanResetPassword as CanResetPasswordTrait;
 
 /**
- * 
+ *
  *
  * @property int $id
  * @property int|null $parent_id
@@ -79,6 +79,11 @@ class User extends Authenticatable implements CanResetPassword
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles, CanResetPasswordTrait;
 
+    protected static function newFactory()
+    {
+        return \Database\Factories\UserFactory::new();
+    }
+
     /**
      * The attributes that are mass assignable.
      *
@@ -139,6 +144,57 @@ class User extends Authenticatable implements CanResetPassword
     public function comments()
     {
         return $this->hasMany(\App\Models\ReportComment::class, 'user_id');
+    }
+
+    /**
+     * Get the province relationship (using foreign key).
+     */
+    public function provinceRelation()
+    {
+        return $this->belongsTo(Province::class, 'province_id');
+    }
+
+    /**
+     * Get the center relationship (using foreign key).
+     */
+    public function centerRelation()
+    {
+        return $this->belongsTo(Center::class, 'center_id');
+    }
+
+    /**
+     * Get provinces managed by this user via pivot table (for general users managing multiple provinces).
+     */
+    public function managedProvinces()
+    {
+        return $this->belongsToMany(Province::class, 'provincial_user_province', 'user_id', 'province_id')
+            ->withTimestamps()
+            ->select('provinces.*'); // Specify table to avoid ambiguity
+    }
+
+    /**
+     * Get all provinces this user manages (combines pivot table and province_id).
+     * For general users: uses pivot table (many-to-many)
+     * For provincial users: uses province_id (one-to-many)
+     */
+    public function getAllManagedProvinces()
+    {
+        $provinces = collect();
+
+        // Get provinces via pivot table (for general users)
+        if ($this->role === 'general') {
+            $provinces = $provinces->merge($this->managedProvinces()->get());
+        }
+
+        // Get province via province_id (for provincial users)
+        if ($this->province_id && $this->role === 'provincial') {
+            $province = Province::find($this->province_id);
+            if ($province) {
+                $provinces->push($province);
+            }
+        }
+
+        return $provinces->unique('id');
     }
 
     /**

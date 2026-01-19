@@ -27,7 +27,11 @@ class DevelopmentLivelihoodController extends Controller
 {
     // Log the request data
     Log::info('Store method called');
-    Log::info('Request data: ', $request->all());
+    Log::info('Store method called', [
+        'project_id' => $request->project_id,
+        'quarter' => $request->quarter,
+        'year' => $request->year,
+    ]);
 
     // Validate the incoming request data
     $validatedData = $request->validate([
@@ -204,7 +208,10 @@ class DevelopmentLivelihoodController extends Controller
     // Retrieve reports  created by the authenticated user and list them in index page
     public function index()
     {
-        $reports = RQDLReport::where('user_id', Auth::id())->get();
+        // Eager load relationships to prevent N+1 queries
+        $reports = RQDLReport::where('user_id', Auth::id())
+            ->with(['user', 'project', 'accountDetails'])
+            ->get();
         return view('reports.quarterly.developmentLivelihood.list', compact('reports'));
     }
 

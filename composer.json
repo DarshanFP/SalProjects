@@ -13,6 +13,7 @@
         "laravel/tinker": "^2.8",
         "maatwebsite/excel": "^3.1",
         "mpdf/mpdf": "^8.2",
+        "openai-php/laravel": "^0.10.1",
         "phpoffice/phpword": "^1.2",
         "spatie/laravel-permission": "^6.9"
     },
@@ -35,7 +36,10 @@
             "Database\\Factories\\DevelopmentProjectFactories\\": "database/factories/developmentProjectFactories/",
             "Database\\Factories\\OldProjects\\": "database/factories/oldProjects"
 
-        }
+        },
+        "files": [
+            "app/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

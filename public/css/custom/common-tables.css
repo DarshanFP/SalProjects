@@ -1,0 +1,28 @@
+/**
+ * Common Table Styles
+ * Shared styles for tables across the application
+ */
+
+/* Title column text wrapping for pending approvals table */
+.pending-approvals-table td.text-wrap {
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.4;
+}
+
+.pending-approvals-table .table {
+    table-layout: auto;
+}
+
+/* Ensure action buttons wrap properly */
+.pending-approvals-table .d-flex.gap-1.flex-wrap {
+    gap: 0.25rem !important;
+    flex-wrap: wrap;
+}
+
+.pending-approvals-table .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}

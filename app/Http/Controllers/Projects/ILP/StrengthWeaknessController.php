@@ -3,16 +3,21 @@
 namespace App\Http\Controllers\Projects\ILP;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\ILP\ProjectILPBusinessStrengthWeakness;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Projects\ILP\StoreILPStrengthWeaknessRequest;
+use App\Http\Requests\Projects\ILP\UpdateILPStrengthWeaknessRequest;
 
 class StrengthWeaknessController extends Controller
 {
     // Store or update strengths and weaknesses
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing ILP Strengths and Weaknesses', ['project_id' => $projectId]);
@@ -22,8 +27,8 @@ class StrengthWeaknessController extends Controller
 
             ProjectILPBusinessStrengthWeakness::create([
                 'project_id' => $projectId,
-                'strengths' => json_encode($request->strengths),
-                'weaknesses' => json_encode($request->weaknesses),
+                'strengths' => json_encode($validated['strengths'] ?? []),
+                'weaknesses' => json_encode($validated['weaknesses'] ?? []),
             ]);
 
             DB::commit();
@@ -105,18 +110,15 @@ class StrengthWeaknessController extends Controller
         }
     }
 
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in UpdateProjectRequest validation rules
+        $validatedData = $request->all();
+        
         DB::beginTransaction();
 
         try {
             Log::info('Updating ILP Strengths and Weaknesses', ['project_id' => $projectId]);
-
-            // Validate request
-            $validatedData = $request->validate([
-                'strengths' => 'nullable|array',
-                'weaknesses' => 'nullable|array',
-            ]);
 
             // Fetch the existing record
             $strengthWeakness = ProjectILPBusinessStrengthWeakness::where('project_id', $projectId)->first();

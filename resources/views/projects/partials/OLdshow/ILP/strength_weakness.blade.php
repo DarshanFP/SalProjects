@@ -9,7 +9,7 @@
             <label for="strengths" class="form-label">Strengths:</label>
             <div id="strengths-container">
                 @foreach($strengths as $index => $strength)
-                    <textarea name="strengths[{{ $index }}]" class="form-control mt-2" rows="3" style="background-color: #202ba3;">{{ $strength }}</textarea>
+                    <textarea name="strengths[{{ $index }}]" class="form-control mt-2" rows="3">{{ $strength }}</textarea>
                 @endforeach
             </div>
         </div>
@@ -22,7 +22,7 @@
             <label for="weaknesses" class="form-label">Weaknesses:</label>
             <div id="weaknesses-container">
                 @foreach($weaknesses as $index => $weakness)
-                    <textarea name="weaknesses[{{ $index }}]" class="form-control mt-2" rows="3" style="background-color: #202ba3;">{{ $weakness }}</textarea>
+                    <textarea name="weaknesses[{{ $index }}]" class="form-control mt-2" rows="3">{{ $weakness }}</textarea>
                 @endforeach
             </div>
         </div>

@@ -31,7 +31,7 @@
 
         <div class="form-group">
             <label>Explain the academic and overall performance of the beneficiary:</label>
-            <textarea name="academic_performance" class="form-control" rows="4">{{ old('academic_performance', $educationBackground->academic_performance) }}</textarea>
+            <textarea name="academic_performance" class="form-control sustainability-textarea" rows="4">{{ old('academic_performance', $educationBackground->academic_performance) }}</textarea>
         </div>
     </div>
 
@@ -57,15 +57,7 @@
 
         <div class="form-group">
             <label>If no support from the family, mention the reasons:</label>
-            <textarea name="reason_no_support" class="form-control" rows="3">{{ old('reason_no_support', $educationBackground->reason_no_support) }}</textarea>
+            <textarea name="reason_no_support" class="form-control sustainability-textarea" rows="3">{{ old('reason_no_support', $educationBackground->reason_no_support) }}</textarea>
         </div>
     </div>
 </div>
-
-<!-- Styles -->
-<style>
-    .form-control {
-        background-color: #202ba3;
-        color: white;
-    }
-</style>

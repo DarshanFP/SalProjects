@@ -14,6 +14,84 @@
 <div class="container">
     <h1 class="mb-4">Project Details</h1>
 
+    {{-- Phase Information Section --}}
+    @if($project->status === \App\Constants\ProjectStatus::APPROVED_BY_COORDINATOR)
+        @php
+            $phaseInfo = \App\Services\ProjectPhaseService::getPhaseInfo($project);
+        @endphp
+
+        <div class="mb-3 card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Phase Information</h4>
+                @if(auth()->user()->role === 'executor' || auth()->user()->role === 'applicant')
+                    <a href="{{ route('monthly.report.create', $project->project_id) }}" class="btn btn-primary">
+                        <i class="fas fa-file-alt"></i> Write Report
+                    </a>
+                @endif
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Final Commencement Date:</strong>
+                           {{ $phaseInfo['final_commencement_display'] ?? 'Not set' }}</p>
+                        <p><strong>Current Phase:</strong> {{ $phaseInfo['current_phase'] }}</p>
+                        <p><strong>Overall Project Period:</strong> {{ $phaseInfo['overall_project_period'] }} phase(s)</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Months Elapsed in Current Phase:</strong>
+                           {{ $phaseInfo['months_in_current_phase'] }} / 12</p>
+                        <p><strong>Months Remaining:</strong>
+                           {{ $phaseInfo['months_remaining_in_phase'] }}</p>
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div class="progress-bar {{ $phaseInfo['is_eligible_for_completion'] ? 'bg-success' : 'bg-info' }}"
+                                 role="progressbar"
+                                 style="width: {{ $phaseInfo['phase_progress_percentage'] }}%"
+                                 aria-valuenow="{{ $phaseInfo['phase_progress_percentage'] }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                {{ $phaseInfo['phase_progress_percentage'] }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if($project->is_completed)
+                    <div class="alert alert-success">
+                        <strong>✓ Project Completed</strong><br>
+                        Completed on: {{ $project->completed_at->format('F d, Y') }}
+                        @if($project->completion_notes)
+                            <br>Notes: {{ $project->completion_notes }}
+                        @endif
+                    </div>
+                @elseif($phaseInfo['is_eligible_for_completion'])
+                    <div class="alert alert-info">
+                        <strong>Project Eligible for Completion</strong><br>
+                        {{ $phaseInfo['months_in_current_phase'] }} months have elapsed in the current phase.
+                        You can now mark this project as completed.
+                    </div>
+
+                    @if(in_array(Auth::user()->role, ['executor', 'applicant']))
+                        <form action="{{ route('projects.markCompleted', $project->project_id) }}"
+                              method="POST"
+                              style="display:inline;"
+                              onsubmit="return confirm('Are you sure you want to mark this project as completed? This action cannot be undone.');">
+                            @csrf
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check-circle"></i> Mark as Completed
+                            </button>
+                        </form>
+                    @endif
+                @else
+                    <div class="alert alert-warning">
+                        <strong>Project Not Yet Eligible for Completion</strong><br>
+                        {{ $phaseInfo['months_in_current_phase'] }} months have elapsed in the current phase.
+                        Project will be eligible for completion after 10 months ({{ 10 - $phaseInfo['months_in_current_phase'] }} more month(s) remaining).
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
+
     <!-- General Information Section -->
     <div id="general-info-section" class="mb-3 card">
         <div class="card-header">
@@ -78,7 +156,7 @@
     @endif
 
     <!-- Individual - Initial Educational Support Partials -->
-     @if ($project->project_type === 'Individual - Initial - Educational support') --}}
+    @if ($project->project_type === 'Individual - Initial - Educational support')
         @include('projects.partials.Show.IIES.personal_info')
         @include('projects.partials.Show.IIES.family_working_members')
         @include('projects.partials.Show.IIES.immediate_family_details')
@@ -154,6 +232,17 @@
     <!-- Action Buttons -->
     <a href="{{ route('projects.index') }}" class="btn btn-primary">Back to Projects</a>
 
+    @php
+        use App\Helpers\ProjectPermissionHelper;
+        $user = auth()->user();
+        // Check if user can edit this project using ProjectPermissionHelper
+        $canEdit = ProjectPermissionHelper::canEdit($project, $user);
+    @endphp
+
+    @if($canEdit)
+        <a href="{{ route('projects.edit', $project->project_id) }}" class="btn btn-warning">Edit Project</a>
+    @endif
+
     @if(auth()->user()->role === 'provincial')
         <a href="{{ route('provincial.projects.downloadPdf', $project->project_id) }}" class="btn btn-secondary">Download PDF</a>
     @elseif(auth()->user()->role === 'coordinator')
@@ -166,6 +255,9 @@
     <div>
         @include('projects.partials.actions', ['project' => $project])
     </div>
+
+    <!-- Status History -->
+    @include('projects.partials.Show.status_history', ['project' => $project])
 </div>
 
 <script>
@@ -203,7 +295,18 @@
 
     .info-value {
         word-wrap: break-word;
+        overflow-wrap: break-word;
+        white-space: pre-wrap !important; /* Preserve line breaks from textareas */
+        line-height: 1.6;
         padding-left: 10px; /* Optional padding before values */
+    }
+
+    /* Also preserve line breaks for form-control divs displaying textarea content */
+    .card-body .form-control:not(input):not(select):not(textarea) {
+        white-space: pre-wrap !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        line-height: 1.6 !important;
     }
 </style>
 @endsection

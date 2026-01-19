@@ -3,29 +3,31 @@
 namespace App\Http\Controllers\Projects\IES;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IES\ProjectIESPersonalInfo;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IES\StoreIESPersonalInfoRequest;
+use App\Http\Requests\Projects\IES\UpdateIESPersonalInfoRequest;
 
 class IESPersonalInfoController extends Controller
 {
     /**
      * Store personal info for a project.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\Projects\IES\StoreIESPersonalInfoRequest  $request
      * @param  int  $projectId
      * @return \Illuminate\Http\JsonResponse
      */
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
 
         try {
             Log::info('Starting IES Personal Info storage', ['project_id' => $projectId]);
-
-            // Log the incoming request data
-            Log::info('Request Data Received', $request->all());
 
             // Find an existing record or create a new one
             $personalInfo = ProjectIESPersonalInfo::where('project_id', $projectId)->first()
@@ -33,7 +35,7 @@ class IESPersonalInfoController extends Controller
 
             $personalInfo->project_id = $projectId;
 
-            // Use request data while ensuring null values for empty fields
+            // Use validated data
             $fields = [
                 'bname', 'age', 'gender', 'dob', 'email', 'contact', 'aadhar',
                 'full_address', 'father_name', 'mother_name', 'mother_tongue',
@@ -42,9 +44,7 @@ class IESPersonalInfoController extends Controller
             ];
 
             foreach ($fields as $field) {
-                $value = $request->input($field, null);
-                $personalInfo->$field = $value;
-                Log::info("Field: $field, Value: $value"); // Log each field's value
+                $personalInfo->$field = $validated[$field] ?? null;
             }
 
             // Save the data
@@ -129,13 +129,13 @@ class IESPersonalInfoController extends Controller
     /**
      * Update personal info for a project.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\Projects\IES\UpdateIESPersonalInfoRequest  $request
      * @param  int  $projectId
      * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
-        // Here we reuse the store logic for update, to avoid duplicating code.
+        // Reuse store logic
         return $this->store($request, $projectId);
     }
 

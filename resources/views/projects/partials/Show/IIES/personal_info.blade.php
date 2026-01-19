@@ -59,7 +59,7 @@
             </tr>
             <tr>
                 <th>Father's Monthly Income</th>
-                <td>{{ $personalInfo->iies_father_income ? number_format($personalInfo->iies_father_income, 2) : 'N/A' }}</td>
+                <td>{{ $personalInfo->iies_father_income ? format_indian($personalInfo->iies_father_income, 2) : 'N/A' }}</td>
             </tr>
             <tr>
                 <th>Mother's Name</th>
@@ -71,7 +71,7 @@
             </tr>
             <tr>
                 <th>Mother's Monthly Income</th>
-                <td>{{ $personalInfo->iies_mother_income ? number_format($personalInfo->iies_mother_income, 2) : 'N/A' }}</td>
+                <td>{{ $personalInfo->iies_mother_income ? format_indian($personalInfo->iies_mother_income, 2) : 'N/A' }}</td>
             </tr>
             <tr>
                 <th>Mother Tongue</th>

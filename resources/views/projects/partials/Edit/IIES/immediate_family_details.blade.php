@@ -232,7 +232,8 @@
             <label><strong>Family Situation</strong></label>
             <textarea
                 name="iies_family_situation"
-                class="form-control"
+                class="form-control sustainability-textarea"
+                rows="3"
             >{{ old('iies_family_situation', optional($project->iiesImmediateFamilyDetails)->iies_family_situation) }}</textarea>
         </div>
 
@@ -241,7 +242,8 @@
             <label><strong>Assistance Need</strong></label>
             <textarea
                 name="iies_assistance_need"
-                class="form-control"
+                class="form-control sustainability-textarea"
+                rows="3"
             >{{ old('iies_assistance_need', optional($project->iiesImmediateFamilyDetails)->iies_assistance_need) }}</textarea>
         </div>
 
@@ -260,7 +262,8 @@
             <label>Support Details:</label>
             <textarea
                 name="iies_support_details"
-                class="form-control"
+                class="form-control sustainability-textarea"
+                rows="3"
             >{{ old('iies_support_details', optional($project->iiesImmediateFamilyDetails)->iies_support_details) }}</textarea>
         </div>
 
@@ -281,7 +284,8 @@
             <label>Employment Details:</label>
             <textarea
                 name="iies_employment_details"
-                class="form-control"
+                class="form-control sustainability-textarea"
+                rows="3"
             >{{ old('iies_employment_details', optional($project->iiesImmediateFamilyDetails)->iies_employment_details) }}</textarea>
         </div>
 

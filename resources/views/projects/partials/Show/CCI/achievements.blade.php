@@ -11,8 +11,8 @@
             <div class="info-value">
                 @if(!empty($achievements->academic_achievements))
                     <ul class="achievement-list">
-                        @foreach($achievements->academic_achievements as $achievement)
-                            <li>{{ $achievement }}</li>
+                        @foreach($achievements->academic_achievements as $index => $achievement)
+                            <li>{{ $index + 1 }}. {{ $achievement }}</li>
                         @endforeach
                     </ul>
                 @else
@@ -25,8 +25,8 @@
             <div class="info-value">
                 @if(!empty($achievements->sport_achievements))
                     <ul class="achievement-list">
-                        @foreach($achievements->sport_achievements as $achievement)
-                            <li>{{ $achievement }}</li>
+                        @foreach($achievements->sport_achievements as $index => $achievement)
+                            <li>{{ $index + 1 }}. {{ $achievement }}</li>
                         @endforeach
                     </ul>
                 @else
@@ -39,8 +39,8 @@
             <div class="info-value">
                 @if(!empty($achievements->other_achievements))
                     <ul class="achievement-list">
-                        @foreach($achievements->other_achievements as $achievement)
-                            <li>{{ $achievement }}</li>
+                        @foreach($achievements->other_achievements as $index => $achievement)
+                            <li>{{ $index + 1 }}. {{ $achievement }}</li>
                         @endforeach
                     </ul>
                 @else

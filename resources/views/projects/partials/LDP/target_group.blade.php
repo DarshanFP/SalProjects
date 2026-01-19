@@ -5,7 +5,7 @@
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-bordered">
-                <thead style="background-color: #202ba3; color: white;">
+                <thead>
                     <tr>
                         <th>S.No</th>
                         <th>Beneficiary Name</th>
@@ -18,10 +18,10 @@
                 <tbody id="L-annexed-target-group-rows">
                     <tr>
                         <td>1</td>
-                        <td><input type="text" name="L_beneficiary_name[]" class="form-control" style="background-color: #202ba3;" placeholder="Enter name"></td>
-                        <td><textarea name="L_family_situation[]" class="form-control" rows="2" style="background-color: #202ba3;" placeholder="Enter family situation"></textarea></td>
-                        <td><textarea name="L_nature_of_livelihood[]" class="form-control" rows="2" style="background-color: #202ba3;" placeholder="Enter nature of livelihood"></textarea></td>
-                        <td><input type="number" name="L_amount_requested[]" class="form-control" style="background-color: #202ba3;" placeholder="Enter amount"></td>
+                        <td><input type="text" name="L_beneficiary_name[]" class="form-control" placeholder="Enter name"></td>
+                        <td><textarea name="L_family_situation[]" class="form-control auto-resize-textarea" rows="2" placeholder="Enter family situation"></textarea></td>
+                        <td><textarea name="L_nature_of_livelihood[]" class="form-control auto-resize-textarea" rows="2" placeholder="Enter nature of livelihood"></textarea></td>
+                        <td><input type="number" name="L_amount_requested[]" class="form-control" placeholder="Enter amount"></td>
                         <td><button type="button" class="btn btn-danger" onclick="L_removeAnnexedTargetGroupRow(this)">Remove</button></td>
                     </tr>
                 </tbody>
@@ -40,14 +40,23 @@
         const newRow = `
             <tr>
                 <td>${L_annexedTargetGroupRowIndex}</td>
-                <td><input type="text" name="L_beneficiary_name[]" class="form-control" style="background-color: #202ba3;" placeholder="Enter name"></td>
-                <td><textarea name="L_family_situation[]" class="form-control" rows="2" style="background-color: #202ba3;" placeholder="Enter family situation"></textarea></td>
-                <td><textarea name="L_nature_of_livelihood[]" class="form-control" rows="2" style="background-color: #202ba3;" placeholder="Enter nature of livelihood"></textarea></td>
-                <td><input type="number" name="L_amount_requested[]" class="form-control" style="background-color: #202ba3;" placeholder="Enter amount"></td>
+                <td><input type="text" name="L_beneficiary_name[]" class="form-control" placeholder="Enter name"></td>
+                <td><textarea name="L_family_situation[]" class="form-control auto-resize-textarea" rows="2" placeholder="Enter family situation"></textarea></td>
+                <td><textarea name="L_nature_of_livelihood[]" class="form-control auto-resize-textarea" rows="2" placeholder="Enter nature of livelihood"></textarea></td>
+                <td><input type="number" name="L_amount_requested[]" class="form-control" placeholder="Enter amount"></td>
                 <td><button type="button" class="btn btn-danger" onclick="L_removeAnnexedTargetGroupRow(this)">Remove</button></td>
             </tr>
         `;
         document.getElementById('L-annexed-target-group-rows').insertAdjacentHTML('beforeend', newRow);
+
+        // Initialize auto-resize for newly added textareas
+        const newRowElement = document.getElementById('L-annexed-target-group-rows').lastElementChild;
+        const newTextareas = newRowElement.querySelectorAll('.auto-resize-textarea');
+        if (newTextareas.length > 0 && typeof window.initTextareaAutoResize === 'function') {
+            newTextareas.forEach(textarea => {
+                window.initTextareaAutoResize(textarea);
+            });
+        }
     }
 
     window.L_removeAnnexedTargetGroupRow = function(button) {

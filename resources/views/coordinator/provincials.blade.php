@@ -149,7 +149,7 @@
                                 z-index: 3;
                             }
                         </style>
-                        <table class="table table-bordered table-striped">
+                        <table class="table table-bordered table-hover">
                             <thead>
                                 <tr>
                                     <th>NAME</th>
@@ -221,29 +221,29 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Users management page loaded');
+    // console.log('Users management page loaded');
 
     // Debug form submission
     const form = document.querySelector('form');
     form.addEventListener('submit', function(e) {
         const formData = new FormData(form);
-        console.log('Form submitting with data:');
+        // console.log('Form submitting with data:');
         for (let [key, value] of formData.entries()) {
-            console.log(key + ': ' + value);
+            // console.log(key + ': ' + value);
         }
     });
 
     // Debug current values for the three main filtering columns
-    console.log('Current province:', '{{ request("province") }}');
-    console.log('Current center:', '{{ request("center") }}');
-    console.log('Current role:', '{{ request("role") }}');
-    console.log('Current parent_id:', '{{ request("parent_id") }}');
+    // console.log('Current province:', '{{ request("province") }}');
+    // console.log('Current center:', '{{ request("center") }}');
+    // console.log('Current role:', '{{ request("role") }}');
+    // console.log('Current parent_id:', '{{ request("parent_id") }}');
 
     // Debug available options for the three main filtering columns
-    console.log('Available provinces:', @json($provinces));
-    console.log('Available centers:', @json($centers));
-    console.log('Available roles:', @json($roles));
-    console.log('Available parents:', @json($parents));
+    // console.log('Available provinces:', @json($provinces));
+    // console.log('Available centers:', @json($centers));
+    // console.log('Available roles:', @json($roles));
+    // console.log('Available parents:', @json($parents));
 
     // Add confirmation for all action buttons
     const actionButtons = document.querySelectorAll('button[type="submit"]');
@@ -266,9 +266,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if ('{{ request("parent_id") }}') activeFilters.push('Parent: {{ request("parent_id") }}');
 
     if (activeFilters.length > 0) {
-        console.log('Active filters:', activeFilters.join(', '));
+        // console.log('Active filters:', activeFilters.join(', '));
     } else {
-        console.log('No active filters - showing all users');
+        // console.log('No active filters - showing all users');
     }
 });
 </script>

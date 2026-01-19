@@ -3,21 +3,26 @@
 namespace App\Http\Controllers\Projects\IAH;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IAH\ProjectIAHBudgetDetails;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IAH\StoreIAHBudgetDetailsRequest;
+use App\Http\Requests\Projects\IAH\UpdateIAHBudgetDetailsRequest;
 
 class IAHBudgetDetailsController extends Controller
 {
     /**
      * Store budget details for a project (creates fresh entries after deleting old ones).
      */
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including budget detail arrays
+        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('IAHBudgetDetailsController@store - Start', [
-            'project_id' => $projectId,
-            'request_data' => $request->all()
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
@@ -29,9 +34,9 @@ class IAHBudgetDetailsController extends Controller
             ]);
 
             // 2️⃣ Insert new budget details
-            $particulars = $request->input('particular', []);
-            $amounts     = $request->input('amount', []);
-            $familyContribution = $request->input('family_contribution', 0);
+            $particulars = $validated['particular'] ?? [];
+            $amounts     = $validated['amount'] ?? [];
+            $familyContribution = $validated['family_contribution'] ?? 0;
             $totalExpenses      = array_sum($amounts);
 
             for ($i = 0; $i < count($particulars); $i++) {
@@ -66,11 +71,14 @@ class IAHBudgetDetailsController extends Controller
     /**
      * Update budget details for a project (same destructive approach but with dedicated logs).
      */
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including budget detail arrays
+        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
+        $validated = $request->all();
+        
         Log::info('IAHBudgetDetailsController@update - Start', [
-            'project_id' => $projectId,
-            'request_data' => $request->all()
+            'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
@@ -80,9 +88,9 @@ class IAHBudgetDetailsController extends Controller
             ProjectIAHBudgetDetails::where('project_id', $projectId)->delete();
 
             // 2️⃣ Insert fresh data
-            $particulars = $request->input('particular', []);
-            $amounts     = $request->input('amount', []);
-            $familyContribution = $request->input('family_contribution', 0);
+            $particulars = $validated['particular'] ?? [];
+            $amounts     = $validated['amount'] ?? [];
+            $familyContribution = $validated['family_contribution'] ?? 0;
             $totalExpenses      = array_sum($amounts);
 
             Log::info('IAHBudgetDetailsController@update - Inserting new budget records', [

@@ -5,7 +5,7 @@
 <div class="page-content">
     <div class="row justify-content-center">
         <div class="col-md-12 col-xl-12">
-            <form action="{{ route('monthly.report.store') }}" method="POST" enctype="multipart/form-data">
+            <form id="createReportForm" action="{{ route('monthly.report.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="project_id" value="{{ $project->project_id }}">
 
@@ -128,7 +128,10 @@
                     @foreach(old('date', ['']) as $index => $value)
                     <div class="mb-3 card outlook" data-index="{{ $index }}">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            Outlook {{ $index + 1 }}
+                            <span>
+                                <span class="badge bg-primary me-2">{{ $index + 1 }}</span>
+                                Outlook {{ $index + 1 }}
+                            </span>
                             <button type="button" class="btn btn-danger btn-sm remove-outlook" onclick="removeOutlook(this)">Remove</button>
                         </div>
                         <div class="card-body">
@@ -138,7 +141,7 @@
                             </div>
                             <div class="mb-3">
                                 <label for="plan_next_month[{{ $index }}]" class="form-label">Action Plan for Next Month</label>
-                                <textarea name="plan_next_month[{{ $index }}]" class="form-control" rows="3" style="background-color: #202ba3;">{{ old("plan_next_month.$index") }}</textarea>
+                                <textarea name="plan_next_month[{{ $index }}]" class="form-control auto-resize-textarea" rows="3" style="background-color: #202ba3;">{{ old("plan_next_month.$index") }}</textarea>
                             </div>
                         </div>
                     </div>
@@ -149,20 +152,20 @@
 
                 <!-- Statements of Account Section  -->
                 @if($project->project_type === 'Individual - Initial - Educational support')
-                    @include('reports.monthly.partials.statements_of_account.individual_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                    @include('reports.monthly.partials.statements_of_account.individual_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'project' => $project])
                 @elseif($project->project_type === 'Individual - Ongoing Educational support')
-                    @include('reports.monthly.partials.statements_of_account.individual_ongoing_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                    @include('reports.monthly.partials.statements_of_account.individual_ongoing_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'project' => $project])
                 @elseif($project->project_type === 'Individual - Livelihood Application')
-                    @include('reports.monthly.partials.statements_of_account.individual_livelihood', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                    @include('reports.monthly.partials.statements_of_account.individual_livelihood', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'project' => $project])
                 @elseif($project->project_type === 'Individual - Access to Health')
-                    @include('reports.monthly.partials.statements_of_account.individual_health', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                    @include('reports.monthly.partials.statements_of_account.individual_health', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'project' => $project])
                 @elseif($project->project_type === 'Institutional - Initial - Educational support')
-                    @include('reports.monthly.partials.statements_of_account.institutional_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                    @include('reports.monthly.partials.statements_of_account.institutional_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'project' => $project])
                 @elseif($project->project_type === 'Development Projects')
-                    @include('reports.monthly.partials.statements_of_account.development_projects', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                    @include('reports.monthly.partials.statements_of_account.development_projects', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'project' => $project])
                 @else
                     {{-- Fallback to generic for other project types --}}
-                    @include('reports.monthly.partials.create.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses])
+                    @include('reports.monthly.partials.create.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'project' => $project])
                 @endif
 
 
@@ -177,7 +180,7 @@
                             <div class="mb-3 photo-group" data-index="{{ $index }}">
                                 <label for="photo_{{ $index }}" class="form-label">Photo {{ $index + 1 }}</label>
                                 <input type="file" name="photos[]" class="mb-2 form-control" accept="image/*" onchange="checkFileSize(this)" style="background-color: #202ba3;">
-                                <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $value }}</textarea>
+                                <textarea name="photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $value }}</textarea>
                                 <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
                             </div>
                             @endforeach
@@ -195,7 +198,7 @@
                             <div class="mb-3 photo-group" data-index="{{ $index }}">
                                 <label for="photo_{{ $index }}" class="form-label">Photo {{ $index + 1 }}</label>
                                 <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" style="background-color: #202ba3;">
-                                <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $value }}</textarea>
+                                <textarea name="photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $value }}</textarea>
                                 <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
                             </div>
                             @endforeach
@@ -213,7 +216,7 @@
                             <div class="mb-3 photo-group" data-index="{{ $index }}">
                                 <label for="photo_{{ $index }}" class="form-label">Photo {{ $index + 1 }}</label>
                                 <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" style="background-color: #202ba3;">
-                                <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $value }}</textarea>
+                                <textarea name="photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $value }}</textarea>
                                 <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
                             </div>
                             @endforeach
@@ -227,7 +230,14 @@
 
                 @include('reports.monthly.partials.create.attachments')
 
-                <button type="submit" class="btn btn-primary me-2">Submit Report</button>
+                <div class="mt-4 mb-4 d-flex justify-content-end">
+                    <button type="button" id="saveDraftBtn" class="btn btn-secondary me-2">
+                        <i class="fas fa-save me-2"></i>Save as Draft
+                    </button>
+                    <button type="submit" id="submitReportBtn" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Report
+                    </button>
+                </div>
             </form>
         </div>
     </div>
@@ -243,7 +253,10 @@
         const newOutlookHtml = `
             <div class="mb-3 card outlook" data-index="${index}">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    Outlook ${index + 1}
+                    <span>
+                        <span class="badge bg-primary me-2">${index + 1}</span>
+                        Outlook ${index + 1}
+                    </span>
                     <button type="button" class="btn btn-danger btn-sm remove-outlook" onclick="removeOutlook(this)">Remove</button>
                 </div>
                 <div class="card-body">
@@ -253,18 +266,65 @@
                     </div>
                     <div class="mb-3">
                         <label for="plan_next_month[${index}]" class="form-label">Action Plan for Next Month</label>
-                        <textarea name="plan_next_month[${index}]" class="form-control" rows="3" style="background-color: #202ba3;"></textarea>
+                        <textarea name="plan_next_month[${index}]" class="form-control auto-resize-textarea" rows="3" style="background-color: #202ba3;"></textarea>
                     </div>
                 </div>
             </div>
         `;
         outlookContainer.insertAdjacentHTML('beforeend', newOutlookHtml);
-        updateOutlookRemoveButtons();
+
+        // Initialize auto-resize for new outlook textarea using global function
+        const newOutlook = outlookContainer.lastElementChild;
+        if (newOutlook && typeof initDynamicTextarea === 'function') {
+            initDynamicTextarea(newOutlook);
+        }
+
+        reindexOutlooks();
     }
 
     function removeOutlook(button) {
         const outlook = button.closest('.outlook');
         outlook.remove();
+        reindexOutlooks();
+    }
+
+    /**
+     * Reindex all outlook sections after add/remove operations
+     * Updates index badges, data-index attributes, and form field names
+     * Ensures sequential numbering (1, 2, 3, ...) for all outlook items
+     */
+    /**
+     * Reindexes all outlook entries after add/remove operations
+     * Updates index badges, data-index attributes, and form field names/IDs
+     * Ensures sequential numbering (1, 2, 3, ...) for all outlook entries
+     *
+     * @returns {void}
+     */
+    function reindexOutlooks() {
+        const outlooks = document.querySelectorAll('.outlook');
+        outlooks.forEach((outlook, index) => {
+            // Update data-index attribute
+            outlook.dataset.index = index;
+
+            // Update badge and header text
+            const headerSpan = outlook.querySelector('.card-header span');
+            if (headerSpan) {
+                headerSpan.innerHTML = `<span class="badge bg-primary me-2">${index + 1}</span>Outlook ${index + 1}`;
+            }
+
+            // Update name attributes for inputs
+            const dateInput = outlook.querySelector('input[name^="date"]');
+            const planTextarea = outlook.querySelector('textarea[name^="plan_next_month"]');
+
+            if (dateInput) {
+                dateInput.setAttribute('name', `date[${index}]`);
+                dateInput.setAttribute('id', `date[${index}]`);
+            }
+            if (planTextarea) {
+                planTextarea.setAttribute('name', `plan_next_month[${index}]`);
+                planTextarea.setAttribute('id', `plan_next_month[${index}]`);
+            }
+        });
         updateOutlookRemoveButtons();
     }
 
@@ -272,16 +332,18 @@
         const outlooks = document.querySelectorAll('.outlook');
         outlooks.forEach((outlook, index) => {
             const removeButton = outlook.querySelector('.remove-outlook');
-            if (index === 0) {
-                removeButton.classList.add('d-none');
-            } else {
-                removeButton.classList.remove('d-none');
+            if (removeButton) {
+                if (index === 0) {
+                    removeButton.classList.add('d-none');
+                } else {
+                    removeButton.classList.remove('d-none');
+                }
             }
         });
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        updateOutlookRemoveButtons();
+        reindexOutlooks();
     });
 
     // Photo and Description Section
@@ -491,6 +553,108 @@ function validateFileInput(input) {
 
 document.addEventListener('DOMContentLoaded', function() {
     // updatePhotoLabels(); // Removed - function is commented out and not needed
+
+    // Save Draft Functionality
+    const saveDraftBtn = document.getElementById('saveDraftBtn');
+    const createForm = document.getElementById('createReportForm');
+
+    // Handle "Save as Draft" button click
+    if (saveDraftBtn && createForm) {
+        saveDraftBtn.addEventListener('click', function(e) {
+            try {
+                e.preventDefault();
+
+                // Remove required attributes temporarily to allow submission
+                const requiredFields = createForm.querySelectorAll('[required]');
+                const removedRequired = [];
+                requiredFields.forEach(field => {
+                    if (field.hasAttribute('required')) {
+                        removedRequired.push(field);
+                        field.removeAttribute('required');
+                    }
+                });
+
+                // Add hidden input to indicate draft save
+                let draftInput = createForm.querySelector('input[name="save_as_draft"]');
+                if (!draftInput) {
+                    draftInput = document.createElement('input');
+                    draftInput.type = 'hidden';
+                    draftInput.name = 'save_as_draft';
+                    draftInput.value = '1';
+                    createForm.appendChild(draftInput);
+                } else {
+                    draftInput.value = '1';
+                }
+
+                // Enable all disabled fields before submission to ensure their values are included
+                const disabledFields = createForm.querySelectorAll('[disabled]');
+                const enabledFields = [];
+                disabledFields.forEach(field => {
+                    if (field.disabled) {
+                        enabledFields.push(field);
+                        field.disabled = false;
+                    }
+                });
+
+                // Show all hidden sections temporarily to ensure values are submitted
+                const hiddenSections = createForm.querySelectorAll('[style*="display: none"]');
+                hiddenSections.forEach(section => {
+                    section.style.display = '';
+                });
+
+                // Show loading indicator
+                saveDraftBtn.disabled = true;
+                const originalText = saveDraftBtn.innerHTML;
+                saveDraftBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving Draft...';
+
+                // Submit form
+                createForm.submit();
+
+                // Note: If form submission fails, we won't reach here
+                // But if it does, restore button state after timeout
+                setTimeout(() => {
+                    saveDraftBtn.disabled = false;
+                    saveDraftBtn.innerHTML = originalText;
+
+                    // Restore required attributes (in case of validation error)
+                    removedRequired.forEach(field => {
+                        field.setAttribute('required', 'required');
+                    });
+
+                    // Restore disabled state
+                    enabledFields.forEach(field => {
+                        field.disabled = true;
+                    });
+                }, 5000);
+
+            } catch (error) {
+                console.error('Draft save error:', error);
+                saveDraftBtn.disabled = false;
+                saveDraftBtn.innerHTML = 'Save as Draft';
+                alert('An error occurred while saving the draft. Please try again.');
+            }
+        });
+    }
+
+    // Handle form submission to check if it's a draft save
+    if (createForm) {
+        createForm.addEventListener('submit', function(e) {
+            // Check if this is a draft save (bypass validation)
+            const isDraftSave = this.querySelector('input[name="save_as_draft"]');
+            if (isDraftSave && isDraftSave.value === '1') {
+                // Allow draft save without validation
+                return true;
+            }
+
+            // For normal submission, allow HTML5 validation
+            if (!this.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.add('was-validated');
+                return false;
+            }
+        });
+    }
 });
 
 

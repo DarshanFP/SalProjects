@@ -110,10 +110,11 @@
                             @include('projects.partials.Edit.logical_framework')
                             @include('projects.partials.Edit.sustainibility')
                             @include('projects.partials.Edit.budget')
-                            @include('projects.partials.Edit.attachement')
+                            @include('projects.partials.Edit.attachment')
                         @endif
 
                         <button type="submit" id="updateProjectBtn" class="btn btn-primary me-2">Update Project</button>
+                        <button type="button" id="saveDraftBtn" class="btn btn-secondary me-2">Save as Draft</button>
                     </form>
                 </div>
             </div>
@@ -126,6 +127,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const updateBtn = document.getElementById('updateProjectBtn');
+    const saveDraftBtn = document.getElementById('saveDraftBtn');
     const editForm = document.getElementById('editProjectForm');
 
     if (updateBtn && editForm) {
@@ -139,39 +141,86 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add click event listener for debugging
         updateBtn.addEventListener('click', function(e) {
-            console.log('Update button clicked', e);
             // Don't prevent default - let form submit naturally
         }, true); // Use capture phase to catch early
 
         // Ensure form can submit - don't prevent default unless validation fails
         editForm.addEventListener('submit', function(e) {
-            console.log('Form submission initiated');
-            // Check HTML5 validation
-            if (!this.checkValidity()) {
-                console.log('Form validation failed - showing browser validation messages');
-                this.reportValidity();
+            try {
+                // Check if this is a draft save (bypass validation)
+                const isDraftSave = this.querySelector('input[name="save_as_draft"]');
+                if (isDraftSave && isDraftSave.value === '1') {
+                    // Allow draft save without validation
+                    return true;
+                }
+                
+                // For regular submission, check HTML5 validation
+                if (!this.checkValidity()) {
+                    this.reportValidity();
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Show loading indicator
+                updateBtn.disabled = true;
+                updateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+                
+                // Allow form to submit normally
+                return true;
+            } catch (error) {
+                console.error('Form submission error:', error);
                 e.preventDefault();
+                
+                // Show user-friendly error message
+                alert('An error occurred while submitting the form. Please try again or contact support if the problem persists.');
+                
+                // Re-enable button
+                updateBtn.disabled = false;
+                updateBtn.innerHTML = 'Update Project';
+                
                 return false;
             }
-            console.log('Form is valid, submitting...');
-            // Allow form to submit normally
         });
+    }
 
-        // Check button state on load
-        console.log('Update button initialized:', {
-            disabled: updateBtn.disabled,
-            type: updateBtn.type,
-            form: updateBtn.form ? updateBtn.form.id : 'no form',
-            computedStyle: {
-                pointerEvents: window.getComputedStyle(updateBtn).pointerEvents,
-                cursor: window.getComputedStyle(updateBtn).cursor,
-                zIndex: window.getComputedStyle(updateBtn).zIndex
+    // Handle "Save as Draft" button click
+    if (saveDraftBtn && editForm) {
+        saveDraftBtn.addEventListener('click', function(e) {
+            try {
+                e.preventDefault();
+                
+                // Remove required attributes temporarily to allow submission
+                const requiredFields = editForm.querySelectorAll('[required]');
+                requiredFields.forEach(field => {
+                    field.removeAttribute('required');
+                });
+                
+                // Add hidden input to indicate draft save
+                let draftInput = editForm.querySelector('input[name="save_as_draft"]');
+                if (!draftInput) {
+                    draftInput = document.createElement('input');
+                    draftInput.type = 'hidden';
+                    draftInput.name = 'save_as_draft';
+                    draftInput.value = '1';
+                    editForm.appendChild(draftInput);
+                } else {
+                    draftInput.value = '1';
+                }
+                
+                // Show loading indicator
+                saveDraftBtn.disabled = true;
+                saveDraftBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving Draft...';
+                
+                // Submit form
+                editForm.submit();
+            } catch (error) {
+                console.error('Draft save error:', error);
+                alert('An error occurred while saving the draft. Please try again.');
+                
+                // Re-enable button
+                saveDraftBtn.disabled = false;
+                saveDraftBtn.innerHTML = 'Save as Draft';
             }
-        });
-    } else {
-        console.error('Update button or form not found', {
-            button: updateBtn,
-            form: editForm
         });
     }
 });
@@ -180,29 +229,31 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const projectTypeDropdown = document.getElementById('project_type');
-
-        const sections = {
-            iah: document.getElementById('iah-sections'),
-            eduRUT: document.getElementById('edu-rut-sections'),
-            ldp: document.getElementById('ldp-section'),
-            rst: document.getElementById('rst-section'),
-            ilp: document.getElementById('ilp-sections'),
-        };
-
-        function toggleSections() {
-            const projectType = projectTypeDropdown.value;
-
-            Object.values(sections).forEach(section => {
-                if (section) section.style.display = 'none';
-            });
-
-            if (sections[projectType]) {
-                sections[projectType].style.display = 'block';
-            }
+        
+        if (!projectTypeDropdown) {
+            console.warn('Project type dropdown not found');
+            return;
         }
 
-        toggleSections();
-        projectTypeDropdown.addEventListener('change', toggleSections);
+        // Note: In edit mode, sections are conditionally rendered server-side via Blade
+        // This JavaScript handles project type changes if the dropdown is enabled
+        // If project type is changed, user should be warned that sections may not match
+        
+        projectTypeDropdown.addEventListener('change', function() {
+            // Warn user that changing project type may cause section mismatches
+            if (confirm('Changing project type may cause section mismatches. Are you sure you want to continue?')) {
+                // Reload page to re-render sections with new project type
+                // Or submit form to update project type first
+                // Project type changed - handled by server-side rendering
+                // Note: In a production environment, you might want to:
+                // 1. Disable the project_type dropdown in edit mode, OR
+                // 2. Submit the form to update project type and reload, OR
+                // 3. Use AJAX to reload sections dynamically
+            } else {
+                // Revert to original value
+                this.value = '{{ $project->project_type }}';
+            }
+        });
     });
 </script>
 
@@ -273,6 +324,26 @@ document.addEventListener('DOMContentLoaded', function() {
 .activities-container .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+}
+
+/* Consistent word-wrap for all table cells with text content */
+.table-cell-wrap {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.table-cell-wrap textarea {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+/* Budget table cell wrapping */
+.budget-rows td:first-child {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 200px;
 }
 </style>
 @endsection

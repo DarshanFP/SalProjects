@@ -26,7 +26,7 @@
                                                 <strong>{{ e($attachment->file_name) }}</strong>
                                             </div>
                                             <div class="mb-2 text-muted small">
-                                                Size: {{ number_format($fileSize / 1024, 2) }} KB
+                                                Size: {{ format_indian($fileSize / 1024, 2) }} KB
                                             </div>
                                             @if($attachment->description)
                                                 <div class="mb-2 text-muted small">
@@ -40,7 +40,7 @@
                                                    title="View file">
                                                     <i class="fas fa-eye"></i> View
                                                 </a>
-                                                <a href="{{ route('monthly.report.downloadAttachment', $attachment->id) }}"
+                                                <a href="{{ route('reports.attachments.download', $attachment->id) }}"
                                                    class="btn btn-outline-success"
                                                    title="Download file">
                                                     <i class="fas fa-download"></i> Download
@@ -88,7 +88,10 @@
                 @foreach(old('new_attachment_files', ['']) as $index => $value)
                 <div class="mb-3 new-attachment-group" data-index="{{ $index }}">
                     <div class="mb-3">
-                        <label for="new_attachment_file_{{ $index }}" class="form-label">New Attachment File {{ $index + 1 }}</label>
+                        <label for="new_attachment_file_{{ $index }}" class="form-label">
+                            <span class="badge bg-secondary me-2">{{ $index + 1 }}</span>
+                            New Attachment File {{ $index + 1 }}
+                        </label>
                         <input type="file" name="new_attachment_files[]" id="new_attachment_file_{{ $index }}"
                                class="form-control @error("new_attachment_files.$index") is-invalid @enderror"
                                accept=".pdf, .doc, .docx, .xls, .xlsx"
@@ -113,7 +116,7 @@
                     <div class="mb-3">
                         <label for="new_attachment_description_{{ $index }}" class="form-label">Description</label>
                         <textarea name="new_attachment_descriptions[]" id="new_attachment_description_{{ $index }}"
-                                  class="form-control @error("new_attachment_descriptions.$index") is-invalid @enderror"
+                                  class="form-control auto-resize-textarea @error("new_attachment_descriptions.$index") is-invalid @enderror"
                                   rows="2"
                                   placeholder="Brief description">{{ old("new_attachment_descriptions.$index") }}</textarea>
                         @error("new_attachment_descriptions.$index")
@@ -195,7 +198,10 @@ function addNewAttachment() {
         const newAttachmentHtml = `
             <div class="mb-3 new-attachment-group" data-index="${index}">
                 <div class="mb-3">
-                    <label for="new_attachment_file_${index}" class="form-label">New Attachment File ${index + 1}</label>
+                    <label for="new_attachment_file_${index}" class="form-label">
+                        <span class="badge bg-secondary me-2">${index + 1}</span>
+                        New Attachment File ${index + 1}
+                    </label>
                     <input type="file" name="new_attachment_files[]" id="new_attachment_file_${index}"
                            class="form-control"
                            accept=".pdf, .doc, .docx, .xls, .xlsx"
@@ -213,7 +219,7 @@ function addNewAttachment() {
                 <div class="mb-3">
                     <label for="new_attachment_description_${index}" class="form-label">Description</label>
                     <textarea name="new_attachment_descriptions[]" id="new_attachment_description_${index}"
-                              class="form-control"
+                              class="form-control auto-resize-textarea"
                               rows="2"
                               placeholder="Brief description"></textarea>
                 </div>
@@ -232,7 +238,14 @@ function addNewAttachment() {
             </div>
         `;
         attachmentsContainer.insertAdjacentHTML('beforeend', newAttachmentHtml);
-        updateNewAttachmentLabels();
+
+        // Initialize auto-resize for new attachment textarea using global function
+        const newAttachment = attachmentsContainer.lastElementChild;
+        if (newAttachment && typeof initDynamicTextarea === 'function') {
+            initDynamicTextarea(newAttachment);
+        }
+
+        reindexNewAttachments();
     } else {
         alert('You can add a maximum of 5 new attachments.');
     }
@@ -241,14 +254,83 @@ function addNewAttachment() {
 function removeNewAttachment(button) {
     const attachmentGroup = button.closest('.new-attachment-group');
     attachmentGroup.remove();
-    updateNewAttachmentLabels();
+    reindexNewAttachments();
 }
 
-function updateNewAttachmentLabels() {
+function reindexNewAttachments() {
     const attachmentGroups = document.querySelectorAll('.new-attachment-group');
     attachmentGroups.forEach((group, index) => {
-        const label = group.querySelector('label');
-        label.textContent = `New Attachment File ${index + 1}`;
+        // Update data-index
+        group.dataset.index = index;
+
+        // Update badge and label
+        const label = group.querySelector('label[for^="new_attachment_file"]');
+        if (label) {
+            label.innerHTML = `<span class="badge bg-secondary me-2">${index + 1}</span>New Attachment File ${index + 1}`;
+        }
+
+        // Update all IDs that use the index
+        const fileInput = group.querySelector('input[type="file"]');
+        const nameInput = group.querySelector('input[name^="new_attachment_names"]');
+        const descriptionTextarea = group.querySelector('textarea[name^="new_attachment_descriptions"]');
+        const filePreview = group.querySelector('[id^="new-file-preview-"]');
+        const fileError = group.querySelector('[id^="new-file-error-"]');
+        const fileName = group.querySelector('[id^="new-file-name-"]');
+        const fileSize = group.querySelector('[id^="new-file-size-"]');
+        const errorMessage = group.querySelector('[id^="new-error-message-"]');
+
+        if (fileInput) {
+            fileInput.id = `new_attachment_file_${index}`;
+            fileInput.name = `new_attachment_files[]`;
+            fileInput.setAttribute('onchange', `validateNewAttachmentFile(this, ${index})`);
+            const labelFor = group.querySelector('label[for^="new_attachment_file"]');
+            if (labelFor) {
+                labelFor.setAttribute('for', `new_attachment_file_${index}`);
+            }
+        }
+
+        if (nameInput) {
+            nameInput.id = `new_attachment_name_${index}`;
+            nameInput.name = `new_attachment_names[]`;
+            const labelFor = group.querySelector('label[for^="new_attachment_name"]');
+            if (labelFor) {
+                labelFor.setAttribute('for', `new_attachment_name_${index}`);
+            }
+        }
+
+        if (descriptionTextarea) {
+            descriptionTextarea.id = `new_attachment_description_${index}`;
+            descriptionTextarea.name = `new_attachment_descriptions[]`;
+            const labelFor = group.querySelector('label[for^="new_attachment_description"]');
+            if (labelFor) {
+                labelFor.setAttribute('for', `new_attachment_description_${index}`);
+            }
+        }
+
+        if (filePreview) {
+            filePreview.id = `new-file-preview-${index}`;
+        }
+
+        if (fileError) {
+            fileError.id = `new-file-error-${index}`;
+        }
+
+        if (fileName) {
+            fileName.id = `new-file-name-${index}`;
+        }
+
+        if (fileSize) {
+            fileSize.id = `new-file-size-${index}`;
+        }
+
+        if (errorMessage) {
+            errorMessage.id = `new-error-message-${index}`;
+        }
+
+        // Re-initialize textarea auto-resize after reindexing
+        if (descriptionTextarea && typeof autoResizeTextarea === 'function') {
+            autoResizeTextarea(descriptionTextarea);
+        }
     });
 }
 
@@ -265,7 +347,7 @@ function removeAttachment(attachmentId) {
     button.disabled = true;
     button.textContent = 'Removing...';
 
-    const url = "{{ route('attachments.remove', ':id') }}".replace(':id', attachmentId);
+    const url = "{{ route('reports.attachments.remove', ':id') }}".replace(':id', attachmentId);
 
     fetch(url, {
         method: 'DELETE',
@@ -312,6 +394,6 @@ function removeAttachment(attachmentId) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    updateNewAttachmentLabels();
+    reindexNewAttachments();
 });
 </script>

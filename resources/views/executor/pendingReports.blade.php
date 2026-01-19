@@ -1,6 +1,10 @@
 @extends('executor.dashboard')
 
 @section('content')
+@php
+    use App\Constants\ProjectStatus;
+    $editableStatuses = ProjectStatus::getEditableStatuses();
+@endphp
 <div class="page-content">
     <div class="row justify-content-center">
         <div class="col-md-12 col-xl-12">
@@ -37,7 +41,7 @@
                                 <div class="text-white card bg-primary">
                                     <div class="card-body">
                                         <h5 class="card-title">Total Budget</h5>
-                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_budget'], 2) }}</h3>
+                                        <h3 class="card-text">{{ format_indian_currency($budgetSummaries['total']['total_budget'], 2) }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -45,7 +49,7 @@
                                 <div class="text-white card bg-success">
                                     <div class="card-body">
                                         <h5 class="card-title">Total Expenses</h5>
-                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_expenses'], 2) }}</h3>
+                                        <h3 class="card-text">{{ format_indian_currency($budgetSummaries['total']['total_expenses'], 2) }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -53,7 +57,7 @@
                                 <div class="text-white card bg-info">
                                     <div class="card-body">
                                         <h5 class="card-title">Total Remaining</h5>
-                                        <h3 class="card-text">₱{{ number_format($budgetSummaries['total']['total_remaining'], 2) }}</h3>
+                                        <h3 class="card-text">{{ format_indian_currency($budgetSummaries['total']['total_remaining'], 2) }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -93,20 +97,20 @@
                                         <td>{{ $report->report_id }}</td>
                                         <td>{{ $report->project_title }}</td>
                                         <td>{{ $report->project_type }}</td>
-                                        <td>{{ number_format($totalAmount, 2) }}</td>
-                                        <td>{{ number_format($totalExpenses, 2) }}</td>
-                                        <td>{{ number_format($expensesThisMonth, 2) }}</td>
-                                        <td>{{ number_format($balanceAmount, 2) }}</td>
+                                        <td>{{ format_indian($totalAmount, 2) }}</td>
+                                        <td>{{ format_indian($totalExpenses, 2) }}</td>
+                                        <td>{{ format_indian($expensesThisMonth, 2) }}</td>
+                                        <td>{{ format_indian($balanceAmount, 2) }}</td>
                                         <td>
                                             <span class="badge {{ $statusBadgeClass }}">{{ $statusLabel }}</span>
                                         </td>
                                         <td>
                                             <a href="{{ route('monthly.report.show', $report->report_id) }}" class="btn btn-primary btn-sm">View</a>
-                                            @if(in_array($report->status, ['draft', 'reverted_by_provincial', 'reverted_by_coordinator']))
+                                            @if(in_array($report->status, $editableStatuses))
                                                 <a href="{{ route('monthly.report.edit', $report->report_id) }}" class="btn btn-warning btn-sm">Edit</a>
                                             @endif
 
-                                            @if($report->status === 'underwriting')
+                                            @if($report->status === 'draft' || $report->isEditable())
                                                 <form method="POST" action="{{ route('executor.report.submit', $report->report_id) }}" class="d-inline">
                                                     @csrf
                                                     <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Are you sure you want to submit this report to provincial?')">
@@ -115,13 +119,13 @@
                                                 </form>
                                             @endif
 
-                                            @if($report->status === 'reverted_by_provincial' && $report->revert_reason)
+                                            @if($report->status === ProjectStatus::REVERTED_BY_PROVINCIAL && $report->revert_reason)
                                                 <button type="button" class="btn btn-info btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Revert Reason: {{ $report->revert_reason }}">
                                                     View Reason
                                                 </button>
                                             @endif
 
-                                            @if($report->status === 'reverted_by_coordinator' && $report->revert_reason)
+                                            @if($report->status === ProjectStatus::REVERTED_BY_COORDINATOR && $report->revert_reason)
                                                 <button type="button" class="btn btn-info btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Revert Reason: {{ $report->revert_reason }}">
                                                     View Reason
                                                 </button>

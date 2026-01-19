@@ -179,9 +179,9 @@
                     <td>{{ $annexure->dla_beneficiary_name ?? 'N/A' }}</td>
                     <td>{{ $annexure->dla_support_date ?? 'N/A' }}</td>
                     <td>{{ $annexure->dla_self_employment ?? 'N/A' }}</td>
-                    <td>{{ $annexure->dla_amount_sanctioned ? 'Rs. ' . number_format($annexure->dla_amount_sanctioned, 2) : 'N/A' }}</td>
-                    <td>{{ $annexure->dla_monthly_profit ? 'Rs. ' . number_format($annexure->dla_monthly_profit, 2) : 'N/A' }}</td>
-                    <td>{{ $annexure->dla_annual_profit ? 'Rs. ' . number_format($annexure->dla_annual_profit, 2) : 'N/A' }}</td>
+                    <td>{{ $annexure->dla_amount_sanctioned ? format_indian_currency($annexure->dla_amount_sanctioned, 2) : 'N/A' }}</td>
+                    <td>{{ $annexure->dla_monthly_profit ? format_indian_currency($annexure->dla_monthly_profit, 2) : 'N/A' }}</td>
+                    <td>{{ $annexure->dla_annual_profit ? format_indian_currency($annexure->dla_annual_profit, 2) : 'N/A' }}</td>
                     <td>{{ $annexure->dla_impact ?? 'N/A' }}</td>
                     <td>{{ $annexure->dla_challenges ?? 'N/A' }}</td>
                 </tr>
@@ -318,7 +318,6 @@
         <table class="account-table">
             <tr class="header-row">
                 <td>Particulars</td>
-                <td>Amount Forwarded</td>
                 <td>Amount Sanctioned</td>
                 <td>Total Amount</td>
                 <td>Expenses Last Month</td>
@@ -334,25 +333,23 @@
                             <span class="budget-badge">Budget Row</span>
                         @endif
                     </td>
-                    <td>{{ number_format($budget->amount_forwarded ?? 0, 2) }}</td>
-                    <td>{{ number_format($budget->amount_sanctioned ?? 0, 2) }}</td>
-                    <td>{{ number_format($budget->total_amount ?? 0, 2) }}</td>
-                    <td>{{ number_format($budget->expenses_last_month ?? 0, 2) }}</td>
-                    <td>{{ number_format($budget->expenses_this_month ?? 0, 2) }}</td>
-                    <td>{{ number_format($budget->total_expenses ?? 0, 2) }}</td>
-                    <td>{{ number_format($budget->balance_amount ?? 0, 2) }}</td>
+                    <td>{{ format_indian($budget->amount_sanctioned ?? 0, 2) }}</td>
+                    <td>{{ format_indian($budget->total_amount ?? 0, 2) }}</td>
+                    <td>{{ format_indian($budget->expenses_last_month ?? 0, 2) }}</td>
+                    <td>{{ format_indian($budget->expenses_this_month ?? 0, 2) }}</td>
+                    <td>{{ format_indian($budget->total_expenses ?? 0, 2) }}</td>
+                    <td>{{ format_indian($budget->balance_amount ?? 0, 2) }}</td>
                 </tr>
             @endforeach
             {{-- Total Row --}}
             <tr class="total-row">
                 <td><strong>TOTAL</strong></td>
-                <td><strong>{{ number_format($budgets->sum('amount_forwarded'), 2) }}</strong></td>
-                <td><strong>{{ number_format($budgets->sum('amount_sanctioned'), 2) }}</strong></td>
-                <td><strong>{{ number_format($budgets->sum('total_amount'), 2) }}</strong></td>
-                <td><strong>{{ number_format($budgets->sum('expenses_last_month'), 2) }}</strong></td>
-                <td><strong>{{ number_format($budgets->sum('expenses_this_month'), 2) }}</strong></td>
-                <td><strong>{{ number_format($budgets->sum('total_expenses'), 2) }}</strong></td>
-                <td><strong>{{ number_format($budgets->sum('balance_amount'), 2) }}</strong></td>
+                <td><strong>{{ format_indian($budgets->sum('amount_sanctioned'), 2) }}</strong></td>
+                <td><strong>{{ format_indian($budgets->sum('total_amount'), 2) }}</strong></td>
+                <td><strong>{{ format_indian($budgets->sum('expenses_last_month'), 2) }}</strong></td>
+                <td><strong>{{ format_indian($budgets->sum('expenses_this_month'), 2) }}</strong></td>
+                <td><strong>{{ format_indian($budgets->sum('total_expenses'), 2) }}</strong></td>
+                <td><strong>{{ format_indian($budgets->sum('balance_amount'), 2) }}</strong></td>
             </tr>
         </table>
     @else

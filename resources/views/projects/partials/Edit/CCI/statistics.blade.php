@@ -15,38 +15,38 @@
                 <tbody>
                     <tr>
                         <td style="text-align: left;">Total number of children in the institution</td>
-                        <td><input type="text" name="total_children_previous_year" class="form-control select-input no-spinner" value="{{ $statistics->total_children_previous_year ?? '' }}" style="background-color: #202ba3;"></td>
-                        <td><input type="text" name="total_children_current_year" class="form-control select-input no-spinner" value="{{ $statistics->total_children_current_year ?? '' }}" style="background-color: #202ba3;"></td>
+                        <td><input type="text" name="total_children_previous_year" class="form-control select-input no-spinner" value="{{ $statistics->total_children_previous_year ?? '' }}"></td>
+                        <td><input type="text" name="total_children_current_year" class="form-control select-input no-spinner" value="{{ $statistics->total_children_current_year ?? '' }}"></td>
                     </tr>
                     <tr>
                         <td style="text-align: left;">Children who are reintegrated with their guardians/parents</td>
-                        <td><input type="text" name="reintegrated_children_previous_year" class="form-control select-input no-spinner" value="{{ $statistics->reintegrated_children_previous_year ?? '' }}" style="background-color: #202ba3;"></td>
-                        <td><input type="text" name="reintegrated_children_current_year" class="form-control select-input no-spinner" value="{{ $statistics->reintegrated_children_current_year ?? '' }}" style="background-color: #202ba3;"></td>
+                        <td><input type="text" name="reintegrated_children_previous_year" class="form-control select-input no-spinner" value="{{ $statistics->reintegrated_children_previous_year ?? '' }}"></td>
+                        <td><input type="text" name="reintegrated_children_current_year" class="form-control select-input no-spinner" value="{{ $statistics->reintegrated_children_current_year ?? '' }}"></td>
                     </tr>
                     <tr>
                         <td style="text-align: left;">Children who are shifted to other NGOs / Govt.</td>
-                        <td><input type="text" name="shifted_children_previous_year" class="form-control select-input no-spinner" value="{{ $statistics->shifted_children_previous_year ?? '' }}" style="background-color: #202ba3;"></td>
-                        <td><input type="text" name="shifted_children_current_year" class="form-control select-input no-spinner" value="{{ $statistics->shifted_children_current_year ?? '' }}" style="background-color: #202ba3;"></td>
+                        <td><input type="text" name="shifted_children_previous_year" class="form-control select-input no-spinner" value="{{ $statistics->shifted_children_previous_year ?? '' }}"></td>
+                        <td><input type="text" name="shifted_children_current_year" class="form-control select-input no-spinner" value="{{ $statistics->shifted_children_current_year ?? '' }}"></td>
                     </tr>
                     <tr>
                         <td style="text-align: left;">Children who are pursuing higher studies outside</td>
-                        <td><input type="text" name="pursuing_higher_studies_previous_year" class="form-control select-input no-spinner" value="{{ $statistics->pursuing_higher_studies_previous_year ?? '' }}" style="background-color: #202ba3;"></td>
-                        <td><input type="text" name="pursuing_higher_studies_current_year" class="form-control select-input no-spinner" value="{{ $statistics->pursuing_higher_studies_current_year ?? '' }}" style="background-color: #202ba3;"></td>
+                        <td><input type="text" name="pursuing_higher_studies_previous_year" class="form-control select-input no-spinner" value="{{ $statistics->pursuing_higher_studies_previous_year ?? '' }}"></td>
+                        <td><input type="text" name="pursuing_higher_studies_current_year" class="form-control select-input no-spinner" value="{{ $statistics->pursuing_higher_studies_current_year ?? '' }}"></td>
                     </tr>
                     <tr>
                         <td style="text-align: left;">Children who completed the studies and settled down in life (i.e., married etc.)</td>
-                        <td><input type="text" name="settled_children_previous_year" class="form-control select-input no-spinner" value="{{ $statistics->settled_children_previous_year ?? '' }}" style="background-color: #202ba3;"></td>
-                        <td><input type="text" name="settled_children_current_year" class="form-control select-input no-spinner" value="{{ $statistics->settled_children_current_year ?? '' }}" style="background-color: #202ba3;"></td>
+                        <td><input type="text" name="settled_children_previous_year" class="form-control select-input no-spinner" value="{{ $statistics->settled_children_previous_year ?? '' }}"></td>
+                        <td><input type="text" name="settled_children_current_year" class="form-control select-input no-spinner" value="{{ $statistics->settled_children_current_year ?? '' }}"></td>
                     </tr>
                     <tr>
                         <td style="text-align: left;">Children who are now settled and working</td>
-                        <td><input type="text" name="working_children_previous_year" class="form-control select-input no-spinner" value="{{ $statistics->working_children_previous_year ?? '' }}" style="background-color: #202ba3;"></td>
-                        <td><input type="text" name="working_children_current_year" class="form-control select-input no-spinner" value="{{ $statistics->working_children_current_year ?? '' }}" style="background-color: #202ba3;"></td>
+                        <td><input type="text" name="working_children_previous_year" class="form-control select-input no-spinner" value="{{ $statistics->working_children_previous_year ?? '' }}"></td>
+                        <td><input type="text" name="working_children_current_year" class="form-control select-input no-spinner" value="{{ $statistics->working_children_current_year ?? '' }}"></td>
                     </tr>
                     <tr>
                         <td style="text-align: left;">Any other category</td>
-                        <td><input type="text" name="other_category_previous_year" class="form-control select-input no-spinner" value="{{ $statistics->other_category_previous_year ?? '' }}" style="background-color: #202ba3;"></td>
-                        <td><input type="text" name="other_category_current_year" class="form-control select-input no-spinner" value="{{ $statistics->other_category_current_year ?? '' }}" style="background-color: #202ba3;"></td>
+                        <td><input type="text" name="other_category_previous_year" class="form-control select-input no-spinner" value="{{ $statistics->other_category_previous_year ?? '' }}"></td>
+                        <td><input type="text" name="other_category_current_year" class="form-control select-input no-spinner" value="{{ $statistics->other_category_current_year ?? '' }}"></td>
                     </tr>
                 </tbody>
             </table>

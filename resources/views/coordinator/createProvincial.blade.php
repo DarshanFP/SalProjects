@@ -39,14 +39,11 @@
                             <label for="province">Province</label>
                             <select name="province" class="form-control" required id="province">
                                 <option value="" disabled selected>Choose one</option>
-                                <option value="Bangalore">Bangalore</option>
-                                <option value="Vijayawada">Vijayawada</option>
-                                <option value="Visakhapatnam">Visakhapatnam</option>
-                                <option value="Generalate">Generalate</option>
-                                <option value="Divyodaya">Divyodaya</option>
-                                <option value="Indonesia">Indonesia</option>
-                                <option value="East Timor">East Timor</option>
-                                <option value="East Africa">East Africa</option>
+                                @foreach($provinces ?? [] as $province)
+                                    <option value="{{ $province->name }}" {{ old('province') == $province->name ? 'selected' : '' }}>
+                                        {{ $province->name }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="form-group">

@@ -63,7 +63,7 @@
     }
 
     .table td {
-        background-color: #f9f9f9;
+        
     }
 
     .card-header h4 {

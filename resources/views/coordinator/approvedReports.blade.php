@@ -78,10 +78,10 @@
                                         <td>{{ $report->user->name }}</td>
                                         <td>{{ $report->user->province }}</td>
                                         <td>{{ $report->project_title }}</td>
-                                        <td>{{ number_format($totalAmount, 2) }}</td>
-                                        <td>{{ number_format($totalExpenses, 2) }}</td>
-                                        <td>{{ number_format($expensesThisMonth, 2) }}</td>
-                                        <td>{{ number_format($balanceAmount, 2) }}</td>
+                                        <td>{{ format_indian($totalAmount, 2) }}</td>
+                                        <td>{{ format_indian($totalExpenses, 2) }}</td>
+                                        <td>{{ format_indian($expensesThisMonth, 2) }}</td>
+                                        <td>{{ format_indian($balanceAmount, 2) }}</td>
                                         <td>{{ $report->project_type }}</td>
                                         <td>
                                             <span class="badge {{ $statusBadgeClass }}">{{ $statusLabel }}</span>

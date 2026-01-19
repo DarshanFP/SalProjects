@@ -7,20 +7,33 @@ use App\Http\Controllers\Reports\Monthly\ReportController;
 use App\Models\OldProjects\Project;
 use App\Models\ProjectComment;
 use App\Models\Reports\Monthly\DPReport;
+use App\Models\Reports\Monthly\DPAccountDetail;
 use App\Models\ReportComment;
 use App\Models\User;
+use App\Models\Province;
+use App\Models\Center;
+use App\Models\ActivityHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Services\ProjectStatusService;
+use App\Services\ReportStatusService;
+use App\Services\NotificationService;
+use App\Constants\ProjectStatus;
+use App\Http\Requests\Projects\ApproveProjectRequest;
+use Carbon\Carbon;
+use Exception;
 
 
 class CoordinatorController extends Controller
 {
-    public function CoordinatorDashboard(Request $request)
+    public function coordinatorDashboard(Request $request)
     {
         $coordinator = Auth::user();
 
-        // Debug: Log the request parameters
         \Log::info('Coordinator Dashboard Request', [
             'province' => $request->get('province'),
             'center' => $request->get('center'),
@@ -29,7 +42,7 @@ class CoordinatorController extends Controller
         ]);
 
         // First, get approved projects with comprehensive filtering
-        $projectsQuery = Project::where('status', 'approved_by_coordinator')->with('user');
+        $projectsQuery = Project::where('status', ProjectStatus::APPROVED_BY_COORDINATOR)->with('user');
 
         // Apply comprehensive filters based on user attributes
         if ($request->filled('province')) {
@@ -80,9 +93,44 @@ class CoordinatorController extends Controller
                       ->select('id', 'name', 'province')
                       ->get();
 
-        $projectTypes = Project::where('status', 'approved_by_coordinator')->distinct()->pluck('project_type');
+        $projectTypes = Project::where('status', ProjectStatus::APPROVED_BY_COORDINATOR)->distinct()->pluck('project_type');
 
-        // Debug: Log the filter options
+        // Get all projects for statistics (not just approved)
+        $allProjectsQuery = Project::with('user');
+
+        // Apply same filters for statistics
+        if ($request->filled('province')) {
+            $allProjectsQuery->whereHas('user', function($query) use ($request) {
+                $query->where('province', $request->province);
+            });
+        }
+        if ($request->filled('center')) {
+            $allProjectsQuery->whereHas('user', function($query) use ($request) {
+                $query->where('center', $request->center);
+            });
+        }
+        if ($request->filled('role')) {
+            $allProjectsQuery->whereHas('user', function($query) use ($request) {
+                $query->where('role', $request->role);
+            });
+        }
+        if ($request->filled('parent_id')) {
+            $allProjectsQuery->whereHas('user', function($query) use ($request) {
+                $query->where('parent_id', $request->parent_id);
+            });
+        }
+
+        $allProjects = $allProjectsQuery->get();
+
+        // Calculate project statistics
+        $statistics = [
+            'total_projects' => $allProjects->count(),
+            'projects_by_status' => $allProjects->groupBy('status')->map->count(),
+            'projects_by_type' => $allProjects->groupBy('project_type')->map->count(),
+            'recent_projects' => $allProjects->sortByDesc('created_at')->take(5),
+            'recent_activity' => $this->getRecentActivity($allProjects),
+        ];
+
         \Log::info('Coordinator Dashboard Filter Options', [
             'selected_province' => $request->get('province'),
             'selected_center' => $request->get('center'),
@@ -92,14 +140,79 @@ class CoordinatorController extends Controller
             'available_centers_count' => $centers->count(),
             'available_parents_count' => $parents->count(),
             'total_projects' => $projects->count(),
-            'projects_by_province' => $projects->groupBy('user.province')->map->count()->toArray(),
+            'projects_by_province' => $projects->groupBy('user.province')->map(fn ($group) => $group->count())->toArray(),
             'projects_with_amount_sanctioned' => $projects->where('amount_sanctioned', '>', 0)->count(),
             'projects_with_overall_budget' => $projects->where('overall_project_budget', '>', 0)->count(),
             'projects_with_budgets' => $projects->filter(function($p) { return $p->budgets && $p->budgets->count() > 0; })->count(),
             'projects_with_reports' => $projects->filter(function($p) { return $p->reports && $p->reports->count() > 0; })->count()
         ]);
 
-        return view('coordinator.index', compact('budgetSummaries', 'provinces', 'centers', 'roles', 'parents', 'projectTypes'));
+        // Get Phase 1 widget data (with caching)
+        $pendingApprovalsData = $this->getPendingApprovalsData();
+        $provincialOverviewData = $this->getProvincialOverviewData();
+        $systemPerformanceData = $this->getSystemPerformanceData();
+
+        // Get Phase 2 widget data (with caching based on time range)
+        $timeRange = $request->get('analytics_range', 30);
+        $systemAnalyticsData = $this->getSystemAnalyticsData($timeRange);
+        $systemActivityFeedData = $this->getSystemActivityFeedData(50);
+
+        // Get Phase 3 widget data (with caching)
+        // Pass filter parameters to budget overview (for filtering by province, center, project_type, provincial)
+        $systemBudgetOverviewData = $this->getSystemBudgetOverviewData($request);
+        $provinceComparisonData = $this->getProvinceComparisonData();
+        $provincialManagementData = $this->getProvincialManagementData();
+        $systemHealthData = $this->getSystemHealthData();
+
+        return view('coordinator.index', compact(
+            'budgetSummaries',
+            'provinces',
+            'centers',
+            'roles',
+            'parents',
+            'projectTypes',
+            'statistics',
+            'allProjects',
+            'pendingApprovalsData',
+            'provincialOverviewData',
+            'systemPerformanceData',
+            'systemAnalyticsData',
+            'systemActivityFeedData',
+            'systemBudgetOverviewData',
+            'provinceComparisonData',
+            'provincialManagementData',
+            'systemHealthData'
+        ));
+    }
+
+    /**
+     * Refresh dashboard cache (clear all dashboard-related cache)
+     */
+    public function refreshDashboard(Request $request)
+    {
+        try {
+            // Clear all dashboard-related cache
+            $this->invalidateDashboardCache();
+
+            // Return success response
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => 'Dashboard cache refreshed successfully.']);
+            }
+
+            return redirect()->route('coordinator.dashboard')
+                ->with('success', 'Dashboard cache refreshed successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Failed to refresh dashboard cache', [
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Failed to refresh cache.'], 500);
+            }
+
+            return redirect()->route('coordinator.dashboard')
+                ->with('error', 'Failed to refresh dashboard cache.');
+        }
     }
 
     private function calculateBudgetSummaries($reports, $request, $onlyApproved = true)
@@ -116,7 +229,7 @@ class CoordinatorController extends Controller
 
         foreach ($reports as $report) {
             // Skip non-approved reports if onlyApproved is true
-            if ($onlyApproved && $report->status !== 'approved_by_coordinator') continue;
+            if ($onlyApproved && !$report->isApproved()) continue;
 
             $reportTotal = $report->accountDetails->sum('total_amount');
             $reportExpenses = $report->accountDetails->sum('total_expenses');
@@ -171,7 +284,7 @@ class CoordinatorController extends Controller
             }
             if ($projectBudget == 0 && $project->reports && $project->reports->count() > 0) {
                 foreach ($project->reports as $report) {
-                    if ($report->status === 'approved_by_coordinator' && $report->accountDetails && $report->accountDetails->count() > 0) {
+                    if ($report->isApproved() && $report->accountDetails && $report->accountDetails->count() > 0) {
                         $projectBudget = $report->accountDetails->sum('total_amount');
                         break;
                     }
@@ -180,7 +293,7 @@ class CoordinatorController extends Controller
             $totalExpenses = 0;
             if ($project->reports && $project->reports->count() > 0) {
                 foreach ($project->reports as $report) {
-                    if ($report->status === 'approved_by_coordinator' && $report->accountDetails && $report->accountDetails->count() > 0) {
+                    if ($report->isApproved() && $report->accountDetails && $report->accountDetails->count() > 0) {
                         $totalExpenses += $report->accountDetails->sum('total_expenses');
                     }
                 }
@@ -214,93 +327,345 @@ class CoordinatorController extends Controller
         return $budgetSummaries;
     }
 
-    public function ReportList(Request $request)
+    public function reportList(Request $request)
     {
         $coordinator = Auth::user();
 
-        // Base query for projects - coordinators can see all project types
-        $projectsQuery = Project::with('user');
+        // Base query for reports - coordinators can see all reports in the system
+        $reportsQuery = DPReport::with(['user.parent', 'project', 'accountDetails']);
 
         // Apply filters
         if ($request->filled('province')) {
-            $projectsQuery->whereHas('user', function($query) use ($request) {
+            $reportsQuery->whereHas('user', function($query) use ($request) {
                 $query->where('province', $request->province);
             });
         }
+
+        if ($request->filled('provincial_id')) {
+            // Filter by provincial (who forwarded the report)
+            $reportsQuery->whereHas('user', function($query) use ($request) {
+                $query->where('parent_id', $request->provincial_id);
+            });
+        }
+
         if ($request->filled('user_id')) {
-            $projectsQuery->where('user_id', $request->user_id);
+            // Filter by executor/applicant (submitter)
+            $reportsQuery->where('user_id', $request->user_id);
         }
+
         if ($request->filled('project_type')) {
-            $projectsQuery->where('project_type', $request->project_type);
+            $reportsQuery->where('project_type', $request->project_type);
         }
 
-        // Fetch the allowed projects
-        $projects = $projectsQuery->get();
+        if ($request->filled('status')) {
+            $reportsQuery->where('status', $request->status);
+        }
 
-        // Fetch reports for these filtered projects
-        $reports = DPReport::with(['user', 'accountDetails'])
-            ->whereIn('project_id', $projects->pluck('project_id'))
-            ->get();
+        if ($request->filled('urgency')) {
+            // Filter by urgency (will be applied after fetching)
+        }
 
-        // Fetch provinces and users for filtering options
-        $provinces = User::distinct()->pluck('province');
-        $users = User::all();
+        if ($request->filled('center')) {
+            $reportsQuery->whereHas('user', function($query) use ($request) {
+                $query->where('center', $request->center);
+            });
+        }
 
-        // Fetch distinct project types
-        $projectTypes = Project::distinct()->pluck('project_type');
+        // Search functionality
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $reportsQuery->where(function($q) use ($searchTerm) {
+                $q->where('report_id', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('project_title', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('project_id', 'like', '%' . $searchTerm . '%');
+            });
+        }
+
+        // Get all reports
+        $reports = $reportsQuery->get()
+            ->map(function($report) {
+                // Calculate days pending for pending reports
+                if (in_array($report->status, [DPReport::STATUS_FORWARDED_TO_COORDINATOR, DPReport::STATUS_SUBMITTED_TO_PROVINCIAL])) {
+                    $report->days_pending = $report->created_at->diffInDays(now());
+                    $report->urgency = $report->days_pending > 7 ? 'urgent' :
+                                      ($report->days_pending > 3 ? 'normal' : 'low');
+                } else {
+                    $report->days_pending = null;
+                    $report->urgency = null;
+                }
+                return $report;
+            });
+
+        // Apply urgency filter if specified
+        if ($request->filled('urgency')) {
+            $reports = $reports->filter(function($report) use ($request) {
+                return $report->urgency === $request->urgency;
+            })->values();
+        }
+
+        // Priority sorting: urgent first, then by days pending (oldest first), then by created_at
+        $reports = $reports->sortBy(function($report) {
+            if ($report->urgency === 'urgent') {
+                return [1, $report->days_pending ?? 999, $report->created_at->timestamp];
+            } elseif ($report->urgency === 'normal') {
+                return [2, $report->days_pending ?? 999, $report->created_at->timestamp];
+            } else {
+                return [3, $report->days_pending ?? 999, $report->created_at->timestamp];
+            }
+        })->values();
+
+        // Pagination: Limit to 100 reports per page for performance
+        $perPage = $request->get('per_page', 100);
+        $currentPage = $request->get('page', 1);
+        $totalReports = $reports->count();
+        $paginatedReports = $reports->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+        // Fetch filter options (cached for 5 minutes)
+        $filterCacheKey = 'coordinator_report_list_filters';
+        $filterOptions = Cache::remember($filterCacheKey, now()->addMinutes(5), function () {
+            return [
+                'provinces' => User::distinct()->whereNotNull('province')->pluck('province')->filter()->sort()->values(),
+                'centers' => User::distinct()->whereNotNull('center')->where('center', '!=', '')->pluck('center')->filter()->sort()->values(),
+                'users' => User::whereIn('role', ['executor', 'applicant'])->select('id', 'name', 'province', 'center', 'role')->get(),
+                'provincials' => User::where('role', 'provincial')->select('id', 'name', 'province')->get(),
+                'projectTypes' => DPReport::distinct()->whereNotNull('project_type')->pluck('project_type')->filter()->sort()->values(),
+                'statuses' => array_keys(DPReport::$statusLabels),
+            ];
+        });
+
+        // Create pagination metadata
+        $paginationData = [
+            'current_page' => $currentPage,
+            'per_page' => $perPage,
+            'total' => $totalReports,
+            'last_page' => ceil($totalReports / $perPage),
+            'from' => (($currentPage - 1) * $perPage) + 1,
+            'to' => min($currentPage * $perPage, $totalReports),
+        ];
+
+        // Extract filter options for compact()
+        $provinces = $filterOptions['provinces'];
+        $centers = $filterOptions['centers'];
+        $users = $filterOptions['users'];
+        $provincials = $filterOptions['provincials'];
+        $projectTypes = $filterOptions['projectTypes'];
+        $statuses = $filterOptions['statuses'];
+        $reports = $paginatedReports;
+        $pagination = $paginationData;
 
         // Return the ReportList view with the filtered reports, project types, etc.
-        return view('coordinator.ReportList', compact('reports', 'coordinator', 'provinces', 'users', 'projectTypes'));
+        return view('coordinator.ReportList', compact(
+            'reports',
+            'coordinator',
+            'provinces',
+            'centers',
+            'users',
+            'provincials',
+            'projectTypes',
+            'statuses',
+            'pagination'
+        ));
     }
 
-    public function ProjectList(Request $request)
+    public function projectList(Request $request)
     {
         $coordinator = Auth::user();
 
-        // Base query for projects - coordinators can see all project types
-        // Only show projects with status 'forwarded_to_coordinator'
-        $projectsQuery = Project::where('status', 'forwarded_to_coordinator')
-            ->with('user');
+        // Base query for projects - coordinators can see ALL projects with ALL statuses
+        $projectsQuery = Project::with(['user.parent', 'reports.accountDetails', 'budgets']);
 
-        // Optional province filter
+        // Search functionality
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $projectsQuery->where(function($q) use ($searchTerm) {
+                $q->where('project_id', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('project_title', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('project_type', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('status', 'like', '%' . $searchTerm . '%');
+            });
+        }
+
+        // Province filter
         if ($request->filled('province')) {
             $projectsQuery->whereHas('user', function($q) use ($request) {
                 $q->where('province', $request->province);
             });
         }
 
-        // Optional project_type filter
+        // Provincial filter (parent_id)
+        if ($request->filled('provincial_id')) {
+            $projectsQuery->whereHas('user', function($q) use ($request) {
+                $q->where('parent_id', $request->provincial_id);
+            });
+        }
+
+        // Executor/Applicant filter
+        if ($request->filled('user_id')) {
+            $projectsQuery->where('user_id', $request->user_id);
+        }
+
+        // Center filter
+        if ($request->filled('center')) {
+            $projectsQuery->whereHas('user', function($q) use ($request) {
+                $q->where('center', $request->center);
+            });
+        }
+
+        // Project type filter
         if ($request->filled('project_type')) {
             $projectsQuery->where('project_type', $request->project_type);
         }
 
-        // Optional executor (user_id) filter
-        if ($request->filled('user_id')) {
-            $projectsQuery->where('user_id', $request->user_id);
+        // Multiple project types filter
+        if ($request->filled('project_types')) {
+            $projectTypesArray = is_array($request->project_types)
+                ? $request->project_types
+                : explode(',', $request->project_types);
+            $projectsQuery->whereIn('project_type', $projectTypesArray);
         }
+
+        // Status filter (now shows all statuses, but can filter)
         if ($request->filled('status')) {
             $projectsQuery->where('status', $request->status);
         }
 
-        $projects = $projectsQuery->get();
-
-        // Fetch distinct project types
-        $projectTypes = Project::distinct()->pluck('project_type');
-
-        // Fetch distinct provinces from users
-        $provinces = User::distinct()->pluck('province');
-
-        // Build the users query to show only executors
-        $usersQuery = User::where('role', 'executor');
-
-        // If a province is selected, filter executors by that province
-        if ($request->filled('province')) {
-            $usersQuery->where('province', $request->province);
+        // Multiple statuses filter
+        if ($request->filled('statuses')) {
+            $statusesArray = is_array($request->statuses)
+                ? $request->statuses
+                : explode(',', $request->statuses);
+            $projectsQuery->whereIn('status', $statusesArray);
         }
 
-        $users = $usersQuery->get();
+        // Date range filters
+        if ($request->filled('start_date')) {
+            $projectsQuery->whereDate('created_at', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $projectsQuery->whereDate('created_at', '<=', $request->end_date);
+        }
 
-        return view('coordinator.ProjectList', compact('projects', 'coordinator', 'projectTypes', 'users', 'provinces'));
+        // Get total count before pagination
+        $totalProjects = $projectsQuery->count();
+
+        // Apply sorting at query level for better performance
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+
+        // Apply sorting to query if it's a direct column
+        if (in_array($sortBy, ['created_at', 'project_id', 'project_title'])) {
+            $projectsQuery->orderBy($sortBy, $sortOrder);
+        } else {
+            // Default sorting
+            $projectsQuery->orderBy('created_at', $sortOrder);
+        }
+
+        // Pagination: Limit to 100 projects per page for performance
+        $perPage = $request->get('per_page', 100);
+        $currentPage = $request->get('page', 1);
+
+        // Get paginated projects
+        $projects = $projectsQuery->skip(($currentPage - 1) * $perPage)
+            ->take($perPage)
+            ->get()
+            ->map(function($project) {
+                // Calculate budget
+                $projectBudget = 0;
+                if ($project->overall_project_budget && $project->overall_project_budget > 0) {
+                    $projectBudget = $project->overall_project_budget;
+                } elseif ($project->amount_sanctioned && $project->amount_sanctioned > 0) {
+                    $projectBudget = $project->amount_sanctioned;
+                } elseif ($project->budgets && $project->budgets->count() > 0) {
+                    $projectBudget = $project->budgets->sum('this_phase');
+                }
+
+                // Calculate expenses from approved reports (optimized - use direct query instead of loading all)
+                $projectApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                    ->where('project_id', $project->project_id)
+                    ->pluck('report_id');
+
+                $totalExpenses = DPAccountDetail::whereIn('report_id', $projectApprovedReportIds)
+                    ->sum('total_expenses') ?? 0;
+
+                // Budget utilization
+                $budgetUtilization = $projectBudget > 0 ? ($totalExpenses / $projectBudget) * 100 : 0;
+                $remainingBudget = $projectBudget - $totalExpenses;
+
+                // Health indicator based on utilization
+                $healthIndicator = 'good';
+                if ($budgetUtilization >= 90) {
+                    $healthIndicator = 'critical';
+                } elseif ($budgetUtilization >= 75) {
+                    $healthIndicator = 'warning';
+                } elseif ($budgetUtilization >= 50) {
+                    $healthIndicator = 'moderate';
+                }
+
+                $project->calculated_budget = $projectBudget;
+                $project->calculated_expenses = $totalExpenses;
+                $project->calculated_remaining = $remainingBudget;
+                $project->budget_utilization = round($budgetUtilization, 2);
+                $project->health_indicator = $healthIndicator;
+                $project->reports_count = $project->reports ? $project->reports->count() : 0;
+                $project->approved_reports_count = $projectApprovedReportIds->count();
+
+                return $project;
+            });
+
+        // Apply additional sorting for calculated fields (after fetching)
+        if ($sortBy === 'budget_utilization') {
+            $projects = $projects->sortBy(function($project) use ($sortOrder) {
+                return $project->budget_utilization;
+            }, SORT_REGULAR, $sortOrder === 'desc')->values();
+        }
+
+        // Fetch filter options (cached for 5 minutes)
+        $filterCacheKey = 'coordinator_project_list_filters';
+        $filterOptions = Cache::remember($filterCacheKey, now()->addMinutes(5), function () {
+            return [
+                'provinces' => User::distinct()->whereNotNull('province')->pluck('province')->filter()->sort()->values(),
+                'centers' => User::distinct()->whereNotNull('center')->where('center', '!=', '')->pluck('center')->filter()->sort()->values(),
+                'users' => User::whereIn('role', ['executor', 'applicant'])->select('id', 'name', 'province', 'center', 'role')->get(),
+                'provincials' => User::where('role', 'provincial')->select('id', 'name', 'province')->get(),
+                'projectTypes' => Project::distinct()->whereNotNull('project_type')->pluck('project_type')->filter()->sort()->values(),
+                'statuses' => array_keys(\App\Models\OldProjects\Project::$statusLabels),
+            ];
+        });
+
+        // Create pagination metadata
+        $paginationData = [
+            'current_page' => $currentPage,
+            'per_page' => $perPage,
+            'total' => $totalProjects,
+            'last_page' => ceil($totalProjects / $perPage),
+            'from' => (($currentPage - 1) * $perPage) + 1,
+            'to' => min($currentPage * $perPage, $totalProjects),
+        ];
+
+        // Extract filter options for compact()
+        $provinces = $filterOptions['provinces'];
+        $centers = $filterOptions['centers'];
+        $users = $filterOptions['users'];
+        $provincials = $filterOptions['provincials'];
+        $projectTypes = $filterOptions['projectTypes'];
+        $statuses = $filterOptions['statuses'];
+        $pagination = $paginationData;
+
+        // Get filter presets (stored in session for now, can be moved to database later)
+        $filterPresets = session('project_filter_presets', []);
+
+        return view('coordinator.ProjectList', compact(
+            'projects',
+            'coordinator',
+            'projectTypes',
+            'users',
+            'provinces',
+            'centers',
+            'provincials',
+            'statuses',
+            'filterPresets',
+            'pagination'
+        ));
     }
 
     public function showProject($project_id)
@@ -386,47 +751,13 @@ class CoordinatorController extends Controller
 
     public function createProvincial()
     {
-        // Define the mapping of provinces to their centers
-        $centersMap = [
-            'VIJAYAWADA' => [
-                'Ajitsingh Nagar', 'Nunna', 'Jaggayyapeta', 'Beed', 'Mangalagiri',
-                'S.A.Peta', 'Thiruvur', 'Chakan', 'Megalaya', 'Rajavaram',
-                'Avanigadda', 'Darjeeling', 'Sarvajan Sneha Charitable Trust, Vijayawada', 'St. Anns Hospital Vijayawada'
-            ],
-            'VISAKHAPATNAM' => [
-                'Arilova', 'Malkapuram', 'Madugula', 'Rajam', 'Kapileswarapuram',
-                'Erukonda', 'Navajara, Jharkhand', 'Jalaripeta',
-                'Wilhelm Meyer\'s Developmental Society, Visakhapatnam.',
-                'Edavalli', 'Megalaya', 'Nalgonda', 'Shanthi Niwas, Madugula',
-                'Malkapuram College', 'Malkapuram Hospital', 'Arilova School',
-                'Morning Star, Eluru', 'Butchirajaupalem', 'Malakapuram (Hospital)',
-                'Shalom', 'Berhampur, Odisha', 'Beemunipatnam', 'Mandapeta',
-                'Malkapuram School', 'Bheemunipatnam', 'Arunodaya', 'Pathapatnam',
-                'Paderu', 'Meyers Villa', 'Nalkonda'
-            ],
-            'BANGALORE' => [
-                'Prajyothi Welfare Centre', 'Gadag', 'Kurnool', 'Madurai',
-                'Madhavaram', 'Belgaum', 'Kadirepalli', 'Munambam', 'Kuderu',
-                'Tuticorin', 'Palakkad', 'Thejas', 'Sannenahalli', 'Solavidhyapuram',
-                'Kozhenchery', 'Nadavayal', 'Kodaikanal', 'PWC Bangalore', 'Taragarh', 'Chennai'
-            ],
-            'DIVYODAYA' => [
-                'Divyodaya'
-            ],
-            'INDONESIA' => [
-                'Mausambi'
-            ],
-            'EAST TIMOR' => [
-                'Luro'
-            ],
-            'EAST AFRICA' => [
-                'Tabora', 'Monduli Chini', 'Monduli Juu', 'Maji Ya Chai', 'Kahama',
-                'Kihonda', 'Tungi', 'Kiambu - Kenya', 'Kericho - Kenya', 'Sirimba - Kenya',
-                'Iganga - Uganda'
-            ],
-        ];
+        // Get provinces from database
+        $provinces = Province::active()->orderBy('name')->get();
 
-        return view('coordinator.createProvincial', compact('centersMap'));
+        // Get centers map from database
+        $centersMap = $this->getCentersMap();
+
+        return view('coordinator.createProvincial', compact('provinces', 'centersMap'));
     }
 
     public function storeProvincial(Request $request)
@@ -440,9 +771,21 @@ class CoordinatorController extends Controller
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'role' => 'required|in:coordinator,provincial,executor,applicant',
-            'province' => 'required|in:Bangalore,Vijayawada,Visakhapatnam,Generalate,Divyodaya,Indonesia,East Timor,East Africa',
+            'province' => 'required|exists:provinces,name',
             'status' => 'required|string|max:50',
         ]);
+
+        // Get province and center IDs from database
+        $province = Province::where('name', $request->province)->first();
+        $provinceId = $province ? $province->id : null;
+
+        $centerId = null;
+        if ($request->filled('center') && $provinceId) {
+            $center = Center::where('province_id', $provinceId)
+                ->whereRaw('UPPER(name) = ?', [strtoupper($request->center)])
+                ->first();
+            $centerId = $center ? $center->id : null;
+        }
 
         User::create([
             'parent_id' => auth()->user()->id,
@@ -452,9 +795,11 @@ class CoordinatorController extends Controller
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
             'center' => $request->center,
+            'center_id' => $centerId,
             'address' => $request->address,
             'role' => $request->role,
             'province' => $request->province,
+            'province_id' => $provinceId,
             'status' => $request->status,
         ]);
 
@@ -508,7 +853,6 @@ class CoordinatorController extends Controller
                       ->select('id', 'name', 'province')
                       ->get();
 
-        // Debug logging
         \Log::info('Users Management Filtering', [
             'request_filters' => $request->only(['province', 'center', 'role']),
             'available_provinces' => $provinces->toArray(),
@@ -525,47 +869,13 @@ class CoordinatorController extends Controller
     {
         $provincial = User::findOrFail($id);
 
-        // Define the mapping of provinces to their centers
-        $centersMap = [
-            'VIJAYAWADA' => [
-                'Ajitsingh Nagar', 'Nunna', 'Jaggayyapeta', 'Beed', 'Mangalagiri',
-                'S.A.Peta', 'Thiruvur', 'Chakan', 'Megalaya', 'Rajavaram',
-                'Avanigadda', 'Darjeeling', 'Sarvajan Sneha Charitable Trust, Vijayawada', 'St. Anns Hospital Vijayawada'
-            ],
-            'VISAKHAPATNAM' => [
-                'Arilova', 'Malkapuram', 'Madugula', 'Rajam', 'Kapileswarapuram',
-                'Erukonda', 'Navajara, Jharkhand', 'Jalaripeta',
-                'Wilhelm Meyer\'s Developmental Society, Visakhapatnam.',
-                'Edavalli', 'Megalaya', 'Nalgonda', 'Shanthi Niwas, Madugula',
-                'Malkapuram College', 'Malkapuram Hospital', 'Arilova School',
-                'Morning Star, Eluru', 'Butchirajaupalem', 'Malakapuram (Hospital)',
-                'Shalom', 'Berhampur, Odisha', 'Beemunipatnam', 'Mandapeta',
-                'Malkapuram School', 'Bheemunipatnam', 'Arunodaya', 'Pathapatnam',
-                'Paderu', 'Meyers Villa', 'Nalkonda'
-            ],
-            'BANGALORE' => [
-                'Prajyothi Welfare Centre', 'Gadag', 'Kurnool', 'Madurai',
-                'Madhavaram', 'Belgaum', 'Kadirepalli', 'Munambam', 'Kuderu',
-                'Tuticorin', 'Palakkad', 'Thejas', 'Sannenahalli', 'Solavidhyapuram',
-                'Kozhenchery', 'Nadavayal', 'Kodaikanal', 'PWC Bangalore', 'Taragarh', 'Chennai'
-            ],
-            'DIVYODAYA' => [
-                'Divyodaya'
-            ],
-            'INDONESIA' => [
-                'Mausambi'
-            ],
-            'EAST TIMOR' => [
-                'Luro'
-            ],
-            'EAST AFRICA' => [
-                'Tabora', 'Monduli Chini', 'Monduli Juu', 'Maji Ya Chai', 'Kahama',
-                'Kihonda', 'Tungi', 'Kiambu - Kenya', 'Kericho - Kenya', 'Sirimba - Kenya',
-                'Iganga - Uganda'
-            ],
-        ];
+        // Get provinces from database
+        $provinces = Province::active()->orderBy('name')->get();
 
-        return view('coordinator.editProvincial', compact('provincial', 'centersMap'));
+        // Get centers map from database
+        $centersMap = $this->getCentersMap();
+
+        return view('coordinator.editProvincial', compact('provincial', 'provinces', 'centersMap'));
     }
 
     public function updateProvincial(Request $request, $id)
@@ -578,9 +888,21 @@ class CoordinatorController extends Controller
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'role' => 'required|in:coordinator,provincial,executor,applicant',
-            'province' => 'required|in:Bangalore,Vijayawada,Visakhapatnam,Generalate,Divyodaya,Indonesia,East Timor,East Africa',
+            'province' => 'required|exists:provinces,name',
             'status' => 'required|string|max:50',
         ]);
+
+        // Get province and center IDs from database
+        $province = Province::where('name', $request->province)->first();
+        $provinceId = $province ? $province->id : null;
+
+        $centerId = null;
+        if ($request->filled('center') && $provinceId) {
+            $center = Center::where('province_id', $provinceId)
+                ->whereRaw('UPPER(name) = ?', [strtoupper($request->center)])
+                ->first();
+            $centerId = $center ? $center->id : null;
+        }
 
         $provincial = User::findOrFail($id);
         $provincial->update([
@@ -589,9 +911,11 @@ class CoordinatorController extends Controller
             'email' => $request->email,
             'phone' => $request->phone,
             'center' => $request->center,
+            'center_id' => $centerId,
             'address' => $request->address,
             'role' => $request->role,
             'province' => $request->province,
+            'province_id' => $provinceId,
             'status' => $request->status,
         ]);
 
@@ -676,76 +1000,177 @@ class CoordinatorController extends Controller
         return redirect()->back()->with('success', 'Comment updated successfully.');
     }
 // // Status
-public function revertToProvincial($project_id)
+public function revertToProvincial(Request $request, $project_id)
 {
     $project = Project::where('project_id', $project_id)->firstOrFail();
     $coordinator = auth()->user();
 
-    if($coordinator->role !== 'coordinator' || $project->status !== 'forwarded_to_coordinator') {
-        abort(403, 'Unauthorized action.');
+    try {
+        $oldStatus = $project->status;
+        $reason = $request->input('revert_reason', null);
+        ProjectStatusService::revertByCoordinator($project, $coordinator, $reason);
+
+        // Notify executor about revert
+        $executor = $project->user;
+        if ($executor) {
+            NotificationService::notifyRevert(
+                $executor,
+                'project',
+                $project->project_id,
+                "Project {$project->project_id}",
+                $reason
+            );
+        }
+
+        // Invalidate cache after project revert
+        $this->invalidateDashboardCache();
+
+        return redirect()->back()->with('success', 'Project reverted to Provincial.');
+    } catch (Exception $e) {
+        abort(403, $e->getMessage());
     }
-
-    $project->status = 'reverted_by_coordinator';
-    $project->save();
-
-    return redirect()->back()->with('success', 'Project reverted to Provincial.');
 }
 
-public function approveProject($project_id)
+public function approveProject(ApproveProjectRequest $request, $project_id)
 {
+    // Validation already done by ApproveProjectRequest
+    $validated = $request->validated();
+
     $project = Project::where('project_id', $project_id)->with('budgets')->firstOrFail();
     $coordinator = auth()->user();
 
-    if($coordinator->role !== 'coordinator' || $project->status !== 'forwarded_to_coordinator') {
-        abort(403, 'Unauthorized action.');
+    // Create commencement date (validation already ensures it's not in the past)
+    $commencementDate = Carbon::create(
+        $validated['commencement_year'],
+        $validated['commencement_month'],
+        1
+    )->startOfMonth();
+
+    // Update commencement date before approval
+    $project->commencement_month = $validated['commencement_month'];
+    $project->commencement_year = $validated['commencement_year'];
+    $project->commencement_month_year = $commencementDate->format('Y-m-d');
+
+    try {
+        ProjectStatusService::approve($project, $coordinator);
+    } catch (Exception $e) {
+        return redirect()->back()
+            ->withErrors(['error' => $e->getMessage()])
+            ->withInput();
     }
 
-    // Calculate the total amount sanctioned from budget details
-    $totalAmountSanctioned = 0;
+    // Get overall budget and contributions
+    $overallBudget = $project->overall_project_budget ?? 0;
+    $amountForwarded = $project->amount_forwarded ?? 0;
+    $localContribution = $project->local_contribution ?? 0;
+    $combinedContribution = $amountForwarded + $localContribution;
 
-    // First, try to get from overall_project_budget (this should be the primary source)
-    if ($project->overall_project_budget && $project->overall_project_budget > 0) {
-        $totalAmountSanctioned = $project->overall_project_budget;
-    }
-    // If not available, try to get from existing amount_sanctioned if it's already set
-    elseif ($project->amount_sanctioned && $project->amount_sanctioned > 0) {
-        $totalAmountSanctioned = $project->amount_sanctioned;
-    }
-    // If still not available, calculate from budget details
-    elseif ($project->budgets && $project->budgets->count() > 0) {
-        $totalAmountSanctioned = $project->budgets->sum('this_phase');
+    // Fallback: if overall_project_budget is not set, calculate from budget details
+    if ($overallBudget == 0 && $project->budgets && $project->budgets->count() > 0) {
+        $overallBudget = $project->budgets->sum('this_phase');
     }
 
-    // Update the project with approved status and amount_sanctioned
-    $project->status = 'approved_by_coordinator';
-    $project->amount_sanctioned = $totalAmountSanctioned;
+    // Validate: combined contribution cannot exceed overall budget
+    if ($combinedContribution > $overallBudget) {
+        return redirect()->back()
+            ->with('error', 'Cannot approve project: (Amount Forwarded + Local Contribution) of Rs. ' . number_format($combinedContribution, 2) . ' exceeds Overall Project Budget (Rs. ' . number_format($overallBudget, 2) . '). Please ask the executor to correct this.');
+    }
+
+    // Calculate amount_sanctioned:
+    // Amount Sanctioned = Overall Project Budget - (Amount Forwarded + Local Contribution)
+    $amountSanctioned = $overallBudget - $combinedContribution;
+
+    // Ensure non-negative (though validation should prevent this)
+    if ($amountSanctioned < 0) {
+        $amountSanctioned = 0;
+    }
+
+    // Calculate opening_balance:
+    // Opening Balance = Amount Sanctioned + (Amount Forwarded + Local Contribution)
+    $openingBalance = $amountSanctioned + $combinedContribution;
+
+    // Update project with calculated values
+    $project->amount_sanctioned = $amountSanctioned;
+    $project->opening_balance = $openingBalance;
     $project->save();
 
-    // Log the approval action
+    // Log the approval action with detailed budget information
     \Log::info('Project Approved by Coordinator', [
         'project_id' => $project->project_id,
         'project_title' => $project->project_title,
         'coordinator_id' => $coordinator->id,
         'coordinator_name' => $coordinator->name,
-        'amount_sanctioned' => $totalAmountSanctioned,
+        'commencement_month' => $project->commencement_month,
+        'commencement_year' => $project->commencement_year,
+        'commencement_month_year' => $project->commencement_month_year,
+        'overall_project_budget' => $overallBudget,
+        'amount_forwarded' => $amountForwarded,
+        'local_contribution' => $localContribution,
+        'combined_contribution' => $combinedContribution,
+        'amount_sanctioned' => $amountSanctioned,
+        'opening_balance' => $openingBalance,
         'budgets_count' => $project->budgets ? $project->budgets->count() : 0,
-        'overall_project_budget' => $project->overall_project_budget
     ]);
 
-    return redirect()->back()->with('success', 'Project approved successfully with sanctioned amount: Rs. ' . number_format($totalAmountSanctioned, 2));
+    // Notify executor about approval
+    $executor = $project->user;
+    if ($executor) {
+        NotificationService::notifyApproval(
+            $executor,
+            'project',
+            $project->project_id,
+            "Project {$project->project_id}"
+        );
+    }
+
+    // Invalidate cache after project approval
+    $this->invalidateDashboardCache();
+
+    // Return success message with budget breakdown
+    return redirect()->back()->with('success',
+        'Project approved successfully.<br>' .
+        '<strong>Budget Summary:</strong><br>' .
+        'Overall Budget: Rs. ' . number_format($overallBudget, 2) . '<br>' .
+        'Amount Forwarded: Rs. ' . number_format($amountForwarded, 2) . '<br>' .
+        'Local Contribution: Rs. ' . number_format($localContribution, 2) . '<br>' .
+        'Amount Sanctioned: Rs. ' . number_format($amountSanctioned, 2) . '<br>' .
+        'Opening Balance: Rs. ' . number_format($openingBalance, 2) . '<br>' .
+        '<strong>Commencement Date:</strong> ' .
+        date('F Y', mktime(0, 0, 0, $project->commencement_month, 1, $project->commencement_year))
+    );
 }
 
-public function rejectProject($project_id)
+public function rejectProject(Request $request, $project_id)
 {
     $project = Project::where('project_id', $project_id)->firstOrFail();
     $coordinator = auth()->user();
 
-    if($coordinator->role !== 'coordinator' || $project->status !== 'forwarded_to_coordinator') {
+    if($coordinator->role !== 'coordinator' || !ProjectStatus::isForwardedToCoordinator($project->status)) {
         abort(403, 'Unauthorized action.');
     }
 
-    $project->status = 'rejected_by_coordinator';
+    $previousStatus = $project->status;
+    $project->status = ProjectStatus::REJECTED_BY_COORDINATOR;
     $project->save();
+
+    // Log status change
+    \App\Services\ProjectStatusService::logStatusChange($project, $previousStatus, ProjectStatus::REJECTED_BY_COORDINATOR, $coordinator);
+
+    // Notify executor about rejection
+    $executor = $project->user;
+    if ($executor) {
+        $reason = $request->input('rejection_reason', 'No reason provided');
+        NotificationService::notifyRejection(
+            $executor,
+            'project',
+            $project->project_id,
+            "Project {$project->project_id}",
+            $reason
+        );
+    }
+
+    // Invalidate cache after project rejection
+    $this->invalidateDashboardCache();
 
     return redirect()->back()->with('success', 'Project rejected successfully.');
 }
@@ -755,7 +1180,7 @@ public function projectBudgets(Request $request)
     $coordinator = Auth::user();
 
     // First, get approved projects (coordinators can see all approved projects)
-    $projectsQuery = Project::where('status', 'approved_by_coordinator')->with('user');
+    $projectsQuery = Project::where('status', ProjectStatus::APPROVED_BY_COORDINATOR)->with('user');
 
     // Apply filters
     if ($request->filled('province')) {
@@ -797,7 +1222,7 @@ public function projectBudgets(Request $request)
     }
     $users = $usersQuery->get();
 
-    $projectTypes = Project::where('status', 'approved_by_coordinator')->distinct()->pluck('project_type');
+    $projectTypes = Project::where('status', ProjectStatus::APPROVED_BY_COORDINATOR)->distinct()->pluck('project_type');
 
     return view('coordinator.index', compact('budgetSummaries', 'provinces', 'places', 'users', 'projectTypes'));
 }
@@ -942,6 +1367,1228 @@ public function budgetOverview()
         return redirect()->route('coordinator.provincials')->with('success', ucfirst($user->role) . ' deactivated successfully.');
     }
 
+    /**
+     * Get recent activity for dashboard
+     *
+     * @param \Illuminate\Database\Eloquent\Collection $projects
+     * @return array
+     */
+    private function getRecentActivity($projects)
+    {
+        $activities = [];
+
+        // Recent project creations
+        $recentProjects = $projects->sortByDesc('created_at')->take(5);
+        foreach ($recentProjects as $project) {
+            $activities[] = [
+                'type' => 'project_created',
+                'message' => 'Project ' . $project->project_id . ' created',
+                'project_title' => $project->project_title,
+                'project_id' => $project->project_id,
+                'timestamp' => $project->created_at,
+                'user' => $project->user->name ?? 'Unknown',
+            ];
+        }
+
+        // Recent status changes (if status history exists)
+        $recentStatusChanges = \App\Models\ProjectStatusHistory::with('project', 'changedBy')
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get();
+
+        foreach ($recentStatusChanges as $statusChange) {
+            $activities[] = [
+                'type' => 'status_changed',
+                'message' => 'Project ' . $statusChange->project_id . ' status changed to ' . $statusChange->new_status,
+                'project_title' => $statusChange->project->project_title ?? 'N/A',
+                'project_id' => $statusChange->project_id,
+                'timestamp' => $statusChange->created_at,
+                'user' => $statusChange->changedBy->name ?? 'System',
+                'old_status' => $statusChange->old_status,
+                'new_status' => $statusChange->new_status,
+            ];
+        }
+
+        // Sort by timestamp and return top 10
+        usort($activities, function($a, $b) {
+            return $b['timestamp'] <=> $a['timestamp'];
+        });
+
+        return array_slice($activities, 0, 10);
+    }
+
+    /**
+     * Get pending approvals data for widget (with caching - 2 minutes TTL for frequent updates)
+     */
+    private function getPendingApprovalsData()
+    {
+        $cacheKey = 'coordinator_pending_approvals_data';
+
+        return Cache::remember($cacheKey, now()->addMinutes(2), function () {
+            // Get pending reports awaiting coordinator approval
+            $pendingReports = DPReport::where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
+                ->with(['user', 'user.parent', 'project'])
+                ->orderBy('created_at', 'asc')
+                ->get()
+                ->map(function($report) {
+                    $report->days_pending = $report->created_at->diffInDays(now());
+                    $report->urgency = $report->days_pending > 7 ? 'urgent' :
+                                      ($report->days_pending > 3 ? 'normal' : 'low');
+                    $report->provincial = $report->user->parent; // Provincial who forwarded
+                    return $report;
+                })
+                ->sortByDesc(function($report) {
+                    // Sort by urgency (urgent first), then by days pending
+                    return [
+                        $report->urgency === 'urgent' ? 3 : ($report->urgency === 'normal' ? 2 : 1),
+                        $report->days_pending
+                    ];
+                })
+                ->values();
+
+            // Get pending projects awaiting coordinator approval
+            $pendingProjects = Project::where('status', ProjectStatus::FORWARDED_TO_COORDINATOR)
+                ->with(['user', 'user.parent'])
+                ->orderBy('created_at', 'asc')
+                ->get()
+                ->map(function($project) {
+                    $project->days_pending = $project->created_at->diffInDays(now());
+                    $project->urgency = $project->days_pending > 7 ? 'urgent' :
+                                        ($project->days_pending > 3 ? 'normal' : 'low');
+                    $project->provincial = $project->user->parent; // Provincial who forwarded
+                    return $project;
+                })
+                ->sortByDesc(function($project) {
+                    // Sort by urgency (urgent first), then by days pending
+                    return [
+                        $project->urgency === 'urgent' ? 3 : ($project->urgency === 'normal' ? 2 : 1),
+                        $project->days_pending
+                    ];
+                })
+                ->values();
+
+            // Calculate counts for both reports and projects
+            $urgentReportsCount = $pendingReports->where('urgency', 'urgent')->count();
+            $normalReportsCount = $pendingReports->where('urgency', 'normal')->count();
+            $lowReportsCount = $pendingReports->where('urgency', 'low')->count();
+
+            $urgentProjectsCount = $pendingProjects->where('urgency', 'urgent')->count();
+            $normalProjectsCount = $pendingProjects->where('urgency', 'normal')->count();
+            $lowProjectsCount = $pendingProjects->where('urgency', 'low')->count();
+
+            $totalPendingCount = $pendingReports->count() + $pendingProjects->count();
+            $totalUrgentCount = $urgentReportsCount + $urgentProjectsCount;
+            $totalNormalCount = $normalReportsCount + $normalProjectsCount;
+            $totalLowCount = $lowReportsCount + $lowProjectsCount;
+
+            // Group by province for reports
+            $pendingByProvince = $pendingReports->groupBy(function($report) {
+                return $report->user->province ?? 'Unknown';
+            })->map(function($reports) {
+                return [
+                    'count' => $reports->count(),
+                    'urgent' => $reports->where('urgency', 'urgent')->count(),
+                ];
+            });
+
+            return [
+                'pending_reports' => $pendingReports,
+                'pending_projects' => $pendingProjects,
+                'pending_reports_count' => $pendingReports->count(),
+                'pending_projects_count' => $pendingProjects->count(),
+                'total_pending' => $totalPendingCount,
+                'urgent_count' => $urgentReportsCount,
+                'normal_count' => $normalReportsCount,
+                'low_count' => $lowReportsCount,
+                'urgent_projects_count' => $urgentProjectsCount,
+                'normal_projects_count' => $normalProjectsCount,
+                'low_projects_count' => $lowProjectsCount,
+                'total_urgent_count' => $totalUrgentCount,
+                'total_normal_count' => $totalNormalCount,
+                'total_low_count' => $totalLowCount,
+                'by_province' => $pendingByProvince,
+            ];
+        });
+    }
+
+    /**
+     * Get provincial overview data for widget (with caching - 5 minutes TTL)
+     */
+    private function getProvincialOverviewData()
+    {
+        $cacheKey = 'coordinator_provincial_overview_data';
+
+        return Cache::remember($cacheKey, now()->addMinutes(5), function () {
+            // Get all provincials with counts
+            $provincials = User::where('role', 'provincial')
+                ->withCount([
+                    'children' => function($query) {
+                        $query->whereIn('role', ['executor', 'applicant']);
+                    },
+                    'projects' => function($query) {
+                        $query->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+                    }
+                ])
+                ->get()
+                ->map(function($provincial) {
+                    // Get team reports count (optimized with single query)
+                    $teamUserIds = User::where('parent_id', $provincial->id)
+                        ->whereIn('role', ['executor', 'applicant'])
+                        ->pluck('id');
+
+                    // Use direct count queries instead of loading all reports
+                    $provincial->team_reports_pending = DPReport::whereIn('user_id', $teamUserIds)
+                        ->where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
+                        ->count();
+
+                    $provincial->team_reports_approved = DPReport::whereIn('user_id', $teamUserIds)
+                        ->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                        ->count();
+
+                    // Get last activity (latest report submission or project update)
+                    $latestReport = DPReport::whereIn('user_id', $teamUserIds)
+                        ->orderBy('created_at', 'desc')
+                        ->select('created_at')
+                        ->first();
+
+                    $latestProject = Project::whereIn('user_id', $teamUserIds)
+                        ->orderBy('updated_at', 'desc')
+                        ->select('updated_at')
+                        ->first();
+
+                    $provincial->last_activity = null;
+                    if ($latestReport && $latestProject) {
+                        $provincial->last_activity = $latestReport->created_at > $latestProject->updated_at
+                            ? $latestReport->created_at
+                            : $latestProject->updated_at;
+                    } elseif ($latestReport) {
+                        $provincial->last_activity = $latestReport->created_at;
+                    } elseif ($latestProject) {
+                        $provincial->last_activity = $latestProject->updated_at;
+                    }
+
+                    return $provincial;
+                });
+
+            // Calculate summary statistics
+            $totalProvincials = $provincials->count();
+            $activeProvincials = $provincials->where('status', 'active')->count();
+            $inactiveProvincials = $provincials->where('status', 'inactive')->count();
+
+            $totalTeamMembers = $provincials->sum('children_count');
+            $totalProjects = $provincials->sum('projects_count');
+            $totalPendingReports = $provincials->sum('team_reports_pending');
+            $totalApprovedReports = $provincials->sum('team_reports_approved');
+
+            return [
+                'provincials' => $provincials->take(12), // Show top 12 in widget
+                'total_provincials' => $totalProvincials,
+                'active_provincials' => $activeProvincials,
+                'inactive_provincials' => $inactiveProvincials,
+                'total_team_members' => $totalTeamMembers,
+                'total_projects' => $totalProjects,
+                'total_pending_reports' => $totalPendingReports,
+                'total_approved_reports' => $totalApprovedReports,
+                'average_projects_per_provincial' => $totalProvincials > 0 ? round($totalProjects / $totalProvincials, 1) : 0,
+                'average_reports_per_provincial' => $totalProvincials > 0 ? round($totalApprovedReports / $totalProvincials, 1) : 0,
+            ];
+        });
+    }
+
+    /**
+     * Get system performance summary data for widget (with caching - 10 minutes TTL)
+     */
+    private function getSystemPerformanceData()
+    {
+        $cacheKey = 'coordinator_system_performance_data';
+
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () {
+            // Get all projects and reports in the system (optimized queries)
+            $systemProjects = Project::with(['user'])->get();
+            $systemReports = DPReport::with(['user'])->get();
+
+        // Calculate system-wide metrics
+        $totalBudget = $systemProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+            ->sum(function($p) {
+                return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
+            });
+
+        // Calculate total expenses from approved reports
+        $approvedReportIds = $systemReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->pluck('report_id');
+        $totalExpenses = \App\Models\Reports\Monthly\DPAccountDetail::whereIn('report_id', $approvedReportIds)
+            ->sum('total_expenses') ?? 0;
+
+        $budgetUtilization = $totalBudget > 0 ? ($totalExpenses / $totalBudget) * 100 : 0;
+
+        $approvalRate = $systemReports->count() > 0 ?
+            ($systemReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count() / $systemReports->count()) * 100 : 0;
+
+        // Projects by status
+        $projectsByStatus = $systemProjects->groupBy('status')->map->count();
+
+        // Reports by status
+        $reportsByStatus = $systemReports->groupBy('status')->map->count();
+
+        // Active users count
+        $activeUsers = User::where('status', 'active')->count();
+
+        // Province-wise breakdown
+        $provinceMetrics = [];
+        $provinces = User::distinct()->pluck('province')->filter();
+
+        foreach ($provinces as $province) {
+            $provinceUsers = User::where('province', $province)->pluck('id');
+            $provinceProjects = $systemProjects->whereIn('user_id', $provinceUsers);
+            $provinceReports = $systemReports->whereIn('user_id', $provinceUsers);
+
+            $provinceBudget = $provinceProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+                ->sum(function($p) {
+                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
+                });
+
+            // Calculate province expenses from account details directly
+            $provinceApprovedReportIds = $provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->pluck('report_id');
+            $provinceExpenses = \App\Models\Reports\Monthly\DPAccountDetail::whereIn('report_id', $provinceApprovedReportIds)
+                ->sum('total_expenses') ?? 0;
+
+            $provinceMetrics[$province] = [
+                'projects' => $provinceProjects->count(),
+                'reports' => $provinceReports->count(),
+                'budget' => $provinceBudget,
+                'expenses' => $provinceExpenses,
+                'utilization' => $provinceBudget > 0 ? ($provinceExpenses / $provinceBudget) * 100 : 0,
+                'approval_rate' => $provinceReports->count() > 0 ?
+                    ($provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count() / $provinceReports->count()) * 100 : 0,
+            ];
+        }
+
+        return [
+            'total_projects' => $systemProjects->count(),
+            'total_reports' => $systemReports->count(),
+            'total_budget' => $totalBudget,
+            'total_expenses' => $totalExpenses,
+            'total_remaining' => $totalBudget - $totalExpenses,
+            'budget_utilization' => round($budgetUtilization, 2),
+            'approval_rate' => round($approvalRate, 2),
+            'active_users' => $activeUsers,
+            'projects_by_status' => $projectsByStatus,
+            'reports_by_status' => $reportsByStatus,
+            'province_metrics' => $provinceMetrics,
+        ];
+        });
+    }
+
+    /**
+     * Get system analytics data for charts (time-based) (with caching - 15 minutes TTL)
+     */
+    private function getSystemAnalyticsData($timeRange = 30)
+    {
+        $cacheKey = "coordinator_system_analytics_data_{$timeRange}";
+
+        return Cache::remember($cacheKey, now()->addMinutes(15), function () use ($timeRange) {
+            $endDate = now();
+            $startDate = now()->subDays($timeRange);
+
+        // Budget Utilization Timeline (monthly)
+        $budgetUtilizationTimeline = [];
+        $months = [];
+        $current = $startDate->copy()->startOfMonth();
+        while ($current <= $endDate) {
+            $monthEnd = $current->copy()->endOfMonth();
+            $monthKey = $current->format('Y-m');
+
+            // Get projects approved by this month end
+            $projectsByMonth = Project::where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+                ->where('created_at', '<=', $monthEnd)
+                ->get();
+
+            $budgetByMonth = $projectsByMonth->sum(function($p) {
+                return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
+            });
+
+            // Get expenses from approved reports by this month end
+            $reportsByMonth = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                ->where('created_at', '<=', $monthEnd)
+                ->pluck('report_id');
+
+            $expensesByMonth = DPAccountDetail::whereIn('report_id', $reportsByMonth)
+                ->sum('total_expenses') ?? 0;
+
+            $utilization = $budgetByMonth > 0 ? ($expensesByMonth / $budgetByMonth) * 100 : 0;
+
+            $budgetUtilizationTimeline[] = [
+                'month' => $current->format('M Y'),
+                'utilization' => round($utilization, 2)
+            ];
+
+            $months[] = $current->format('M Y');
+            $current->addMonth();
+        }
+
+        // Budget Distribution by Province
+        $provinceBudgets = [];
+        $provinces = User::distinct()->pluck('province')->filter();
+        foreach ($provinces as $province) {
+            $provinceUsers = User::where('province', $province)->pluck('id');
+            $provinceProjects = Project::whereIn('user_id', $provinceUsers)
+                ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+                ->get();
+
+            $provinceBudgets[$province] = $provinceProjects->sum(function($p) {
+                return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
+            });
+        }
+
+        // Budget Distribution by Project Type
+        $typeBudgets = [];
+        $projectTypes = Project::distinct()->pluck('project_type');
+        foreach ($projectTypes as $type) {
+            $typeProjects = Project::where('project_type', $type)
+                ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+                ->get();
+
+            $typeBudgets[$type] = $typeProjects->sum(function($p) {
+                return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
+            });
+        }
+
+        // Expense Trends Over Time (monthly)
+        $expenseTrends = [];
+        $current = $startDate->copy()->startOfMonth();
+        while ($current <= $endDate) {
+            $monthEnd = $current->copy()->endOfMonth();
+
+            $reportsInMonth = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                ->whereBetween('created_at', [$current->copy()->startOfMonth(), $monthEnd])
+                ->pluck('report_id');
+
+            $expensesInMonth = DPAccountDetail::whereIn('report_id', $reportsInMonth)
+                ->sum('total_expenses') ?? 0;
+
+            $expenseTrends[] = [
+                'month' => $current->format('M Y'),
+                'expenses' => $expensesInMonth
+            ];
+
+            $current->addMonth();
+        }
+
+        // Approval Rate Trends (monthly)
+        $approvalRateTrends = [];
+        $current = $startDate->copy()->startOfMonth();
+        while ($current <= $endDate) {
+            $monthEnd = $current->copy()->endOfMonth();
+
+            $reportsInMonth = DPReport::whereBetween('created_at', [$current->copy()->startOfMonth(), $monthEnd])->get();
+            $approvedInMonth = $reportsInMonth->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count();
+            $totalInMonth = $reportsInMonth->count();
+
+            $rate = $totalInMonth > 0 ? ($approvedInMonth / $totalInMonth) * 100 : 0;
+
+            $approvalRateTrends[] = [
+                'month' => $current->format('M Y'),
+                'rate' => round($rate, 2)
+            ];
+
+            $current->addMonth();
+        }
+
+        // Report Submission Timeline (monthly)
+        $reportSubmissionTimeline = [];
+        $current = $startDate->copy()->startOfMonth();
+        while ($current <= $endDate) {
+            $monthEnd = $current->copy()->endOfMonth();
+
+            $reportsInMonth = DPReport::whereBetween('created_at', [$current->copy()->startOfMonth(), $monthEnd])->get();
+
+            $reportSubmissionTimeline[] = [
+                'month' => $current->format('M Y'),
+                'approved' => $reportsInMonth->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count(),
+                'pending' => $reportsInMonth->where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)->count(),
+                'reverted' => $reportsInMonth->where('status', DPReport::STATUS_REVERTED_BY_COORDINATOR)->count(),
+            ];
+
+            $current->addMonth();
+        }
+
+        // Province Comparison Data
+        $provinceComparison = [];
+        foreach ($provinces as $province) {
+            $provinceUsers = User::where('province', $province)->pluck('id');
+            $provinceProjects = Project::whereIn('user_id', $provinceUsers)->get();
+            $provinceReports = DPReport::whereIn('user_id', $provinceUsers)->get();
+
+            $provinceBudget = $provinceProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+                ->sum(function($p) {
+                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
+                });
+
+            $provinceApprovedReportIds = $provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->pluck('report_id');
+            $provinceExpenses = DPAccountDetail::whereIn('report_id', $provinceApprovedReportIds)
+                ->sum('total_expenses') ?? 0;
+
+            $provinceComparison[$province] = [
+                'projects' => $provinceProjects->count(),
+                'budget' => $provinceBudget,
+                'expenses' => $provinceExpenses,
+                'approval_rate' => $provinceReports->count() > 0 ?
+                    ($provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count() / $provinceReports->count()) * 100 : 0,
+            ];
+        }
+
+        return [
+            'budget_utilization_timeline' => $budgetUtilizationTimeline,
+            'budget_by_province' => $provinceBudgets,
+            'budget_by_project_type' => $typeBudgets,
+            'expense_trends' => $expenseTrends,
+            'approval_rate_trends' => $approvalRateTrends,
+            'report_submission_timeline' => $reportSubmissionTimeline,
+            'province_comparison' => $provinceComparison,
+        ];
+        });
+    }
+
+    /**
+     * Get system activity feed data for widget (with caching - 2 minutes TTL for frequent updates)
+     */
+    private function getSystemActivityFeedData($limit = 50)
+    {
+        $cacheKey = "coordinator_system_activity_feed_data_{$limit}";
+
+        return Cache::remember($cacheKey, now()->addMinutes(2), function () use ($limit) {
+            // Get activities directly with limit for better performance
+            $activities = ActivityHistory::with(['changedBy', 'project', 'report'])
+                ->orderBy('created_at', 'desc')
+                ->limit($limit)
+                ->get()
+                ->map(function($activity) {
+                    // Format activity for display
+                    $activity->formatted_message = $this->formatActivityMessage($activity);
+                    $activity->icon = $this->getActivityIcon($activity);
+                    $activity->color = $this->getActivityColor($activity);
+                    return $activity;
+                })
+                ->values();
+
+            // Group by date
+            $groupedActivities = $activities->groupBy(function($activity) {
+                return $activity->created_at->format('Y-m-d');
+            });
+
+            return [
+                'activities' => $activities,
+                'grouped_activities' => $groupedActivities,
+                'total_count' => $activities->count(),
+            ];
+        });
+    }
+
+    /**
+     * Format activity message for display
+     */
+    private function formatActivityMessage($activity)
+    {
+        $userName = $activity->changedBy->name ?? $activity->changed_by_user_name ?? 'System';
+        $entityId = $activity->related_id;
+
+        if ($activity->type === 'project') {
+            $entityType = 'Project';
+            $action = $activity->new_status ? 'status changed' : 'created';
+            $statusInfo = $activity->new_status ?
+                ' to ' . ucfirst(str_replace('_', ' ', $activity->new_status)) : '';
+        } else {
+            $entityType = 'Report';
+            $action = $activity->new_status ? 'status changed' : 'created';
+            $statusInfo = $activity->new_status ?
+                ' to ' . ucfirst(str_replace('_', ' ', $activity->new_status)) : '';
+        }
+
+        return "{$userName} {$action} {$entityType} {$entityId}{$statusInfo}";
+    }
+
+    /**
+     * Get activity icon based on type and status
+     */
+    private function getActivityIcon($activity)
+    {
+        if ($activity->type === 'project') {
+            return 'icon-folder';
+        } else {
+            return 'icon-file-text';
+        }
+    }
+
+    /**
+     * Get activity color based on status
+     */
+    private function getActivityColor($activity)
+    {
+        if (!$activity->new_status) {
+            return 'primary';
+        }
+
+        if (str_contains($activity->new_status, 'approved')) {
+            return 'success';
+        } elseif (str_contains($activity->new_status, 'reverted') || str_contains($activity->new_status, 'rejected')) {
+            return 'danger';
+        } elseif (str_contains($activity->new_status, 'forwarded') || str_contains($activity->new_status, 'submitted')) {
+            return 'info';
+        } else {
+            return 'secondary';
+        }
+    }
+
+    /**
+     * Phase 3: Get system budget overview data with enhanced breakdowns (with caching - 15 minutes TTL)
+     */
+    private function getSystemBudgetOverviewData($request = null)
+    {
+        // Build cache key based on filters
+        $filterHash = md5(json_encode($request ? $request->only(['province', 'center', 'project_type', 'parent_id', 'role']) : []));
+        $cacheKey = "coordinator_system_budget_overview_data_{$filterHash}";
+
+        return Cache::remember($cacheKey, now()->addMinutes(15), function () use ($request) {
+            // Get approved projects with relationships and apply filters
+            $approvedProjectsQuery = Project::where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+                ->with(['user.parent', 'user', 'reports.accountDetails', 'budgets']);
+
+            // Apply filters if provided
+            if ($request && $request->filled('province')) {
+                $approvedProjectsQuery->whereHas('user', function($query) use ($request) {
+                    $query->where('province', $request->province);
+                });
+            }
+
+            if ($request && $request->filled('center')) {
+                $approvedProjectsQuery->whereHas('user', function($query) use ($request) {
+                    $query->where('center', $request->center);
+                });
+            }
+
+            if ($request && $request->filled('project_type')) {
+                $approvedProjectsQuery->where('project_type', $request->project_type);
+            }
+
+            if ($request && $request->filled('parent_id')) {
+                // Filter by provincial (who manages the executor/applicant)
+                $approvedProjectsQuery->whereHas('user', function($query) use ($request) {
+                    $query->where('parent_id', $request->parent_id);
+                });
+            }
+
+            if ($request && $request->filled('role')) {
+                $approvedProjectsQuery->whereHas('user', function($query) use ($request) {
+                    $query->where('role', $request->role);
+                });
+            }
+
+            $approvedProjects = $approvedProjectsQuery->get();
+
+        // Calculate total budget, expenses, remaining
+        $totalBudget = $approvedProjects->sum(function($p) {
+            return $p->amount_sanctioned ?? $p->overall_project_budget ??
+                   ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+        });
+
+        // Calculate approved expenses (from approved reports)
+        $approvedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+            ->whereIn('project_id', $approvedProjects->pluck('project_id'))
+            ->pluck('report_id');
+
+        $approvedExpenses = DPAccountDetail::whereIn('report_id', $approvedReportIds)
+            ->sum('total_expenses') ?? 0;
+
+        // Calculate unapproved expenses (from reports pending approval - in pipeline)
+        $unapprovedReportIds = DPReport::where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
+            ->whereIn('project_id', $approvedProjects->pluck('project_id'))
+            ->pluck('report_id');
+
+        $unapprovedExpenses = DPAccountDetail::whereIn('report_id', $unapprovedReportIds)
+            ->sum('total_expenses') ?? 0;
+
+        // Total expenses (approved + unapproved for display purposes)
+        $totalExpenses = $approvedExpenses + $unapprovedExpenses;
+
+        // Remaining budget is calculated using approved expenses only (unapproved don't reduce available budget)
+        $totalRemaining = $totalBudget - $approvedExpenses;
+        $utilization = $totalBudget > 0 ? ($approvedExpenses / $totalBudget) * 100 : 0;
+
+        // Budget by Project Type
+        $budgetByProjectType = [];
+        foreach ($approvedProjects->groupBy('project_type') as $type => $projects) {
+            $typeBudget = $projects->sum(function($p) {
+                return $p->amount_sanctioned ?? $p->overall_project_budget ??
+                       ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+            });
+
+            $typeProjectIds = $projects->pluck('project_id');
+
+            // Approved expenses
+            $typeApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                ->whereIn('project_id', $typeProjectIds)
+                ->pluck('report_id');
+
+            $typeApprovedExpenses = DPAccountDetail::whereIn('report_id', $typeApprovedReportIds)
+                ->sum('total_expenses') ?? 0;
+
+            // Unapproved expenses (in pipeline)
+            $typeUnapprovedReportIds = DPReport::where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
+                ->whereIn('project_id', $typeProjectIds)
+                ->pluck('report_id');
+
+            $typeUnapprovedExpenses = DPAccountDetail::whereIn('report_id', $typeUnapprovedReportIds)
+                ->sum('total_expenses') ?? 0;
+
+            $typeTotalExpenses = $typeApprovedExpenses + $typeUnapprovedExpenses;
+            $typeRemaining = $typeBudget - $typeApprovedExpenses; // Remaining based on approved only
+
+            $budgetByProjectType[$type] = [
+                'budget' => $typeBudget,
+                'approved_expenses' => $typeApprovedExpenses,
+                'unapproved_expenses' => $typeUnapprovedExpenses,
+                'expenses' => $typeTotalExpenses,
+                'remaining' => $typeRemaining,
+                'utilization' => $typeBudget > 0 ? ($typeApprovedExpenses / $typeBudget) * 100 : 0,
+                'projects_count' => $projects->count(),
+            ];
+        }
+
+        // Budget by Province (with approved/unapproved expenses)
+        $budgetByProvince = [];
+        foreach ($approvedProjects->groupBy(function($p) { return $p->user->province ?? 'Unknown'; }) as $province => $projects) {
+            $provinceBudget = $projects->sum(function($p) {
+                return $p->amount_sanctioned ?? $p->overall_project_budget ??
+                       ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+            });
+
+            $provinceProjectIds = $projects->pluck('project_id');
+
+            // Approved expenses
+            $provinceApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                ->whereIn('project_id', $provinceProjectIds)
+                ->pluck('report_id');
+
+            $provinceApprovedExpenses = DPAccountDetail::whereIn('report_id', $provinceApprovedReportIds)
+                ->sum('total_expenses') ?? 0;
+
+            // Unapproved expenses (in pipeline)
+            $provinceUnapprovedReportIds = DPReport::where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
+                ->whereIn('project_id', $provinceProjectIds)
+                ->pluck('report_id');
+
+            $provinceUnapprovedExpenses = DPAccountDetail::whereIn('report_id', $provinceUnapprovedReportIds)
+                ->sum('total_expenses') ?? 0;
+
+            $provinceTotalExpenses = $provinceApprovedExpenses + $provinceUnapprovedExpenses;
+            $provinceRemaining = $provinceBudget - $provinceApprovedExpenses; // Remaining based on approved only
+
+            $budgetByProvince[$province] = [
+                'budget' => $provinceBudget,
+                'approved_expenses' => $provinceApprovedExpenses,
+                'unapproved_expenses' => $provinceUnapprovedExpenses,
+                'expenses' => $provinceTotalExpenses,
+                'remaining' => $provinceRemaining,
+                'utilization' => $provinceBudget > 0 ? ($provinceApprovedExpenses / $provinceBudget) * 100 : 0,
+                'projects_count' => $projects->count(),
+            ];
+        }
+
+        // Budget by Center (with approved/unapproved expenses)
+        $budgetByCenter = [];
+        foreach ($approvedProjects->groupBy(function($p) { return $p->user->center ?? 'Unknown'; }) as $center => $projects) {
+            if (empty($center) || $center === 'Unknown') continue;
+
+            $centerBudget = $projects->sum(function($p) {
+                return $p->amount_sanctioned ?? $p->overall_project_budget ??
+                       ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+            });
+
+            $centerProjectIds = $projects->pluck('project_id');
+
+            // Approved expenses
+            $centerApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                ->whereIn('project_id', $centerProjectIds)
+                ->pluck('report_id');
+
+            $centerApprovedExpenses = DPAccountDetail::whereIn('report_id', $centerApprovedReportIds)
+                ->sum('total_expenses') ?? 0;
+
+            // Unapproved expenses (in pipeline)
+            $centerUnapprovedReportIds = DPReport::where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
+                ->whereIn('project_id', $centerProjectIds)
+                ->pluck('report_id');
+
+            $centerUnapprovedExpenses = DPAccountDetail::whereIn('report_id', $centerUnapprovedReportIds)
+                ->sum('total_expenses') ?? 0;
+
+            $centerTotalExpenses = $centerApprovedExpenses + $centerUnapprovedExpenses;
+            $centerRemaining = $centerBudget - $centerApprovedExpenses; // Remaining based on approved only
+
+            $budgetByCenter[$center] = [
+                'budget' => $centerBudget,
+                'approved_expenses' => $centerApprovedExpenses,
+                'unapproved_expenses' => $centerUnapprovedExpenses,
+                'expenses' => $centerTotalExpenses,
+                'remaining' => $centerRemaining,
+                'utilization' => $centerBudget > 0 ? ($centerApprovedExpenses / $centerBudget) * 100 : 0,
+                'projects_count' => $projects->count(),
+            ];
+        }
+
+        // Budget by Provincial (who manages)
+        $budgetByProvincial = [];
+        foreach ($approvedProjects->groupBy(function($p) {
+            return $p->user->parent ? $p->user->parent->id : 'No Provincial';
+        }) as $provincialId => $projects) {
+            if ($provincialId === 'No Provincial') continue;
+
+            $provincial = $projects->first()->user->parent;
+            $provincialName = $provincial ? $provincial->name : 'Unknown';
+
+            $provincialBudget = $projects->sum(function($p) {
+                return $p->amount_sanctioned ?? $p->overall_project_budget ??
+                       ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+            });
+
+            $provincialProjectIds = $projects->pluck('project_id');
+            $provincialApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                ->whereIn('project_id', $provincialProjectIds)
+                ->pluck('report_id');
+
+            $provincialExpenses = DPAccountDetail::whereIn('report_id', $provincialApprovedReportIds)
+                ->sum('total_expenses') ?? 0;
+
+            $budgetByProvincial[$provincialName] = [
+                'provincial_id' => $provincialId,
+                'provincial_name' => $provincialName,
+                'province' => $provincial ? $provincial->province : 'Unknown',
+                'budget' => $provincialBudget,
+                'expenses' => $provincialExpenses,
+                'remaining' => $provincialBudget - $provincialExpenses,
+                'utilization' => $provincialBudget > 0 ? ($provincialExpenses / $provincialBudget) * 100 : 0,
+                'projects_count' => $projects->count(),
+            ];
+        }
+
+        // Expense Trends Over Time (last 6 months)
+        $expenseTrends = [];
+        $current = now()->subMonths(6)->startOfMonth();
+        while ($current <= now()) {
+            $monthEnd = $current->copy()->endOfMonth();
+
+            $monthReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                ->whereBetween('created_at', [$current->copy()->startOfMonth(), $monthEnd])
+                ->pluck('report_id');
+
+            $monthExpenses = DPAccountDetail::whereIn('report_id', $monthReportIds)
+                ->sum('total_expenses') ?? 0;
+
+            $expenseTrends[] = [
+                'month' => $current->format('M Y'),
+                'month_key' => $current->format('Y-m'),
+                'expenses' => $monthExpenses,
+            ];
+
+            $current->addMonth();
+        }
+
+        // Top Projects by Budget
+        $topProjectsByBudget = $approvedProjects->sortByDesc(function($p) {
+            return $p->amount_sanctioned ?? $p->overall_project_budget ??
+                   ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+        })->take(10)->map(function($p) {
+            $projectBudget = $p->amount_sanctioned ?? $p->overall_project_budget ??
+                           ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+
+            $projectApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                ->where('project_id', $p->project_id)
+                ->pluck('report_id');
+
+            $projectExpenses = DPAccountDetail::whereIn('report_id', $projectApprovedReportIds)
+                ->sum('total_expenses') ?? 0;
+
+            return [
+                'project_id' => $p->project_id,
+                'project_title' => $p->project_title,
+                'project_type' => $p->project_type,
+                'province' => $p->user->province ?? 'Unknown',
+                'budget' => $projectBudget,
+                'expenses' => $projectExpenses,
+                'remaining' => $projectBudget - $projectExpenses,
+                'utilization' => $projectBudget > 0 ? ($projectExpenses / $projectBudget) * 100 : 0,
+            ];
+        })->values();
+
+        return [
+            'total' => [
+                'budget' => $totalBudget,
+                'approved_expenses' => $approvedExpenses,
+                'unapproved_expenses' => $unapprovedExpenses,
+                'expenses' => $totalExpenses,
+                'remaining' => $totalRemaining,
+                'utilization' => round($utilization, 2),
+            ],
+            'by_project_type' => $budgetByProjectType,
+            'by_province' => $budgetByProvince,
+            'by_center' => $budgetByCenter,
+            'by_provincial' => $budgetByProvincial,
+            'expense_trends' => $expenseTrends,
+            'top_projects_by_budget' => $topProjectsByBudget,
+        ];
+        });
+    }
+
+    /**
+     * Invalidate budget overview cache when data is modified
+     * Note: Cache is automatically invalidated based on filter hash, so we don't need to flush all
+     * The cache key includes filter hash, so different filters have different cache keys
+     */
+
+    /**
+     * Phase 3: Get province performance comparison data (with caching - 15 minutes TTL)
+     */
+    private function getProvinceComparisonData()
+    {
+        $cacheKey = 'coordinator_province_comparison_data';
+
+        return Cache::remember($cacheKey, now()->addMinutes(15), function () {
+            $provinces = User::distinct()->whereNotNull('province')->pluck('province')->filter();
+            $provincePerformance = [];
+
+        foreach ($provinces as $province) {
+            $provinceUsers = User::where('province', $province)->pluck('id');
+
+            $provinceProjects = Project::whereIn('user_id', $provinceUsers)->get();
+            $provinceReports = DPReport::whereIn('user_id', $provinceUsers)->get();
+
+            $provinceBudget = $provinceProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+                ->sum(function($p) {
+                    return $p->amount_sanctioned ?? $p->overall_project_budget ??
+                           ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+                });
+
+            $provinceApprovedReportIds = $provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->pluck('report_id');
+            $provinceExpenses = DPAccountDetail::whereIn('report_id', $provinceApprovedReportIds)
+                ->sum('total_expenses') ?? 0;
+
+            $approvalRate = $provinceReports->count() > 0 ?
+                ($provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count() / $provinceReports->count()) * 100 : 0;
+
+            // Calculate average processing time (days from submission to approval)
+            $approvedReports = $provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR);
+            $avgProcessingTime = 0;
+            if ($approvedReports->count() > 0) {
+                $totalDays = $approvedReports->sum(function($report) {
+                    // Assuming we track approval date somewhere, for now use created_at
+                    return $report->created_at->diffInDays(now());
+                });
+                $avgProcessingTime = round($totalDays / $approvedReports->count(), 1);
+            }
+
+            $provincePerformance[$province] = [
+                'projects' => $provinceProjects->count(),
+                'approved_projects' => $provinceProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)->count(),
+                'reports' => $provinceReports->count(),
+                'approved_reports' => $provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count(),
+                'budget' => $provinceBudget,
+                'expenses' => $provinceExpenses,
+                'remaining' => $provinceBudget - $provinceExpenses,
+                'utilization' => $provinceBudget > 0 ? round(($provinceExpenses / $provinceBudget) * 100, 2) : 0,
+                'approval_rate' => round($approvalRate, 2),
+                'avg_processing_time' => $avgProcessingTime,
+                'provincials_count' => User::where('province', $province)->where('role', 'provincial')->count(),
+                'users_count' => $provinceUsers->count(),
+            ];
+        }
+
+        // Calculate rankings
+        $rankedByApprovalRate = collect($provincePerformance)
+            ->sortByDesc('approval_rate')
+            ->take(10)
+            ->keys()
+            ->values();
+
+        $rankedByUtilization = collect($provincePerformance)
+            ->sortByDesc('utilization')
+            ->take(10)
+            ->keys()
+            ->values();
+
+        $rankedByBudget = collect($provincePerformance)
+            ->sortByDesc('budget')
+            ->take(10)
+            ->keys()
+            ->values();
+
+        return [
+            'province_performance' => $provincePerformance,
+            'rankings' => [
+                'by_approval_rate' => $rankedByApprovalRate,
+                'by_utilization' => $rankedByUtilization,
+                'by_budget' => $rankedByBudget,
+            ],
+            'summary' => [
+                'total_provinces' => count($provincePerformance),
+                'top_performer' => $rankedByApprovalRate->first(),
+                'highest_budget' => $rankedByBudget->first(),
+                'most_utilized' => $rankedByUtilization->first(),
+            ],
+        ];
+        });
+    }
+
+    /**
+     * Phase 3: Get provincial management data with detailed stats (with caching - 10 minutes TTL)
+     */
+    private function getProvincialManagementData()
+    {
+        $cacheKey = 'coordinator_provincial_management_data';
+
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () {
+            $provincials = User::where('role', 'provincial')
+                ->with(['children' => function($query) {
+                    $query->whereIn('role', ['executor', 'applicant']);
+                }])
+                ->get()
+                ->map(function($provincial) {
+                $teamUserIds = $provincial->children->pluck('id');
+
+                // Team projects
+                $teamProjects = Project::whereIn('user_id', $teamUserIds)->get();
+                $approvedTeamProjects = $teamProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+
+                // Team reports
+                $teamReports = DPReport::whereIn('user_id', $teamUserIds)->get();
+                $pendingTeamReports = $teamReports->where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR);
+                $approvedTeamReports = $teamReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR);
+
+                // Calculate budget and expenses
+                $teamBudget = $approvedTeamProjects->sum(function($p) {
+                    return $p->amount_sanctioned ?? $p->overall_project_budget ??
+                           ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+                });
+
+                $teamApprovedReportIds = $approvedTeamReports->pluck('report_id');
+                $teamExpenses = DPAccountDetail::whereIn('report_id', $teamApprovedReportIds)
+                    ->sum('total_expenses') ?? 0;
+
+                // Calculate approval rate
+                $approvalRate = $teamReports->count() > 0 ?
+                    ($approvedTeamReports->count() / $teamReports->count()) * 100 : 0;
+
+                // Last activity (most recent report or project)
+                $lastActivity = null;
+                $lastReport = $teamReports->sortByDesc('created_at')->first();
+                $lastProject = $teamProjects->sortByDesc('created_at')->first();
+
+                if ($lastReport && $lastProject) {
+                    $lastActivity = $lastReport->created_at > $lastProject->created_at ?
+                        $lastReport->created_at : $lastProject->created_at;
+                } elseif ($lastReport) {
+                    $lastActivity = $lastReport->created_at;
+                } elseif ($lastProject) {
+                    $lastActivity = $lastProject->created_at;
+                }
+
+                // Performance score (0-100)
+                $performanceScore = 0;
+                if ($teamReports->count() > 0) {
+                    $scoreFactors = [
+                        'approval_rate' => round($approvalRate * 0.4), // 40% weight
+                        'activity' => $lastActivity ? (100 - min(90, $lastActivity->diffInDays(now()) * 2)) * 0.3 : 0, // 30% weight (recent activity)
+                        'pending_reports' => max(0, 100 - ($pendingTeamReports->count() * 10)) * 0.3, // 30% weight (fewer pending is better)
+                    ];
+                    $performanceScore = round(array_sum($scoreFactors));
+                }
+
+                return [
+                    'id' => $provincial->id,
+                    'name' => $provincial->name,
+                    'province' => $provincial->province ?? 'Unknown',
+                    'center' => $provincial->center ?? 'Unknown',
+                    'status' => $provincial->status ?? 'active',
+                    'team_members_count' => $teamUserIds->count(),
+                    'projects_count' => $teamProjects->count(),
+                    'approved_projects_count' => $approvedTeamProjects->count(),
+                    'reports_count' => $teamReports->count(),
+                    'pending_reports_count' => $pendingTeamReports->count(),
+                    'approved_reports_count' => $approvedTeamReports->count(),
+                    'budget' => $teamBudget,
+                    'expenses' => $teamExpenses,
+                    'remaining' => $teamBudget - $teamExpenses,
+                    'utilization' => $teamBudget > 0 ? round(($teamExpenses / $teamBudget) * 100, 2) : 0,
+                    'approval_rate' => round($approvalRate, 2),
+                    'last_activity' => $lastActivity,
+                    'days_since_activity' => $lastActivity ? $lastActivity->diffInDays(now()) : null,
+                    'performance_score' => $performanceScore,
+                    'performance_level' => $performanceScore >= 80 ? 'excellent' :
+                                          ($performanceScore >= 60 ? 'good' :
+                                          ($performanceScore >= 40 ? 'fair' : 'poor')),
+                ];
+            })
+            ->sortByDesc('performance_score')
+            ->values();
+
+        return [
+            'provincials' => $provincials,
+            'summary' => [
+                'total' => $provincials->count(),
+                'active' => $provincials->where('status', 'active')->count(),
+                'inactive' => $provincials->where('status', '!=', 'active')->count(),
+                'total_team_members' => $provincials->sum('team_members_count'),
+                'total_projects' => $provincials->sum('projects_count'),
+                'total_reports' => $provincials->sum('reports_count'),
+                'avg_approval_rate' => $provincials->count() > 0 ?
+                    round($provincials->avg('approval_rate'), 2) : 0,
+                'avg_performance_score' => $provincials->count() > 0 ?
+                    round($provincials->avg('performance_score'), 2) : 0,
+            ],
+        ];
+        });
+    }
+
+    /**
+     * Phase 3: Get system health indicators data (with caching - 5 minutes TTL)
+     */
+    private function getSystemHealthData()
+    {
+        $cacheKey = 'coordinator_system_health_data';
+
+        return Cache::remember($cacheKey, now()->addMinutes(5), function () {
+            // Get system-wide data (optimized - only load what's needed)
+            $systemProjects = Project::with('user')->get();
+            $systemReports = DPReport::with('user')->get();
+
+        $totalBudget = $systemProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+            ->sum(function($p) {
+                return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
+            });
+
+        $approvedReportIds = $systemReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->pluck('report_id');
+        $totalExpenses = DPAccountDetail::whereIn('report_id', $approvedReportIds)
+            ->sum('total_expenses') ?? 0;
+
+        // Calculate key indicators
+        $budgetUtilization = $totalBudget > 0 ? ($totalExpenses / $totalBudget) * 100 : 0;
+
+        $approvalRate = $systemReports->count() > 0 ?
+            ($systemReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count() / $systemReports->count()) * 100 : 0;
+
+        // Calculate average processing time
+        $approvedReports = $systemReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR);
+        $avgProcessingTime = 0;
+        if ($approvedReports->count() > 0) {
+            $totalDays = $approvedReports->sum(function($report) {
+                return $report->created_at->diffInDays(now());
+            });
+            $avgProcessingTime = round($totalDays / $approvedReports->count(), 1);
+        }
+
+        // Report submission rate (reports per month)
+        $reportsLastMonth = $systemReports->whereBetween('created_at', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])->count();
+        $reportsThisMonth = $systemReports->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count();
+        $submissionRate = $reportsLastMonth > 0 ? (($reportsThisMonth - $reportsLastMonth) / $reportsLastMonth) * 100 : 0;
+
+        // Project completion rate
+        $completedProjects = $systemProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)->count();
+        $completionRate = $systemProjects->count() > 0 ? ($completedProjects / $systemProjects->count()) * 100 : 0;
+
+        // User activity rate (active users in last 30 days)
+        $recentActivities = \App\Models\ActivityHistory::where('created_at', '>=', now()->subDays(30))
+            ->whereNotNull('changed_by_user_id')
+            ->distinct('changed_by_user_id')
+            ->count('changed_by_user_id');
+        $totalUsers = User::whereIn('role', ['executor', 'applicant', 'provincial'])->count();
+        $activityRate = $totalUsers > 0 ? ($recentActivities / $totalUsers) * 100 : 0;
+
+        // Calculate overall health score (0-100)
+        $healthFactors = [
+            'approval_rate' => min(100, $approvalRate), // 0-100
+            'budget_utilization' => min(100, $budgetUtilization), // 0-100, but lower is better for some cases
+            'processing_time' => max(0, 100 - ($avgProcessingTime * 5)), // Better if faster
+            'completion_rate' => min(100, $completionRate), // 0-100
+            'activity_rate' => min(100, $activityRate), // 0-100
+        ];
+
+        // Weighted health score
+        $overallScore = round(
+            ($healthFactors['approval_rate'] * 0.3) +
+            (max(0, 100 - abs($healthFactors['budget_utilization'] - 70)) * 0.2) + // Optimal around 70%
+            (max(0, min(100, $healthFactors['processing_time'])) * 0.2) +
+            ($healthFactors['completion_rate'] * 0.15) +
+            ($healthFactors['activity_rate'] * 0.15)
+        );
+
+        $healthLevel = $overallScore >= 80 ? 'excellent' :
+                      ($overallScore >= 60 ? 'good' :
+                      ($overallScore >= 40 ? 'fair' : 'poor'));
+
+        // Get alerts
+        $alerts = [];
+        if ($budgetUtilization >= 90) {
+            $alerts[] = ['type' => 'critical', 'message' => 'Budget utilization is critical (>90%)', 'color' => 'danger'];
+        } elseif ($budgetUtilization >= 75) {
+            $alerts[] = ['type' => 'warning', 'message' => 'Budget utilization is high (>75%)', 'color' => 'warning'];
+        }
+
+        if ($approvalRate < 50) {
+            $alerts[] = ['type' => 'critical', 'message' => 'Approval rate is below threshold (<50%)', 'color' => 'danger'];
+        } elseif ($approvalRate < 70) {
+            $alerts[] = ['type' => 'warning', 'message' => 'Approval rate is below expected (<70%)', 'color' => 'warning'];
+        }
+
+        if ($avgProcessingTime > 10) {
+            $alerts[] = ['type' => 'warning', 'message' => 'Average processing time is high (>10 days)', 'color' => 'warning'];
+        }
+
+        $pendingReportsCount = $systemReports->where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)->count();
+        if ($pendingReportsCount > 50) {
+            $alerts[] = ['type' => 'warning', 'message' => "High number of pending reports ({$pendingReportsCount})", 'color' => 'warning'];
+        }
+
+        // Health trends (last 6 months)
+        $healthTrends = [];
+        $current = now()->subMonths(6)->startOfMonth();
+        while ($current <= now()) {
+            $monthEnd = $current->copy()->endOfMonth();
+
+            $monthReports = $systemReports->whereBetween('created_at', [$current->copy()->startOfMonth(), $monthEnd]);
+            $monthApprovalRate = $monthReports->count() > 0 ?
+                ($monthReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count() / $monthReports->count()) * 100 : 0;
+
+            $healthTrends[] = [
+                'month' => $current->format('M Y'),
+                'month_key' => $current->format('Y-m'),
+                'score' => round($monthApprovalRate * 0.5 + 50), // Simplified trend calculation
+            ];
+
+            $current->addMonth();
+        }
+
+        return [
+            'overall_score' => $overallScore,
+            'health_level' => $healthLevel,
+            'factors' => [
+                'budget_utilization' => round($budgetUtilization, 2),
+                'approval_rate' => round($approvalRate, 2),
+                'avg_processing_time' => $avgProcessingTime,
+                'submission_rate' => round($submissionRate, 2),
+                'completion_rate' => round($completionRate, 2),
+                'activity_rate' => round($activityRate, 2),
+            ],
+            'alerts' => $alerts,
+            'trends' => $healthTrends,
+            'summary' => [
+                'total_projects' => $systemProjects->count(),
+                'total_reports' => $systemReports->count(),
+                'pending_reports' => $pendingReportsCount,
+                'total_budget' => $totalBudget,
+                'total_expenses' => $totalExpenses,
+            ],
+        ];
+        });
+    }
+
     // Approved Projects for Coordinators
     public function approvedProjects(Request $request)
     {
@@ -949,7 +2596,7 @@ public function budgetOverview()
 
         // Base query for approved projects - coordinators can see all project types
         // Use a subquery to get unique project IDs first, then fetch the full records
-        $projectIds = Project::where('status', 'approved_by_coordinator')
+        $projectIds = Project::where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
             ->distinct()
             ->pluck('project_id');
 
@@ -1013,19 +2660,39 @@ public function budgetOverview()
 
     public function approveReport(Request $request, $report_id)
     {
-        $report = DPReport::where('report_id', $report_id)->firstOrFail();
+        $report = DPReport::where('report_id', $report_id)->with('user')->firstOrFail();
 
-        // Check if report is in forwarded_to_coordinator status
-        if ($report->status !== 'forwarded_to_coordinator') {
-            return redirect()->back()->with('error', 'Report can only be approved when in forwarded to coordinator status.');
+        try {
+            $coordinator = Auth::user();
+            // Use ReportStatusService to approve and log status change
+            ReportStatusService::approve($report, $coordinator);
+
+            // Notify executor about report approval
+            $executor = $report->user;
+            if ($executor) {
+                // Get the integer id for the notification (use id attribute)
+                $reportId = $report->getAttribute('id');
+                if ($reportId) {
+                    NotificationService::notifyApproval(
+                        $executor,
+                        'report',
+                        $reportId,
+                        "Report {$report->report_id}"
+                    );
+                }
+            }
+
+            // Invalidate cache after approval
+            $this->invalidateDashboardCache();
+
+            return redirect()->route('coordinator.report.list')->with('success', 'Report approved successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Failed to approve report', [
+                'report_id' => $report_id,
+                'error' => $e->getMessage(),
+            ]);
+            return redirect()->back()->with('error', $e->getMessage());
         }
-
-        // Update report status to approved_by_coordinator
-        $report->update([
-            'status' => 'approved_by_coordinator'
-        ]);
-
-        return redirect()->route('coordinator.report.list')->with('success', 'Report approved successfully.');
     }
 
     public function revertReport(Request $request, $report_id)
@@ -1034,20 +2701,155 @@ public function budgetOverview()
             'revert_reason' => 'required|string|max:1000'
         ]);
 
-        $report = DPReport::where('report_id', $report_id)->firstOrFail();
+        $report = DPReport::where('report_id', $report_id)->with('user')->firstOrFail();
 
-        // Check if report is in forwarded_to_coordinator status
-        if ($report->status !== 'forwarded_to_coordinator') {
-            return redirect()->back()->with('error', 'Report can only be reverted when in forwarded to coordinator status.');
+        try {
+            $coordinator = Auth::user();
+            // Use ReportStatusService to revert and log status change
+            ReportStatusService::revertByCoordinator($report, $coordinator, $request->revert_reason);
+
+            // Notify executor about report revert
+            $executor = $report->user;
+            if ($executor) {
+                // Get the integer id for the notification (use id attribute)
+                $reportId = $report->getAttribute('id');
+                if ($reportId) {
+                    NotificationService::notifyRevert(
+                        $executor,
+                        'report',
+                        $reportId,
+                        "Report {$report->report_id}",
+                        $request->revert_reason
+                    );
+                }
+            }
+
+            // Invalidate cache after revert
+            $this->invalidateDashboardCache();
+
+            return redirect()->route('coordinator.report.list')->with('success', 'Report reverted to provincial successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Failed to revert report', [
+                'report_id' => $report_id,
+                'error' => $e->getMessage(),
+            ]);
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Handle bulk report actions (approve/revert)
+     */
+    public function bulkReportAction(Request $request)
+    {
+        $coordinator = Auth::user();
+        $action = $request->input('action');
+        $reportIds = $request->input('report_ids', []);
+
+        if (empty($reportIds) || !is_array($reportIds)) {
+            return redirect()->route('coordinator.report.list')->with('error', 'No reports selected.');
         }
 
-        // Update report status to reverted_by_coordinator
-        $report->update([
-            'status' => 'reverted_by_coordinator',
-            'revert_reason' => $request->revert_reason
-        ]);
+        $successCount = 0;
+        $errorCount = 0;
+        $errors = [];
 
-        return redirect()->route('coordinator.report.list')->with('success', 'Report reverted to provincial successfully.');
+        foreach ($reportIds as $reportId) {
+            try {
+                $report = DPReport::where('report_id', $reportId)->first();
+
+                if (!$report) {
+                    $errorCount++;
+                    $errors[] = "Report {$reportId} not found.";
+                    continue;
+                }
+
+                if ($action === 'bulk_approve') {
+                    if ($report->isForwardedToCoordinator()) {
+                        ReportStatusService::approve($report, $coordinator);
+                        $successCount++;
+                    } else {
+                        $errorCount++;
+                        $errors[] = "Report {$reportId} cannot be approved in current status.";
+                    }
+                } elseif ($action === 'bulk_revert') {
+                    $reason = $request->input('revert_reason', 'Bulk revert by coordinator');
+
+                    if (!$reason || trim($reason) === '') {
+                        $errorCount++;
+                        $errors[] = "Reason required for reverting report {$reportId}.";
+                        continue;
+                    }
+
+                    if ($report->isForwardedToCoordinator()) {
+                        ReportStatusService::revertByCoordinator($report, $coordinator, $reason);
+                        $successCount++;
+                    } else {
+                        $errorCount++;
+                        $errors[] = "Report {$reportId} cannot be reverted in current status.";
+                    }
+                }
+            } catch (\Exception $e) {
+                $errorCount++;
+                $errors[] = "Error processing report {$reportId}: " . $e->getMessage();
+                \Log::error('Bulk action error', [
+                    'report_id' => $reportId,
+                    'action' => $action,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $message = "Bulk action completed: {$successCount} report(s) processed successfully.";
+        if ($errorCount > 0) {
+            $message .= " {$errorCount} report(s) failed.";
+        }
+
+        // Invalidate cache after bulk actions
+        $this->invalidateDashboardCache();
+
+        $redirect = redirect()->route('coordinator.report.list');
+        if ($errorCount > 0) {
+            return $redirect->with('warning', $message)->with('bulk_errors', $errors);
+        } else {
+            return $redirect->with('success', $message);
+        }
+    }
+
+    /**
+     * Invalidate dashboard cache when data changes
+     *
+     * This method is called after any action that modifies dashboard data
+     * (e.g., approve/revert reports, approve/revert projects) to ensure
+     * the dashboard shows fresh data. All widget cache keys are cleared.
+     *
+     * @return void
+     */
+    private function invalidateDashboardCache()
+    {
+        // Invalidate all dashboard-related cache keys
+        Cache::forget('coordinator_pending_approvals_data');
+        Cache::forget('coordinator_provincial_overview_data');
+        Cache::forget('coordinator_system_performance_data');
+        Cache::forget('coordinator_system_activity_feed_data_50');
+        // Note: Budget overview cache now uses filter hash in key (coordinator_system_budget_overview_data_{hash})
+        // Since Laravel doesn't support wildcard deletion easily, cache will expire naturally (15 min TTL)
+        // For production, consider using cache tags if your driver supports it for better invalidation
+        // Old cache key without filters (kept for backward compatibility during transition)
+        Cache::forget('coordinator_system_budget_overview_data');
+        Cache::forget('coordinator_province_comparison_data');
+        Cache::forget('coordinator_provincial_management_data');
+        Cache::forget('coordinator_system_health_data');
+
+        // Also invalidate analytics cache (for all common time ranges)
+        $timeRanges = [7, 30, 90, 180, 365];
+        foreach ($timeRanges as $range) {
+            Cache::forget("coordinator_system_analytics_data_{$range}");
+        }
+
+        // Invalidate filter option caches
+        Cache::forget('coordinator_report_list_filters');
+        Cache::forget('coordinator_project_list_filters');
     }
 
     public function pendingReports(Request $request)
@@ -1055,8 +2857,9 @@ public function budgetOverview()
         $coordinator = Auth::user();
 
         // Fetch pending reports (forwarded_to_coordinator)
-        $reportsQuery = DPReport::where('status', 'forwarded_to_coordinator')
-                               ->with(['user', 'accountDetails']);
+        // Eager load relationships to prevent N+1 queries
+        $reportsQuery = DPReport::where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
+                               ->with(['user', 'project', 'accountDetails']);
 
         // Apply filters
         if ($request->filled('province')) {
@@ -1081,7 +2884,7 @@ public function budgetOverview()
         $users = User::all();
 
         // Fetch distinct project types
-        $projectTypes = DPReport::where('status', 'forwarded_to_coordinator')->distinct()->pluck('project_type');
+        $projectTypes = DPReport::where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)->distinct()->pluck('project_type');
 
         return view('coordinator.pendingReports', compact('reports', 'coordinator', 'provinces', 'users', 'projectTypes'));
     }
@@ -1091,8 +2894,9 @@ public function budgetOverview()
         $coordinator = Auth::user();
 
         // Fetch approved reports
-        $reportsQuery = DPReport::where('status', 'approved_by_coordinator')
-                               ->with(['user', 'accountDetails']);
+        // Eager load relationships to prevent N+1 queries
+        $reportsQuery = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                               ->with(['user', 'project', 'accountDetails']);
 
         // Apply filters
         if ($request->filled('province')) {
@@ -1117,9 +2921,227 @@ public function budgetOverview()
         $users = User::all();
 
         // Fetch distinct project types
-        $projectTypes = DPReport::where('status', 'approved_by_coordinator')->distinct()->pluck('project_type');
+        $projectTypes = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->distinct()->pluck('project_type');
 
         return view('coordinator.approvedReports', compact('reports', 'coordinator', 'provinces', 'users', 'projectTypes'));
+    }
+
+    /**
+     * Get centers map for all provinces from database
+     * Returns array with province name (uppercase) as key and array of center names as value
+     */
+    private function getCentersMap()
+    {
+        return Cache::remember('centers_map', now()->addHours(24), function () {
+            $centersMap = [];
+
+            $provinces = Province::active()->with('activeCenters')->get();
+
+            foreach ($provinces as $province) {
+                $provinceKey = strtoupper($province->name);
+                $centersMap[$provinceKey] = $province->activeCenters->pluck('name')->toArray();
+            }
+
+            return $centersMap;
+        });
+    }
+
+    /**
+     * Show manage user centers page - allows changing centers for child users
+     */
+    public function manageUserCenters(Request $request, $userId = null)
+    {
+        $coordinator = Auth::user();
+
+        // If userId is provided and user has permission, use that user
+        // Otherwise, use current user
+        if ($userId) {
+            $targetUser = User::findOrFail($userId);
+
+            // Verify the target user is a child (or nested child) of current coordinator
+            if (!$this->isChildUser($coordinator->id, $targetUser->id)) {
+                abort(403, 'Access denied. You can only manage centers for users under your management.');
+            }
+        } else {
+            $targetUser = $coordinator;
+        }
+
+        // Get all child users (including nested)
+        $childUsers = $this->getAllChildUsers($coordinator->id);
+
+        // Get provinces and centers for dropdowns
+        $provinces = Province::active()->with('activeCenters')->orderBy('name')->get();
+        $centersMap = $this->getCentersMap();
+
+        return view('coordinator.centers.manage-users', compact('childUsers', 'provinces', 'centersMap', 'targetUser'));
+    }
+
+    /**
+     * Update center for a specific user and optionally their child users
+     */
+    public function updateUserCenter(Request $request, $userId)
+    {
+        $coordinator = Auth::user();
+        $targetUser = User::findOrFail($userId);
+
+        // Verify the target user is a child (or nested child) of current coordinator
+        if (!$this->isChildUser($coordinator->id, $targetUser->id)) {
+            abort(403, 'Access denied. You can only manage centers for users under your management.');
+        }
+
+        $request->validate([
+            'province' => 'required|exists:provinces,name',
+            'center' => 'nullable|string|max:255',
+            'update_child_users' => 'boolean',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            // Get province and center IDs
+            $province = Province::where('name', $request->province)->first();
+            $provinceId = $province ? $province->id : null;
+
+            $centerId = null;
+            if ($request->filled('center') && $provinceId) {
+                $center = Center::where('province_id', $provinceId)
+                    ->whereRaw('UPPER(name) = ?', [strtoupper($request->center)])
+                    ->first();
+                $centerId = $center ? $center->id : null;
+            }
+
+            // Update target user
+            $oldProvince = $targetUser->province;
+            $oldCenter = $targetUser->center;
+
+            $targetUser->province = $request->province;
+            $targetUser->province_id = $provinceId;
+            $targetUser->center = $request->center;
+            $targetUser->center_id = $centerId;
+            $targetUser->save();
+
+            $updatedCount = 1;
+
+            // Update child users if requested
+            if ($request->has('update_child_users') && $request->update_child_users) {
+                $childUpdatedCount = $this->updateChildUsersCenterRecursively(
+                    $targetUser->id,
+                    $request->center,
+                    $oldProvince,
+                    $request->province
+                );
+                $updatedCount += $childUpdatedCount;
+            }
+
+            DB::commit();
+
+            Log::info('User center updated by Coordinator', [
+                'coordinator_id' => $coordinator->id,
+                'target_user_id' => $userId,
+                'old_province' => $oldProvince,
+                'new_province' => $request->province,
+                'old_center' => $oldCenter,
+                'new_center' => $request->center,
+                'child_users_updated' => $updatedCount - 1,
+            ]);
+
+            return redirect()->back()
+                ->with('success', "Center updated for user \"{$targetUser->name}\" and {$updatedCount} user(s) total.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error updating user center by Coordinator', [
+                'coordinator_id' => $coordinator->id,
+                'target_user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+            return back()->withErrors('Failed to update center: ' . $e->getMessage())->withInput();
+        }
+    }
+
+    /**
+     * Helper: Check if a user is a child (or nested child) of another user
+     */
+    private function isChildUser($parentId, $childId)
+    {
+        $child = User::find($childId);
+        if (!$child) {
+            return false;
+        }
+
+        // Direct child
+        if ($child->parent_id == $parentId) {
+            return true;
+        }
+
+        // Nested child - recursively check
+        if ($child->parent_id) {
+            return $this->isChildUser($parentId, $child->parent_id);
+        }
+
+        return false;
+    }
+
+    /**
+     * Helper: Get all child users recursively
+     */
+    private function getAllChildUsers($userId)
+    {
+        $children = collect();
+        $directChildren = User::where('parent_id', $userId)->get();
+
+        foreach ($directChildren as $child) {
+            $children->push($child);
+            $children = $children->merge($this->getAllChildUsers($child->id));
+        }
+
+        return $children;
+    }
+
+    /**
+     * Helper: Recursively update child users' center
+     */
+    private function updateChildUsersCenterRecursively($userId, $centerName, $oldProvince, $newProvince)
+    {
+        $updatedCount = 0;
+        $childUsers = User::where('parent_id', $userId)->get();
+
+        $newProvinceModel = Province::where('name', $newProvince)->first();
+        $newProvinceId = $newProvinceModel ? $newProvinceModel->id : null;
+
+        $newCenterId = null;
+        if ($centerName && $newProvinceId) {
+            $newCenter = Center::where('province_id', $newProvinceId)
+                ->whereRaw('UPPER(name) = ?', [strtoupper($centerName)])
+                ->first();
+            $newCenterId = $newCenter ? $newCenter->id : null;
+        }
+
+        foreach ($childUsers as $childUser) {
+            // Only update if user's current province/center matches
+            if ($childUser->province == $oldProvince ||
+                ($centerName && $childUser->center == $centerName)) {
+
+                $childUser->province = $newProvince;
+                $childUser->province_id = $newProvinceId;
+
+                if ($centerName) {
+                    $childUser->center = $centerName;
+                    $childUser->center_id = $newCenterId;
+                }
+
+                $childUser->save();
+                $updatedCount++;
+
+                // Recursively update nested children
+                $updatedCount += $this->updateChildUsersCenterRecursively(
+                    $childUser->id,
+                    $centerName,
+                    $oldProvince,
+                    $newProvince
+                );
+            }
+        }
+
+        return $updatedCount;
     }
 
 }

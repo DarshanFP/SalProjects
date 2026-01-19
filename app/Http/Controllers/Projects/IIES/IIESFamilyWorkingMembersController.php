@@ -3,28 +3,34 @@
 namespace App\Http\Controllers\Projects\IIES;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IIES\ProjectIIESFamilyWorkingMembers;
 use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IIES\StoreIIESFamilyWorkingMembersRequest;
+use App\Http\Requests\Projects\IIES\UpdateIIESFamilyWorkingMembersRequest;
 
 class IIESFamilyWorkingMembersController extends Controller
 {
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including member_name[], work_nature[], monthly_income[] arrays
+        // These fields are not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
 
         try {
-            Log::info('Storing IIES family working members', ['project_id' => $projectId, 'request_data' => $request->all()]);
+            Log::info('Storing IIES family working members', ['project_id' => $projectId]);
 
             $project = Project::where('project_id', $projectId)->firstOrFail();
 
             ProjectIIESFamilyWorkingMembers::where('project_id', $projectId)->delete();
 
-            $memberNames    = $request->input('iies_member_name', []);
-            $workNatures    = $request->input('iies_work_nature', []);
-            $monthlyIncomes = $request->input('iies_monthly_income', []);
+            $memberNames    = $validated['iies_member_name'] ?? [];
+            $workNatures    = $validated['iies_work_nature'] ?? [];
+            $monthlyIncomes = $validated['iies_monthly_income'] ?? [];
 
             for ($i = 0; $i < count($memberNames); $i++) {
                 if (!empty($memberNames[$i]) && !empty($workNatures[$i]) && !empty($monthlyIncomes[$i])) {
@@ -105,21 +111,16 @@ class IIESFamilyWorkingMembersController extends Controller
     }
 }
 
-public function update(Request $request, $projectId)
+public function update(FormRequest $request, $projectId)
 {
+    // Use all() to get all form data including member_name[], work_nature[], monthly_income[] arrays
+    // These fields are not in UpdateProjectRequest validation rules
+    $validatedData = $request->all();
+    
     DB::beginTransaction();
 
     try {
         Log::info('Updating IIES family working members', ['project_id' => $projectId]);
-
-        $validatedData = $request->validate([
-            'iies_member_name'    => 'array',
-            'iies_member_name.*'  => 'nullable|string|max:255',
-            'iies_work_nature'    => 'array',
-            'iies_work_nature.*'  => 'nullable|string|max:255',
-            'iies_monthly_income' => 'array',
-            'iies_monthly_income.*' => 'nullable|numeric|min:0',
-        ]);
 
         // Delete old records
         ProjectIIESFamilyWorkingMembers::where('project_id', $projectId)->delete();

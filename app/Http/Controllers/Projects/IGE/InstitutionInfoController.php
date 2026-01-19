@@ -3,16 +3,21 @@
 namespace App\Http\Controllers\Projects\IGE;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IGE\ProjectIGEInstitutionInfo;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\IGE\StoreIGEInstitutionInfoRequest;
+use App\Http\Requests\Projects\IGE\UpdateIGEInstitutionInfoRequest;
 
 class InstitutionInfoController extends Controller
 {
     // Store or update institution information for a project
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
     {
+        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
+        $validated = $request->all();
+        
         DB::beginTransaction();
         try {
             Log::info('Storing IGE Institution Information', ['project_id' => $projectId]);
@@ -21,10 +26,10 @@ class InstitutionInfoController extends Controller
             $IGEinstitutionInfo = ProjectIGEInstitutionInfo::updateOrCreate(
                 ['project_id' => $projectId],
                 [
-                    'institutional_type' => $request->input('institutional_type'),
-                    'age_group' => $request->input('age_group'),
-                    'previous_year_beneficiaries' => $request->input('previous_year_beneficiaries'),
-                    'outcome_impact' => $request->input('outcome_impact'),
+                    'institutional_type' => $validated['institutional_type'] ?? null,
+                    'age_group' => $validated['age_group'] ?? null,
+                    'previous_year_beneficiaries' => $validated['previous_year_beneficiaries'] ?? null,
+                    'outcome_impact' => $validated['outcome_impact'] ?? null,
                 ]
             );
 
@@ -74,9 +79,10 @@ class InstitutionInfoController extends Controller
     }
 
     // Update institution information for a project
-    public function update(Request $request, $projectId)
+    public function update(FormRequest $request, $projectId)
     {
-        return $this->store($request, $projectId); // Reuse the store logic for update
+        // Reuse the store logic for update
+        return $this->store($request, $projectId);
     }
 
     // Delete institution information for a project

@@ -4,26 +4,29 @@ namespace App\Http\Controllers\Projects\CCI;
 
 use App\Http\Controllers\Controller;
 use App\Models\OldProjects\CCI\ProjectCCIEconomicBackground;
-use Illuminate\Http\Request;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Projects\CCI\StoreCCIEconomicBackgroundRequest;
+use App\Http\Requests\Projects\CCI\UpdateCCIEconomicBackgroundRequest;
 
 class EconomicBackgroundController extends Controller
 {
     // Store new economic background entry
-    public function store(Request $request, $projectId)
+    public function store(FormRequest $request, $projectId)
 {
+    // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+    $validated = $request->all();
+    
     DB::beginTransaction();
     try {
         Log::info('Storing CCI Economic Background', ['project_id' => $projectId]);
-        Log::info('Request data:', $request->all());
 
         // Create the economic background entry
         $economicBackground = new ProjectCCIEconomicBackground();
         $economicBackground->project_id = $projectId;
-        $economicBackground->fill($request->except('_token'));
-
-        Log::info('EconomicBackground data before save:', $economicBackground->toArray());
+        // Use validated data instead of all()
+        $economicBackground->fill($validated);
 
         $economicBackground->save();
 
@@ -39,20 +42,20 @@ class EconomicBackgroundController extends Controller
 
 // Update existing economic background entry
 // Update or create economic background entry
-public function update(Request $request, $projectId)
+public function update(FormRequest $request, $projectId)
 {
+    // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
+    $validated = $request->all();
+    
     DB::beginTransaction();
     try {
         Log::info('Updating or Creating CCI Economic Background', ['project_id' => $projectId]);
-        Log::info('Request data:', $request->all());
 
         // Use updateOrCreate to either update an existing entry or create a new one
         $economicBackground = ProjectCCIEconomicBackground::updateOrCreate(
             ['project_id' => $projectId], // Condition to find the record
-            $request->except('_token') // Values to update or create
+            $validated // Values to update or create
         );
-
-        Log::info('EconomicBackground data after update or create:', $economicBackground->toArray());
 
         DB::commit();
         Log::info('CCI Economic Background updated or created successfully', ['project_id' => $projectId]);

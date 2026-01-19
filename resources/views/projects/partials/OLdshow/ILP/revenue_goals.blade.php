@@ -19,19 +19,19 @@
                 @foreach($revenueGoals['business_plan_items'] as $index => $item)
                     <tr>
                         <td>
-                            <input type="text" name="business_plan_items[{{ $index }}][item]" class="form-control" value="{{ $item['item'] }}" style="background-color: #202ba3;">
+                            <input type="text" name="business_plan_items[{{ $index }}][item]" class="form-control" value="{{ $item['item'] }}">
                         </td>
                         <td>
-                            <input type="number" step="0.01" name="business_plan_items[{{ $index }}][year_1]" class="form-control" value="{{ $item['year_1'] }}" style="background-color: #202ba3;">
+                            <input type="number" step="0.01" name="business_plan_items[{{ $index }}][year_1]" class="form-control" value="{{ $item['year_1'] }}">
                         </td>
                         <td>
-                            <input type="number" step="0.01" name="business_plan_items[{{ $index }}][year_2]" class="form-control" value="{{ $item['year_2'] }}" style="background-color: #202ba3;">
+                            <input type="number" step="0.01" name="business_plan_items[{{ $index }}][year_2]" class="form-control" value="{{ $item['year_2'] }}">
                         </td>
                         <td>
-                            <input type="number" step="0.01" name="business_plan_items[{{ $index }}][year_3]" class="form-control" value="{{ $item['year_3'] }}" style="background-color: #202ba3;">
+                            <input type="number" step="0.01" name="business_plan_items[{{ $index }}][year_3]" class="form-control" value="{{ $item['year_3'] }}">
                         </td>
                         <td>
-                            <input type="number" step="0.01" name="business_plan_items[{{ $index }}][year_4]" class="form-control" value="{{ $item['year_4'] }}" style="background-color: #202ba3;">
+                            <input type="number" step="0.01" name="business_plan_items[{{ $index }}][year_4]" class="form-control" value="{{ $item['year_4'] }}">
                         </td>
                     </tr>
                 @endforeach
@@ -58,19 +58,19 @@
                 @foreach($revenueGoals['annual_income'] as $index => $income)
                     <tr>
                         <td>
-                            <input type="text" name="annual_income[{{ $index }}][desc]" class="form-control" value="{{ $income['desc'] }}" style="background-color: #202ba3;">
+                            <input type="text" name="annual_income[{{ $index }}][desc]" class="form-control" value="{{ $income['desc'] }}">
                         </td>
                         <td>
-                            <input type="number" step="0.01" name="annual_income[{{ $index }}][year_1]" class="form-control" value="{{ $income['year_1'] }}" style="background-color: #202ba3;">
+                            <input type="number" step="0.01" name="annual_income[{{ $index }}][year_1]" class="form-control" value="{{ $income['year_1'] }}">
                         </td>
                         <td>
-                            <input type="number" step="0.01" name="annual_income[{{ $index }}][year_2]" class="form-control" value="{{ $income['year_2'] }}" style="background-color: #202ba3;">
+                            <input type="number" step="0.01" name="annual_income[{{ $index }}][year_2]" class="form-control" value="{{ $income['year_2'] }}">
                         </td>
                         <td>
-                            <input type="number" step="0.01" name="annual_income[{{ $index }}][year_3]" class="form-control" value="{{ $income['year_3'] }}" style="background-color: #202ba3;">
+                            <input type="number" step="0.01" name="annual_income[{{ $index }}][year_3]" class="form-control" value="{{ $income['year_3'] }}">
                         </td>
                         <td>
-                            <input type="number" step="0.01" name="annual_income[{{ $index }}][year_4]" class="form-control" value="{{ $income['year_4'] }}" style="background-color: #202ba3;">
+                            <input type="number" step="0.01" name="annual_income[{{ $index }}][year_4]" class="form-control" value="{{ $income['year_4'] }}">
                         </td>
                     </tr>
                 @endforeach
@@ -93,19 +93,19 @@
                 @foreach($revenueGoals['annual_expenses'] as $index => $expense)
                     <tr>
                         <td>
-                            <input type="text" name="annual_expenses[{{ $index }}][desc]" class="form-control" value="{{ $expense['desc'] }}" style="background-color: #202ba3;">
+                            <input type="text" name="annual_expenses[{{ $index }}][desc]" class="form-control" value="{{ $expense['desc'] }}">
                         </td>
                         <td>
-                            <input type="number" step="0.01" name="annual_expenses[{{ $index }}][year_1]" class="form-control" value="{{ $expense['year_1'] }}" style="background-color: #202ba3;">
+                            <input type="number" step="0.01" name="annual_expenses[{{ $index }}][year_1]" class="form-control" value="{{ $expense['year_1'] }}">
                         </td>
                         <td>
-                            <input type="number" step="0.01" name="annual_expenses[{{ $index }}][year_2]" class="form-control" value="{{ $expense['year_2'] }}" style="background-color: #202ba3;">
+                            <input type="number" step="0.01" name="annual_expenses[{{ $index }}][year_2]" class="form-control" value="{{ $expense['year_2'] }}">
                         </td>
                         <td>
-                            <input type="number" step="0.01" name="annual_expenses[{{ $index }}][year_3]" class="form-control" value="{{ $expense['year_3'] }}" style="background-color: #202ba3;">
+                            <input type="number" step="0.01" name="annual_expenses[{{ $index }}][year_3]" class="form-control" value="{{ $expense['year_3'] }}">
                         </td>
                         <td>
-                            <input type="number" step="0.01" name="annual_expenses[{{ $index }}][year_4]" class="form-control" value="{{ $expense['year_4'] }}" style="background-color: #202ba3;">
+                            <input type="number" step="0.01" name="annual_expenses[{{ $index }}][year_4]" class="form-control" value="{{ $expense['year_4'] }}">
                         </td>
                     </tr>
                 @endforeach
@@ -127,11 +127,11 @@
         document.getElementById('add-business-plan-item').addEventListener('click', function () {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><input type="text" name="business_plan_items[${businessPlanIndex}][item]" class="form-control" placeholder="Business Item" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_1]" class="form-control" placeholder="Year 1" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_2]" class="form-control" placeholder="Year 2" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_3]" class="form-control" placeholder="Year 3" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_4]" class="form-control" placeholder="Year 4" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="business_plan_items[${businessPlanIndex}][item]" class="form-control" placeholder="Business Item"></td>
+                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_1]" class="form-control" placeholder="Year 1"></td>
+                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_2]" class="form-control" placeholder="Year 2"></td>
+                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_3]" class="form-control" placeholder="Year 3"></td>
+                <td><input type="number" step="0.01" name="business_plan_items[${businessPlanIndex}][year_4]" class="form-control" placeholder="Year 4"></td>
             `;
             businessPlanBody.appendChild(row);
             businessPlanIndex++;
@@ -147,11 +147,11 @@
         document.getElementById('add-annual-income-item').addEventListener('click', function () {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><input type="text" name="annual_income[${incomeIndex}][desc]" class="form-control" placeholder="Income Description" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_1]" class="form-control" placeholder="Year 1" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_2]" class="form-control" placeholder="Year 2" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_3]" class="form-control" placeholder="Year 3" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_4]" class="form-control" placeholder="Year 4" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="annual_income[${incomeIndex}][desc]" class="form-control" placeholder="Income Description"></td>
+                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_1]" class="form-control" placeholder="Year 1"></td>
+                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_2]" class="form-control" placeholder="Year 2"></td>
+                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_3]" class="form-control" placeholder="Year 3"></td>
+                <td><input type="number" step="0.01" name="annual_income[${incomeIndex}][year_4]" class="form-control" placeholder="Year 4"></td>
             `;
             incomeBody.appendChild(row);
             incomeIndex++;
@@ -167,11 +167,11 @@
         document.getElementById('add-annual-expense-item').addEventListener('click', function () {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><input type="text" name="annual_expenses[${expenseIndex}][desc]" class="form-control" placeholder="Expense Description" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_1]" class="form-control" placeholder="Year 1" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_2]" class="form-control" placeholder="Year 2" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_3]" class="form-control" placeholder="Year 3" style="background-color: #202ba3;"></td>
-                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_4]" class="form-control" placeholder="Year 4" style="background-color: #202ba3;"></td>
+                <td><input type="text" name="annual_expenses[${expenseIndex}][desc]" class="form-control" placeholder="Expense Description"></td>
+                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_1]" class="form-control" placeholder="Year 1"></td>
+                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_2]" class="form-control" placeholder="Year 2"></td>
+                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_3]" class="form-control" placeholder="Year 3"></td>
+                <td><input type="number" step="0.01" name="annual_expenses[${expenseIndex}][year_4]" class="form-control" placeholder="Year 4"></td>
             `;
             expensesBody.appendChild(row);
             expenseIndex++;
