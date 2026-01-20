@@ -281,6 +281,9 @@
         }
 
         updateOutlookRemoveButtons();
+        if (typeof window.syncReportPeriodToSections === 'function') {
+            window.syncReportPeriodToSections();
+        }
     }
 
     function removeOutlook(button) {

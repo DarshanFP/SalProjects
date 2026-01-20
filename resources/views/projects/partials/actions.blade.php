@@ -53,10 +53,12 @@
                     <button type="submit" class="btn btn-danger">Reject</button>
                 </form>
 
-                <form action="{{ route('projects.revertToProvincial', $project->project_id) }}" method="POST" style="display:inline;">
-                    @csrf
-                    <button type="submit" class="btn btn-warning">Revert to Provincial</button>
-                </form>
+                <button type="button"
+                        class="btn btn-warning"
+                        data-bs-toggle="modal"
+                        data-bs-target="#revertProjectModal{{ $project->project_id }}">
+                    Revert to Provincial
+                </button>
             @endif
         @endif
     </div>
@@ -88,11 +90,9 @@
                         <select name="commencement_month"
                                 id="commencement_month_{{ $project->project_id }}"
                                 class="form-control" required>
+                            <option value="">Select month</option>
                             @for($i = 1; $i <= 12; $i++)
-                                <option value="{{ $i }}"
-                                    {{ (($project->commencement_month ?? date('m')) == $i) ? 'selected' : '' }}>
-                                    {{ date('F', mktime(0, 0, 0, $i, 1)) }}
-                                </option>
+                                <option value="{{ $i }}">{{ date('F', mktime(0, 0, 0, $i, 1)) }}</option>
                             @endfor
                         </select>
                         <small class="form-text text-muted">
@@ -104,14 +104,14 @@
                         <label for="commencement_year_{{ $project->project_id }}" class="form-label">
                             Commencement Year <span class="text-danger">*</span>
                         </label>
-                        <input type="number"
-                               name="commencement_year"
-                               id="commencement_year_{{ $project->project_id }}"
-                               class="form-control"
-                               value="{{ $project->commencement_year ?? date('Y') }}"
-                               min="{{ date('Y') }}"
-                               max="{{ date('Y') + 10 }}"
-                               required>
+                        <select name="commencement_year"
+                                id="commencement_year_{{ $project->project_id }}"
+                                class="form-control" required>
+                            <option value="">Select year</option>
+                            @for($y = (int)date('Y'); $y <= (int)date('Y') + 10; $y++)
+                                <option value="{{ $y }}">{{ $y }}</option>
+                            @endfor
+                        </select>
                         <small class="form-text text-muted">
                             Current: {{ $project->commencement_year ?? 'Not set' }}
                         </small>
@@ -126,6 +126,40 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-success">Approve Project</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- Revert to Provincial Modal for Coordinator --}}
+<div class="modal fade" id="revertProjectModal{{ $project->project_id }}" tabindex="-1" aria-labelledby="revertProjectModalLabel{{ $project->project_id }}" aria-hidden="true" data-open-on-error="{{ ($errors->has('revert_reason') || $errors->has('error')) ? '1' : '0' }}">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="revertProjectModalLabel{{ $project->project_id }}">Revert Project to Provincial</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ route('projects.revertToProvincial', $project->project_id) }}">
+                @csrf
+                <div class="modal-body">
+                    <p><strong>Project ID:</strong> {{ $project->project_id }}</p>
+                    <p><strong>Project Title:</strong> {{ $project->project_title }}</p>
+                    <div class="mb-3">
+                        <label for="revert_reason{{ $project->project_id }}" class="form-label">Reason for Revert <span class="text-danger">*</span></label>
+                        <textarea class="form-control auto-resize-textarea @error('revert_reason') is-invalid @enderror"
+                                  id="revert_reason{{ $project->project_id }}"
+                                  name="revert_reason"
+                                  rows="3"
+                                  required>{{ old('revert_reason', '') }}</textarea>
+                        @error('revert_reason')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Revert to Provincial</button>
                 </div>
             </form>
         </div>
@@ -193,6 +227,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
     });
+
+    // Auto-open Revert modal when returning with revert-related errors
+    const revertModalEl = document.querySelector('#revertProjectModal{{ $project->project_id }}[data-open-on-error="1"]');
+    if (revertModalEl && typeof bootstrap !== 'undefined') {
+        (new bootstrap.Modal(revertModalEl)).show();
+    }
 });
 </script>
 

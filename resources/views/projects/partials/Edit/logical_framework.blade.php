@@ -65,10 +65,10 @@
                     <table class="table table-bordered activities-table">
                         <thead>
                             <tr>
-                                <th scope="col" style="width: 5%;">No.</th>
-                                <th scope="col" style="width: 40%;">Activities</th>
-                                <th scope="col" style="width: 45%;">Means of Verification</th>
-                                <th scope="col" style="width: 10%;">Action</th>
+                                <th scope="col" style="width: 3%;">No.</th>
+                                <th scope="col" style="width: 44%;">Activities</th>
+                                <th scope="col" style="width: 47%;">Means of Verification</th>
+                                <th scope="col" style="width: 6%;">Action</th>
                             </tr>
                         </thead>
                         <tbody>

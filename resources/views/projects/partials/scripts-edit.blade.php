@@ -293,9 +293,9 @@
                     <table class="table table-bordered activities-table">
                         <thead>
                             <tr>
-                                <th scope="col" style="width: 40%;">Activities</th>
-                                <th scope="col" style="width: 50%;">Means of Verification</th>
-                                <th scope="col" style="width: 10%;">Action</th>
+                                <th scope="col" style="width: 46%;">Activities</th>
+                                <th scope="col" style="width: 47%;">Means of Verification</th>
+                                <th scope="col" style="width: 7%;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -683,11 +683,14 @@
             }
         }
 
-        // Add index number cell
-        const indexCell = document.createElement('td');
-        indexCell.style.cssText = 'text-align: center; vertical-align: middle;';
-        indexCell.textContent = activitiesTableBody.children.length + 1;
-        newActivityRow.insertBefore(indexCell, newActivityRow.firstChild);
+        // Only add index (No.) cell when the cloned row does not have one (e.g. from createNewObjectiveCard with 3 columns)
+        const firstCell = newActivityRow.querySelector('td:first-child');
+        if (firstCell && (firstCell.classList.contains('table-cell-wrap') || firstCell.querySelector('textarea'))) {
+            const indexCell = document.createElement('td');
+            indexCell.style.cssText = 'text-align: center; vertical-align: middle;';
+            indexCell.textContent = activitiesTableBody.children.length + 1;
+            newActivityRow.insertBefore(indexCell, newActivityRow.firstChild);
+        }
 
         // Ensure table cells have proper wrapping styles
         const cells = newActivityRow.querySelectorAll('td');
@@ -747,7 +750,8 @@
 
         // Ensure at least one activity row remains
         if (activitiesTableBody.querySelectorAll('.activity-row').length > 1) {
-            // Get the activity description to find the matching timeframe row
+            // Get the activity index and description before removing (index needed for fallback)
+            const activityIndex = Array.from(activitiesTableBody.children).indexOf(activityRow);
             const activityDescription = activityRow.querySelector('textarea.activity-description').value;
 
             // Remove the activity row
@@ -760,19 +764,17 @@
 
             // Find the timeframe row with matching activity description
             let matchingTimeFrameRow = null;
-            timeFrameRows.forEach((timeFrameRow, index) => {
-                const timeFrameDescription = timeFrameRow.querySelector('.activity-description-text').innerText;
+            timeFrameRows.forEach((timeFrameRow) => {
+                const descEl = timeFrameRow.querySelector('.activity-description-text');
+                const timeFrameDescription = descEl ? (descEl.querySelector('textarea') ? descEl.querySelector('textarea').value : descEl.innerText) : '';
                 if (timeFrameDescription === activityDescription) {
                     matchingTimeFrameRow = timeFrameRow;
                 }
             });
 
             // If no exact match found, remove the timeframe row at the same index as the removed activity
-            if (!matchingTimeFrameRow) {
-                const activityIndex = Array.from(activitiesTableBody.children).indexOf(activityRow);
-                if (activityIndex >= 0 && activityIndex < timeFrameRows.length) {
-                    matchingTimeFrameRow = timeFrameRows[activityIndex];
-                }
+            if (!matchingTimeFrameRow && activityIndex >= 0 && activityIndex < timeFrameRows.length) {
+                matchingTimeFrameRow = timeFrameRows[activityIndex];
             }
 
             // Remove the matching timeframe row
@@ -854,11 +856,14 @@
             checkbox.value = '1';
         });
 
-        // Add index number cell
-        const indexCell = document.createElement('td');
-        indexCell.style.cssText = 'text-align: center; vertical-align: middle;';
-        indexCell.textContent = timeFrameTbody.children.length + 1;
-        newTimeFrameRow.insertBefore(indexCell, newTimeFrameRow.firstChild);
+        // Only add index (No.) cell when the cloned row does not have one (e.g. from createNewObjectiveCard)
+        const firstTd = newTimeFrameRow.querySelector('td:first-child');
+        if (firstTd && (firstTd.classList.contains('activity-description-text') || firstTd.querySelector('textarea'))) {
+            const indexCell = document.createElement('td');
+            indexCell.style.cssText = 'text-align: center; vertical-align: middle;';
+            indexCell.textContent = timeFrameTbody.children.length + 1;
+            newTimeFrameRow.insertBefore(indexCell, newTimeFrameRow.firstChild);
+        }
 
         // Append the new time frame row
         timeFrameTbody.appendChild(newTimeFrameRow);

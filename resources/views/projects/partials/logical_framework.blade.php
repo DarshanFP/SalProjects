@@ -43,10 +43,10 @@
                     <table class="table table-bordered activities-table">
                         <thead>
                             <tr>
-                                <th scope="col" style="min-width: 50px;">No.</th>
-                                <th scope="col" style="min-width: 200px;">Activities</th>
-                                <th scope="col" style="min-width: 200px;">Means of Verification</th>
-                                <th scope="col" style="min-width: 80px;">Action</th>
+                                <th scope="col" style="min-width: 38px; width: 3%;">No.</th>
+                                <th scope="col" style="min-width: 280px;">Activities</th>
+                                <th scope="col" style="min-width: 280px;">Means of Verification</th>
+                                <th scope="col" style="min-width: 72px;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -259,13 +259,7 @@
         const verificationTextarea = activityRow.querySelector('textarea.activity-verification');
         activityTextarea.value = '';
         verificationTextarea.value = '';
-        
-        // Add index number cell
-        const indexCell = document.createElement('td');
-        indexCell.style.cssText = 'text-align: center; vertical-align: middle;';
-        indexCell.textContent = activitiesTable.children.length + 1;
-        activityRow.insertBefore(indexCell, activityRow.firstChild);
-        
+
         activitiesTable.appendChild(activityRow);
 
         const objectiveCard = button.closest('.objective-card');
@@ -380,12 +374,6 @@
         const timeFrameCard = button.closest('.time-frame-card');
         const tbody = timeFrameCard.querySelector('tbody');
         const newRow = tbody.querySelector('.activity-timeframe-row').cloneNode(true);
-
-        // Add index number cell
-        const indexCell = document.createElement('td');
-        indexCell.style.cssText = 'text-align: center; vertical-align: middle;';
-        indexCell.textContent = tbody.children.length + 1;
-        newRow.insertBefore(indexCell, newRow.firstChild);
 
         // Clear the contents of the new row
         const textarea = newRow.querySelector('.activity-description-text textarea');

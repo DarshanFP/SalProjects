@@ -1002,17 +1002,37 @@ class CoordinatorController extends Controller
 // // Status
 public function revertToProvincial(Request $request, $project_id)
 {
+    Log::info('Coordinator revertToProvincial: start', [
+        'project_id' => $project_id,
+        'user_id' => auth()->id(),
+        'user_role' => auth()->user()?->role,
+        'has_revert_reason' => $request->has('revert_reason'),
+    ]);
+
     $project = Project::where('project_id', $project_id)->firstOrFail();
     $coordinator = auth()->user();
 
+    Log::info('Coordinator revertToProvincial: project loaded', [
+        'project_id' => $project->project_id,
+        'project_status' => $project->status,
+    ]);
+
+    $request->validate([
+        'revert_reason' => 'required|string|max:1000',
+    ]);
+
+    $reason = $request->input('revert_reason');
+    Log::info('Coordinator revertToProvincial: validation passed', ['project_id' => $project_id]);
+
     try {
-        $oldStatus = $project->status;
-        $reason = $request->input('revert_reason', null);
+        Log::info('Coordinator revertToProvincial: calling ProjectStatusService::revertByCoordinator', ['project_id' => $project_id]);
         ProjectStatusService::revertByCoordinator($project, $coordinator, $reason);
+        Log::info('Coordinator revertToProvincial: revertByCoordinator succeeded', ['project_id' => $project_id, 'new_status' => $project->fresh()->status]);
 
         // Notify executor about revert
         $executor = $project->user;
         if ($executor) {
+            Log::info('Coordinator revertToProvincial: notifying executor', ['project_id' => $project_id, 'executor_id' => $executor->id]);
             NotificationService::notifyRevert(
                 $executor,
                 'project',
@@ -1020,24 +1040,46 @@ public function revertToProvincial(Request $request, $project_id)
                 "Project {$project->project_id}",
                 $reason
             );
+            Log::info('Coordinator revertToProvincial: notifyRevert done', ['project_id' => $project_id]);
+        } else {
+            Log::warning('Coordinator revertToProvincial: no executor (project.user) to notify', ['project_id' => $project_id]);
         }
 
-        // Invalidate cache after project revert
         $this->invalidateDashboardCache();
-
+        Log::info('Coordinator revertToProvincial: success, redirecting', ['project_id' => $project_id]);
         return redirect()->back()->with('success', 'Project reverted to Provincial.');
     } catch (Exception $e) {
-        abort(403, $e->getMessage());
+        Log::error('Coordinator revertToProvincial: exception', [
+            'project_id' => $project_id,
+            'exception' => get_class($e),
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return redirect()->back()
+            ->withErrors(['error' => $e->getMessage()])
+            ->withInput($request->only('revert_reason'));
     }
 }
 
 public function approveProject(ApproveProjectRequest $request, $project_id)
 {
-    // Validation already done by ApproveProjectRequest
     $validated = $request->validated();
+    Log::info('Coordinator approveProject: start (ApproveProjectRequest passed)', [
+        'project_id' => $project_id,
+        'user_id' => auth()->id(),
+        'user_role' => auth()->user()?->role,
+        'commencement_month' => $validated['commencement_month'] ?? null,
+        'commencement_year' => $validated['commencement_year'] ?? null,
+    ]);
 
     $project = Project::where('project_id', $project_id)->with('budgets')->firstOrFail();
     $coordinator = auth()->user();
+
+    Log::info('Coordinator approveProject: project loaded', [
+        'project_id' => $project->project_id,
+        'project_status' => $project->status,
+        'budgets_count' => $project->budgets ? $project->budgets->count() : 0,
+    ]);
 
     // Create commencement date (validation already ensures it's not in the past)
     $commencementDate = Carbon::create(
@@ -1052,8 +1094,16 @@ public function approveProject(ApproveProjectRequest $request, $project_id)
     $project->commencement_month_year = $commencementDate->format('Y-m-d');
 
     try {
+        Log::info('Coordinator approveProject: calling ProjectStatusService::approve', ['project_id' => $project_id]);
         ProjectStatusService::approve($project, $coordinator);
+        Log::info('Coordinator approveProject: approve succeeded', ['project_id' => $project_id, 'new_status' => $project->fresh()->status]);
     } catch (Exception $e) {
+        Log::error('Coordinator approveProject: ProjectStatusService::approve exception', [
+            'project_id' => $project_id,
+            'exception' => get_class($e),
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
         return redirect()->back()
             ->withErrors(['error' => $e->getMessage()])
             ->withInput();
@@ -1070,8 +1120,21 @@ public function approveProject(ApproveProjectRequest $request, $project_id)
         $overallBudget = $project->budgets->sum('this_phase');
     }
 
+    Log::info('Coordinator approveProject: budget check', [
+        'project_id' => $project_id,
+        'overall_project_budget' => $overallBudget,
+        'amount_forwarded' => $amountForwarded,
+        'local_contribution' => $localContribution,
+        'combined_contribution' => $combinedContribution,
+    ]);
+
     // Validate: combined contribution cannot exceed overall budget
     if ($combinedContribution > $overallBudget) {
+        Log::warning('Coordinator approveProject: budget validation failed (combined > overall)', [
+            'project_id' => $project_id,
+            'combined_contribution' => $combinedContribution,
+            'overall_budget' => $overallBudget,
+        ]);
         return redirect()->back()
             ->with('error', 'Cannot approve project: (Amount Forwarded + Local Contribution) of Rs. ' . number_format($combinedContribution, 2) . ' exceeds Overall Project Budget (Rs. ' . number_format($overallBudget, 2) . '). Please ask the executor to correct this.');
     }
@@ -1094,37 +1157,41 @@ public function approveProject(ApproveProjectRequest $request, $project_id)
     $project->opening_balance = $openingBalance;
     $project->save();
 
-    // Log the approval action with detailed budget information
-    \Log::info('Project Approved by Coordinator', [
-        'project_id' => $project->project_id,
-        'project_title' => $project->project_title,
-        'coordinator_id' => $coordinator->id,
-        'coordinator_name' => $coordinator->name,
-        'commencement_month' => $project->commencement_month,
-        'commencement_year' => $project->commencement_year,
-        'commencement_month_year' => $project->commencement_month_year,
-        'overall_project_budget' => $overallBudget,
-        'amount_forwarded' => $amountForwarded,
-        'local_contribution' => $localContribution,
-        'combined_contribution' => $combinedContribution,
+    Log::info('Coordinator approveProject: budget saved', [
+        'project_id' => $project_id,
         'amount_sanctioned' => $amountSanctioned,
         'opening_balance' => $openingBalance,
-        'budgets_count' => $project->budgets ? $project->budgets->count() : 0,
     ]);
 
     // Notify executor about approval
     $executor = $project->user;
     if ($executor) {
+        Log::info('Coordinator approveProject: notifying executor', ['project_id' => $project_id, 'executor_id' => $executor->id]);
         NotificationService::notifyApproval(
             $executor,
             'project',
             $project->project_id,
             "Project {$project->project_id}"
         );
+        Log::info('Coordinator approveProject: notifyApproval done', ['project_id' => $project_id]);
+    } else {
+        Log::warning('Coordinator approveProject: no executor (project.user) to notify', ['project_id' => $project_id]);
     }
 
-    // Invalidate cache after project approval
     $this->invalidateDashboardCache();
+
+    Log::info('Coordinator approveProject: success', [
+        'project_id' => $project->project_id,
+        'project_title' => $project->project_title,
+        'coordinator_id' => $coordinator->id,
+        'commencement_month' => $project->commencement_month,
+        'commencement_year' => $project->commencement_year,
+        'overall_project_budget' => $overallBudget,
+        'amount_forwarded' => $amountForwarded,
+        'local_contribution' => $localContribution,
+        'amount_sanctioned' => $amountSanctioned,
+        'opening_balance' => $openingBalance,
+    ]);
 
     // Return success message with budget breakdown
     return redirect()->back()->with('success',

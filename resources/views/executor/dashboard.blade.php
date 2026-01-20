@@ -88,6 +88,8 @@
     <script src="{{ asset('backend/assets/js/dashboard-dark.js') }}"></script>
     <!-- TextArea auto-resize functionality -->
     <script src="{{ asset('js/textarea-auto-resize.js') }}"></script>
+    <!-- Report period sync: fill Activity month, Outlook date, Account period from Reporting Month & Year -->
+    <script src="{{ asset('js/report-period-sync.js') }}"></script>
     <!-- End custom js for this page -->
 
     @stack('scripts')

@@ -9,7 +9,7 @@
             <table class="table table-bordered table-sm timeframe-table" style="table-layout: fixed; width: 100%;">
                 <thead>
                     <tr>
-                        <th scope="col" style="width: 5%;">No.</th>
+                        <th scope="col" style="width: 3%;">No.</th>
                         <th scope="col" style="width: 45%;">Activities</th>
                         @foreach(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as $monthAbbreviation)
                             <th scope="col" class="month-header" style="width: calc(45% / 12);">{{ $monthAbbreviation }}</th>

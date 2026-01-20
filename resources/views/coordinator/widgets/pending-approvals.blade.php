@@ -172,12 +172,12 @@
                                                        class="btn btn-sm btn-primary">
                                                         View
                                                     </a>
-                                                    <form method="POST" action="{{ route('projects.approve', $project->project_id) }}" class="d-inline">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Approve this project?');">
-                                                            Approve
-                                                        </button>
-                                                    </form>
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-success approve-project-btn"
+                                                            data-project-id="{{ $project->project_id }}"
+                                                            data-project-title="{{ $project->project_title }}">
+                                                        Approve
+                                                    </button>
                                                     <button type="button"
                                                             class="btn btn-sm btn-warning revert-project-btn"
                                                             data-project-id="{{ $project->project_id }}"
@@ -337,6 +337,50 @@
     </div>
 </div>
 
+{{-- Approve Project Modal --}}
+<div class="modal fade" id="approveProjectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Approve Project</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="approveProjectForm" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p><strong>Project ID:</strong> <span id="approveProjectId"></span></p>
+                    <p><strong>Project Title:</strong> <span id="approveProjectTitle"></span></p>
+                    <div class="alert alert-info">
+                        <strong>Note:</strong> Set the Commencement Month & Year. It cannot be before the current month.
+                    </div>
+                    <div class="mb-3">
+                        <label for="approve_commencement_month" class="form-label">Commencement Month *</label>
+                        <select name="commencement_month" id="approve_commencement_month" class="form-control" required>
+                            <option value="">Select month</option>
+                            @for($i = 1; $i <= 12; $i++)
+                                <option value="{{ $i }}">{{ date('F', mktime(0, 0, 0, $i, 1)) }}</option>
+                            @endfor
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="approve_commencement_year" class="form-label">Commencement Year *</label>
+                        <select name="commencement_year" id="approve_commencement_year" class="form-control" required>
+                            <option value="">Select year</option>
+                            @for($y = (int)date('Y'); $y <= (int)date('Y') + 10; $y++)
+                                <option value="{{ $y }}">{{ $y }}</option>
+                            @endfor
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Approve Project</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {{-- Revert Project Modal --}}
 <div class="modal fade" id="revertProjectModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -402,6 +446,24 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('revert_reason').value = '';
 
             const modal = new bootstrap.Modal(document.getElementById('revertModal'));
+            modal.show();
+        });
+    });
+
+    // Project Approve button handler
+    document.querySelectorAll('.approve-project-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const projectId = this.dataset.projectId;
+            const projectTitle = this.dataset.projectTitle || projectId;
+
+            document.getElementById('approveProjectId').textContent = projectId;
+            document.getElementById('approveProjectTitle').textContent = projectTitle;
+            document.getElementById('approveProjectForm').action = '{{ route("projects.approve", ":id") }}'.replace(':id', projectId);
+            document.getElementById('approve_commencement_month').value = '';
+            document.getElementById('approve_commencement_year').value = '';
+
+            const modal = new bootstrap.Modal(document.getElementById('approveProjectModal'));
             modal.show();
         });
     });

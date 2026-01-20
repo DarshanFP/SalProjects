@@ -557,6 +557,9 @@
         }
 
         updateRemoveButtons();
+        if (typeof window.syncReportPeriodToSections === 'function') {
+            window.syncReportPeriodToSections();
+        }
     }
 
     function removeObjective(button) {
@@ -628,6 +631,9 @@
         }
 
         updateOutlookRemoveButtons();
+        if (typeof window.syncReportPeriodToSections === 'function') {
+            window.syncReportPeriodToSections();
+        }
     }
 
     function removeOutlook(button) {

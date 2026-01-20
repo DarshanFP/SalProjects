@@ -84,6 +84,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $full_address
  * @property int|null $overall_project_period
  * @property int|null $current_phase
+ * @property int|null $commencement_month
+ * @property int|null $commencement_year
  * @property string|null $commencement_month_year
  * @property string $overall_project_budget
  * @property string|null $amount_forwarded
@@ -270,6 +272,8 @@ class Project extends Model
         'full_address',
         'overall_project_period',
         'current_phase',
+        'commencement_month',
+        'commencement_year',
         'commencement_month_year',
         'overall_project_budget',
         'amount_forwarded',

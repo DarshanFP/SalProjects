@@ -20,13 +20,13 @@
                     {{-- Success/Error Messages --}}
                     @if(session('success'))
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            {{ session('success') }}
+                            {!! session('success') !!}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     @endif
                     @if(session('error'))
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            {{ session('error') }}
+                            {!! session('error') !!}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     @endif
@@ -311,15 +311,11 @@
                                                     View
                                                 </a>
                                                 @if(in_array($project->status, [ProjectStatus::FORWARDED_TO_COORDINATOR]))
-                                                    <form action="{{ route('projects.approve', $project->project_id) }}"
-                                                          method="POST"
-                                                          style="display: inline-block;"
-                                                          onsubmit="return confirm('Are you sure you want to approve project {{ $project->project_id }}?');">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-success btn-sm">
-                                                            Approve
-                                                        </button>
-                                                    </form>
+                                                    <button type="button" class="btn btn-success btn-sm"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#approveModal{{ $project->project_id }}">
+                                                        Approve
+                                                    </button>
                                                     <button type="button" class="btn btn-warning btn-sm"
                                                             data-bs-toggle="modal"
                                                             data-bs-target="#revertModal{{ $project->project_id }}">
@@ -334,6 +330,52 @@
                                             </div>
                                         </td>
                                     </tr>
+
+                                    <!-- Approve Modal -->
+                                    @if(in_array($project->status, [ProjectStatus::FORWARDED_TO_COORDINATOR]))
+                                    <div class="modal fade" id="approveModal{{ $project->project_id }}" tabindex="-1" aria-labelledby="approveModalLabel{{ $project->project_id }}" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="approveModalLabel{{ $project->project_id }}">Approve Project</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <form method="POST" action="{{ route('projects.approve', $project->project_id) }}">
+                                                    @csrf
+                                                    <div class="modal-body">
+                                                        <p><strong>Project ID:</strong> {{ $project->project_id }}</p>
+                                                        <p><strong>Project Title:</strong> {{ $project->project_title }}</p>
+                                                        <div class="alert alert-info">
+                                                            <strong>Note:</strong> Set the Commencement Month & Year. It cannot be before the current month.
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="approve_commencement_month{{ $project->project_id }}" class="form-label">Commencement Month <span class="text-danger">*</span></label>
+                                                            <select name="commencement_month" id="approve_commencement_month{{ $project->project_id }}" class="form-control" required>
+                                                                <option value="">Select month</option>
+                                                                @for($i = 1; $i <= 12; $i++)
+                                                                    <option value="{{ $i }}">{{ date('F', mktime(0, 0, 0, $i, 1)) }}</option>
+                                                                @endfor
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="approve_commencement_year{{ $project->project_id }}" class="form-label">Commencement Year <span class="text-danger">*</span></label>
+                                                            <select name="commencement_year" id="approve_commencement_year{{ $project->project_id }}" class="form-control" required>
+                                                                <option value="">Select year</option>
+                                                                @for($y = (int)date('Y'); $y <= (int)date('Y') + 10; $y++)
+                                                                    <option value="{{ $y }}">{{ $y }}</option>
+                                                                @endfor
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-success">Approve Project</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
 
                                     <!-- Revert Modal -->
                                     @if(in_array($project->status, [ProjectStatus::FORWARDED_TO_COORDINATOR]))

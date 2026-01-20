@@ -147,7 +147,7 @@
             <!-- Project Application Section -->
             <li class="nav-item nav-category">Project Application</li>
             <li class="nav-item">
-                <a href="{{ route('coordinator.projects.list') }}" class="nav-link">
+                <a href="{{ route('coordinator.projects.list', ['status' => 'forwarded_to_coordinator']) }}" class="nav-link">
                     <i class="link-icon" data-feather="folder"></i>
                     <span class="link-title">Pending Projects</span>
                 </a>

@@ -420,6 +420,9 @@
         if (newActivity && typeof window.initDynamicTextarea === 'function') {
             window.initDynamicTextarea(newActivity);
         }
+        if (typeof window.syncReportPeriodToSections === 'function') {
+            window.syncReportPeriodToSections();
+        }
     }
 
     function removeObjective(button) {
@@ -488,6 +491,9 @@
         const newOutlook = outlookContainer.lastElementChild;
         if (newOutlook && typeof window.initDynamicTextarea === 'function') {
             window.initDynamicTextarea(newOutlook);
+        }
+        if (typeof window.syncReportPeriodToSections === 'function') {
+            window.syncReportPeriodToSections();
         }
     }
 

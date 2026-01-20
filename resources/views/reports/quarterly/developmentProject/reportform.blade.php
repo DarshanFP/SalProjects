@@ -681,6 +681,9 @@ resources/views/reports/quarterly/developmentProject/reportform.blade.php --}}
         }
 
         updateRemoveButtons();
+        if (typeof window.syncReportPeriodToSections === 'function') {
+            window.syncReportPeriodToSections();
+        }
     }
 
     /**
@@ -765,6 +768,9 @@ resources/views/reports/quarterly/developmentProject/reportform.blade.php --}}
         }
 
         updateOutlookRemoveButtons();
+        if (typeof window.syncReportPeriodToSections === 'function') {
+            window.syncReportPeriodToSections();
+        }
     }
 
     /**

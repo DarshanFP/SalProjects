@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Projects;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class ApproveProjectRequest extends FormRequest
@@ -12,7 +14,15 @@ class ApproveProjectRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth()->check() && auth()->user()->role === 'coordinator';
+        $ok = auth()->check() && in_array(auth()->user()->role, ['coordinator', 'general']);
+        if (!$ok) {
+            Log::warning('ApproveProjectRequest: authorize failed', [
+                'user_id' => auth()->id(),
+                'role' => auth()->user()?->role,
+                'project_id' => $this->route('project_id'),
+            ]);
+        }
+        return $ok;
     }
 
     /**
@@ -58,12 +68,23 @@ class ApproveProjectRequest extends FormRequest
                     $currentDate = Carbon::now()->startOfMonth();
 
                     if ($commencementDate->isBefore($currentDate)) {
+                        Log::warning('ApproveProjectRequest: commencement date in the past', [
+                            'project_id' => $this->route('project_id'),
+                            'commencement_month' => $month,
+                            'commencement_year' => $year,
+                        ]);
                         $validator->errors()->add(
                             'commencement_date',
                             'Commencement Month & Year cannot be before the current month and year. Please update it to present or future month and year before approving.'
                         );
                     }
                 } catch (\Exception $e) {
+                    Log::warning('ApproveProjectRequest: invalid commencement date', [
+                        'project_id' => $this->route('project_id'),
+                        'month' => $month,
+                        'year' => $year,
+                        'exception' => $e->getMessage(),
+                    ]);
                     $validator->errors()->add(
                         'commencement_date',
                         'Invalid commencement date. Please check the month and year values.'
@@ -71,5 +92,17 @@ class ApproveProjectRequest extends FormRequest
                 }
             }
         });
+    }
+
+    /**
+     * Handle a failed validation attempt (log before redirect).
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        Log::warning('ApproveProjectRequest: validation failed', [
+            'project_id' => $this->route('project_id'),
+            'errors' => $validator->errors()->toArray(),
+        ]);
+        parent::failedValidation($validator);
     }
 }

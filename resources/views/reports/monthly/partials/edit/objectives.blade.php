@@ -377,6 +377,9 @@
             // Initialize status for new activity
             updateActivityStatus(objectiveIndex, activityIndex);
         }
+        if (typeof window.syncReportPeriodToSections === 'function') {
+            window.syncReportPeriodToSections();
+        }
     }
 
     // Function to remove an activity

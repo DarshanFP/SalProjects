@@ -23,7 +23,7 @@ class NotificationService
      * @param string $title Notification title
      * @param string $message Notification message
      * @param string|null $relatedType Type of related entity (e.g., 'project', 'report')
-     * @param int|null $relatedId ID of related entity
+     * @param int|string|null $relatedId ID of related entity (project_id string or numeric id)
      * @param array|null $metadata Additional metadata for the notification
      * @return Notification The created notification instance
      */
@@ -33,7 +33,7 @@ class NotificationService
         string $title,
         string $message,
         ?string $relatedType = null,
-        ?int $relatedId = null,
+        int|string|null $relatedId = null,
         ?array $metadata = null
     ): Notification {
         // Check user preferences
@@ -55,7 +55,7 @@ class NotificationService
             'title' => $title,
             'message' => $message,
             'related_type' => $relatedType,
-            'related_id' => $relatedId,
+            'related_id' => $relatedId !== null ? (string) $relatedId : null,
             'metadata' => $metadata,
             'is_read' => !$preferences->shouldNotify($type), // Mark as read if user doesn't want this type
         ]);
@@ -82,7 +82,7 @@ class NotificationService
     public static function notifyApproval(
         User $user,
         string $relatedType,
-        int $relatedId,
+        int|string $relatedId,
         string $relatedTitle
     ): Notification {
         return self::create(
@@ -184,7 +184,7 @@ class NotificationService
     public static function notifyRevert(
         User $user,
         string $relatedType,
-        int $relatedId,
+        int|string $relatedId,
         string $relatedTitle,
         ?string $reason = null
     ): Notification {
@@ -213,7 +213,7 @@ class NotificationService
     public static function notifyDeadlineReminder(
         User $user,
         string $relatedType,
-        int $relatedId,
+        int|string $relatedId,
         string $relatedTitle,
         string $deadline
     ): Notification {

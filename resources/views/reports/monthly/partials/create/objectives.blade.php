@@ -315,8 +315,7 @@ function addActivity(objectiveIndex) {
 
     reindexActivities(objectiveIndex);
 
-    // Set up event listeners for the new activity
-    const newActivity = monthlySummaryContainer.querySelector(`.activity-card[data-activity-index="${activityIndex}"]`);
+    // Set up event listeners for the new activity (reuse newActivity – it's the same element after reindex)
     if (newActivity) {
         const formFields = newActivity.querySelectorAll('.activity-field');
         formFields.forEach((field) => {
@@ -329,6 +328,9 @@ function addActivity(objectiveIndex) {
         });
         // Initialize status for new activity
         updateActivityStatus(objectiveIndex, activityIndex);
+    }
+    if (typeof window.syncReportPeriodToSections === 'function') {
+        window.syncReportPeriodToSections();
     }
 }
 
