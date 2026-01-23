@@ -255,4 +255,18 @@ class ProjectIIESAttachments extends Model
             }
         }
     }
+
+    /**
+     * Validate file type
+     */
+    private static function isValidFileType($file)
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $mimeType = $file->getMimeType();
+
+        $allowedTypes = config('attachments.allowed_file_types.image_only');
+
+        return in_array($extension, $allowedTypes['extensions']) &&
+               in_array($mimeType, $allowedTypes['mimes']);
+    }
 }

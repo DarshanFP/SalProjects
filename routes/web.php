@@ -12,6 +12,7 @@ use App\Http\Controllers\Projects\BudgetController;
 use App\Http\Controllers\Projects\EduRUTAnnexedTargetGroupController;
 use App\Http\Controllers\Projects\EduRUTTargetGroupController;
 use App\Http\Controllers\Projects\ExportController;
+use App\Http\Controllers\Projects\IIES\IIESAttachmentsController;
 use App\Http\Controllers\Projects\OldDevelopmentProjectController;
 use App\Http\Controllers\Projects\ProjectController;
 use App\Http\Controllers\Projects\ProjectEduRUTBasicInfoController;
@@ -462,6 +463,10 @@ Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,gener
     Route::get('/projects/{project_id}/download-pdf', [ExportController::class, 'downloadPdf'])->name('projects.downloadPdf');
     Route::get('/projects/{project_id}/download-doc', [ExportController::class, 'downloadDoc'])->name('projects.downloadDoc');
     Route::get('/projects/attachments/download/{id}', [AttachmentController::class, 'downloadAttachment'])->name('projects.attachments.download');
+
+    // IIES Attachment file download and view routes
+    Route::get('/projects/iies/attachments/download/{fileId}', [IIESAttachmentsController::class, 'downloadFile'])->name('projects.iies.attachments.download');
+    Route::get('/projects/iies/attachments/view/{fileId}', [IIESAttachmentsController::class, 'viewFile'])->name('projects.iies.attachments.view');
 
     // Activity History Routes (shared for all roles)
     Route::get('/projects/{project_id}/activity-history', [ActivityHistoryController::class, 'projectHistory'])->name('projects.activity-history');

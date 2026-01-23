@@ -19,7 +19,7 @@ class IIESExpensesController extends Controller
         // Use all() to get all form data including particulars[], amounts[] arrays
         // These fields are not in StoreProjectRequest validation rules
         $validated = $request->all();
-        
+
         DB::beginTransaction();
 
         try {
@@ -44,7 +44,7 @@ class IIESExpensesController extends Controller
 
             $particulars = $validated['iies_particulars'] ?? [];
             $amounts = $validated['iies_amounts'] ?? [];
-            
+
             foreach ($particulars as $index => $particular) {
                 if (!empty($particular) && !empty($amounts[$index] ?? null)) {
                     $projectExpenses->expenseDetails()->create([
@@ -55,10 +55,25 @@ class IIESExpensesController extends Controller
             }
 
             DB::commit();
+            Log::info('IIESExpensesController@store - Success', [
+                'project_id' => $projectId,
+                'expense_id' => $projectExpenses->IIES_expense_id ?? null,
+                'total_expenses' => $projectExpenses->iies_total_expenses ?? null,
+                'balance_requested' => $projectExpenses->iies_balance_requested ?? null,
+                'details_count' => count($particulars)
+            ]);
             return response()->json(['message' => 'IIES estimated expenses saved successfully.'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Failed to save IIES estimated expenses.'], 500);
+            Log::error('IIESExpensesController@store - Error', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'error' => 'Failed to save IIES estimated expenses.',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -175,15 +190,26 @@ public function update(\Illuminate\Foundation\Http\FormRequest $request, $projec
         DB::beginTransaction();
 
         try {
+            Log::info('IIESExpensesController@destroy - Start', ['project_id' => $projectId]);
+
             $expenses = ProjectIIESExpenses::where('project_id', $projectId)->firstOrFail();
             $expenses->expenseDetails()->delete();
             $expenses->delete();
 
             DB::commit();
+            Log::info('IIESExpensesController@destroy - Success', ['project_id' => $projectId]);
             return response()->json(['message' => 'IIES estimated expenses deleted successfully.'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Failed to delete IIES estimated expenses.'], 500);
+            Log::error('IIESExpensesController@destroy - Error', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'error' => 'Failed to delete IIES estimated expenses.',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 }

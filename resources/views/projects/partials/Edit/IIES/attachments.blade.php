@@ -58,10 +58,10 @@
                                                     @endif
                                                 </div>
                                                 <div>
-                                                    <a href="{{ Storage::url($file->file_path) }}" target="_blank" class="btn btn-sm btn-primary">
+                                                    <a href="{{ route('projects.iies.attachments.view', $file->id) }}" target="_blank" class="btn btn-sm btn-primary">
                                                         <i class="fas fa-eye"></i> View
                                                     </a>
-                                                    <a href="{{ Storage::url($file->file_path) }}" download class="btn btn-sm btn-secondary">
+                                                    <a href="{{ route('projects.iies.attachments.download', $file->id) }}" class="btn btn-sm btn-secondary">
                                                         <i class="fas fa-download"></i> Download
                                                     </a>
                                                 </div>

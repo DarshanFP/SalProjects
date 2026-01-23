@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Projects\IIES;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IIES\ProjectIIESAttachments;
+use App\Models\OldProjects\IIES\ProjectIIESAttachmentFile;
 use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -21,7 +22,7 @@ class IIESAttachmentsController extends Controller
     {
         // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
         $validated = $request->all();
-        
+
         Log::info('IIESAttachmentsController@store - Start', [
             'project_id' => $projectId
         ]);
@@ -133,7 +134,7 @@ class IIESAttachmentsController extends Controller
     {
         // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
         $validated = $request->all();
-        
+
         Log::info('IIESAttachmentsController@update - Start', [
             'project_id' => $projectId
         ]);
@@ -194,6 +195,103 @@ class IIESAttachmentsController extends Controller
                 'error' => $e->getMessage()
             ]);
             return response()->json(['error' => 'Failed to delete IIES attachments.'], 500);
+        }
+    }
+
+    /**
+     * DOWNLOAD: download a specific attachment file
+     */
+    public function downloadFile($fileId)
+    {
+        try {
+            Log::info('IIESAttachmentsController@downloadFile - Start', ['file_id' => $fileId]);
+
+            $file = ProjectIIESAttachmentFile::findOrFail($fileId);
+
+            Log::info('IIESAttachmentsController@downloadFile - File found', [
+                'file_id' => $fileId,
+                'file_path' => $file->file_path,
+                'file_name' => $file->file_name
+            ]);
+
+            // Check if file exists in storage
+            if (!Storage::disk('public')->exists($file->file_path)) {
+                Log::error('IIESAttachmentsController@downloadFile - File not found on disk', [
+                    'file_id' => $fileId,
+                    'file_path' => $file->file_path
+                ]);
+                return response()->json(['error' => 'File not found'], 404);
+            }
+
+            // Log download for audit
+            Log::info('IIESAttachmentsController@downloadFile - File downloaded', [
+                'file_id' => $fileId,
+                'file_name' => $file->file_name
+            ]);
+
+            return Storage::disk('public')->download($file->file_path, $file->file_name);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('IIESAttachmentsController@downloadFile - File record not found', ['file_id' => $fileId]);
+            return response()->json(['error' => 'File record not found'], 404);
+        } catch (\Exception $e) {
+            Log::error('IIESAttachmentsController@downloadFile - Error', [
+                'file_id' => $fileId,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['error' => 'Failed to download file'], 500);
+        }
+    }
+
+    /**
+     * VIEW: view a specific attachment file (stream response)
+     */
+    public function viewFile($fileId)
+    {
+        try {
+            Log::info('IIESAttachmentsController@viewFile - Start', ['file_id' => $fileId]);
+
+            $file = ProjectIIESAttachmentFile::findOrFail($fileId);
+
+            Log::info('IIESAttachmentsController@viewFile - File found', [
+                'file_id' => $fileId,
+                'file_path' => $file->file_path,
+                'file_name' => $file->file_name
+            ]);
+
+            // Check if file exists in storage
+            if (!Storage::disk('public')->exists($file->file_path)) {
+                Log::error('IIESAttachmentsController@viewFile - File not found on disk', [
+                    'file_id' => $fileId,
+                    'file_path' => $file->file_path
+                ]);
+                return response()->json(['error' => 'File not found'], 404);
+            }
+
+            // Get file content and MIME type
+            $fileContent = Storage::disk('public')->get($file->file_path);
+            $mimeType = Storage::disk('public')->mimeType($file->file_path);
+
+            // Log view for audit
+            Log::info('IIESAttachmentsController@viewFile - File viewed', [
+                'file_id' => $fileId,
+                'file_name' => $file->file_name,
+                'mime_type' => $mimeType
+            ]);
+
+            return response($fileContent, 200)
+                ->header('Content-Type', $mimeType)
+                ->header('Content-Disposition', 'inline; filename="' . $file->file_name . '"');
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('IIESAttachmentsController@viewFile - File record not found', ['file_id' => $fileId]);
+            return response()->json(['error' => 'File record not found'], 404);
+        } catch (\Exception $e) {
+            Log::error('IIESAttachmentsController@viewFile - Error', [
+                'file_id' => $fileId,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['error' => 'Failed to view file'], 500);
         }
     }
 
