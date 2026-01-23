@@ -82,6 +82,8 @@ class UpdateMonthlyReportRequest extends FormRequest
             'photos.*.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
             'photo_descriptions' => 'nullable|array',
             'photo_descriptions.*' => 'nullable|string|max:1000',
+            'photo_activity_id' => 'nullable|array',
+            'photo_activity_id.*' => 'nullable|string|max:255',
 
             // Multiple Attachments
             'attachment_files' => 'nullable|array',

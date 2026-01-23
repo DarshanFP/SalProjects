@@ -176,7 +176,7 @@
                                 @if(!$accountDetail->is_budget_row)
                                     <button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button>
                                 @else
-                                    <span class="badge bg-info">Budget Row</span>
+                                    <span class="badge scheduled-months-badge">Budget Row</span>
                                 @endif
                             </td>
                         </tr>
@@ -195,7 +195,7 @@
                         <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
                         <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>
                         <td>
-                            <span class="badge bg-info">Budget Row</span>
+                            <span class="badge scheduled-months-badge">Budget Row</span>
                         </td>
                     </tr>
                     @endforeach
@@ -565,5 +565,11 @@ function updateBudgetSummaryCards() {
     justify-content: center;
     color: #fff;
     font-weight: 600;
+}
+
+/* Budget Row badge - same dark teal as activity Scheduled months */
+.badge.scheduled-months-badge {
+    background-color: #0f766e !important;
+    color: #fff;
 }
 </style>

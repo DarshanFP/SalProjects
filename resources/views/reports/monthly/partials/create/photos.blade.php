@@ -6,7 +6,8 @@
         <h4>Photos</h4>
     </div>
     <div class="card-body">
-        <div id="photos-container">
+        @php $objectivesOneBased = $objectivesIndexBase ?? false; @endphp
+        <div id="photos-container" data-objectives-one-based="{{ $objectivesOneBased ? '1' : '0' }}">
             <!-- Existing Photo Groups -->
             @php
                 $photoGroups = old('photos', [[]]);
@@ -40,10 +41,15 @@
 
                     </div>
                     <div id="photos-preview_{{ $groupIndex }}" class="photos-preview" style="display: flex; flex-wrap: wrap;"></div>
-                    <textarea name="photo_descriptions[{{ $groupIndex }}]" class="mt-2 form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ old("photo_descriptions.$groupIndex") }}</textarea>
-                    @error("photo_descriptions.$groupIndex")
-                        <div class="text-danger">{{ $message }}</div>
-                    @enderror
+                    <div class="mt-2">
+                        <label class="form-label">Link to Activity</label>
+                        <select name="photo_activity_id[{{ $groupIndex }}]" class="form-control photo-activity-select" data-group-index="{{ $groupIndex }}" style="background-color: #202ba3;">
+                            <option value="__unassigned__">— Unassigned —</option>
+                        </select>
+                        @error("photo_activity_id.$groupIndex")
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
+                    </div>
                 </div>
             @endforeach
         </div>
@@ -153,7 +159,12 @@
                     <p id="file-size-warning-${newGroupIndex}" style="color: red; display: none;">Each photo must be less than 2 MB!</p>
                 </div>
                 <div id="photos-preview_${newGroupIndex}" class="photos-preview" style="display: flex; flex-wrap: wrap;"></div>
-                <textarea name="photo_descriptions[${newGroupIndex}]" class="mt-2 form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
+                <div class="mt-2">
+                    <label class="form-label">Link to Activity</label>
+                    <select name="photo_activity_id[${newGroupIndex}]" class="form-control photo-activity-select" data-group-index="${newGroupIndex}" style="background-color: #202ba3;">
+                        <option value="__unassigned__">— Unassigned —</option>
+                    </select>
+                </div>
             </div>
         `;
 
@@ -170,6 +181,9 @@
 
         // Reindex all photo groups
         reindexPhotoGroups();
+        if (typeof window.refreshPhotoActivityOptions === 'function') {
+            window.refreshPhotoActivityOptions();
+        }
     }
 
     function removePhotoGroup(button) {
@@ -226,7 +240,6 @@
             const fileText = group.querySelector('[id^="file-text-"]');
             const fileWarning = group.querySelector('[id^="file-size-warning-"]');
             const previewContainer = group.querySelector('[id^="photos-preview_"]');
-            const textarea = group.querySelector('textarea[name^="photo_descriptions"]');
             const button = group.querySelector('button[onclick*="photos_"]');
 
             if (fileInput) {
@@ -253,8 +266,10 @@
                 previewContainer.id = `photos-preview_${newIndex}`;
             }
 
-            if (textarea) {
-                textarea.name = `photo_descriptions[${newIndex}]`;
+            const activitySelect = group.querySelector('select.photo-activity-select');
+            if (activitySelect) {
+                activitySelect.name = `photo_activity_id[${newIndex}]`;
+                activitySelect.dataset.groupIndex = newIndex;
             }
 
             // Update remove buttons visibility
@@ -276,9 +291,72 @@
         });
     }
 
+    /**
+     * Build activity options from objectives/activities in the DOM. Returns [{value, label, objDisplay}].
+     * objDisplay is the objective number shown in the UI (for grouping and count).
+     */
+    function getReportActivities() {
+        const out = [];
+        const oneBased = document.getElementById('photos-container')?.dataset.objectivesOneBased === '1';
+        const objectives = document.querySelectorAll('#objectives-container .objective, .objective');
+        objectives.forEach((obj) => {
+            const objIndex = parseInt(obj.dataset.index, 10);
+            if (isNaN(objIndex)) return;
+            const container = obj.querySelector('.monthly-summary-container');
+            if (!container) return;
+            const activities = container.querySelectorAll('.activity');
+            activities.forEach((act) => {
+                const actIndex = parseInt(act.dataset.activityIndex, 10);
+                if (isNaN(actIndex)) return;
+                const strong = act.querySelector('.activity-card-header strong');
+                const ta = act.querySelector('textarea[name^="activity"]');
+                const label = (ta && ta.value.trim()) || (strong && strong.textContent.trim()) || 'New Activity';
+                const v1 = oneBased ? objIndex : (objIndex + 1);
+                const v2 = oneBased ? actIndex : (actIndex + 1);
+                out.push({ value: v1 + ':' + v2, label: 'Objective ' + v1 + ' – ' + label, objDisplay: v1 });
+            });
+        });
+        return out;
+    }
+
+    /**
+     * Repopulate all photo activity selects with optgroups "Objective X (N activities)".
+     * Call after objectives change (add/remove activity).
+     */
+    window.refreshPhotoActivityOptions = function() {
+        const opts = getReportActivities();
+        const byObj = {};
+        opts.forEach((o) => {
+            const k = String(o.objDisplay ?? o.value.split(':')[0]);
+            if (!byObj[k]) byObj[k] = [];
+            byObj[k].push(o);
+        });
+        const objOrder = Object.keys(byObj).sort((a, b) => Number(a) - Number(b));
+
+        document.querySelectorAll('.photo-activity-select').forEach((sel) => {
+            const selected = sel.value;
+            sel.innerHTML = '';
+            sel.appendChild(new Option('— Unassigned —', '__unassigned__'));
+            objOrder.forEach((objKey) => {
+                const items = byObj[objKey];
+                const count = items.length;
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = 'Objective ' + objKey + ' (' + count + ' ' + (count === 1 ? 'activity' : 'activities') + ')';
+                items.forEach((o) => optgroup.appendChild(new Option(o.label, o.value)));
+                sel.appendChild(optgroup);
+            });
+            if (selected && Array.from(sel.options).some((o) => o.value === selected)) {
+                sel.value = selected;
+            }
+        });
+    };
+
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
         reindexPhotoGroups();
+        if (typeof window.refreshPhotoActivityOptions === 'function') {
+            window.refreshPhotoActivityOptions();
+        }
     });
 </script>
 

@@ -73,7 +73,7 @@
                                     <strong>{{ $activity->activity }}</strong>
                                 </div>
                                 <div class="d-flex align-items-center flex-wrap gap-2 mt-1">
-                                    <span class="badge bg-info">
+                                    <span class="badge scheduled-months-badge">
                                         <i class="fas fa-calendar"></i> Scheduled: {{ $scheduledMonthsStr }}
                                     </span>
                                     <span class="badge bg-warning activity-status"
@@ -258,7 +258,7 @@ function addActivity(objectiveIndex) {
                             <strong>New Activity</strong>
                         </div>
                         <div class="d-flex align-items-center flex-wrap gap-2 mt-1">
-                            <span class="badge bg-info">
+                            <span class="badge scheduled-months-badge">
                                 <i class="fas fa-calendar"></i> Scheduled: Not scheduled
                             </span>
                             <span class="badge bg-warning activity-status"
@@ -414,6 +414,10 @@ function reindexActivities(objectiveIndex) {
         // Update activity status after reindexing
         updateActivityStatus(objectiveIndexValue, index);
     });
+
+    if (typeof window.refreshPhotoActivityOptions === 'function') {
+        window.refreshPhotoActivityOptions();
+    }
 }
 
 /**
@@ -481,23 +485,21 @@ function updateActivityStatus(objectiveIndex, activityIndex) {
     const statusBadge = card.querySelector('.activity-status');
     if (!form || !statusBadge) return;
 
-    // Check if form is filled
-    const monthSelect = form.querySelector('select[name^="month"]');
+    // month is JS-filled (report-period-sync), not user-filled; exclude from status
     const summaryTextarea = form.querySelector('textarea[name^="summary_activities"]');
     const dataTextarea = form.querySelector('textarea[name^="qualitative_quantitative_data"]');
     const outcomesTextarea = form.querySelector('textarea[name^="intermediate_outcomes"]');
 
-    const month = monthSelect ? monthSelect.value : '';
     const summary = summaryTextarea ? summaryTextarea.value.trim() : '';
     const data = dataTextarea ? dataTextarea.value.trim() : '';
     const outcomes = outcomesTextarea ? outcomesTextarea.value.trim() : '';
 
-    // Update status badge
-    if (month && summary && data && outcomes) {
+    // Update status badge (Complete = all 3 user-filled fields)
+    if (summary && data && outcomes) {
         statusBadge.textContent = 'Complete';
         statusBadge.classList.remove('bg-warning', 'bg-info');
         statusBadge.classList.add('bg-success');
-    } else if (month || summary || data || outcomes) {
+    } else if (summary || data || outcomes) {
         statusBadge.textContent = 'In Progress';
         statusBadge.classList.remove('bg-warning', 'bg-success');
         statusBadge.classList.add('bg-info');
@@ -752,6 +754,13 @@ document.addEventListener('DOMContentLoaded', function() {
 .objective-card .badge.bg-info,
 .activity-card .badge.bg-info {
     background-color: #66d1d1 !important;
+    color: #fff;
+}
+
+/* Scheduled months badge - dark background for better contrast with white text */
+.objective-card .badge.scheduled-months-badge,
+.activity-card .badge.scheduled-months-badge {
+    background-color: #0f766e !important;
     color: #fff;
 }
 

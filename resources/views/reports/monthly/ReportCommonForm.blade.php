@@ -123,30 +123,13 @@
                     @include('reports.monthly.partials.LivelihoodAnnexure', ['report' => $project])
                 @endif
 
-                <!-- Photos Section -->
-                <div class="mb-3 card">
-                    <div class="card-header">
-                        <h4>5. Photos</h4>
-                    </div>
-                    <div class="card-body">
-                        <div id="photos-container">
-                            @foreach(old('photo_descriptions', ['']) as $index => $value)
-                            <div class="mb-3 photo-group" data-index="{{ $index }}">
-                                <label for="photo_{{ $index }}" class="form-label">Photo {{ $index + 1 }}</label>
-                                <input type="file" name="photos[]" class="mb-2 form-control" accept="image/*" onchange="checkFileSize(this)" style="background-color: #202ba3;">
-                                <textarea name="photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $value }}</textarea>
-                                <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-                            </div>
-                            @endforeach
-                        </div>
-                        <button type="button" class="mt-3 btn btn-primary" onclick="addPhoto()">Add More Photo</button>
-                    </div>
-                </div>
+                <!-- Photos Section (aligned with ReportAll: activity selector, up to 3 per group) -->
+                @include('reports.monthly.partials.create.photos')
 
                 <!-- Attachments Section -->
                 @include('reports.monthly.partials.create.attachments')
 
-                <button type="submit" class="btn btn-primary me-2">Submit Report</button>
+                <button type="submit" class="btn btn-primary me-2">Save Report</button>
             </form>
         </div>
     </div>
@@ -155,58 +138,7 @@
 <!-- Include Objectives Section JavaScript Partial -->
 
 <script>
-    // Photo and Description Section
-    function addPhoto() {
-        const photosContainer = document.getElementById('photos-container');
-        const currentPhotos = photosContainer.children.length;
-
-        if (currentPhotos < 10) {
-            const index = currentPhotos;
-            const newPhotoHtml = `
-                <div class="mb-3 photo-group" data-index="${index}">
-                    <label for="photo_${index}" class="form-label">Photo ${index + 1}</label>
-                    <input type="file" name="photos[]" class="mb-2 form-control" accept="image/*" onchange="checkFileSize(this)" style="background-color: #202ba3;">
-                    <textarea name="photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
-                    <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-                </div>
-            `;
-            photosContainer.insertAdjacentHTML('beforeend', newPhotoHtml);
-
-            // Initialize auto-resize for new photo textarea using global function
-            const newPhoto = photosContainer.lastElementChild;
-            if (newPhoto && typeof initDynamicTextarea === 'function') {
-                initDynamicTextarea(newPhoto);
-            }
-
-            updatePhotoLabels();
-        } else {
-            alert('You can upload a maximum of 10 photos.');
-        }
-    }
-
-    function removePhoto(button) {
-        const photoGroup = button.closest('.photo-group');
-        photoGroup.remove();
-        updatePhotoLabels();
-    }
-
-    function updatePhotoLabels() {
-        const photoGroups = document.querySelectorAll('.photo-group');
-        photoGroups.forEach((group, index) => {
-            const label = group.querySelector('label');
-            label.textContent = `Photo ${index + 1}`;
-        });
-    }
-
-    function checkFileSize(input) {
-        const file = input.files[0];
-        if (file && file.size > 5 * 1024 * 1024) { // 5 MB
-            alert('Each photo must be less than 5 MB.');
-            input.value = '';
-        }
-    }
-
-    // Form submission debugging
+    // Form submission and validation
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.querySelector('#reportForm');
         if (form) {
@@ -240,14 +172,13 @@
                 const submitBtn = form.querySelector('button[type="submit"]');
                 if (submitBtn) {
                     submitBtn.disabled = true;
-                    submitBtn.textContent = 'Submitting...';
+                    submitBtn.textContent = 'Saving...';
                 }
 
             });
         }
 
         updateOutlookRemoveButtons();
-        updatePhotoLabels();
     });
 
     // Outlook Section

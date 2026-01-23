@@ -82,14 +82,22 @@ class ExportReportController extends Controller
                 abort(403, 'You do not have permission to download this report.');
             }
 
+            // Only include activities where the user filled at least one field.
+            foreach ($report->objectives as $objective) {
+                $objective->setRelation(
+                    'activities',
+                    $objective->activities->filter(fn ($a) => $a->hasUserFilledData())->values()
+                );
+            }
+
             // Get associated project and budgets using project-type-specific method
             $project = Project::where('project_id', $report->project_id)->first();
 
             // Get actual account details from the report instead of project budgets
             $budgets = $report->accountDetails;
 
-            // Group photos by category and prepare for PDF (with size optimization)
-            $groupedPhotos = $this->preparePhotosForPdfOptimized($report->photos);
+            // Group photos by activity (and Unassigned) and prepare for PDF (with size optimization)
+            $groupedPhotos = $this->preparePhotosForPdfOptimized($report);
             $totalPhotos = $this->countTotalPhotos($groupedPhotos);
 
             // Get annexures and profiles based on project type
@@ -178,51 +186,71 @@ class ExportReportController extends Controller
     }
 
     /**
-     * Prepare photos for PDF generation with size optimization
+     * Prepare photos for PDF: group by activity ("Objective X – Activity Y") and "Unassigned".
+     * Order mirrors web view: objectives/activities in order, then Unassigned. Includes photo_location.
      */
-    private function preparePhotosForPdfOptimized($photos)
+    private function preparePhotosForPdfOptimized($report)
     {
         $groupedPhotos = [];
         $totalPhotos = 0;
-        $maxPhotos = 15; // Reduced from 20 to 15 photos
+        $maxPhotos = 15;
+        $maxFileSize = 2 * 1024 * 1024; // 2MB per photo
+        $photos = $report->photos ?? collect();
 
-        if ($photos && $photos->count() > 0) {
-            foreach ($photos as $photo) {
-                // Limit total photos to prevent memory issues
-                if ($totalPhotos >= $maxPhotos) {
-                    break;
+        $addPhoto = function ($photo, $label) use (&$groupedPhotos, &$totalPhotos, $maxPhotos, $maxFileSize) {
+            if ($totalPhotos >= $maxPhotos) {
+                return false;
+            }
+            if ($photo->photo_path && Storage::disk('public')->exists($photo->photo_path)) {
+                if (Storage::disk('public')->size($photo->photo_path) > $maxFileSize) {
+                    return true; // continue
                 }
+            }
+            if (!isset($groupedPhotos[$label])) {
+                $groupedPhotos[$label] = [];
+            }
+            $groupedPhotos[$label][] = [
+                'photo_name' => $photo->photo_name ?? 'Photo',
+                'description' => $photo->description ?? '',
+                'photo_location' => $photo->photo_location ?? '',
+                'photo_path' => $photo->photo_path,
+                'file_exists' => Storage::disk('public')->exists($photo->photo_path),
+                'full_path' => Storage::disk('public')->exists($photo->photo_path)
+                    ? storage_path('app/public/' . $photo->photo_path)
+                    : null,
+            ];
+            $totalPhotos++;
+            return true;
+        };
 
-                $description = $photo->description ?? 'Other';
-
-                if (!isset($groupedPhotos[$description])) {
-                    $groupedPhotos[$description] = [];
+        // By activity (objectives/activities order), then Unassigned
+        if ($report->objectives) {
+            foreach ($report->objectives as $objIndex => $objective) {
+                if (!$objective->activities) {
+                    continue;
                 }
-
-                // Check file size before including - reduced to 2MB limit
-                $filePath = $photo->photo_path;
-                if ($filePath && Storage::disk('public')->exists($filePath)) {
-                    $fileSize = Storage::disk('public')->size($filePath);
-                    $maxFileSize = 2 * 1024 * 1024; // 2MB limit per photo (reduced from 5MB)
-
-                    if ($fileSize > $maxFileSize) {
-                        // Skip large files to prevent memory issues
-                        continue;
+                foreach ($objective->activities as $actIndex => $activity) {
+                    $label = 'Objective ' . ($objIndex + 1) . ' – ' . ($activity->activity ?? 'Activity');
+                    $activityPhotos = $photos->where('activity_id', $activity->activity_id);
+                    foreach ($activityPhotos as $photo) {
+                        if ($totalPhotos >= $maxPhotos) {
+                            break 3;
+                        }
+                        if (!$addPhoto($photo, $label)) {
+                            break 3;
+                        }
                     }
                 }
+            }
+        }
 
-                // For PDF, we'll use file paths instead of base64 to reduce memory usage
-                $groupedPhotos[$description][] = [
-                    'photo_name' => $photo->photo_name ?? 'Photo',
-                    'description' => $photo->description ?? '',
-                    'photo_path' => $photo->photo_path,
-                    'file_exists' => Storage::disk('public')->exists($photo->photo_path),
-                    'full_path' => Storage::disk('public')->exists($photo->photo_path)
-                        ? storage_path('app/public/' . $photo->photo_path)
-                        : null
-                ];
-
-                $totalPhotos++;
+        $unassigned = $photos->whereNull('activity_id');
+        foreach ($unassigned as $photo) {
+            if ($totalPhotos >= $maxPhotos) {
+                break;
+            }
+            if (!$addPhoto($photo, 'Unassigned')) {
+                break;
             }
         }
 
@@ -268,14 +296,22 @@ class ExportReportController extends Controller
                 abort(403, 'You do not have permission to download this report.');
             }
 
+            // Only include activities where the user filled at least one field.
+            foreach ($report->objectives as $objective) {
+                $objective->setRelation(
+                    'activities',
+                    $objective->activities->filter(fn ($a) => $a->hasUserFilledData())->values()
+                );
+            }
+
             // Get associated project and budgets using project-type-specific method
             $project = Project::where('project_id', $report->project_id)->first();
 
             // Get actual account details from the report instead of project budgets
             $budgets = $report->accountDetails;
 
-            // Group photos by category and prepare for DOC
-            $groupedPhotos = $this->preparePhotosForDoc($report->photos);
+            // Group photos by activity (and Unassigned) for DOC
+            $groupedPhotos = $this->preparePhotosForDoc($report);
 
             // Get annexures and profiles based on project type
             $annexures = [];
@@ -323,27 +359,44 @@ class ExportReportController extends Controller
     }
 
     /**
-     * Prepare photos for DOC generation
+     * Prepare photos for DOC: group by activity ("Objective X – Activity Y") and "Unassigned".
+     * Order mirrors web view. Includes photo_location.
      */
-    private function preparePhotosForDoc($photos)
+    private function preparePhotosForDoc($report)
     {
         $groupedPhotos = [];
+        $photos = $report->photos ?? collect();
 
-        if ($photos && $photos->count() > 0) {
-            foreach ($photos as $photo) {
-                $description = $photo->description ?? 'Other';
-
-                if (!isset($groupedPhotos[$description])) {
-                    $groupedPhotos[$description] = [];
-                }
-
-                $groupedPhotos[$description][] = [
-                    'photo_name' => $photo->photo_name ?? 'Photo',
-                    'description' => $photo->description ?? '',
-                    'photo_path' => $photo->photo_path,
-                    'file_exists' => Storage::disk('public')->exists($photo->photo_path)
-                ];
+        $add = function ($photo, $label) use (&$groupedPhotos) {
+            if (!isset($groupedPhotos[$label])) {
+                $groupedPhotos[$label] = [];
             }
+            $groupedPhotos[$label][] = [
+                'photo_name' => $photo->photo_name ?? 'Photo',
+                'description' => $photo->description ?? '',
+                'photo_location' => $photo->photo_location ?? '',
+                'photo_path' => $photo->photo_path,
+                'file_exists' => Storage::disk('public')->exists($photo->photo_path),
+            ];
+        };
+
+        if ($report->objectives) {
+            foreach ($report->objectives as $objIndex => $objective) {
+                if (!$objective->activities) {
+                    continue;
+                }
+                foreach ($objective->activities as $activity) {
+                    $label = 'Objective ' . ($objIndex + 1) . ' – ' . ($activity->activity ?? 'Activity');
+                    foreach ($photos->where('activity_id', $activity->activity_id) as $photo) {
+                        $add($photo, $label);
+                    }
+                }
+            }
+        }
+
+        $unassigned = $photos->whereNull('activity_id');
+        foreach ($unassigned as $photo) {
+            $add($photo, 'Unassigned');
         }
 
         return $groupedPhotos;
@@ -563,9 +616,10 @@ class ExportReportController extends Controller
 
                 // Activities for this objective
                 if ($objective->activities && $objective->activities->count() > 0) {
+                    $actCount = $objective->activities->count();
                     $section->addText("Activities for Objective " . ($index + 1), ['bold' => true, 'size' => 12]);
                     foreach ($objective->activities as $activityIndex => $activity) {
-                        $section->addText("Activity " . ($activityIndex + 1), ['bold' => true]);
+                        $section->addText("Activity " . ($activityIndex + 1) . " of " . $actCount . ": " . ($activity->activity ?? 'N/A'), ['bold' => true, 'size' => 11]);
                         $section->addText("Month: " . ($activity->month ?? 'N/A'));
                         $section->addText("Summary of Activities: " . ($activity->summary_activities ?? 'N/A'));
                         $section->addText("Qualitative & Quantitative Data: " . ($activity->qualitative_quantitative_data ?? 'N/A'));
@@ -663,7 +717,9 @@ class ExportReportController extends Controller
                 foreach ($photos as $photo) {
                     $section->addText("Photo: " . ($photo['photo_name'] ?? 'N/A'));
                     $section->addText("Description: " . ($photo['description'] ?? 'N/A'));
-
+                    if (!empty($photo['photo_location'])) {
+                        $section->addText("Location: " . $photo['photo_location'], ['size' => 9]);
+                    }
                     if ($photo['file_exists']) {
                         $section->addText("Status: Available", ['italic' => true, 'color' => '008000']);
                     } else {

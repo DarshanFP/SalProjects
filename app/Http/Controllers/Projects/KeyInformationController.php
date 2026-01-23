@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Projects;
 
 use App\Http\Controllers\Controller;
+use App\Services\ProblemTreeImageService;
 use Illuminate\Http\Request;
 use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class KeyInformationController extends Controller
 {
@@ -27,8 +29,9 @@ class KeyInformationController extends Controller
             'general_situation' => 'nullable|string',
             'need_of_project' => 'nullable|string',
             'goal' => 'nullable|string',
+            'problem_tree_image' => 'nullable|file|image|mimes:jpeg,jpg,png|max:7168',
         ]);
-        
+
         Log::info('KeyInformationController@store - Data received from form', [
             'project_id' => $project->project_id
         ]);
@@ -50,7 +53,12 @@ class KeyInformationController extends Controller
             if (array_key_exists('goal', $validated)) {
                 $project->goal = $validated['goal'];
             }
-            
+
+            // Problem Tree image (one per project; new upload replaces previous)
+            if ($request->hasFile('problem_tree_image')) {
+                $this->storeProblemTreeImage($request, $project);
+            }
+
             $project->save();
 
             Log::info('KeyInformationController@store - Data saved successfully', [
@@ -71,9 +79,10 @@ class KeyInformationController extends Controller
             'target_beneficiaries' => 'nullable|string',
             'general_situation' => 'nullable|string',
             'need_of_project' => 'nullable|string',
-        'goal' => 'nullable|string',
+            'goal' => 'nullable|string',
+            'problem_tree_image' => 'nullable|file|image|mimes:jpeg,jpg,png|max:7168',
     ]);
-    
+
     Log::info('KeyInformationController@update - Data received from form', [
         'project_id' => $project->project_id
     ]);
@@ -95,7 +104,12 @@ class KeyInformationController extends Controller
         if (array_key_exists('goal', $validated)) {
             $project->goal = $validated['goal'];
         }
-            
+
+            // Problem Tree image (one per project; new upload replaces previous)
+            if ($request->hasFile('problem_tree_image')) {
+                $this->storeProblemTreeImage($request, $project);
+            }
+
         $project->save();
 
             Log::info('KeyInformationController@update - Data saved successfully', [
@@ -109,4 +123,40 @@ class KeyInformationController extends Controller
     }
 }
 
+    /**
+     * Store or replace the Problem Tree image. One per project; new upload overwrites previous.
+     * Images are resized and re-encoded as JPEG to reduce file size when optimization is enabled.
+     */
+    private function storeProblemTreeImage(Request $request, Project $project): void
+    {
+        $file = $request->file('problem_tree_image');
+        $folder = $project->getAttachmentBasePath();
+        $disk = Storage::disk('public');
+
+        // Replace: delete existing file if present
+        if ($project->problem_tree_file_path && $disk->exists($project->problem_tree_file_path)) {
+            $disk->delete($project->problem_tree_file_path);
+        }
+
+        $service = app(ProblemTreeImageService::class);
+        $optimized = $service->optimize($file);
+
+        if ($optimized !== null) {
+            $filename = $project->project_id . '_Problem_Tree.jpg';
+            $path = $folder . '/' . $filename;
+            if (!$disk->exists($folder)) {
+                $disk->makeDirectory($folder);
+            }
+            $disk->put($path, $optimized);
+            $project->problem_tree_file_path = $path;
+        } else {
+            $ext = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?? 'jpg');
+            if (!in_array($ext, ['jpg', 'jpeg', 'png'])) {
+                $ext = 'jpg';
+            }
+            $filename = $project->project_id . '_Problem_Tree.' . $ext;
+            $path = $file->storeAs($folder, $filename, 'public');
+            $project->problem_tree_file_path = $path;
+        }
+    }
 }

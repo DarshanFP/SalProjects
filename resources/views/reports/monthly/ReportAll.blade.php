@@ -235,7 +235,7 @@
                         <i class="fas fa-save me-2"></i>Save as Draft
                     </button>
                     <button type="submit" id="submitReportBtn" class="btn btn-primary">
-                        <i class="fas fa-paper-plane me-2"></i>Submit Report
+                        <i class="fas fa-save me-2"></i>Save Report
                     </button>
                 </div>
             </form>

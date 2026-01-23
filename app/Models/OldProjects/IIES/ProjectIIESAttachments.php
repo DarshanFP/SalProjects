@@ -10,7 +10,7 @@ use App\Models\OldProjects\IIES\ProjectIIESAttachmentFile;
 use App\Helpers\AttachmentFileNamingHelper;
 
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $IIES_attachment_id
@@ -141,10 +141,10 @@ class ProjectIIESAttachments extends Model
             foreach ($fields as $field) {
                 // Support both single file and array of files
                 if ($request->hasFile($field)) {
-                    $files = is_array($request->file($field)) 
-                        ? $request->file($field) 
+                    $files = is_array($request->file($field))
+                        ? $request->file($field)
                         : [$request->file($field)];
-                    
+
                     // Get user-provided names if any
                     $fileNames = $request->input("{$field}_names", []);
                     $descriptions = $request->input("{$field}_descriptions", []);

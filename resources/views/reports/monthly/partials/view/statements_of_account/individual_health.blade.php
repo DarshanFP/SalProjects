@@ -164,47 +164,49 @@
         <div class="fp-text-center1">
             <h5>Budgets Details</h5><br>
 
-            <table class="table table-bordered table-custom">
-                <thead>
-                    <tr>
-                        <th>Particulars</th>
-                        <th>Amount Sanctioned</th>
-                        <th>Total Amount</th>
-                        <th>Expenses Last Month</th>
-                        <th>Expenses This Month</th>
-                        <th>Total Expenses</th>
-                        <th>Balance Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($report->accountDetails as $accountDetail)
+            <div class="table-responsive budget-details-table-wrapper">
+                <table class="table table-bordered table-custom budget-details-table">
+                    <thead>
                         <tr>
-                            <td>
-                                {{ $accountDetail->particulars }}
-                                @if($accountDetail->is_budget_row)
-                                    <span class="badge bg-info ms-2">Budget Row</span>
-                                @endif
-                            </td>
-                            <td>{{ format_indian_currency($accountDetail->amount_sanctioned, 2) }}</td>
-                            <td>{{ format_indian_currency($accountDetail->total_amount, 2) }}</td>
-                            <td>{{ format_indian_currency($accountDetail->expenses_last_month, 2) }}</td>
-                            <td>{{ format_indian_currency($accountDetail->expenses_this_month, 2) }}</td>
-                            <td>{{ format_indian_currency($accountDetail->total_expenses, 2) }}</td>
-                            <td>{{ format_indian_currency($accountDetail->balance_amount, 2) }}</td>
+                            <th class="col-particulars">Particulars</th>
+                            <th class="col-numeric">Amount Sanctioned</th>
+                            <th class="col-numeric">Total Amount</th>
+                            <th class="col-numeric">Expenses Last Month</th>
+                            <th class="col-numeric">Expenses This Month</th>
+                            <th class="col-numeric">Total Expenses</th>
+                            <th class="col-numeric">Balance Amount</th>
                         </tr>
-                    @endforeach
-                    {{-- Total Row --}}
-                    <tr class="table-info font-weight-bold">
-                        <td><strong>TOTAL</strong></td>
-                        <td><strong>{{ format_indian_currency($report->accountDetails->sum('amount_sanctioned'), 2) }}</strong></td>
-                        <td><strong>{{ format_indian_currency($report->accountDetails->sum('total_amount'), 2) }}</strong></td>
-                        <td><strong>{{ format_indian_currency($report->accountDetails->sum('expenses_last_month'), 2) }}</strong></td>
-                        <td><strong>{{ format_indian_currency($report->accountDetails->sum('expenses_this_month'), 2) }}</strong></td>
-                        <td><strong>{{ format_indian_currency($report->accountDetails->sum('total_expenses'), 2) }}</strong></td>
-                        <td><strong>{{ format_indian_currency($report->accountDetails->sum('balance_amount'), 2) }}</strong></td>
-                    </tr>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach($report->accountDetails as $accountDetail)
+                            <tr>
+                                <td class="col-particulars">
+                                    {{ $accountDetail->particulars }}
+                                    @if($accountDetail->is_budget_row)
+                                        <span class="badge scheduled-months-badge ms-2">Budget Row</span>
+                                    @endif
+                                </td>
+                                <td class="col-numeric">{{ format_indian_currency($accountDetail->amount_sanctioned, 2) }}</td>
+                                <td class="col-numeric">{{ format_indian_currency($accountDetail->total_amount, 2) }}</td>
+                                <td class="col-numeric">{{ format_indian_currency($accountDetail->expenses_last_month, 2) }}</td>
+                                <td class="col-numeric">{{ format_indian_currency($accountDetail->expenses_this_month, 2) }}</td>
+                                <td class="col-numeric">{{ format_indian_currency($accountDetail->total_expenses, 2) }}</td>
+                                <td class="col-numeric">{{ format_indian_currency($accountDetail->balance_amount, 2) }}</td>
+                            </tr>
+                        @endforeach
+                        {{-- Total Row --}}
+                        <tr class="table-info font-weight-bold">
+                            <td class="col-particulars"><strong>TOTAL</strong></td>
+                            <td class="col-numeric"><strong>{{ format_indian_currency($report->accountDetails->sum('amount_sanctioned'), 2) }}</strong></td>
+                            <td class="col-numeric"><strong>{{ format_indian_currency($report->accountDetails->sum('total_amount'), 2) }}</strong></td>
+                            <td class="col-numeric"><strong>{{ format_indian_currency($report->accountDetails->sum('expenses_last_month'), 2) }}</strong></td>
+                            <td class="col-numeric"><strong>{{ format_indian_currency($report->accountDetails->sum('expenses_this_month'), 2) }}</strong></td>
+                            <td class="col-numeric"><strong>{{ format_indian_currency($report->accountDetails->sum('total_expenses'), 2) }}</strong></td>
+                            <td class="col-numeric"><strong>{{ format_indian_currency($report->accountDetails->sum('balance_amount'), 2) }}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -295,5 +297,51 @@
     justify-content: center;
     color: #fff;
     font-weight: 600;
+}
+
+/* Budgets Details table: smaller font, fixed layout, Particulars wrap, fit within container */
+.budget-details-table-wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.budget-details-table {
+    font-size: 0.875rem;
+    table-layout: fixed;
+    width: 100%;
+    max-width: 100%;
+}
+
+.budget-details-table th {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    text-align: center;
+}
+
+.budget-details-table .col-particulars {
+    width: 22%;
+    min-width: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    vertical-align: middle;
+}
+
+.budget-details-table .col-numeric {
+    width: 13%;
+    min-width: 0;
+    text-align: right;
+}
+
+.budget-details-table th.col-numeric:nth-child(n+4),
+.budget-details-table td.col-numeric:nth-child(n+4) {
+    width: 12%;
+}
+
+/* Budget Row badge - same dark teal as activity Scheduled months */
+.budget-details-table .badge.scheduled-months-badge {
+    background-color: #0f766e !important;
+    color: #fff;
 }
 </style>

@@ -21,7 +21,7 @@ class StoreProjectRequest extends FormRequest
     public function rules(): array
     {
         $isDraft = $this->has('save_as_draft') && $this->input('save_as_draft') == '1';
-        
+
         return [
             'project_type' => $isDraft ? 'nullable|string|max:255' : 'required|string|max:255',
             'project_title' => 'nullable|string|max:255',
@@ -75,6 +75,7 @@ class StoreProjectRequest extends FormRequest
             ],
             'predecessor_project' => 'nullable|string|exists:projects,project_id',
             'save_as_draft' => 'nullable|boolean',
+            'problem_tree_image' => 'nullable|file|image|mimes:jpeg,jpg,png|max:7168',
         ];
     }
 

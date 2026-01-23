@@ -112,6 +112,25 @@ return [
                 'image/png'
             ],
         ],
+        'problem_tree' => [
+            'extensions' => ['jpg', 'jpeg', 'png'],
+            'mime_types' => [
+                'image/jpeg',
+                'image/png',
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Problem Tree Image Optimization
+    |--------------------------------------------------------------------------
+    | Resize (longest side) and re-encode as JPEG to reduce file size.
+    */
+    'problem_tree_optimization' => [
+        'enabled' => true,
+        'max_dimension' => 1920,
+        'jpeg_quality' => 85,
     ],
 
     /*

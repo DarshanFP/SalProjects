@@ -6,7 +6,7 @@
         <div class="col-md-12 col-xl-12">
             <form action="{{ route('monthly.developmentProject.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
-                <input type="hidden" name="project_id" value="{{ $project->id }}">
+                <input type="hidden" name="project_id" value="{{ $project->project_id }}">
                 <div class="mb-3 card">
                     <div class="card-header">
                         <h4 class="fp-text-center1">TRACKING DEVELOPMENT PROJECT</h4>
@@ -257,24 +257,10 @@
                 </div>
                 <!-- Statements of Account Section ends -->
 
-                <div class="mb-3 card">
-                    <div class="card-header">
-                        <h4>5. 7 Photos</h4>
-                    </div>
-                    <div class="card-body">
-                        <div id="photos-container">
-                            <div class="mb-3 photo-group" data-index="1">
-                                <label for="photo_1" class="form-label">Photo 1</label>
-                                <input type="file" name="photos[]" class="mb-2 form-control" accept="image/*" onchange="checkFileSize(this)">
-                                <textarea name="photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)"></textarea>
-                                <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-                            </div>
-                        </div>
-                        <button type="button" class="mt-3 btn btn-primary" onclick="addPhoto()">Add More Photo</button>
-                    </div>
-                </div>
+                <!-- Photos (aligned: activity selector, up to 3 per group; objectives use 1-based indices) -->
+                @include('reports.monthly.partials.create.photos', ['objectivesIndexBase' => true])
 
-                <button type="submit" class="btn btn-primary me-2">Submit Report</button>
+                <button type="submit" class="btn btn-primary me-2">Save Report</button>
             </form>
         </div>
     </div>
@@ -372,6 +358,7 @@
         `;
         objectivesContainer.insertAdjacentHTML('beforeend', objectiveTemplate);
         updateRemoveButtons();
+        if (typeof window.refreshPhotoActivityOptions === 'function') window.refreshPhotoActivityOptions();
 
         // Initialize auto-resize for newly added textareas
         const newObjective = objectivesContainer.lastElementChild;
@@ -414,6 +401,7 @@
         `;
         monthlySummaryContainer.insertAdjacentHTML('beforeend', activityTemplate);
         updateRemoveButtons();
+        if (typeof window.refreshPhotoActivityOptions === 'function') window.refreshPhotoActivityOptions();
 
         // Initialize auto-resize for newly added activity textareas
         const newActivity = monthlySummaryContainer.lastElementChild;
@@ -429,12 +417,14 @@
         const objective = button.closest('.objective');
         objective.remove();
         updateRemoveButtons();
+        if (typeof window.refreshPhotoActivityOptions === 'function') window.refreshPhotoActivityOptions();
     }
 
     function removeActivity(button) {
         const activity = button.closest('.activity');
         activity.remove();
         updateRemoveButtons();
+        if (typeof window.refreshPhotoActivityOptions === 'function') window.refreshPhotoActivityOptions();
     }
 
     function updateRemoveButtons() {
@@ -636,119 +626,6 @@
         document.querySelector('[name="amount_in_hand"]').value = totalAmount.toFixed(2);
     }
 
-    // function addPhoto() {
-    //     const photosContainer = document.getElementById('photos-container');
-    //     const currentPhotos = photosContainer.children.length;
-
-    //     if (currentPhotos < 10) {
-    //         const index = currentPhotos + 1;
-    //         const photoTemplate = `
-    //             <div class="mb-3 photo-group" data-index="${index}">
-    //                 <label for="photo_${index}" class="form-label">Photo ${index}</label>
-    //                 <input type="file" name="photos[]" class="mb-2 form-control" accept="image/*" onchange="checkFileSize(this)">
-    //                 <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)"></textarea>
-    //                 <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-    //             </div>
-    //         `;
-    //         photosContainer.insertAdjacentHTML('beforeend', photoTemplate);
-    //         updatePhotoLabels();
-    //     } else {
-    //         alert('You can upload a maximum of 10 photos.');
-    //     }
-    // }
-
-    // function removePhoto(button) {
-    //     const photoGroup = button.closest('.photo-group');
-    //     photoGroup.remove();
-    //     updatePhotoLabels();
-    // }
-
-    // function updatePhotoLabels() {
-    //     const photoGroups = document.querySelectorAll('.photo-group');
-    //     photoGroups.forEach((group, index) => {
-    //         const label = group.querySelector('label');
-    //         label.textContent = `Photo ${index + 1}`;
-    //     });
-    // }
-
-    // function checkFileSize(input) {
-    //     const file = input.files[0];
-    //     if (file && file.size > 3 * 1024 * 1024) { // 3 MB
-    //         alert('Each photo must be less than 3 MB.');
-    //         input.value = '';
-    //     }
-    // }
-
-    // document.addEventListener('DOMContentLoaded', function() {
-    //     updatePhotoLabels();
-    // });
-
-    function addPhoto() {
-    const photosContainer = document.getElementById('photos-container');
-    const currentPhotos = photosContainer.children.length;
-
-    if (currentPhotos < 10) {
-        const index = currentPhotos + 1;
-        const photoTemplate = `
-            <div class="mb-3 photo-group" data-index="${index}">
-                <label for="photo_${index}" class="form-label">Photo ${index}</label>
-                <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="checkFile(this)">
-                <textarea name="photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)"></textarea>
-                <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-            </div>
-        `;
-        photosContainer.insertAdjacentHTML('beforeend', photoTemplate);
-        updatePhotoLabels();
-
-        // Initialize auto-resize for newly added photo textarea
-        const newPhoto = photosContainer.lastElementChild;
-        if (newPhoto && typeof window.initDynamicTextarea === 'function') {
-            window.initDynamicTextarea(newPhoto);
-        }
-    } else {
-        alert('You can upload a maximum of 10 photos.');
-    }
-}
-
-function removePhoto(button) {
-    const photoGroup = button.closest('.photo-group');
-    photoGroup.remove();
-    updatePhotoLabels();
-}
-
-function updatePhotoLabels() {
-    const photoGroups = document.querySelectorAll('.photo-group');
-    photoGroups.forEach((group, index) => {
-        const label = group.querySelector('label');
-        label.textContent = `Photo ${index + 1}`;
-    });
-}
-
-function checkFile(input) {
-    const allowedTypes = ['image/jpeg', 'image/png'];
-    const maxSize = 2 * 1024 * 1024; // 2MB
-
-    const file = input.files[0];
-
-    if (file) {
-        if (!allowedTypes.includes(file.type)) {
-            alert('Invalid file type. Please upload a JPEG or PNG image.');
-            input.value = ''; // Clear the file input
-            return;
-        }
-
-        if (file.size > maxSize) {
-            alert('Each photo must be less than 2 MB.');
-            input.value = ''; // Clear the file input
-            return;
-        }
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    updatePhotoLabels();
-});
-
 </script>
 
 <style>
@@ -788,7 +665,6 @@ document.addEventListener('DOMContentLoaded', function() {
         margin-bottom: 15px;
     }
 
-    <>
     .readonly-input {
         background-color: #0D1427;
         color: #f4f0f0;

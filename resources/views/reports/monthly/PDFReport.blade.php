@@ -266,6 +266,7 @@
                 @if($objective->activities && $objective->activities->count() > 0)
                     <table class="activities-table">
                         <tr class="header-row">
+                            <td>No.</td>
                             <td>Activity</td>
                             <td>Month</td>
                             <td>Summary of Activities</td>
@@ -274,6 +275,7 @@
                         </tr>
                         @foreach($objective->activities as $activity)
                             <tr>
+                                <td>{{ $loop->iteration }} of {{ $loop->count }}</td>
                                 <td>{{ $activity->activity ?? 'N/A' }}</td>
                                 <td>{{ $activity->month ?? 'N/A' }}</td>
                                 <td>{{ $activity->summary_activities ?? 'N/A' }}</td>
@@ -388,6 +390,9 @@
                             @if($photo['description'])
                                 <div class="photo-description">{{ $photo['description'] }}</div>
                             @endif
+                            @if(!empty($photo['photo_location']))
+                                <div class="photo-location" style="font-size: 10pt;">{{ $photo['photo_location'] }}</div>
+                            @endif
                         </div>
                     @endforeach
                 </div>
@@ -398,6 +403,12 @@
         <div class="no-photos">
             <p>No photos or documentation found for this report.</p>
         </div>
+    @endif
+
+    <!-- Comments by Project Monitoring Committee (PMC) -->
+    @if(trim((string)($report->pmc_comments ?? '')) !== '')
+        <div class="section-header">Comments by Project Monitoring Committee</div>
+        <div class="avoid-break" style="margin-bottom: 20px;">{!! nl2br(e(trim($report->pmc_comments))) !!}</div>
     @endif
 
     <!-- Footer -->

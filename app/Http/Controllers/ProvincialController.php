@@ -1591,7 +1591,16 @@ class ProvincialController extends Controller
             return redirect()->back()->with('error', 'You are not authorized to forward this report.');
         }
 
+        // PMC: validate when present (optional for forward from list/queue)
+        $request->validate(['pmc_comments' => 'nullable|string|max:5000']);
+
         try {
+            // PMC: save when provided (report show Forward modal sends it; list/queue may not)
+            if ($request->filled('pmc_comments')) {
+                $report->pmc_comments = $request->pmc_comments;
+                $report->save();
+            }
+
             // Use ReportStatusService to forward and log status change
             ReportStatusService::forwardToCoordinator($report, $provincial);
 

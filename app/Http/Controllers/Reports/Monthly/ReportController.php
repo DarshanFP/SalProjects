@@ -26,11 +26,16 @@ use App\Http\Requests\Reports\Monthly\StoreMonthlyReportRequest;
 use App\Http\Requests\Reports\Monthly\UpdateMonthlyReportRequest;
 use App\Services\ActivityHistoryService;
 use App\Services\NotificationService;
+use App\Services\ProjectQueryService;
+use App\Services\ReportMonitoringService;
+use App\Services\ReportPhotoOptimizationService;
 use App\Services\ReportStatusService;
 use App\Models\User;
+use App\Traits\HandlesReportPhotoActivity;
 
 class ReportController extends Controller
 {
+    use HandlesReportPhotoActivity;
     protected $livelihoodAnnexureController;
     protected $institutionalGroupController;
     protected $residentialSkillTrainingController;
@@ -481,45 +486,60 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
     $activitiesInput = $request->input("activity.$objectiveIndex", []);
     $projectActivityIds = $request->input("project_activity_id.$objectiveIndex", []);
 
+    $keptActivityIds = [];
+
     foreach ($activitiesInput as $activityIndex => $activityText) {
+        $month = $request->input("month.$objectiveIndex.$activityIndex");
+        $summary = $request->input("summary_activities.$objectiveIndex.$activityIndex.1");
+        $qual = $request->input("qualitative_quantitative_data.$objectiveIndex.$activityIndex.1");
+        $inter = $request->input("intermediate_outcomes.$objectiveIndex.$activityIndex.1");
+        $projectActivityId = $projectActivityIds[$activityIndex] ?? null;
+
+        // Month is filled by JS (report-period-sync), not by user. Only store when at least
+        // one user-filled field is present; otherwise ignore this activity (and its month).
+        $filled = (trim((string) ($summary ?? '')) !== '')
+            || (trim((string) ($qual ?? '')) !== '')
+            || (trim((string) ($inter ?? '')) !== '')
+            || (
+                trim((string) ($projectActivityId ?? '')) === ''
+                && trim((string) ($activityText ?? '')) !== ''
+            );
+
+        if (! $filled) {
+            continue;
+        }
+
         $activity_id_suffix = str_pad($activityIndex + 1, 3, '0', STR_PAD_LEFT);
         $activity_id = "{$objective_id}-{$activity_id_suffix}";
-
-        // Retrieve project_activity_id
-        $projectActivityId = $projectActivityIds[$activityIndex] ?? null;
+        $keptActivityIds[] = $activity_id;
 
         $activityData = [
             'objective_id' => $objective->objective_id,
             'project_activity_id' => $projectActivityId,
             'activity' => $activityText,
-            'month' => $request->input("month.$objectiveIndex.$activityIndex"),
-            'summary_activities' => $request->input("summary_activities.$objectiveIndex.$activityIndex.1"),
-            'qualitative_quantitative_data' => $request->input("qualitative_quantitative_data.$objectiveIndex.$activityIndex.1"),
-            'intermediate_outcomes' => $request->input("intermediate_outcomes.$objectiveIndex.$activityIndex.1"),
+            'month' => $month,
+            'summary_activities' => $summary,
+            'qualitative_quantitative_data' => $qual,
+            'intermediate_outcomes' => $inter,
         ];
 
         Log::info('Processing activity data:', $activityData);
 
-        // Check if the activity already exists
         $activity = DPActivity::where('activity_id', $activity_id)->first();
 
         if ($activity) {
-            // Update existing activity
             $activity->update($activityData);
             Log::info('Activity updated:', $activity->toArray());
         } else {
-            // Create a new activity
             $activityData['activity_id'] = $activity_id;
             $activity = DPActivity::create($activityData);
             Log::info('Activity created:', $activity->toArray());
         }
     }
 
-    // Remove any activities not included in the request
+    // Remove activities not in the request or that were skipped (no user-filled field).
     DPActivity::where('objective_id', $objective->objective_id)
-        ->whereNotIn('activity_id', array_map(function ($activityIndex) use ($objective_id) {
-            return "{$objective_id}-" . str_pad($activityIndex + 1, 3, '0', STR_PAD_LEFT);
-        }, array_keys($activitiesInput)))
+        ->whereNotIn('activity_id', $keptActivityIds)
         ->delete();
 }
 
@@ -664,6 +684,7 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             Log::error('Report not found', ['report_id' => $report_id]);
             return;
         }
+        $report->load('objectives.activities');
 
         // Get project to access project_id
         $project = Project::where('project_id', $report->project_id)->first();
@@ -677,10 +698,24 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
 
         if ($photos && count($photos) > 0) {
             Log::info('Photos found in request');
+            $monthYear = date('m_Y', strtotime($report->reporting_period_from));
+            $folderPath = "REPORTS/{$project->project_id}/{$report_id}/photos/{$monthYear}";
+            $optimizer = app(ReportPhotoOptimizationService::class);
 
             foreach ($photos as $groupIndex => $files) {
-                $description = $request->input('photo_descriptions')[$groupIndex] ?? '';
-                Log::info("Processing photo group {$groupIndex}", ['description' => $description]);
+                $val = $request->input("photo_activity_id.{$groupIndex}") ?? ($request->input('photo_activity_id')[$groupIndex] ?? null);
+                $activity_id = $this->resolveActivityId($report, $val);
+
+                $existingCount = $activity_id
+                    ? DPPhoto::where('activity_id', $activity_id)->count()
+                    : DPPhoto::where('report_id', $report_id)->whereNull('activity_id')->count();
+                if ($activity_id !== null && $existingCount + count($files) > 3) {
+                    $files = array_slice($files, 0, max(0, 3 - $existingCount));
+                    Log::warning('Photo group truncated to 3 per activity', ['group_index' => $groupIndex, 'activity_id' => $activity_id]);
+                }
+
+                Log::info("Processing photo group {$groupIndex}", ['activity_id' => $activity_id]);
+                $addedInGroup = 0;
 
                 foreach ($files as $fileIndex => $file) {
                     if (!$file->isValid()) {
@@ -715,38 +750,35 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
                         'file_index' => $fileIndex,
                     ]);
 
-                    // Generate photo_id with 4-digit suffix
-                    $latestPhoto = DPPhoto::where('photo_id', 'LIKE', "{$report_id}-%")
-                        ->latest('photo_id')
-                        ->lockForUpdate()
-                        ->first();
-
+                    $latestPhoto = DPPhoto::where('photo_id', 'LIKE', "{$report_id}-%")->latest('photo_id')->lockForUpdate()->first();
                     $max_suffix = $latestPhoto ? intval(substr($latestPhoto->photo_id, -4)) + 1 : 1;
                     $photo_id = "{$report_id}-" . str_pad($max_suffix, 4, '0', STR_PAD_LEFT);
 
-                    // Create folder structure: REPORTS/{project_id}/{report_id}/photos/{month_year}/
-                    $monthYear = date('m_Y', strtotime($report->reporting_period_from));
-                    $folderPath = "REPORTS/{$project->project_id}/{$report_id}/photos/{$monthYear}";
+                    $result = $optimizer->optimize($file);
+                    $ext = $result !== null ? 'jpg' : (strtolower(pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION)) ?: 'jpg');
+                    $incremental = $existingCount + $addedInGroup + 1;
+                    $filename = $this->buildActivityBasedFilename($report, $activity_id, $incremental, $ext);
+                    $path = $folderPath . '/' . $filename;
 
-                    // Store the file in the new directory structure
-                    $path = $file->storeAs($folderPath, $file->getClientOriginalName(), 'public');
+                    if ($result !== null) {
+                        Storage::disk('public')->put($path, $result['data']);
+                        $photo_location = $result['location'] ?? null;
+                    } else {
+                        $path = $file->storeAs($folderPath, $filename, 'public');
+                        $photo_location = null;
+                    }
 
-                    // Log the successful storage of the photo
-                    Log::info('Photo stored successfully', [
-                        'path' => $path,
-                        'photo_id' => $photo_id,
-                        'group_index' => $groupIndex,
-                        'file_index' => $fileIndex,
-                    ]);
+                    Log::info('Photo stored successfully', ['path' => $path, 'photo_id' => $photo_id, 'group_index' => $groupIndex, 'file_index' => $fileIndex]);
 
-                    // Save file details to the database
                     DPPhoto::create([
                         'photo_id' => $photo_id,
                         'report_id' => $report_id,
+                        'activity_id' => $activity_id,
                         'photo_path' => $path,
-                        'description' => $description,
+                        'description' => $activity_id === null ? ($request->input("photo_descriptions.{$groupIndex}") ?? null) : null,
+                        'photo_location' => $photo_location,
                     ]);
-
+                    $addedInGroup++;
                     Log::info('Photo record created in database', ['photo_id' => $photo_id]);
                 }
             }
@@ -770,6 +802,7 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             Log::error('Report not found', ['report_id' => $report_id]);
             return;
         }
+        $report->load('objectives.activities');
 
         // Get project to access project_id
         $project = Project::where('project_id', $report->project_id)->first();
@@ -778,81 +811,84 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             return;
         }
 
-        // Handle existing photos that should be kept
         $existingPhotoIds = $request->input('existing_photo_ids', []);
         $photoDescriptions = $request->input('photo_descriptions', []);
+        $photoActivityIds = is_array($request->input('photo_activity_id', [])) ? $request->input('photo_activity_id') : [];
 
-        // Update descriptions for existing photos
         foreach ($existingPhotoIds as $index => $photoId) {
-            if ($photoId) {
-                $photo = DPPhoto::where('photo_id', $photoId)
-                               ->where('report_id', $report_id)
-                               ->first();
-                if ($photo) {
-                    $description = $photoDescriptions[$index] ?? '';
-                    $photo->update(['description' => $description]);
-                    Log::info("Updated existing photo description: {$photoId}");
-                }
+            if (!$photoId) {
+                continue;
             }
+            $photo = DPPhoto::where('photo_id', $photoId)->where('report_id', $report_id)->first();
+            if (!$photo) {
+                continue;
+            }
+            // Group key by activity (aligned with edit form: one section per activity)
+            $groupKey = $photo->activity_id ?? '_unassigned_';
+            $description = $photoDescriptions[$groupKey] ?? $photo->description ?? '';
+            $updates = ['description' => $description];
+            if ($request->has('photo_activity_id')) {
+                $val = $photoActivityIds[$groupKey] ?? '__unassigned__';
+                $resolved = $this->resolveActivityId($report, $val);
+                $updates['activity_id'] = $resolved;
+                $updates['description'] = $resolved === null ? $description : null;
+            }
+            $photo->update($updates);
+            Log::info("Updated existing photo: {$photoId}");
         }
 
-        // Handle new photo uploads
+        // Handle new photo uploads (same as handlePhotos: activity_id, 3-per-activity, activity-based filename)
         $photos = $request->file('photos');
         if ($photos && count($photos) > 0) {
             Log::info('New photos found in request');
+            $monthYear = date('m_Y', strtotime($report->reporting_period_from));
+            $folderPath = "REPORTS/{$project->project_id}/{$report_id}/photos/{$monthYear}";
+            $optimizer = app(ReportPhotoOptimizationService::class);
 
             foreach ($photos as $groupIndex => $files) {
-                $description = $photoDescriptions[$groupIndex] ?? '';
-                Log::info("Processing new photo group {$groupIndex}", ['description' => $description]);
+                $val = $request->input("photo_activity_id.{$groupIndex}") ?? ($request->input('photo_activity_id')[$groupIndex] ?? null);
+                $activity_id = $this->resolveActivityId($report, $val);
 
+                $existingCount = $activity_id
+                    ? DPPhoto::where('activity_id', $activity_id)->count()
+                    : DPPhoto::where('report_id', $report_id)->whereNull('activity_id')->count();
+                if ($activity_id !== null && $existingCount + count($files) > 3) {
+                    $files = array_slice($files, 0, max(0, 3 - $existingCount));
+                    Log::warning('Photo group truncated to 3 per activity', ['group_index' => $groupIndex, 'activity_id' => $activity_id]);
+                }
+
+                $addedInGroup = 0;
                 foreach ($files as $fileIndex => $file) {
-                    if (!$file->isValid()) {
-                        Log::error('Invalid file detected', [
-                            'error' => $file->getErrorMessage(),
-                            'file_name' => $file->getClientOriginalName(),
-                            'size' => $file->getSize(),
-                            'mime_type' => $file->getMimeType(),
-                            'group_index' => $groupIndex,
-                            'file_index' => $fileIndex,
-                        ]);
+                    if (!$file->isValid() || $file->getSize() > 2097152) {
                         continue;
                     }
-
-                    // Check file size (2MB limit)
-                    if ($file->getSize() > 2097152) { // 2MB in bytes
-                        Log::error('Photo file too large', [
-                            'file_name' => $file->getClientOriginalName(),
-                            'size' => $file->getSize(),
-                            'group_index' => $groupIndex,
-                            'file_index' => $fileIndex,
-                        ]);
-                        continue;
-                    }
-
-                    // Generate photo_id with 4-digit suffix
-                    $latestPhoto = DPPhoto::where('photo_id', 'LIKE', "{$report_id}-%")
-                        ->latest('photo_id')
-                        ->lockForUpdate()
-                        ->first();
-
+                    $latestPhoto = DPPhoto::where('photo_id', 'LIKE', "{$report_id}-%")->latest('photo_id')->lockForUpdate()->first();
                     $max_suffix = $latestPhoto ? intval(substr($latestPhoto->photo_id, -4)) + 1 : 1;
                     $photo_id = "{$report_id}-" . str_pad($max_suffix, 4, '0', STR_PAD_LEFT);
 
-                    // Create folder structure: REPORTS/{project_id}/{report_id}/photos/{month_year}/
-                    $monthYear = date('m_Y', strtotime($report->reporting_period_from));
-                    $folderPath = "REPORTS/{$project->project_id}/{$report_id}/photos/{$monthYear}";
+                    $result = $optimizer->optimize($file);
+                    $ext = $result !== null ? 'jpg' : (strtolower(pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION)) ?: 'jpg');
+                    $incremental = $existingCount + $addedInGroup + 1;
+                    $filename = $this->buildActivityBasedFilename($report, $activity_id, $incremental, $ext);
+                    $path = $folderPath . '/' . $filename;
 
-                    // Store the file in the new directory structure
-                    $path = $file->storeAs($folderPath, $file->getClientOriginalName(), 'public');
+                    if ($result !== null) {
+                        Storage::disk('public')->put($path, $result['data']);
+                        $photo_location = $result['location'] ?? null;
+                    } else {
+                        $path = $file->storeAs($folderPath, $filename, 'public');
+                        $photo_location = null;
+                    }
 
-                    // Save file details to the database
                     DPPhoto::create([
                         'photo_id' => $photo_id,
                         'report_id' => $report_id,
+                        'activity_id' => $activity_id,
                         'photo_path' => $path,
-                        'description' => $description,
+                        'description' => $activity_id === null ? ($request->input("photo_descriptions.{$groupIndex}") ?? null) : null,
+                        'photo_location' => $photo_location,
                     ]);
-
+                    $addedInGroup++;
                     Log::info('New photo record created in database', ['photo_id' => $photo_id]);
                 }
             }
@@ -871,13 +907,13 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
                     if (Storage::disk('public')->exists($photo->photo_path)) {
                         $fileDeleted = Storage::disk('public')->delete($photo->photo_path);
                         Log::info('Photo file deletion attempt', [
-                            'photo_id' => $photo_id,
+                            'photo_id' => $photoId,
                             'photo_path' => $photo->photo_path,
                             'deleted' => $fileDeleted
                         ]);
                     } else {
                         Log::warning('Photo file not found in storage', [
-                            'photo_id' => $photo_id,
+                            'photo_id' => $photoId,
                             'photo_path' => $photo->photo_path
                         ]);
                     }
@@ -968,6 +1004,7 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
         $user = Auth::user();
         $report = DPReport::with([
             'objectives.activities.timeframes',
+            'objectives.activities.photos',
             'accountDetails',
             'photos',
             'outlooks',
@@ -997,14 +1034,54 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             $objective->expected_outcome = json_decode($objective->expected_outcome, true) ?? [];
         }
 
-        // Group photos by description
-        $groupedPhotos = $report->photos->groupBy('description');
+        // Only show activities where the user filled at least one field (month, summary, qual, inter, or "Add Other" activity).
+        foreach ($report->objectives as $objective) {
+            $objective->setRelation(
+                'activities',
+                $objective->activities->filter(fn ($a) => $a->hasUserFilledData())->values()
+            );
+        }
 
-        // Retrieve associated project with eager loading to prevent N+1 queries
+        // Unassigned photos only (activity_id is null). Activity-linked photos are shown under each activity in objectives.
+        $unassignedPhotos = $report->photos->whereNull('activity_id');
+
+        // Retrieve associated project with eager loading to prevent N+1 queries.
+        // objectives.activities.timeframes: required for Provincial activity monitoring (Phase 1–2).
         $project = Project::where('project_id', $report->project_id)
-            ->with(['user', 'budgets'])
+            ->with(['user', 'budgets', 'objectives.activities.timeframes'])
             ->firstOrFail();
         Log::info('Project retrieved successfully', ['project_id' => $project->project_id]);
+
+        // Report month (1–12) for activity monitoring (Phase 2). Null if report_month_year not set.
+        $reportMonth = $report->report_month_year
+            ? (int) \Carbon\Carbon::parse($report->report_month_year)->format('n')
+            : null;
+
+        // Provincial monitoring (Phases 2–5): safe defaults so partials never see undefined (Phase 6.3).
+        $monitoringPerObjective = [];
+        $activitiesScheduledButNotReportedGroupedByObjective = [];
+        $reportedActivityScheduleStatus = [];
+        $budgetOverspendRows = [];
+        $budgetNegativeBalanceRows = [];
+        $budgetUtilisation = ['total_sanctioned' => 0, 'total_expenses' => 0, 'utilisation_percent' => 0, 'alerts' => []];
+        $typeSpecificChecks = [];
+
+        $report->setRelation('project', $project);
+        $monitoringService = app(ReportMonitoringService::class);
+        try {
+            $monitoringPerObjective = $monitoringService->getMonitoringPerObjective($report);
+
+            // Refined Activity Monitoring (Updates): grouped "scheduled but not reported", and status for inline badges
+            $activitiesScheduledButNotReportedGroupedByObjective = $monitoringService->getActivitiesScheduledButNotReportedGroupedByObjective($report);
+            $reportedActivityScheduleStatus = $monitoringService->getReportedActivityScheduleStatus($report);
+
+            // Provincial budget monitoring (Phase 3)
+            $budgetOverspendRows = $monitoringService->getBudgetOverspendRows($report);
+            $budgetNegativeBalanceRows = $monitoringService->getNegativeBalanceRows($report);
+            $budgetUtilisation = $monitoringService->getBudgetUtilisationSummary($report);
+        } catch (\Throwable $e) {
+            Log::warning('Report monitoring (activity/budget) failed', ['report_id' => $report->report_id, 'error' => $e->getMessage()]);
+        }
 
         // Get budget data based on project type
         $budgets = $this->getBudgetDataByProjectType($project);
@@ -1018,63 +1095,119 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
         switch ($report->project_type) {
             case 'Livelihood Development Projects':
                 $annexures = $this->livelihoodAnnexureController->getAnnexures($report_id);
+                $report->setRelation('annexures', $annexures);
                 break;
             case 'Institutional Ongoing Group Educational proposal':
                 $ageProfiles = $this->institutionalGroupController->getAgeProfiles($report_id);
+                $report->setRelation('rqis_age_profile', $ageProfiles);
                 break;
             case 'Residential Skill Training Proposal 2':
                 $traineeProfiles = $this->residentialSkillTrainingController->getTraineeProfiles($report_id);
-                // Arrange them in array
-                if ($report->project_type === 'Residential Skill Training Proposal 2') {
-                    $education = [];
-                    foreach ($traineeProfiles as $profile) {
-                        $category = $profile->education_category;
-                        $number = $profile->number;
+                $report->setRelation('rqst_trainee_profile', $traineeProfiles);
+                // Build report->education for RST monitoring
+                $education = [];
+                foreach ($traineeProfiles as $profile) {
+                    $category = $profile->education_category;
+                    $number = $profile->number;
 
-                        switch ($category) {
-                            case 'Below 9th standard':
-                                $education['below_9'] = $number;
-                                break;
-                            case '10th class failed':
-                                $education['class_10_fail'] = $number;
-                                break;
-                            case '10th class passed':
-                                $education['class_10_pass'] = $number;
-                                break;
-                            case 'Intermediate':
-                                $education['intermediate'] = $number;
-                                break;
-                            case 'Intermediate and above':
-                                $education['above_intermediate'] = $number;
-                                break;
-                            case 'Total':
-                                $education['total'] = $number;
-                                break;
-                            default:
-                                // For 'Other' category
-                                $education['other'] = $category; // The category name is the 'other' text
-                                $education['other_count'] = $number;
-                                break;
-                        }
+                    switch ($category) {
+                        case 'Below 9th standard':
+                            $education['below_9'] = $number;
+                            break;
+                        case '10th class failed':
+                            $education['class_10_fail'] = $number;
+                            break;
+                        case '10th class passed':
+                            $education['class_10_pass'] = $number;
+                            break;
+                        case 'Intermediate':
+                            $education['intermediate'] = $number;
+                            break;
+                        case 'Intermediate and above':
+                            $education['above_intermediate'] = $number;
+                            break;
+                        case 'Total':
+                            $education['total'] = $number;
+                            break;
+                        default:
+                            $education['other'] = $category;
+                            $education['other_count'] = $number;
+                            break;
                     }
-                    $report->education = $education;
                 }
+                $report->education = $education;
                 break;
             case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
                 $inmateProfiles = $this->crisisInterventionCenterController->getInmateProfiles($report_id);
+                $report->setRelation('rqwd_inmate_profile', $inmateProfiles);
                 break;
+        }
+
+        // Type-specific monitoring (Phase 4): LDP, IGE, RST, CIC
+        // Phase 5: Individual (ILP, IAH, IES, IIES), Development/CCI/Rural-Urban-Tribal/NEXT PHASE, Beneficiary
+        try {
+        if ($report->project_type === 'Livelihood Development Projects') {
+            $typeSpecificChecks['ldp'] = $monitoringService->getLdpAnnexureChecks($report);
+        } elseif ($report->project_type === 'Institutional Ongoing Group Educational proposal') {
+            $typeSpecificChecks['ige'] = $monitoringService->getIgeAgeProfileChecks($report);
+        } elseif ($report->project_type === 'Residential Skill Training Proposal 2') {
+            $typeSpecificChecks['rst'] = $monitoringService->getRstTraineeChecks($report);
+        } elseif ($report->project_type === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER') {
+            $typeSpecificChecks['cic'] = $monitoringService->getCicInmateChecks($report);
+        } elseif (in_array($report->project_type, [
+            'Individual - Livelihood Application',
+            'Individual - Access to Health',
+            'Individual - Initial - Educational support',
+            'Individual - Ongoing Educational support',
+        ], true)) {
+            $typeSpecificChecks['individual'] = $monitoringService->getIndividualBudgetChecks($report, $project);
+        } elseif (in_array($report->project_type, [
+            'Development Projects',
+            'CHILD CARE INSTITUTION',
+            'Rural-Urban-Tribal',
+            'NEXT PHASE - DEVELOPMENT PROPOSAL',
+        ], true)) {
+            $typeSpecificChecks['development'] = $monitoringService->getDevelopmentAndSimilarChecks($report, $project);
+        }
+
+        $typeSpecificForBeneficiary = [
+            'Livelihood Development Projects',
+            'Institutional Ongoing Group Educational proposal',
+            'Residential Skill Training Proposal 2',
+            'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER',
+            'Individual - Livelihood Application',
+            'Individual - Access to Health',
+            'Individual - Initial - Educational support',
+            'Individual - Ongoing Educational support',
+            'Development Projects',
+            'CHILD CARE INSTITUTION',
+            'Rural-Urban-Tribal',
+            'NEXT PHASE - DEVELOPMENT PROPOSAL',
+        ];
+        if (in_array($report->project_type ?? '', $typeSpecificForBeneficiary, true)) {
+            $typeSpecificChecks['beneficiary'] = $monitoringService->getBeneficiaryConsistencyChecks($report, $project);
+        }
+        } catch (\Throwable $e) {
+            Log::warning('Report monitoring (type-specific) failed', ['report_id' => $report->report_id, 'error' => $e->getMessage()]);
         }
 
         // Pass data to the view
         return view('reports.monthly.show', compact(
             'report',
-            'groupedPhotos',
+            'unassignedPhotos',
             'project',
             'budgets',
             'annexures',
             'ageProfiles',
             'traineeProfiles',
-            'inmateProfiles'
+            'inmateProfiles',
+            'monitoringPerObjective',
+            'activitiesScheduledButNotReportedGroupedByObjective',
+            'reportedActivityScheduleStatus',
+            'budgetOverspendRows',
+            'budgetNegativeBalanceRows',
+            'budgetUtilisation',
+            'typeSpecificChecks'
         ));
     }
 
@@ -1118,9 +1251,35 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
         foreach ($report->objectives as $objective) {
             $objective->expected_outcome = json_decode($objective->expected_outcome, true) ?? [];
         }
-        // Group photos by description (or other criterion)
-        $groupedPhotos = $report->photos->groupBy('description');
-        Log::info('Grouped photos by description', ['groupedPhotos' => $groupedPhotos]);
+        // Group photos by activity_id (align with create: one section per activity)
+        $byActivity = $report->photos->groupBy(fn ($p) => $p->activity_id ?? '_unassigned_');
+        $ordered = [];
+        $objNum = 0;
+        foreach ($report->objectives ?? [] as $obj) {
+            $objNum++;
+            foreach ($obj->activities ?? [] as $act) {
+                $aid = $act->activity_id ?? null;
+                if ($aid && $byActivity->has($aid)) {
+                    $label = 'Objective ' . $objNum . ' – ' . \Str::limit($act->activity ?? 'Activity', 50);
+                    $ordered[] = ['groupKey' => $aid, 'photos' => $byActivity->get($aid), 'activityLabel' => $label];
+                }
+            }
+        }
+        // Orphan activity_ids (in photos but no longer in report objectives)
+        $seen = collect($ordered)->pluck('groupKey')->all();
+        foreach ($byActivity->keys() as $k) {
+            if ($k === '_unassigned_' || in_array($k, $seen)) {
+                continue;
+            }
+            $act = \App\Models\Reports\Monthly\DPActivity::where('activity_id', $k)->first();
+            $label = $act ? \Str::limit($act->activity ?? 'Activity', 50) : 'Activity (removed from report)';
+            $ordered[] = ['groupKey' => $k, 'photos' => $byActivity->get($k), 'activityLabel' => $label];
+        }
+        if ($byActivity->has('_unassigned_')) {
+            $ordered[] = ['groupKey' => '_unassigned_', 'photos' => $byActivity->get('_unassigned_'), 'activityLabel' => 'Unassigned'];
+        }
+        $groupedPhotos = $ordered;
+        Log::info('Grouped photos by activity', ['count' => count($groupedPhotos)]);
 
         // Fetch the associated project
         $project = Project::where('project_id', $report->project_id)->firstOrFail();

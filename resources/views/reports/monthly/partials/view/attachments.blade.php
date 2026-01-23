@@ -10,7 +10,7 @@
                 <label class="form-label">Existing Attachments</label>
                 <ul>
                     @foreach($report->attachments as $attachment)
-                        <div class="card-body att-grp">
+                        <div class="card-body att-grp report-value-entered">
                             <li>
                                 @php
                                     $fileExists = \Illuminate\Support\Facades\Storage::disk('public')->exists($attachment->file_path);

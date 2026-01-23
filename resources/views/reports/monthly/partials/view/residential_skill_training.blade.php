@@ -13,32 +13,32 @@
         <div class="row">
             <!-- Education of Trainees -->
             <div class="col-2 report-label-col">Below 9th standard</div>
-            <div class="col-10 report-value-col">{{ $report->education['below_9'] ?? 0 }}</div>
+            <div class="col-10 report-value-col report-value-entered">{{ $report->education['below_9'] ?? 0 }}</div>
         </div>
         <div class="row">
             <div class="col-2 report-label-col">10th class failed</div>
-            <div class="col-10 report-value-col">{{ $report->education['class_10_fail'] ?? 0 }}</div>
+            <div class="col-10 report-value-col report-value-entered">{{ $report->education['class_10_fail'] ?? 0 }}</div>
         </div>
         <div class="row">
             <div class="col-2 report-label-col">10th class passed</div>
-            <div class="col-10 report-value-col">{{ $report->education['class_10_pass'] ?? 0 }}</div>
+            <div class="col-10 report-value-col report-value-entered">{{ $report->education['class_10_pass'] ?? 0 }}</div>
         </div>
         <div class="row">
             <div class="col-2 report-label-col">Intermediate</div>
-            <div class="col-10 report-value-col">{{ $report->education['intermediate'] ?? 0 }}</div>
+            <div class="col-10 report-value-col report-value-entered">{{ $report->education['intermediate'] ?? 0 }}</div>
         </div>
         <div class="row">
             <div class="col-2 report-label-col">Intermediate and above</div>
-            <div class="col-10 report-value-col">{{ $report->education['above_intermediate'] ?? 0 }}</div>
+            <div class="col-10 report-value-col report-value-entered">{{ $report->education['above_intermediate'] ?? 0 }}</div>
         </div>
         <div class="row">
             <div class="col-2 report-label-col">{{ $report->education['other'] ?? 'Other (if any)' }}</div>
-            <div class="col-10 report-value-col">{{ $report->education['other_count'] ?? 0 }}</div>
+            <div class="col-10 report-value-col report-value-entered">{{ $report->education['other_count'] ?? 0 }}</div>
         </div>
         <div class="row">
             <!-- Total -->
             <div class="col-2 report-label-col"><strong>Total</strong></div>
-            <div class="col-10 report-value-col"><strong>{{ $report->education['total'] ?? 0 }}</strong></div>
+            <div class="col-10 report-value-col report-value-entered"><strong>{{ $report->education['total'] ?? 0 }}</strong></div>
         </div>
     </div>
 </div>

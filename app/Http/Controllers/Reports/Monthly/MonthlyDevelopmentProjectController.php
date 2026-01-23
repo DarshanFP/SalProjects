@@ -15,48 +15,63 @@ use App\Models\Reports\Monthly\DPOutlook;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use App\Helpers\LogHelper;
+use App\Services\ReportPhotoOptimizationService;
+use App\Traits\HandlesReportPhotoActivity;
 
 class MonthlyDevelopmentProjectController extends Controller
 {
+    use HandlesReportPhotoActivity;
     public function create($project_id)
     {
-        // Retrieve the project details using the correct identifier
         $project = Project::where('project_id', $project_id)->firstOrFail();
-
-        // Determine the highest phase for the given project
         $highestPhase = ProjectBudget::where('project_id', $project->project_id)->max('phase');
-
-        // Retrieve the budget data for the highest phase
-        $budgets = ProjectBudget::where('project_id', $project->project_id)
-                                ->where('phase', $highestPhase)
-                                ->get();
-
-        // Use the actual columns from the Project model
-        $amountSanctioned = $project->amount_sanctioned ?? 0;  // total sanctioned amount for the project
-        $amountForwarded = 0;  // Always set to 0 - no longer used in reports
-
-        // Calculate expenses up to last month for each particular
-        $expensesUpToLastMonth = DPAccountDetail::where('report_id', function($query) use ($project) {
-            $query->select('id')
-                ->from('dp_reports')
-                ->where('project_id', $project->project_id)
-                ->orderBy('created_at', 'desc')
-                ->first();
+        $budgets = ProjectBudget::where('project_id', $project->project_id)->where('phase', $highestPhase)->get();
+        $amountSanctioned = $project->amount_sanctioned ?? 0;
+        $amountForwarded = 0;
+        $expensesUpToLastMonth = DPAccountDetail::where('report_id', function ($q) use ($project) {
+            $q->select('id')->from('dp_reports')->where('project_id', $project->project_id)->orderBy('created_at', 'desc')->limit(1);
         })->sum('expenses_this_month');
-
         $user = Auth::user();
+
         return view('reports.monthly.ReportCommonForm', compact('project', 'user', 'amountSanctioned', 'amountForwarded', 'budgets', 'expensesUpToLastMonth'));
+    }
+
+    /**
+     * Show developmentProject/reportform (aligned with activity-based photos).
+     */
+    public function createForm($project_id)
+    {
+        $project = Project::where('project_id', $project_id)->firstOrFail();
+        $highestPhase = ProjectBudget::where('project_id', $project->project_id)->max('phase');
+        $budgets = ProjectBudget::where('project_id', $project->project_id)->where('phase', $highestPhase)->get();
+        $amountSanctioned = $project->amount_sanctioned ?? 0;
+        $amountForwarded = 0;
+        $reportId = DPReport::where('project_id', $project->project_id)->orderBy('created_at', 'desc')->value('report_id');
+        $sum = $reportId ? DPAccountDetail::where('report_id', $reportId)->sum('expenses_this_month') : 0;
+        $expensesUpToLastMonth = $budgets->pluck('id')->mapWithKeys(fn ($id) => [$id => $sum])->all();
+        $user = Auth::user();
+
+        return view('reports.monthly.developmentProject.reportform', compact('project', 'user', 'amountSanctioned', 'amountForwarded', 'budgets', 'expensesUpToLastMonth'));
     }
 
 
     public function store(Request $request)
     {
-        // Log the request data
         Log::info('Store method called');
         LogHelper::logSafeRequest('Request data', $request, LogHelper::getReportAllowedFields());
 
-        // Validate the incoming request data
+        // developmentProject/reportform sends report_month_year (YYYY-MM); adapt to reporting_period_month/year
+        if ($request->has('report_month_year') && ! $request->has('reporting_period_month')) {
+            $p = explode('-', (string) $request->report_month_year);
+            $request->merge([
+                'reporting_period_year' => (int) ($p[0] ?? date('Y')),
+                'reporting_period_month' => (int) ($p[1] ?? 1),
+            ]);
+        }
+
         $validatedData = $request->validate([
             'project_id' => 'required|exists:projects,project_id',
             'total_beneficiaries' => 'nullable|integer',
@@ -69,8 +84,9 @@ class MonthlyDevelopmentProjectController extends Controller
             'amount_sanctioned_overview' => 'nullable|numeric',
             'amount_in_hand' => 'nullable|numeric',
             'photos' => 'nullable|array',
-            'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'photo_descriptions' => 'nullable|array',
+            'photo_activity_id' => 'nullable|array',
+            'photo_activity_id.*' => 'nullable|string|max:255',
             'objective' => 'nullable|array',
             'objective.*' => 'nullable|string',
         ]);
@@ -121,6 +137,20 @@ class MonthlyDevelopmentProjectController extends Controller
                 $qualitativeQuantitativeData = $request->input("qualitative_quantitative_data.$index.$activityIndex");
                 $intermediateOutcomes = $request->input("intermediate_outcomes.$index.$activityIndex");
 
+                $summaryStr = is_array($summaryActivities) ? implode(' ', $summaryActivities) : ($summaryActivities ?? '');
+                $qualStr = is_array($qualitativeQuantitativeData) ? implode(' ', $qualitativeQuantitativeData) : ($qualitativeQuantitativeData ?? '');
+                $interStr = is_array($intermediateOutcomes) ? implode(' ', $intermediateOutcomes) : ($intermediateOutcomes ?? '');
+
+                // Only store when the user has filled at least one activity field.
+                $filled = (trim((string) ($month ?? '')) !== '')
+                    || (trim((string) $summaryStr) !== '')
+                    || (trim((string) $qualStr) !== '')
+                    || (trim((string) $interStr) !== '');
+
+                if (! $filled) {
+                    continue;
+                }
+
                 $activityData = [
                     'objective_id' => $objective->objective_id,
                     'month' => date("Y-m-d", strtotime($month . " 01")), // Convert month to a full date
@@ -136,37 +166,62 @@ class MonthlyDevelopmentProjectController extends Controller
             }
         }
 
-        // Handle file uploads
-        if ($request->hasFile('photos')) {
-            foreach ($request->file('photos') as $index => $file) {
-                Log::info('File Upload:', ['original_name' => $file->getClientOriginalName(), 'size' => $file->getSize()]);
+        // Handle file uploads: photos[groupIndex][] and photo_activity_id[groupIndex] (create photos partial)
+        $report->load('objectives.activities');
+        $photos = $request->file('photos');
+        if ($photos && is_array($photos)) {
+            $monthYear = date('m_Y', strtotime($validatedData['reporting_period_from']));
+            $folderPath = "REPORTS/{$request->project_id}/{$report->report_id}/photos/{$monthYear}";
+            $optimizer = app(ReportPhotoOptimizationService::class);
+            $photoActivityIds = is_array($request->input('photo_activity_id', [])) ? $request->input('photo_activity_id') : [];
 
-                // Check file size (2MB limit)
-                if ($file->getSize() > 2097152) { // 2MB in bytes
-                    Log::error('Photo file too large', [
-                        'file_name' => $file->getClientOriginalName(),
-                        'size' => $file->getSize(),
-                    ]);
-                    continue;
+            foreach ($photos as $groupIndex => $files) {
+                $files = is_array($files) ? $files : [$files];
+                $val = $request->input("photo_activity_id.{$groupIndex}") ?? ($photoActivityIds[$groupIndex] ?? null);
+                $activity_id = $this->resolveActivityId($report, $val);
+
+                $existingCount = $activity_id
+                    ? DPPhoto::where('activity_id', $activity_id)->count()
+                    : DPPhoto::where('report_id', $report->report_id)->whereNull('activity_id')->count();
+                if ($activity_id !== null && $existingCount + count($files) > 3) {
+                    $files = array_slice($files, 0, max(0, 3 - $existingCount));
                 }
 
-                // Create folder structure: REPORTS/{project_id}/{report_id}/photos/{month_year}/
-                $monthYear = date('m_Y', strtotime($validatedData['reporting_period_from']));
-                $folderPath = "REPORTS/{$request->project_id}/{$report->report_id}/photos/{$monthYear}";
+                $addedInGroup = 0;
+                foreach ($files as $file) {
+                    if (! $file || ! $file->isValid() || $file->getSize() > 2097152) {
+                        continue;
+                    }
 
-                $path = $file->storeAs($folderPath, $file->getClientOriginalName(), 'public');
-                Log::info('File Path:', ['path' => $path]);
+                    $latestPhoto = DPPhoto::where('photo_id', 'LIKE', "{$report->report_id}-%")->latest('photo_id')->lockForUpdate()->first();
+                    $max_suffix = $latestPhoto ? (int) substr($latestPhoto->photo_id, -4) + 1 : 1;
+                    $photo_id = $report->report_id . '-' . str_pad((string) $max_suffix, 4, '0', STR_PAD_LEFT);
 
-                $photoData = [
-                    'report_id' => $report->report_id,
-                    'photo_path' => $path,
-                    'description' => $request->photo_descriptions[$index] ?? '',
-                ];
+                    $result = $optimizer->optimize($file);
+                    $ext = $result !== null ? 'jpg' : (strtolower(pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION)) ?: 'jpg');
+                    $incremental = $existingCount + $addedInGroup + 1;
+                    $filename = $this->buildActivityBasedFilename($report, $activity_id, $incremental, $ext);
+                    $path = $folderPath . '/' . $filename;
 
-                Log::info('Photo Data:', $photoData);
+                    if ($result !== null) {
+                        Storage::disk('public')->put($path, $result['data']);
+                        $photo_location = $result['location'] ?? null;
+                    } else {
+                        $path = $file->storeAs($folderPath, $filename, 'public');
+                        $photo_location = null;
+                    }
 
-                $photo = DPPhoto::create($photoData);
-                Log::info('Photo Created: ', $photo->toArray());
+                    DPPhoto::create([
+                        'photo_id' => $photo_id,
+                        'report_id' => $report->report_id,
+                        'activity_id' => $activity_id,
+                        'photo_path' => $path,
+                        'description' => $activity_id === null ? ($request->input("photo_descriptions.{$groupIndex}") ?? $request->photo_descriptions[$groupIndex] ?? null) : null,
+                        'photo_location' => $photo_location,
+                    ]);
+                    $addedInGroup++;
+                    Log::info('Photo created', ['photo_id' => $photo_id]);
+                }
             }
         }
 
@@ -224,6 +279,13 @@ class MonthlyDevelopmentProjectController extends Controller
     public function show($report_id)
     {
         $report = DPReport::with(['objectives.activities', 'photos', 'accountDetails', 'outlooks'])->findOrFail($report_id);
+        // Only show activities where the user filled at least one field.
+        foreach ($report->objectives as $objective) {
+            $objective->setRelation(
+                'activities',
+                $objective->activities->filter(fn ($a) => $a->hasUserFilledData())->values()
+            );
+        }
         return view('reports.monthly.developmentProject.show', compact('report'));
     }
 

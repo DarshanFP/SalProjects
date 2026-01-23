@@ -31,6 +31,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $total_balance_forwarded
  * @property string $status
  * @property string|null $revert_reason
+ * @property string|null $pmc_comments
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Reports\Monthly\DPAccountDetail> $accountDetails
@@ -164,7 +165,8 @@ class DPReport extends Model
         'amount_in_hand',
         'total_balance_forwarded',
         'status',
-        'revert_reason'
+        'revert_reason',
+        'pmc_comments'
     ];
 
     public function user()

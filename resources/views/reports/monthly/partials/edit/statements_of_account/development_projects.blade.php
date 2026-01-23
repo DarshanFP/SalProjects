@@ -151,7 +151,7 @@
             </div>
         </div>
 
-        <table class="table table-bordered">
+        <table class="table table-bordered budget-statements-table">
             <thead>
                 <tr>
                     <th>No.</th>
@@ -162,7 +162,7 @@
                     <th>Expenses of This Month</th>
                     <th>Total Expenses (5+6)</th>
                     <th>Balance Amount</th>
-                    <th>Action</th>
+                    <th class="budget-action-col">Action</th>
                 </tr>
             </thead>
             <tbody id="account-rows">
@@ -173,20 +173,21 @@
                             <input type="hidden" name="account_detail_id[{{$index}}]" value="{{ $accountDetail->account_detail_id }}">
                             <input type="hidden" name="is_budget_row[{{$index}}]" value="{{ $accountDetail->is_budget_row ? '1' : '0' }}">
                             <td>{{ $index + 1 }}</td>
-                            <td><input type="text" name="particulars[]" class="form-control" value="{{ old('particulars.' . $index, $accountDetail->particulars) }}" readonly></td>
+                            <td class="particulars-cell">
+                                @if($accountDetail->is_budget_row)
+                                    <input type="hidden" name="particulars[]" value="{{ old('particulars.' . $index, $accountDetail->particulars) }}">
+                                    <span class="particulars-text">{{ old('particulars.' . $index, $accountDetail->particulars) }}</span>
+                                @else
+                                    <input type="text" name="particulars[]" class="form-control" value="{{ old('particulars.' . $index, $accountDetail->particulars) }}" readonly>
+                                @endif
+                            </td>
                             <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ old('amount_sanctioned.' . $index, $accountDetail->amount_sanctioned) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
                             <td><input type="number" name="total_amount[]" class="form-control" value="{{ old('total_amount.' . $index, $accountDetail->amount_sanctioned) }}" readonly></td>
                             <td><input type="number" name="expenses_last_month[]" class="form-control" value="{{ old('expenses_last_month.' . $index, $accountDetail->expenses_last_month) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
                             <td><input type="number" name="expenses_this_month[]" class="form-control" value="{{ old('expenses_this_month.' . $index, $accountDetail->expenses_this_month) }}" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
                             <td><input type="number" name="total_expenses[]" class="form-control" value="{{ old('total_expenses.' . $index, $accountDetail->total_expenses) }}" readonly></td>
                             <td><input type="number" name="balance_amount[]" class="form-control" value="{{ old('balance_amount.' . $index, $accountDetail->balance_amount) }}" readonly></td>
-                            <td>
-                                @if(!$accountDetail->is_budget_row)
-                                    <button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button>
-                                @else
-                                    <span class="badge bg-info">Budget Row</span>
-                                @endif
-                            </td>
+                            <td class="budget-action-col">@if(!$accountDetail->is_budget_row)<button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button>@endif</td>
                         </tr>
                     @endforeach
                 @elseif(isset($budgets))
@@ -195,16 +196,14 @@
                     <tr data-row-type="budget">
                         <input type="hidden" name="is_budget_row[{{$index}}]" value="1">
                         <td>{{ $index + 1 }}</td>
-                        <td><input type="text" name="particulars[]" class="form-control" value="{{ old('particulars.'.$index, $budget->particular) }}" readonly></td>
+                        <td class="particulars-cell"><input type="hidden" name="particulars[]" value="{{ old('particulars.'.$index, $budget->particular) }}"><span class="particulars-text">{{ old('particulars.'.$index, $budget->particular) }}</span></td>
                         <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ old('amount_sanctioned.'.$index, $budget->this_phase ?? 0.00) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
                         <td><input type="number" name="total_amount[]" class="form-control" value="{{ old('total_amount.'.$index, $budget->this_phase ?? 0.00) }}" readonly></td>
                         <td><input type="number" name="expenses_last_month[]" class="form-control" value="{{ old('expenses_last_month.'.$index, $lastExpenses[$budget->particular] ?? 0.00) }}" readonly></td>
                         <td><input type="number" name="expenses_this_month[]" class="form-control" value="{{ old('expenses_this_month.'.$index, 0.00) }}" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
                         <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
                         <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>
-                        <td>
-                            <span class="badge bg-info">Budget Row</span>
-                        </td>
+                        <td class="budget-action-col"></td>
                     </tr>
                     @endforeach
                 @endif
@@ -219,7 +218,7 @@
                     <th><input type="number" id="total_expenses_this_month" class="form-control" readonly></th>
                     <th><input type="number" id="total_expenses_total" class="form-control" readonly></th>
                     <th><input type="number" id="total_balance" class="form-control" readonly></th>
-                    <th></th>
+                    <th class="budget-action-col"></th>
                 </tr>
             </tfoot>
         </table>
@@ -239,6 +238,7 @@ document.addEventListener('DOMContentLoaded', function() {
     calculateTotal();
     updateAllBalanceColors();
     updateBudgetSummaryCards(); // Update budget cards on page load
+    toggleBudgetActionCol();
 });
 
 function calculateRowTotals(row) {
@@ -330,14 +330,14 @@ function addAccountRow() {
     newRow.innerHTML = `
         <input type="hidden" name="is_budget_row[${currentRowCount}]" value="0">
         <td>${currentRowCount + 1}</td>
-        <td><input type="text" name="particulars[]" class="form-control" placeholder="Enter expense description" style="background-color: #202ba3;"></td>
+        <td class="particulars-cell"><input type="text" name="particulars[]" class="form-control" placeholder="Enter expense description" style="background-color: #202ba3;"></td>
         <td><input type="number" name="amount_sanctioned[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
         <td><input type="number" name="total_amount[]" class="form-control" readonly></td>
         <td><input type="number" name="expenses_last_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
         <td><input type="number" name="expenses_this_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
         <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
         <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>
-        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button></td>
+        <td class="budget-action-col"><button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button></td>
     `;
 
     newRow.querySelectorAll('input').forEach(input => {
@@ -351,6 +351,7 @@ function addAccountRow() {
     tableBody.appendChild(newRow);
     calculateRowTotals(newRow);
     reindexAccountRows();
+    toggleBudgetActionCol();
 }
 
 function removeAccountRow(button) {
@@ -366,7 +367,15 @@ function removeAccountRow(button) {
         row.remove();
         reindexAccountRows();
         calculateTotal();
+        toggleBudgetActionCol();
     }
+}
+
+function toggleBudgetActionCol() {
+    var tbl = document.querySelector('.budget-statements-table');
+    if (!tbl) return;
+    var has = document.querySelector('#account-rows tr[data-row-type="additional"]');
+    if (has) tbl.classList.add('show-action-col'); else tbl.classList.remove('show-action-col');
 }
 
 /**
@@ -578,5 +587,20 @@ function updateBudgetSummaryCards() {
     justify-content: center;
     color: #fff;
     font-weight: 600;
+}
+
+/* Budget table: smaller font, Action column only when extra rows, Particulars wrap */
+.budget-statements-table { font-size: 0.8rem; }
+.budget-statements-table th,
+.budget-statements-table td { font-size: inherit; }
+.budget-statements-table .budget-action-col { display: none; }
+.budget-statements-table.show-action-col .budget-action-col { display: table-cell; }
+.budget-statements-table .particulars-cell { white-space: normal; word-wrap: break-word; overflow-wrap: break-word; max-width: 200px; }
+.budget-statements-table .particulars-text { display: block; }
+
+/* Budget Row badge - same dark teal as activity Scheduled months */
+.badge.scheduled-months-badge {
+    background-color: #0f766e !important;
+    color: #fff;
 }
 </style>

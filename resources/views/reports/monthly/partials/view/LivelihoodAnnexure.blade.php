@@ -14,39 +14,39 @@
                 </div>
                 <div class="mb-2 row">
                     <div class="col-6"><strong>S No.:</strong></div>
-                    <div class="col-6">{{ $index + 1 }}</div>
+                    <div class="col-6 report-value-entered">{{ $index + 1 }}</div>
                 </div>
                 <div class="mb-2 row">
                     <div class="col-6"><strong>Name of the Beneficiary:</strong></div>
-                    <div class="col-6">{{ $annexure->dla_beneficiary_name }}</div>
+                    <div class="col-6 report-value-entered">{{ $annexure->dla_beneficiary_name }}</div>
                 </div>
                 <div class="mb-2 row">
                     <div class="col-6"><strong>Date of Support Given:</strong></div>
-                    <div class="col-6">{{ \Carbon\Carbon::parse($annexure->dla_support_date)->format('d-m-Y') }}</div>
+                    <div class="col-6 report-value-entered">{{ \Carbon\Carbon::parse($annexure->dla_support_date)->format('d-m-Y') }}</div>
                 </div>
                 <div class="mb-2 row">
                     <div class="col-6"><strong>Nature of Self-Employment:</strong></div>
-                    <div class="col-6">{{ $annexure->dla_self_employment }}</div>
+                    <div class="col-6 report-value-entered">{{ $annexure->dla_self_employment }}</div>
                 </div>
                 <div class="mb-2 row">
                     <div class="col-6"><strong>Amount Sanctioned:</strong></div>
-                    <div class="col-6">{{ format_indian_currency($annexure->dla_amount_sanctioned, 2) }}</div>
+                    <div class="col-6 report-value-entered">{{ format_indian_currency($annexure->dla_amount_sanctioned, 2) }}</div>
                 </div>
                 <div class="mb-2 row">
                     <div class="col-6"><strong>Monetary Profit Gained - Monthly:</strong></div>
-                    <div class="col-6">{{ format_indian_currency($annexure->dla_monthly_profit, 2) }}</div>
+                    <div class="col-6 report-value-entered">{{ format_indian_currency($annexure->dla_monthly_profit, 2) }}</div>
                 </div>
                 <div class="mb-2 row">
                     <div class="col-6"><strong>Monetary Profit Gained - Per Annum:</strong></div>
-                    <div class="col-6">{{ format_indian_currency($annexure->dla_annual_profit, 2) }}</div>
+                    <div class="col-6 report-value-entered">{{ format_indian_currency($annexure->dla_annual_profit, 2) }}</div>
                 </div>
                 <div class="mb-2 row">
                     <div class="col-6"><strong>Project’s Impact in the Life of the Beneficiary:</strong></div>
-                    <div class="col-6">{{ $annexure->dla_impact }}</div>
+                    <div class="col-6 report-value-entered">{{ $annexure->dla_impact }}</div>
                 </div>
                 <div class="mb-2 row">
                     <div class="col-6"><strong>Challenges Faced If Any:</strong></div>
-                    <div class="col-6">{{ $annexure->dla_challenges }}</div>
+                    <div class="col-6 report-value-entered">{{ $annexure->dla_challenges }}</div>
                 </div>
             </div>
         @endforeach

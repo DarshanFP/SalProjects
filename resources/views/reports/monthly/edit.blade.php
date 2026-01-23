@@ -166,7 +166,7 @@
                 @endif
 
                 <!-- Photos Section -->
-                @include('reports.monthly.partials.edit.photos', ['report' => $report])
+                @include('reports.monthly.partials.edit.photos', ['report' => $report, 'groupedPhotos' => $groupedPhotos])
 
                 <!-- Attachments Section -->
                 @include('reports.monthly.partials.edit.attachments', ['report' => $report])

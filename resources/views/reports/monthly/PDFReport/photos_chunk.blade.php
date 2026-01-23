@@ -18,6 +18,9 @@
                         @if($photo['description'])
                             <div class="photo-description">{{ $photo['description'] }}</div>
                         @endif
+                        @if(!empty($photo['photo_location']))
+                            <div class="photo-location" style="font-size: 10pt;">{{ $photo['photo_location'] }}</div>
+                        @endif
                     </div>
                 @endforeach
             </div>

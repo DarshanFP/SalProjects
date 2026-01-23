@@ -11,17 +11,22 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $id
  * @property string $photo_id
  * @property string $report_id
+ * @property string|null $activity_id
  * @property string|null $photo_path
  * @property string|null $photo_name
  * @property string|null $description
+ * @property string|null $photo_location
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \App\Models\Reports\Monthly\DPActivity|null $activity
  * @property-read \App\Models\Reports\Monthly\DPReport $report
  * @method static \Illuminate\Database\Eloquent\Builder|DPPhoto newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder|DPPhoto newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder|DPPhoto query()
  * @method static \Illuminate\Database\Eloquent\Builder|DPPhoto whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|DPPhoto whereActivityId($value)
  * @method static \Illuminate\Database\Eloquent\Builder|DPPhoto whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|DPPhoto wherePhotoLocation($value)
  * @method static \Illuminate\Database\Eloquent\Builder|DPPhoto whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder|DPPhoto wherePhotoId($value)
  * @method static \Illuminate\Database\Eloquent\Builder|DPPhoto wherePhotoName($value)
@@ -42,10 +47,17 @@ class DPPhoto extends Model
     protected $fillable = [
         'photo_id',
         'report_id',
+        'activity_id',
         'photo_path',
         'photo_name',
         'description',
+        'photo_location',
     ];
+
+    public function activity()
+    {
+        return $this->belongsTo(DPActivity::class, 'activity_id', 'activity_id');
+    }
 
     public function report()
     {

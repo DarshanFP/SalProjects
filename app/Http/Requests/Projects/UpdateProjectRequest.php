@@ -17,13 +17,13 @@ class UpdateProjectRequest extends FormRequest
     {
         $projectId = $this->route('project_id');
         $project = Project::where('project_id', $projectId)->first();
-        
+
         if (!$project) {
             return false;
         }
 
         $user = Auth::user();
-        
+
         // Use ProjectPermissionHelper for consistent permission checking
         return ProjectPermissionHelper::canEdit($project, $user);
     }
@@ -87,6 +87,7 @@ class UpdateProjectRequest extends FormRequest
             'predecessor_project' => 'nullable|string|exists:projects,project_id',
             'save_as_draft' => 'nullable|boolean',
             'phases' => 'nullable|array',
+            'problem_tree_image' => 'nullable|file|image|mimes:jpeg,jpg,png|max:7168',
         ];
     }
 

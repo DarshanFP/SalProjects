@@ -291,6 +291,7 @@ class Project extends Model
         'general_situation',
         'need_of_project',
         'goal',
+        'problem_tree_file_path',
         'status',
         'predecessor_project_id',
         'completed_at',
@@ -323,6 +324,39 @@ class Project extends Model
     public function scopeNotCompleted($query)
     {
         return $query->whereNull('completed_at');
+    }
+
+    /**
+     * Base path for project attachments (e.g. project_attachments/DP/DP-0001).
+     * Used for Problem Tree and aligned with AttachmentController / type-specific controllers.
+     */
+    public function getAttachmentBasePath(): string
+    {
+        $map = [
+            'Individual - Ongoing Educational support' => 'IES',
+            'Individual - Initial - Educational support' => 'IIES',
+            'Individual - Access to Health' => 'IAH',
+            'Individual - Livelihood Application' => 'ILP',
+        ];
+
+        $folder = $map[$this->project_type] ?? null;
+        if ($folder === null) {
+            $folder = preg_replace('/[^a-zA-Z0-9\-\_]/', '_', $this->project_type);
+            $folder = trim($folder, '._') ?: 'unknown_type';
+        }
+
+        return "project_attachments/{$folder}/{$this->project_id}";
+    }
+
+    /**
+     * Get the public URL for the Problem Tree image.
+     */
+    public function getProblemTreeImageUrlAttribute(): ?string
+    {
+        if (empty($this->problem_tree_file_path)) {
+            return null;
+        }
+        return \Illuminate\Support\Facades\Storage::disk('public')->url($this->problem_tree_file_path);
     }
 
 // In your Project model or a helper:

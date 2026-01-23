@@ -5,19 +5,49 @@
     </div>
     <div class="card-body">
         <div id="photos-container">
-            <!-- Loop through grouped photos -->
-            @foreach ($groupedPhotos as $description => $photoGroup)
-                <div class="mb-3 photo-group" data-description="{{ $description }}">
-                    <label class="form-label">Photos ({{ $description }})</label>
-                    <div class="photos-preview" style="display: flex; flex-wrap: wrap;">
-                        @foreach ($photoGroup as $photo)
-                            <div class="image-preview-item" style="margin: 5px; display: flex; align-items: center;" data-photo-id="{{ $photo->photo_id }}">
-                                <img src="{{ asset('storage/' . $photo->photo_path) }}" alt="Photo" style="width: 100px; height: 100px; margin-right: 10px;">
-                                <button type="button" class="btn btn-danger btn-sm" onclick="removeExistingPhoto('{{ $photo->photo_id }}', '{{ $photo->photo_path }}')">Remove</button>
-                            </div>
-                        @endforeach
+            <!-- Existing photos: one section per activity (aligned with create) -->
+            @foreach ($groupedPhotos as $group)
+                @php
+                    $groupKey = $group['groupKey'];
+                    $photoGroup = $group['photos'];
+                    $activityLabel = $group['activityLabel'];
+                @endphp
+                <div class="mb-3 card photo-group photo-group-existing" data-group-key="{{ $groupKey }}">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>
+                            <span class="badge bg-primary me-2">{{ $loop->iteration }}</span>
+                            {{ $activityLabel }}
+                        </span>
                     </div>
-                    <textarea name="photo_descriptions[{{ $description }}]" class="mt-2 form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $description }}</textarea>
+                    <div class="card-body">
+                        {{-- Link to Activity first (same as create) --}}
+                        <div class="mb-3">
+                            <label class="form-label">Link to Activity</label>
+                            <select name="photo_activity_id[{{ $groupKey }}]" class="form-control photo-activity-select" style="background-color: #202ba3;">
+                                <option value="__unassigned__" @if($groupKey === '_unassigned_') selected @endif>— Unassigned —</option>
+                                @foreach($report->objectives ?? [] as $obj)
+                                    @php $actCount = count($obj->activities ?? []); @endphp
+                                    @if($actCount > 0)
+                                        <optgroup label="Objective {{ $loop->iteration }} ({{ $actCount }} {{ $actCount === 1 ? 'activity' : 'activities' }})">
+                                            @foreach($obj->activities ?? [] as $act)
+                                                <option value="{{ $act->activity_id }}" @if($groupKey === $act->activity_id) selected @endif>Objective {{ $loop->parent->iteration }} – {{ Str::limit($act->activity ?? 'New Activity', 50) }}</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+                        {{-- Photos for this activity --}}
+                        <div class="photos-preview" style="display: flex; flex-wrap: wrap;">
+                            @foreach ($photoGroup as $photo)
+                                <div class="image-preview-item" style="margin: 5px; display: flex; align-items: center;" data-photo-id="{{ $photo->photo_id }}">
+                                    <input type="hidden" name="existing_photo_ids[]" value="{{ $photo->photo_id }}">
+                                    <img src="{{ asset('storage/' . $photo->photo_path) }}" alt="Photo" style="width: 100px; height: 100px; margin-right: 10px;">
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="removeExistingPhoto('{{ $photo->photo_id }}', '{{ $photo->photo_path }}')">Remove</button>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
             @endforeach
 
@@ -27,7 +57,8 @@
                 </div>
             @endif
 
-            <!-- New Photo Uploads -->
+            <!-- New Photo Uploads (same structure as create: Link to Activity, then up to 3 photos per group) -->
+            <h5 class="mt-4 mb-2">Add new photos</h5>
             <div id="new-photos-container">
                 @php
                     $photoGroups = old('photos', [[]]);
@@ -52,7 +83,12 @@
                             <div id="file-text-{{ $groupIndex }}" class="file-text">No files selected</div>
                         </div>
                         <div id="photos-preview_{{ $groupIndex }}" class="photos-preview" style="display: flex; flex-wrap: wrap;"></div>
-                        <textarea name="photo_descriptions[{{ $groupIndex }}]" class="mt-2 form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ old("photo_descriptions.$groupIndex") }}</textarea>
+                        <div class="mt-2">
+                            <label class="form-label">Link to Activity</label>
+                            <select name="photo_activity_id[{{ $groupIndex }}]" class="form-control photo-activity-select" data-group-index="{{ $groupIndex }}" style="background-color: #202ba3;">
+                                <option value="__unassigned__">— Unassigned —</option>
+                            </select>
+                        </div>
                     </div>
                 @endforeach
             </div>
@@ -209,7 +245,12 @@
                     <div id="file-text-${newGroupIndex}" class="file-text">No files selected</div>
                 </div>
                 <div id="photos-preview_${newGroupIndex}" class="photos-preview" style="display: flex; flex-wrap: wrap;"></div>
-                <textarea name="photo_descriptions[${newGroupIndex}]" class="mt-2 form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
+                <div class="mt-2">
+                    <label class="form-label">Link to Activity</label>
+                    <select name="photo_activity_id[${newGroupIndex}]" class="form-control photo-activity-select" data-group-index="${newGroupIndex}" style="background-color: #202ba3;">
+                        <option value="__unassigned__">— Unassigned —</option>
+                    </select>
+                </div>
             </div>
         `;
 
@@ -220,14 +261,11 @@
             photosContainer.insertAdjacentHTML('beforeend', newGroupHtml);
         }
 
-        // Initialize auto-resize for new photo group textarea using global function
-        const newPhotoGroup = container ? container.lastElementChild : photosContainer.lastElementChild;
-        if (newPhotoGroup && typeof initDynamicTextarea === 'function') {
-            initDynamicTextarea(newPhotoGroup);
-        }
-
         photoGroups[newGroupIndex] = [];
         reindexPhotoGroups();
+        if (typeof window.refreshPhotoActivityOptions === 'function') {
+            window.refreshPhotoActivityOptions();
+        }
     }
 
     function removePhotoGroup(button) {
@@ -281,7 +319,7 @@
             const fileText = group.querySelector('[id^="file-text-"]');
             const fileWarning = group.querySelector('[id^="file-size-warning-"]');
             const previewContainer = group.querySelector('[id^="photos-preview_"]');
-            const textarea = group.querySelector('textarea[name^="photo_descriptions"]');
+            const activitySelect = group.querySelector('select.photo-activity-select');
             const button = group.querySelector('button[onclick*="photos_"]');
 
             if (fileInput) {
@@ -308,8 +346,9 @@
                 previewContainer.id = `photos-preview_${newIndex}`;
             }
 
-            if (textarea) {
-                textarea.name = `photo_descriptions[${newIndex}]`;
+            if (activitySelect) {
+                activitySelect.name = `photo_activity_id[${newIndex}]`;
+                activitySelect.dataset.groupIndex = newIndex;
             }
 
             // Update remove buttons visibility
@@ -328,16 +367,65 @@
             } else {
                 photoGroups[newIndex] = [];
             }
-
-            // Re-initialize textarea auto-resize after reindexing
-            if (textarea && typeof autoResizeTextarea === 'function') {
-                autoResizeTextarea(textarea);
-            }
         });
     }
 
-    // Initialize on page load
+    function getReportActivities() {
+        const out = [];
+        document.querySelectorAll('#objectives-container .objective, .objective').forEach((obj) => {
+            const objIndex = parseInt(obj.dataset.index, 10);
+            if (isNaN(objIndex)) return;
+            const container = obj.querySelector('.monthly-summary-container');
+            if (!container) return;
+            const v1 = objIndex + 1;
+            container.querySelectorAll('.activity').forEach((act) => {
+                const actIndex = parseInt(act.dataset.activityIndex, 10);
+                if (isNaN(actIndex)) return;
+                const strong = act.querySelector('.activity-card-header strong');
+                const ta = act.querySelector('textarea[name^="activity"]');
+                const label = (ta && ta.value.trim()) || (strong && strong.textContent.trim()) || 'New Activity';
+                out.push({ value: v1 + ':' + (actIndex + 1), label: 'Objective ' + v1 + ' – ' + label, objDisplay: v1 });
+            });
+        });
+        return out;
+    }
+
+    window.refreshPhotoActivityOptions = function() {
+        const opts = getReportActivities();
+        const byObj = {};
+        opts.forEach((o) => {
+            const k = String(o.objDisplay ?? o.value.split(':')[0]);
+            if (!byObj[k]) byObj[k] = [];
+            byObj[k].push(o);
+        });
+        const objOrder = Object.keys(byObj).sort((a, b) => Number(a) - Number(b));
+
+        // Only refresh selects in new-photos-container; existing groups have server-rendered activity_id options
+        const container = document.getElementById('new-photos-container');
+        if (container) {
+            container.querySelectorAll('.photo-activity-select').forEach((sel) => {
+                const selected = sel.value;
+                sel.innerHTML = '';
+                sel.appendChild(new Option('— Unassigned —', '__unassigned__'));
+                objOrder.forEach((objKey) => {
+                    const items = byObj[objKey];
+                    const count = items.length;
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = 'Objective ' + objKey + ' (' + count + ' ' + (count === 1 ? 'activity' : 'activities') + ')';
+                    items.forEach((o) => optgroup.appendChild(new Option(o.label, o.value)));
+                    sel.appendChild(optgroup);
+                });
+                if (selected && Array.from(sel.options).some((o) => o.value === selected)) {
+                    sel.value = selected;
+                }
+            });
+        }
+    };
+
     document.addEventListener('DOMContentLoaded', function() {
         reindexPhotoGroups();
+        if (typeof window.refreshPhotoActivityOptions === 'function') {
+            window.refreshPhotoActivityOptions();
+        }
     });
 </script>

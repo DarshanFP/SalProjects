@@ -48,5 +48,43 @@
                 <span class="text-danger">{{ $message }}</span>
             @enderror
         </div>
+
+        <!-- Problem Tree Image -->
+        <div class="mb-3 problem-tree-upload-wrapper" data-has-existing="0">
+            <label for="problem_tree_image" class="form-label">Problem Tree (image)</label>
+            <div id="problem_tree_new_preview" class="problem-tree-preview mb-2" style="display:none;">
+                <span class="d-block small text-muted mb-1">Preview (image will be resized when saved):</span>
+                <img id="problem_tree_new_preview_img" src="" alt="Preview" class="img-thumbnail" style="max-height:200px; max-width:100%;">
+            </div>
+            <input type="file" name="problem_tree_image" id="problem_tree_image"
+                   class="form-control"
+                   accept="image/jpeg,image/jpg,image/png">
+            <small class="form-text text-muted">One image per project. Allowed: JPG, PNG. Max 7 MB. Image will be resized to reduce file size.</small>
+            @error('problem_tree_image')
+                <span class="text-danger">{{ $message }}</span>
+            @enderror
+        </div>
+        <script>
+        (function() {
+            document.addEventListener('DOMContentLoaded', function() {
+                var input = document.getElementById('problem_tree_image');
+                var preview = document.getElementById('problem_tree_new_preview');
+                var previewImg = document.getElementById('problem_tree_new_preview_img');
+                if (!input || !preview || !previewImg) return;
+                var currentUrl = null;
+                input.addEventListener('change', function() {
+                    if (currentUrl) { URL.revokeObjectURL(currentUrl); currentUrl = null; }
+                    if (this.files.length && this.files[0].type.match(/^image\//)) {
+                        currentUrl = URL.createObjectURL(this.files[0]);
+                        previewImg.src = currentUrl;
+                        preview.style.display = 'block';
+                    } else {
+                        previewImg.src = '';
+                        preview.style.display = 'none';
+                    }
+                });
+            });
+        })();
+        </script>
     </div>
 </div>

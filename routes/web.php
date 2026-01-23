@@ -447,8 +447,9 @@ Route::prefix('reports/monthly')->group(function () {
     Route::delete('/reports/monthly/attachments/{id}', [ReportAttachmentController::class, 'remove'])->name('reports.attachments.remove');
     Route::delete('/photos/{id}', [ReportController::class, 'removePhoto'])->name('photos.remove');
 
-
-
+    // Monthly Development Project (developmentProject/reportform: activity-based photos)
+    Route::get('development-project/create/{project_id}', [MonthlyDevelopmentProjectController::class, 'createForm'])->name('monthly.developmentProject.create');
+    Route::post('development-project/store', [MonthlyDevelopmentProjectController::class, 'store'])->name('monthly.developmentProject.store');
 });
 // Shared route for Executor, Provincial and Coordinator
 

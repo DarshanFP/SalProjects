@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $activity_id
@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $intermediate_outcomes
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Reports\Monthly\DPPhoto> $photos
  * @property-read \App\Models\Reports\Monthly\DPObjective $objective
  * @property-read \Illuminate\Database\Eloquent\Collection<int, ProjectTimeframe> $timeframes
  * @property-read int|null $timeframes_count
@@ -63,12 +64,37 @@ class DPActivity extends Model
     {
         return $this->belongsTo(DPObjective::class, 'objective_id', 'objective_id');
     }
+
+    public function photos()
+    {
+        return $this->hasMany(DPPhoto::class, 'activity_id', 'activity_id');
+    }
     public function timeframes()
     {
         return $this->hasMany(ProjectTimeframe::class, 'activity_id', 'project_activity_id');
     }
 
+    /**
+     * Whether the user has filled at least one activity field.
+     * month is JS-filled (report-period-sync), not user-filled; excluded from check.
+     * Used to: store only filled activities; show only filled in view/export to provincial.
+     */
+    public function hasUserFilledData(): bool
+    {
+        if (trim((string) ($this->summary_activities ?? '')) !== '') {
+            return true;
+        }
+        if (trim((string) ($this->qualitative_quantitative_data ?? '')) !== '') {
+            return true;
+        }
+        if (trim((string) ($this->intermediate_outcomes ?? '')) !== '') {
+            return true;
+        }
+        // "Add Other Activity": project_activity_id empty and user-typed activity
+        if (trim((string) ($this->project_activity_id ?? '')) === '' && trim((string) ($this->activity ?? '')) !== '') {
+            return true;
+        }
 
-
-
+        return false;
+    }
 }

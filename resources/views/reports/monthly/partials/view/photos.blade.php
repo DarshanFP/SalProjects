@@ -1,57 +1,61 @@
 {{-- resources/views/reports/monthly/partials/view/photos.blade.php --}}
+{{-- Prefer unassignedPhotos (activity_id null). Legacy: if only groupedPhotos is passed, flatten and show as "Photos". --}}
+@php
+    $unassigned = $unassignedPhotos ?? null;
+    if ($unassigned === null && isset($groupedPhotos) && $groupedPhotos && (is_countable($groupedPhotos) ? count($groupedPhotos) > 0 : $groupedPhotos->isNotEmpty())) {
+        $unassigned = $groupedPhotos->flatten(1);
+    }
+    $unassigned = $unassigned ?? collect();
+    $isLegacy = !isset($unassignedPhotos) && isset($groupedPhotos);
+@endphp
 <div class="mb-3 card">
     <div class="card-header">
-        <h4>Photos</h4>
+        <h4>{{ $isLegacy ? 'Photos' : 'Unassigned Photos' }}</h4>
     </div>
     <div class="card-body">
-        @if($groupedPhotos && $groupedPhotos->count() > 0)
-            @foreach ($groupedPhotos as $description => $photoGroup)
-                <div class="mb-4 photo-group">
-                    <div class="row justify-content-start">
-                        @foreach ($photoGroup as $photo)
-                            <div class="mb-3 col-md-4 col-sm-6 col-xs-12">
-                                <div class="photo-wrapper">
-                                    @php
-                                        $fileExists = \Illuminate\Support\Facades\Storage::disk('public')->exists($photo->photo_path);
-                                    @endphp
+        @if($unassigned->isNotEmpty())
+            <div class="row justify-content-start">
+                @foreach ($unassigned as $photo)
+                    <div class="mb-3 col-md-4 col-sm-6 col-xs-12">
+                        <div class="photo-wrapper">
+                            @php
+                                $fileExists = \Illuminate\Support\Facades\Storage::disk('public')->exists($photo->photo_path);
+                            @endphp
 
-                                    @if($fileExists)
-                                        <img src="{{ asset('storage/' . $photo->photo_path) }}"
-                                             alt="Photo"
-                                             class="img-thumbnail"
-                                             onclick="openImageModal('{{ asset('storage/' . $photo->photo_path) }}', '{{ $photo->photo_name ?? 'Photo' }}')"
-                                             style="cursor: pointer;">
-                                        <div class="mt-2">
-                                            <a href="{{ asset('storage/' . $photo->photo_path) }}"
-                                               target="_blank"
-                                               class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-external-link-alt"></i> View Full Size
-                                            </a>
-                                        </div>
-                                    @else
-                                        <div class="text-center text-danger">
-                                            <i class="mb-2 fas fa-exclamation-triangle fa-3x"></i>
-                                            <p>Photo not found</p>
-                                            <small>{{ $photo->photo_name ?? 'Unknown file' }}</small>
-                                            <br>
-                                            <small class="text-muted">
-                                                Path: {{ $photo->photo_path }}<br>
-                                                Exists: {{ $fileExists ? 'Yes' : 'No' }}
-                                            </small>
-                                        </div>
-                                    @endif
+                            @if($fileExists)
+                                <img src="{{ asset('storage/' . $photo->photo_path) }}"
+                                     alt="Photo"
+                                     class="img-thumbnail"
+                                     onclick="openImageModal('{{ asset('storage/' . $photo->photo_path) }}', '{{ $photo->photo_name ?? 'Photo' }}')"
+                                     style="cursor: pointer;">
+                                <div class="mt-2">
+                                    <a href="{{ asset('storage/' . $photo->photo_path) }}"
+                                       target="_blank"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-external-link-alt"></i> View Full Size
+                                    </a>
                                 </div>
-                            </div>
-                        @endforeach
+                                @if(!empty($photo->photo_location))
+                                    <div class="mt-1" style="font-size: 1.5rem;">{{ $photo->photo_location }}</div>
+                                @endif
+                            @else
+                                <div class="text-center text-danger">
+                                    <i class="mb-2 fas fa-exclamation-triangle fa-3x"></i>
+                                    <p>Photo not found</p>
+                                    <small>{{ $photo->photo_name ?? 'Unknown file' }}</small>
+                                    <br>
+                                    <small class="text-muted">Path: {{ $photo->photo_path }}</small>
+                                </div>
+                                @if(!empty($photo->photo_location))
+                                    <div class="mt-1" style="font-size: 1.5rem;">{{ $photo->photo_location }}</div>
+                                @endif
+                            @endif
+                        </div>
                     </div>
-                    <div class="mb-2 row">
-                        <div class="col-2 report-label-col"><strong>Description:</strong></div>
-                        <div class="col-10 report-value-col">{{ $description ?: 'No description provided' }}</div>
-                    </div>
-                </div>
-            @endforeach
+                @endforeach
+            </div>
         @else
-            <p class="text-muted">No photos available.</p>
+            <p class="text-muted">{{ $isLegacy ? 'No photos available.' : 'No unassigned photos.' }}</p>
         @endif
     </div>
 </div>

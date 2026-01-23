@@ -85,24 +85,24 @@
                         <tr>
                             <td style="text-align: left;">{{ $ageGroupName }}</td>
                             <td>{{ ucfirst($statusLower) }}</td>
-                            <td>{{ $inmateData[$ageGroupKey][$statusLower] ?? 0 }}</td>
+                            <td class="report-cell-entered">{{ $inmateData[$ageGroupKey][$statusLower] ?? 0 }}</td>
                         </tr>
                     @endforeach
                     <tr>
                         <td style="text-align: left;">{{ $ageGroupName }}</td>
                         <td>{{ $inmateData[$ageGroupKey]['other_status'] ?? '' }}</td>
-                        <td>{{ $inmateData[$ageGroupKey]['other_count'] ?? 0 }}</td>
+                        <td class="report-cell-entered">{{ $inmateData[$ageGroupKey]['other_count'] ?? 0 }}</td>
                     </tr>
                     <tr>
                         <td style="text-align: right;" colspan="2"><strong>Total {{ $ageGroupName }}</strong></td>
-                        <td>{{ $inmateData['totals'][$ageGroupKey] ?? 0 }}</td>
+                        <td class="report-cell-entered">{{ $inmateData['totals'][$ageGroupKey] ?? 0 }}</td>
                     </tr>
                 @endforeach
 
                 <!-- Grand Total -->
                 <tr>
                     <td style="text-align: left;" colspan="2"><strong>Grand Total</strong></td>
-                    <td>{{ $inmateData['totals']['all_categories'] ?? 0 }}</td>
+                    <td class="report-cell-entered">{{ $inmateData['totals']['all_categories'] ?? 0 }}</td>
                 </tr>
             </tbody>
         </table>

@@ -39,8 +39,8 @@
                             <tr>
                                 <td>{{ $ageGroup }}</td>
                                 <td>{{ $entry->education }}</td>
-                                <td>{{ $entry->up_to_previous_year }}</td>
-                                <td>{{ $entry->present_academic_year }}</td>
+                                <td class="report-cell-entered">{{ $entry->up_to_previous_year }}</td>
+                                <td class="report-cell-entered">{{ $entry->present_academic_year }}</td>
                             </tr>
                         @endforeach
                     @else
@@ -54,8 +54,8 @@
                     @if($totalEntry)
                         <tr class="total-row">
                             <td style="text-align: right;" colspan="2"><strong>Total {{ $ageGroup }}</strong></td>
-                            <td>{{ $totalEntry->up_to_previous_year }}</td>
-                            <td>{{ $totalEntry->present_academic_year }}</td>
+                            <td class="report-cell-entered">{{ $totalEntry->up_to_previous_year }}</td>
+                            <td class="report-cell-entered">{{ $totalEntry->present_academic_year }}</td>
                         </tr>
                     @endif
                 @endforeach
@@ -68,13 +68,13 @@
                 @if($grandTotalEntry)
                     <tr class="total-row">
                         <td style="text-align: right;" colspan="2"><strong>Grand Total</strong></td>
-                        <td>{{ $grandTotalEntry->up_to_previous_year }}</td>
-                        <td>{{ $grandTotalEntry->present_academic_year }}</td>
+                        <td class="report-cell-entered">{{ $grandTotalEntry->up_to_previous_year }}</td>
+                        <td class="report-cell-entered">{{ $grandTotalEntry->present_academic_year }}</td>
                     </tr>
                 @else
                     <tr class="total-row">
                         <td style="text-align: right;" colspan="2"><strong>Grand Total</strong></td>
-                        <td colspan="2">No data available</td>
+                        <td class="report-cell-entered" colspan="2">No data available</td>
                     </tr>
                 @endif
             </tbody>
