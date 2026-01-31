@@ -10,6 +10,9 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Constants\ProjectStatus;
+use App\Services\Budget\BudgetSyncGuard;
+use App\Services\Budget\BudgetAuditLogger;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class GeneralInfoController extends Controller
 {
@@ -134,6 +137,29 @@ class GeneralInfoController extends Controller
     // already been performed, so we can safely use validated().
     $validated = $request->validated();
 
+    $project = Project::where('project_id', $project_id)->firstOrFail();
+
+    // Phase 3: Block budget field edits when project is approved (governance enforcement)
+    if (!BudgetSyncGuard::canEditBudget($project)) {
+        $budgetFields = ['overall_project_budget', 'amount_forwarded', 'local_contribution'];
+        $attemptedBudgetFields = array_intersect_key($validated, array_flip($budgetFields));
+        if (!empty($attemptedBudgetFields)) {
+            BudgetAuditLogger::logBlockedEditAttempt(
+                $project->project_id,
+                Auth::id(),
+                'general_info_update',
+                $project->status ?? ''
+            );
+            throw new HttpResponseException(
+                redirect()->back()
+                    ->with('error', 'Project is approved. Budget edits are locked until the project is reverted.')
+                    ->withInput()
+            );
+        }
+        // Strip budget fields so they are not updated even if sent
+        unset($validated['overall_project_budget'], $validated['amount_forwarded'], $validated['local_contribution']);
+    }
+
     Log::info('GeneralInfoController@update - Start', [
         'project_id' => $project_id,
         'project_type' => $validated['project_type'] ?? null,
@@ -146,8 +172,12 @@ class GeneralInfoController extends Controller
     }
 
     $validated['commencement_month_year'] = $commencement_date;
-    $validated['amount_forwarded'] = $validated['amount_forwarded'] ?? 0.00;
-    $validated['local_contribution'] = $validated['local_contribution'] ?? 0.00;
+    if (array_key_exists('amount_forwarded', $validated)) {
+        $validated['amount_forwarded'] = $validated['amount_forwarded'] ?? 0.00;
+    }
+    if (array_key_exists('local_contribution', $validated)) {
+        $validated['local_contribution'] = $validated['local_contribution'] ?? 0.00;
+    }
     $validated['executor_name'] = $request->input('executor_name', Auth::user()->name);
     $validated['executor_mobile'] = $request->input('executor_mobile', Auth::user()->phone);
     $validated['executor_email'] = $request->input('executor_email', Auth::user()->email);
@@ -164,7 +194,6 @@ class GeneralInfoController extends Controller
         unset($validated['predecessor_project']);
     }
 
-    $project = Project::where('project_id', $project_id)->firstOrFail();
     $project->update($validated);
 
     // Log only non-sensitive data

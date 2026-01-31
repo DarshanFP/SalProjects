@@ -15,23 +15,54 @@ use App\Http\Requests\Projects\IIES\UpdateIIESImmediateFamilyDetailsRequest;
 class IIESImmediateFamilyDetailsController extends Controller
 {
     /**
+     * Checkbox/radio fields stored as 1 or 0.
+     */
+    private function getImmediateFamilyBooleanFields(): array
+    {
+        return [
+            'iies_mother_expired', 'iies_father_expired', 'iies_grandmother_support', 'iies_grandfather_support',
+            'iies_father_deserted', 'iies_father_sick', 'iies_father_hiv_aids', 'iies_father_disabled', 'iies_father_alcoholic',
+            'iies_mother_sick', 'iies_mother_hiv_aids', 'iies_mother_disabled', 'iies_mother_alcoholic',
+            'iies_own_house', 'iies_rented_house', 'iies_received_support', 'iies_employed_with_stanns',
+        ];
+    }
+
+    /**
+     * Text fields from Immediate Family Details form.
+     */
+    private function getImmediateFamilyTextFields(): array
+    {
+        return [
+            'iies_family_details_others', 'iies_father_health_others', 'iies_mother_health_others',
+            'iies_residential_others', 'iies_family_situation', 'iies_assistance_need',
+            'iies_support_details', 'iies_employment_details',
+        ];
+    }
+
+    private function mapRequestToImmediateFamily(FormRequest $request, ProjectIIESImmediateFamilyDetails $model): void
+    {
+        foreach ($this->getImmediateFamilyBooleanFields() as $field) {
+            $model->$field = $request->has($field) ? 1 : 0;
+        }
+        foreach ($this->getImmediateFamilyTextFields() as $field) {
+            $model->$field = $request->input($field);
+        }
+    }
+
+    /**
      * Store IIES Immediate Family Details for a project.
      */
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validatedData = $request->all();
-        
         DB::beginTransaction();
 
         try {
             Log::info('Storing IIES Immediate Family Details', ['project_id' => $projectId]);
 
-            // Update or Create record
-            ProjectIIESImmediateFamilyDetails::updateOrCreate(
-                ['project_id' => $projectId],
-                $validatedData
-            );
+            $detail = ProjectIIESImmediateFamilyDetails::firstOrNew(['project_id' => $projectId]);
+            $detail->project_id = $projectId;
+            $this->mapRequestToImmediateFamily($request, $detail);
+            $detail->save();
 
             DB::commit();
             return response()->json(['message' => 'IIES immediate family details saved successfully.'], 200);
@@ -101,52 +132,19 @@ class IIESImmediateFamilyDetailsController extends Controller
 
     /**
      * Update IIES Immediate Family Details for a project.
+     * Uses firstOrNew so missing record is created on edit (same behaviour as store).
      */
     public function update(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validatedData = $request->all();
-        
         DB::beginTransaction();
 
         try {
             Log::info('Updating IIES Immediate Family Details', ['project_id' => $projectId]);
 
-            // Get all boolean fields that should be handled
-            $booleanFields = [
-                'iies_mother_expired',
-                'iies_father_expired',
-                'iies_grandmother_support',
-                'iies_grandfather_support',
-                'iies_father_deserted',
-                'iies_father_sick',
-                'iies_father_hiv_aids',
-                'iies_father_disabled',
-                'iies_father_alcoholic',
-                'iies_mother_sick',
-                'iies_mother_hiv_aids',
-                'iies_mother_disabled',
-                'iies_mother_alcoholic',
-                'iies_own_house',
-                'iies_rented_house',
-                'iies_received_support',
-                'iies_employed_with_stanns'
-            ];
-
-            // Prepare data with explicit false values for unchecked checkboxes
-            $data = $validatedData;
-            foreach ($booleanFields as $field) {
-                $data[$field] = $request->has($field) ? true : false;
-            }
-
-            // Use validated data
-            $validatedData = $data;
-
-            // Find existing record or create new one
-            $familyDetails = ProjectIIESImmediateFamilyDetails::updateOrCreate(
-                ['project_id' => $projectId],
-                $validatedData
-            );
+            $detail = ProjectIIESImmediateFamilyDetails::firstOrNew(['project_id' => $projectId]);
+            $detail->project_id = $projectId;
+            $this->mapRequestToImmediateFamily($request, $detail);
+            $detail->save();
 
             DB::commit();
             return response()->json(['message' => 'IIES Immediate Family Details updated successfully.'], 200);

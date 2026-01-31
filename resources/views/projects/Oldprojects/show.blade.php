@@ -2,8 +2,10 @@
 @php
     $userRole = Auth::user()->role ?? 'executor'; // Default to executor if not set
     $layout = match ($userRole) {
+        'admin' => 'admin.layout',
         'provincial' => 'provincial.dashboard',
         'coordinator' => 'coordinator.dashboard',
+        'general' => 'general.dashboard',
         default => 'executor.dashboard', // fallback to executor if role not matched
     };
 @endphp
@@ -251,7 +253,11 @@
     </div>
 
     <!-- Action Buttons -->
-    <a href="{{ route('projects.index') }}" class="btn btn-primary">Back to Projects</a>
+    @if(auth()->user()->role === 'admin')
+        <a href="{{ route('admin.projects.index') }}" class="btn btn-primary">Back to Projects</a>
+    @else
+        <a href="{{ route('projects.index') }}" class="btn btn-primary">Back to Projects</a>
+    @endif
 
     @php
         use App\Helpers\ProjectPermissionHelper;
@@ -264,12 +270,14 @@
         <a href="{{ route('projects.edit', $project->project_id) }}" class="btn btn-warning">Edit Project</a>
     @endif
 
-    @if(auth()->user()->role === 'provincial')
-        <a href="{{ route('provincial.projects.downloadPdf', $project->project_id) }}" class="btn btn-secondary">Download PDF</a>
-    @elseif(auth()->user()->role === 'coordinator')
-        <a href="{{ route('coordinator.projects.downloadPdf', $project->project_id) }}" class="btn btn-secondary">Download PDF</a>
-    @else
-        <a href="{{ route('projects.downloadPdf', $project->project_id) }}" class="btn btn-secondary">Download PDF</a>
+    @if(auth()->user()->role !== 'admin')
+        @if(auth()->user()->role === 'provincial')
+            <a href="{{ route('provincial.projects.downloadPdf', $project->project_id) }}" class="btn btn-secondary">Download PDF</a>
+        @elseif(auth()->user()->role === 'coordinator')
+            <a href="{{ route('coordinator.projects.downloadPdf', $project->project_id) }}" class="btn btn-secondary">Download PDF</a>
+        @else
+            <a href="{{ route('projects.downloadPdf', $project->project_id) }}" class="btn btn-secondary">Download PDF</a>
+        @endif
     @endif
 
     <!-- Status Action Buttons -->

@@ -102,6 +102,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $target_beneficiaries
  * @property string|null $general_situation
  * @property string|null $need_of_project
+ * @property string|null $economic_situation
  * @property string|null $goal
  * @property string|null $predecessor_project_id
  * @property \Illuminate\Support\Carbon|null $created_at
@@ -290,6 +291,7 @@ class Project extends Model
         'target_beneficiaries',
         'general_situation',
         'need_of_project',
+        'economic_situation',
         'goal',
         'problem_tree_file_path',
         'status',

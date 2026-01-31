@@ -118,9 +118,10 @@
                                     <th>Center</th>
                                     <th>Project Title</th>
                                     <th>Project Type</th>
-                                    <th>Budget</th>
-                                    <th>Expenses</th>
-                                    <th>Utilization</th>
+                                    <th>Overall Project Budget</th>
+                                    <th>Existing Funds</th>
+                                    <th>Local Contribution</th>
+                                    <th>Amount Requested</th>
                                     <th>Health</th>
                                     <th>Status</th>
                                     <th>Actions</th>
@@ -176,35 +177,27 @@
                                             <span class="badge bg-secondary">{{ $project->project_type }}</span>
                                         </td>
                                         <td class="text-end">
-                                            <small>{{ format_indian_currency($project->amount_sanctioned ?? 0, 2) }}</small>
+                                            <small>{{ format_indian_currency($project->overall_project_budget ?? 0, 2) }}</small>
+                                        </td>
+                                        @php
+                                            $existingFunds = (float) ($project->amount_forwarded ?? 0);
+                                            $localContribution = (float) ($project->local_contribution ?? 0);
+                                            $overallBudget = (float) ($project->overall_project_budget ?? 0);
+                                            $amountRequested = max(0, $overallBudget - $existingFunds - $localContribution);
+                                        @endphp
+                                        <td class="text-end">
+                                            <small>{{ format_indian_currency($existingFunds, 2) }}</small>
                                         </td>
                                         <td class="text-end">
-                                            <small>{{ format_indian_currency($project->total_expenses ?? 0, 2) }}</small>
+                                            <small>{{ format_indian_currency($localContribution, 2) }}</small>
                                         </td>
-                                        <td>
-                                            @php
-                                                $utilization = $project->budget_utilization ?? 0;
-                                                $utilClass = $utilization > 90 ? 'danger' : ($utilization > 75 ? 'warning' : 'success');
-                                            @endphp
-                                            <div class="d-flex align-items-center">
-                                                <div class="flex-grow-1 me-2">
-                                                    <div class="progress" style="height: 20px;">
-                                                        <div class="progress-bar bg-{{ $utilClass }}"
-                                                             role="progressbar"
-                                                             style="width: {{ min($utilization, 100) }}%"
-                                                             aria-valuenow="{{ $utilization }}"
-                                                             aria-valuemin="0"
-                                                             aria-valuemax="100">
-                                                            {{ format_indian_percentage($utilization, 1) }}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                        <td class="text-end">
+                                            <small>{{ format_indian_currency($amountRequested, 2) }}</small>
                                         </td>
                                         <td>
                                             <span class="badge {{ $healthBadge['class'] }}"
                                                   data-bs-toggle="tooltip"
-                                                  title="Budget Utilization: {{ format_indian_percentage($utilization, 1) }}">
+                                                  title="Budget Utilization: {{ format_indian_percentage($project->budget_utilization ?? 0, 1) }}">
                                                 <i data-feather="{{ $healthBadge['icon'] }}" style="width: 14px; height: 14px;"></i>
                                                 {{ $healthBadge['label'] }}
                                             </span>
@@ -245,7 +238,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="12" class="text-center py-4">
+                                        <td colspan="13" class="text-center py-4">
                                             <i data-feather="inbox" class="text-muted" style="width: 48px; height: 48px;"></i>
                                             <p class="mt-3 text-muted">No projects found</p>
                                         </td>

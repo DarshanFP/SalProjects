@@ -10,6 +10,14 @@ use Illuminate\Support\Facades\DB;
 
 class IESImmediateFamilyDetailsController extends Controller
 {
+    /** NOT NULL boolean columns (Phase 2: post-fill normalization). */
+    private const NOT_NULL_BOOLEAN_FIELDS = [
+        'mother_expired', 'father_expired', 'grandmother_support', 'grandfather_support',
+        'father_deserted', 'father_sick', 'father_hiv_aids', 'father_disabled', 'father_alcoholic',
+        'mother_sick', 'mother_hiv_aids', 'mother_disabled', 'mother_alcoholic',
+        'own_house', 'rented_house', 'received_support', 'employed_with_stanns',
+    ];
+
     // Store immediate family details for a project
     public function store(Request $request, $projectId)
     {
@@ -21,6 +29,13 @@ class IESImmediateFamilyDetailsController extends Controller
             $familyDetails = ProjectIESImmediateFamilyDetails::where('project_id', $projectId)->first() ?: new ProjectIESImmediateFamilyDetails();
             $familyDetails->project_id = $projectId;
             $familyDetails->fill($request->all());
+            // Phase 2: normalize NOT NULL booleans so null/empty never written
+            foreach (self::NOT_NULL_BOOLEAN_FIELDS as $field) {
+                $val = $familyDetails->$field;
+                if ($val === null || $val === '') {
+                    $familyDetails->$field = 0;
+                }
+            }
             $familyDetails->save();
 
             DB::commit();

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\BudgetReconciliationController;
+use App\Http\Controllers\Admin\AdminReadOnlyController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -116,11 +118,23 @@ Route::middleware('auth')->group(function () {
 // Auth routes
 require __DIR__.'/auth.php';
 
-// Admin routes
+// Admin routes (explicit only; no catch-all — unknown /admin/* return 404)
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'adminDashboard'])->name('admin.dashboard');
     Route::get('/admin/logout', [AdminController::class, 'adminLogout'])->name('admin.logout');
-    // Admin has access to all other routes, so no need to duplicate routes here
+    // Phase 4: Read-only visibility
+    Route::get('/admin/activities/all', [ActivityHistoryController::class, 'allActivities'])->name('admin.activities.all');
+    Route::get('/admin/projects', [AdminReadOnlyController::class, 'projectIndex'])->name('admin.projects.index');
+    Route::get('/admin/projects/{project_id}', [AdminReadOnlyController::class, 'projectShow'])->name('admin.projects.show');
+    Route::get('/admin/reports', [AdminReadOnlyController::class, 'reportIndex'])->name('admin.reports.index');
+    Route::get('/admin/reports/monthly/{report_id}', [AdminReadOnlyController::class, 'reportShow'])->name('admin.reports.monthly.show');
+    // Phase 6: Budget Reconciliation (admin-only; gated by config budget.admin_reconciliation_enabled)
+    Route::get('/admin/budget-reconciliation', [BudgetReconciliationController::class, 'index'])->name('admin.budget-reconciliation.index');
+    Route::get('/admin/budget-reconciliation/log', [BudgetReconciliationController::class, 'correctionLog'])->name('admin.budget-reconciliation.log');
+    Route::get('/admin/budget-reconciliation/{id}', [BudgetReconciliationController::class, 'show'])->name('admin.budget-reconciliation.show');
+    Route::post('/admin/budget-reconciliation/{id}/accept', [BudgetReconciliationController::class, 'acceptSuggested'])->name('admin.budget-reconciliation.accept');
+    Route::post('/admin/budget-reconciliation/{id}/manual', [BudgetReconciliationController::class, 'manualCorrection'])->name('admin.budget-reconciliation.manual');
+    Route::post('/admin/budget-reconciliation/{id}/reject', [BudgetReconciliationController::class, 'reject'])->name('admin.budget-reconciliation.reject');
 });
 
 // Coordinator routes (General has COMPLETE coordinator access - same authorization level)
@@ -334,6 +348,7 @@ Route::middleware(['auth', 'role:provincial'])->group(function () {
 
     // Routes for Provincial Dashboard
     Route::get('/provincial/dashboard', [ProvincialController::class, 'provincialDashboard'])->name('provincial.dashboard');
+    Route::get('/provincial/user-manual', [ProvincialController::class, 'userManual'])->name('provincial.user-manual');
     // Projects list
     Route::get('/provincial/projects-list', [ProvincialController::class, 'projectList'])->name('provincial.projects.list');
     // Approved Projects
@@ -617,13 +632,6 @@ Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,gener
         Route::get('annual-form', [ReportComparisonController::class, 'compareAnnualForm'])->name('annual-form');
         Route::post('annual', [ReportComparisonController::class, 'compareAnnual'])->name('annual');
     });
-});
-
-// Allow admin to access all other routes
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
-    Route::any('{all}', function () {
-        return view('admin.dashboard');
-    })->where('all', '.*');
 });
 
 // Test route for debugging middleware

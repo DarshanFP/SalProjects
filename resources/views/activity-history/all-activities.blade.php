@@ -1,9 +1,10 @@
 @php
     $userRole = Auth::user()->role ?? 'coordinator';
     $layout = match ($userRole) {
+        'admin' => 'admin.layout',
         'provincial' => 'provincial.dashboard',
         'coordinator' => 'coordinator.dashboard',
-        'admin' => 'admin.dashboard',
+        'general' => 'general.dashboard',
         default => 'coordinator.dashboard',
     };
 @endphp
@@ -21,7 +22,7 @@
                 </div>
                 <div class="card-body">
                     {{-- Filters --}}
-                    <form method="GET" action="{{ route('activities.all-activities') }}" class="mb-4">
+                    <form method="GET" action="{{ $userRole === 'admin' ? route('admin.activities.all') : route('activities.all-activities') }}" class="mb-4">
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label for="type" class="form-label">Type</label>
@@ -58,7 +59,7 @@
                             </div>
                             <div class="col-md-12">
                                 <button type="submit" class="btn btn-primary">Filter</button>
-                                <a href="{{ route('activities.all-activities') }}" class="btn btn-secondary">Clear</a>
+                                <a href="{{ $userRole === 'admin' ? route('admin.activities.all') : route('activities.all-activities') }}" class="btn btn-secondary">Clear</a>
                             </div>
                         </div>
                     </form>

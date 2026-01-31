@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\OldProjects\ProjectBudget;
-use App\Models\OldProjects\ILP\ProjectILPBudget;
 use App\Models\OldProjects\IAH\ProjectIAHBudgetDetails;
 use App\Models\OldProjects\IGE\ProjectIGEBudget;
+use App\Models\OldProjects\ILP\ProjectILPBudget;
 use App\Models\OldProjects\IIES\ProjectIIESExpenses;
 use App\Models\OldProjects\IES\ProjectIESExpenses;
 use App\Services\Budget\Strategies\DirectMappingStrategy;
@@ -11,6 +11,27 @@ use App\Services\Budget\Strategies\SingleSourceContributionStrategy;
 use App\Services\Budget\Strategies\MultipleSourceContributionStrategy;
 
 return [
+    /*
+    |--------------------------------------------------------------------------
+    | Budget Alignment Feature Flags (Phase 0)
+    |--------------------------------------------------------------------------
+    |
+    | All flags default to false. Enable per phase after validation.
+    | See: Documentations/V1/Basic Info fund Mapping Issue/PHASE_WISE_BUDGET_ALIGNMENT_IMPLEMENTATION_PLAN.md
+    |
+    | To enable per environment: set in .env or override in config.
+    | Example: BUDGET_RESOLVER_ENABLED=true (add to .env)
+    |
+    */
+    'resolver_enabled' => env('BUDGET_RESOLVER_ENABLED', false),
+    'sync_to_projects_on_type_save' => env('BUDGET_SYNC_ON_TYPE_SAVE', false),
+    'sync_to_projects_before_approval' => env('BUDGET_SYNC_BEFORE_APPROVAL', false),
+    // Phase 3: When true, blocks post-approval edits to budget fields (General Info + type-specific).
+    // Default = false. Enable in STAGING first; monitor budget log for "Budget edit blocked" entries;
+    // then enable in PRODUCTION. Do not auto-enable.
+    'restrict_general_info_after_approval' => env('BUDGET_RESTRICT_GENERAL_INFO_AFTER_APPROVAL', false),
+    'admin_reconciliation_enabled' => env('BUDGET_ADMIN_RECONCILIATION_ENABLED', false),
+
     /**
      * Budget calculation field mappings for each project type
      *

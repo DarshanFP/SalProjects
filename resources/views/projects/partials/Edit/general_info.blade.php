@@ -288,8 +288,15 @@
         <div class="mb-3">
             <label for="overall_project_budget" class="form-label">Overall Project Budget (Rs.)</label>
             <input type="number" name="overall_project_budget" id="overall_project_budget"
-                   class="form-control select-input"
-                   value="{{ old('overall_project_budget', $project->overall_project_budget) }}" required>
+                   class="form-control select-input {{ ($budgetLockedByApproval ?? false) ? 'readonly-input' : '' }}"
+                   value="{{ old('overall_project_budget', $project->overall_project_budget) }}"
+                   @if($budgetLockedByApproval ?? false) readonly disabled @endif
+                   required>
+            @if($budgetLockedByApproval ?? false)
+                <div class="form-text text-warning mt-1">
+                    <i class="fas fa-lock"></i> Project is approved. Budget edits are locked until the project is reverted.
+                </div>
+            @endif
         </div>
 
         {{-- COORDINATOR INDIA --}}

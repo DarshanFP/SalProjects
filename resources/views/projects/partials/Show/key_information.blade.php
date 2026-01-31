@@ -4,23 +4,25 @@
         <h4>Key Information</h4>
     </div>
     <div class="card-body">
+        <h5 class="mb-3">Background of the project</h5>
+
         @if($project->initial_information)
             <div class="mb-3">
-                <div class="info-label"><strong>Initial Information:</strong></div>
+                <div class="info-label"><strong>Prevailing social situation in the project area and its adverse effect on life:</strong></div>
                 <div class="info-value">{{ $project->initial_information }}</div>
             </div>
         @endif
 
         @if($project->target_beneficiaries)
             <div class="mb-3">
-                <div class="info-label"><strong>Target Beneficiaries:</strong></div>
+                <div class="info-label"><strong>Detailed information on target beneficiary of the project:</strong></div>
                 <div class="info-value">{{ $project->target_beneficiaries }}</div>
             </div>
         @endif
 
         @if($project->general_situation)
             <div class="mb-3">
-                <div class="info-label"><strong>General Situation:</strong></div>
+                <div class="info-label"><strong>Educational & cultural situation in the project area:</strong></div>
                 <div class="info-value">{{ $project->general_situation }}</div>
             </div>
         @endif
@@ -29,6 +31,13 @@
             <div class="mb-3">
                 <div class="info-label"><strong>Need of the Project:</strong></div>
                 <div class="info-value">{{ $project->need_of_project }}</div>
+            </div>
+        @endif
+
+        @if(isset($project->economic_situation) && $project->economic_situation)
+            <div class="mb-3">
+                <div class="info-label"><strong>Prevailing economic situation in the project area:</strong></div>
+                <div class="info-value">{{ $project->economic_situation }}</div>
             </div>
         @endif
 
@@ -41,7 +50,8 @@
 
         @if($project->problem_tree_file_path)
             <div class="mb-3">
-                <div class="info-label"><strong>Problem Tree:</strong></div>
+                <div class="info-label"><strong>Problem Tree (Image):</strong></div>
+                <small class="d-block text-muted mb-1">Cause and effect of the problem</small>
                 <div class="info-value problem-tree-view-preview">
                     <a href="{{ $project->problem_tree_image_url }}" target="_blank" rel="noopener" title="Open full size">
                         <img src="{{ $project->problem_tree_image_url }}" alt="Problem Tree" class="img-thumbnail" style="max-height:320px; max-width:100%; cursor:pointer;">
@@ -51,7 +61,7 @@
             </div>
         @endif
 
-        @if(!$project->initial_information && !$project->target_beneficiaries && !$project->general_situation && !$project->need_of_project && !$project->goal && !$project->problem_tree_file_path)
+        @if(!$project->initial_information && !$project->target_beneficiaries && !$project->general_situation && !$project->need_of_project && !($project->economic_situation ?? null) && !$project->goal && !$project->problem_tree_file_path)
             <div class="text-muted">No key information provided yet.</div>
         @endif
     </div>

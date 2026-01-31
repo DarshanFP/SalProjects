@@ -293,14 +293,16 @@
                     <table class="table table-bordered activities-table">
                         <thead>
                             <tr>
-                                <th scope="col" style="width: 46%;">Activities</th>
+                                <th scope="col" style="width: 3%;">No.</th>
+                                <th scope="col" style="width: 44%;">Activities</th>
                                 <th scope="col" style="width: 47%;">Means of Verification</th>
-                                <th scope="col" style="width: 7%;">Action</th>
+                                <th scope="col" style="width: 6%;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             <!-- Activity Row -->
                             <tr class="activity-row">
+                                <td style="text-align: center; vertical-align: middle;">1</td>
                                 <td class="table-cell-wrap">
                                     <textarea name="" class="form-control activity-description logical-textarea select-input" rows="2" placeholder="Enter Activity"></textarea>
                                 </td>
@@ -384,11 +386,12 @@
         // Remove all activity rows
         template.querySelectorAll('.activity-row').forEach(row => row.remove());
 
-        // Add one empty activity row
+        // Add one empty activity row (4 columns: No., Activities, Means of Verification, Action)
         const activitiesTableBody = template.querySelector('.activities-table tbody');
         const activityRow = document.createElement('tr');
         activityRow.className = 'activity-row';
         activityRow.innerHTML = `
+            <td style="text-align: center; vertical-align: middle;">1</td>
             <td class="table-cell-wrap">
                 <textarea name="" class="form-control activity-description logical-textarea select-input" rows="2" placeholder="Enter Activity"></textarea>
             </td>
@@ -1148,6 +1151,9 @@
 
     // Remove a budget row from the budget table
     function removeBudgetRow(button) {
+        const tableBody = document.querySelector('.budget-rows');
+        if (!tableBody) return;
+        if (tableBody.querySelectorAll('tr').length <= 1) return; // Keep at least one row
         const row = button.closest('tr');
         row.remove();
         reindexBudgetRows(); // Reindex all rows after removing

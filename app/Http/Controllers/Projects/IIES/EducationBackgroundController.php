@@ -114,26 +114,32 @@ public function edit($projectId)
 }
 
 
-// Update education background for a project
+/**
+ * Field names for Educational Background (matches form names and model fillable).
+ */
+private function getEducationBackgroundFields(): array
+{
+    return [
+        'prev_education', 'prev_institution', 'prev_insti_address', 'prev_marks',
+        'current_studies', 'curr_institution', 'curr_insti_address',
+        'aspiration', 'long_term_effect',
+    ];
+}
+
+// Update education background for a project. Creates record if missing (same as store).
 public function update(FormRequest $request, $projectId)
 {
-    // Use all() to get all form data including fields not in UpdateProjectRequest validation rules
-    $validatedData = $request->all();
-    
     DB::beginTransaction();
 
     try {
         Log::info('Updating IIES Educational Background', ['project_id' => $projectId]);
 
-        // Find existing record
-        $educationBackground = ProjectIIESEducationBackground::where('project_id', $projectId)->first();
-
-        if (!$educationBackground) {
-            throw new \Exception('Educational background record not found for update.');
+        $educationBackground = ProjectIIESEducationBackground::firstOrNew(['project_id' => $projectId]);
+        $educationBackground->project_id = $projectId;
+        foreach ($this->getEducationBackgroundFields() as $field) {
+            $educationBackground->$field = $request->input($field);
         }
-
-        // Update record
-        $educationBackground->update($validatedData);
+        $educationBackground->save();
 
         DB::commit();
         Log::info('IIES Educational Background updated successfully', ['project_id' => $projectId]);

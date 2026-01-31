@@ -1,0 +1,11 @@
+/**
+ * Shared sidebar architecture: scroll behavior.
+ * Applied to .sidebar-body--scrollable so content scrolls when it exceeds viewport.
+ * Works on mouse, trackpad, and touch; scroll remains active over submenus.
+ */
+.sidebar-body--scrollable {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+}

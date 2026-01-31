@@ -6,20 +6,40 @@ use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IES\ProjectIESExpenses;
 use App\Models\OldProjects\IES\ProjectIESExpenseDetail;
+use App\Models\OldProjects\Project;
+use App\Services\Budget\BudgetSyncService;
+use App\Services\Budget\BudgetSyncGuard;
+use App\Services\Budget\BudgetAuditLogger;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\Projects\IES\StoreIESExpensesRequest;
 use App\Http\Requests\Projects\IES\UpdateIESExpensesRequest;
 
 class IESExpensesController extends Controller
 {
+    /** Phase 3: User-facing message when budget edit is blocked (project approved). */
+    private const BUDGET_LOCKED_MESSAGE = 'Project is approved. Budget edits are locked until the project is reverted.';
+
     // Store or update expenses for a project
     public function store(FormRequest $request, $projectId)
     {
+        // Phase 3: Block budget edits when project is approved
+        $project = Project::where('project_id', $projectId)->first();
+        if ($project && !BudgetSyncGuard::canEditBudget($project)) {
+            BudgetAuditLogger::logBlockedEditAttempt(
+                $projectId,
+                Auth::id(),
+                'ies_expenses_store',
+                $project->status ?? ''
+            );
+            return response()->json(['error' => self::BUDGET_LOCKED_MESSAGE], 403);
+        }
+
         // Use all() to get all form data including particulars[], amounts[] arrays
         // These fields are not in StoreProjectRequest validation rules
         $validated = $request->all();
-        
+
         DB::beginTransaction();
         try {
             Log::info('Storing IES estimated expenses', ['project_id' => $projectId]);
@@ -55,6 +75,13 @@ class IESExpensesController extends Controller
             }
 
             DB::commit();
+
+            // Phase 2: Sync project-level budget fields for pre-approval projects (feature-flagged)
+            $project = Project::where('project_id', $projectId)->first();
+            if ($project) {
+                app(BudgetSyncService::class)->syncFromTypeSave($project);
+            }
+
             Log::info('IES estimated expenses saved successfully', ['project_id' => $projectId]);
             return response()->json(['message' => 'IES estimated expenses saved successfully.'], 200);
         } catch (\Exception $e) {

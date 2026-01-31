@@ -246,6 +246,16 @@ class ProvincialController extends Controller
         ));
     }
 
+    /**
+     * Provincial User Manual (implementation deferred).
+     * Route exists for sidebar link and active-state wiring.
+     * Returns 501 until the User Manual page is implemented in a follow-up phase.
+     */
+    public function userManual()
+    {
+        abort(501, 'User Manual not implemented yet.');
+    }
+
     private function calculateBudgetSummariesFromProjects($projects, $request)
     {
         $budgetSummaries = [
@@ -261,15 +271,8 @@ class ProvincialController extends Controller
         ];
 
         foreach ($projects as $project) {
-            // Calculate project budget from multiple sources (like executor dashboard)
-            $projectBudget = 0;
-            if ($project->overall_project_budget && $project->overall_project_budget > 0) {
-                $projectBudget = $project->overall_project_budget;
-            } elseif ($project->amount_sanctioned && $project->amount_sanctioned > 0) {
-                $projectBudget = $project->amount_sanctioned;
-            } elseif ($project->budgets && $project->budgets->count() > 0) {
-                $projectBudget = $project->budgets->sum('this_phase');
-            }
+            // Phase 4: Use only canonical project fields (no recalculation from type tables)
+            $projectBudget = (float) ($project->amount_sanctioned ?? $project->overall_project_budget ?? 0);
 
             // If no budget found, try to get from approved reports
             if ($projectBudget == 0 && $project->reports && $project->reports->count() > 0) {

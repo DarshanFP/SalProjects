@@ -1,9 +1,17 @@
 <div class="mb-3 card">
     <div class="card-header">
         <h4>2. Budget</h4>
+        @if($budgetLockedByApproval ?? false)
+            <span class="badge bg-warning text-dark ms-2">Budget locked (project approved)</span>
+        @endif
     </div>
     <div class="card-body">
-        <div id="phases-container">
+        @if($budgetLockedByApproval ?? false)
+            <div class="alert alert-warning mb-3">
+                <i class="fas fa-lock"></i> Project is approved. Budget edits are locked until the project is reverted.
+            </div>
+        @endif
+        <div id="phases-container" @if($budgetLockedByApproval ?? false) data-budget-locked="1" @endif>
             <div class="table-responsive">
                 <table class="table table-bordered budget-create-table" style="table-layout: fixed; width: 100%;">
                     <thead>
@@ -22,23 +30,23 @@
                         @foreach($project->budgets as $budgetIndex => $budget)
                             <tr>
                                 <td style="width: 5%; text-align: center; vertical-align: middle;">{{ $budgetIndex + 1 }}</td>
-                                <td class="particular-cell-create" style="width: 40%;"><textarea name="phases[0][budget][{{ $budgetIndex }}][particular]" class="form-control select-input particular-textarea" rows="1">{{ old('phases.0.budget.' . $budgetIndex . '.particular', $budget->particular) }}</textarea></td>
-                                <td style="width: 12%;"><input type="number" name="phases[0][budget][{{ $budgetIndex }}][rate_quantity]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.' . $budgetIndex . '.rate_quantity', $budget->rate_quantity) }}"></td>
-                                <td style="width: 12%;"><input type="number" name="phases[0][budget][{{ $budgetIndex }}][rate_multiplier]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.' . $budgetIndex . '.rate_multiplier', $budget->rate_multiplier ?? 1) }}"></td>
-                                <td style="width: 12%;"><input type="number" name="phases[0][budget][{{ $budgetIndex }}][rate_duration]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.' . $budgetIndex . '.rate_duration', $budget->rate_duration ?? 1) }}"></td>
+                                <td class="particular-cell-create" style="width: 40%;"><textarea name="phases[0][budget][{{ $budgetIndex }}][particular]" class="form-control select-input particular-textarea {{ ($budgetLockedByApproval ?? false) ? 'readonly-input' : '' }}" rows="1" @if($budgetLockedByApproval ?? false) readonly disabled @endif>{{ old('phases.0.budget.' . $budgetIndex . '.particular', $budget->particular) }}</textarea></td>
+                                <td style="width: 12%;"><input type="number" name="phases[0][budget][{{ $budgetIndex }}][rate_quantity]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.' . $budgetIndex . '.rate_quantity', $budget->rate_quantity) }}" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
+                                <td style="width: 12%;"><input type="number" name="phases[0][budget][{{ $budgetIndex }}][rate_multiplier]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.' . $budgetIndex . '.rate_multiplier', $budget->rate_multiplier ?? 1) }}" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
+                                <td style="width: 12%;"><input type="number" name="phases[0][budget][{{ $budgetIndex }}][rate_duration]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.' . $budgetIndex . '.rate_duration', $budget->rate_duration ?? 1) }}" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
                                 <td style="width: 12%;"><input type="number" name="phases[0][budget][{{ $budgetIndex }}][this_phase]" class="form-control readonly-input budget-number-input" readonly value="{{ old('phases.0.budget.' . $budgetIndex . '.this_phase', $budget->this_phase) }}"></td>
-                                <td style="width: 7%; padding: 4px;"><button type="button" class="btn btn-danger budget-remove-btn" onclick="removeBudgetRow(this)">Remove</button></td>
+                                <td style="width: 7%; padding: 4px;">@if(!($budgetLockedByApproval ?? false))<button type="button" class="btn btn-danger budget-remove-btn" onclick="removeBudgetRow(this)">Remove</button>@endif</td>
                             </tr>
                         @endforeach
                     @else
                         <tr>
                             <td style="width: 5%; text-align: center; vertical-align: middle;">1</td>
-                            <td class="particular-cell-create" style="width: 40%;"><textarea name="phases[0][budget][0][particular]" class="form-control select-input particular-textarea" rows="1">{{ old('phases.0.budget.0.particular') }}</textarea></td>
-                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_quantity]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_quantity') }}"></td>
-                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_multiplier]" class="form-control select-input budget-number-input" value="1" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_multiplier', 1) }}"></td>
-                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_duration]" class="form-control select-input budget-number-input" value="1" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_duration', 1) }}"></td>
+                            <td class="particular-cell-create" style="width: 40%;"><textarea name="phases[0][budget][0][particular]" class="form-control select-input particular-textarea {{ ($budgetLockedByApproval ?? false) ? 'readonly-input' : '' }}" rows="1" @if($budgetLockedByApproval ?? false) readonly disabled @endif>{{ old('phases.0.budget.0.particular') }}</textarea></td>
+                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_quantity]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_quantity') }}" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
+                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_multiplier]" class="form-control select-input budget-number-input" value="{{ old('phases.0.budget.0.rate_multiplier', 1) }}" oninput="calculateBudgetRowTotals(this)" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
+                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_duration]" class="form-control select-input budget-number-input" value="{{ old('phases.0.budget.0.rate_duration', 1) }}" oninput="calculateBudgetRowTotals(this)" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
                             <td style="width: 12%;"><input type="number" name="phases[0][budget][0][this_phase]" class="form-control readonly-input budget-number-input" readonly value="{{ old('phases.0.budget.0.this_phase') }}"></td>
-                            <td style="width: 7%; padding: 4px;"><button type="button" class="btn btn-danger budget-remove-btn" onclick="removeBudgetRow(this)">Remove</button></td>
+                            <td style="width: 7%; padding: 4px;">@if(!($budgetLockedByApproval ?? false))<button type="button" class="btn btn-danger budget-remove-btn" onclick="removeBudgetRow(this)">Remove</button>@endif</td>
                         </tr>
                     @endif
                 </tbody>
@@ -55,7 +63,9 @@
                 </tfoot>
                 </table>
             </div>
+            @if(!($budgetLockedByApproval ?? false))
             <button type="button" class="btn btn-primary" onclick="addBudgetRow(this)">Add Row</button>
+            @endif
         </div>
         {{-- Budget Summary Fields --}}
         <div class="row mt-3">
@@ -65,10 +75,10 @@
                         Overall Project Budget: Rs.
                         <small class="text-muted">(Auto-calculated from budget items)</small>
                     </label>
-                    <input type="number" 
-                           id="overall_project_budget_display" 
-                           class="form-control readonly-input budget-number-input budget-summary-input" 
-                           readonly 
+                    <input type="number"
+                           id="overall_project_budget_display"
+                           class="form-control readonly-input budget-number-input budget-summary-input"
+                           readonly
                            value="{{ old('overall_project_budget', $project->overall_project_budget ?? 0) }}"
                            >
                 </div>
@@ -79,15 +89,16 @@
                         Amount Forwarded (Existing Funds): Rs.
                         <small class="text-muted">(Optional - Enter if you have existing funds)</small>
                     </label>
-                    <input type="number" 
-                           step="0.01" 
-                           min="0" 
-                           id="amount_forwarded" 
-                           name="amount_forwarded" 
-                           class="form-control select-input budget-number-input" 
+                    <input type="number"
+                           step="0.01"
+                           min="0"
+                           id="amount_forwarded"
+                           name="amount_forwarded"
+                           class="form-control select-input budget-number-input {{ ($budgetLockedByApproval ?? false) ? 'readonly-input' : '' }}"
                            value="{{ old('amount_forwarded', $project->amount_forwarded ?? 0.00) }}"
                            oninput="calculateBudgetFields()"
-                           placeholder="0.00">
+                           placeholder="0.00"
+                           @if($budgetLockedByApproval ?? false) readonly disabled @endif>
                     <div class="form-text text-info">
                         <i class="fas fa-info-circle"></i> Enter any funds you already have available.
                     </div>
@@ -102,15 +113,16 @@
                         Local Contribution: Rs.
                         <small class="text-muted">(Optional - Community/Other contributions)</small>
                     </label>
-                    <input type="number" 
-                           step="0.01" 
-                           min="0" 
-                           id="local_contribution" 
-                           name="local_contribution" 
-                           class="form-control select-input budget-number-input" 
+                    <input type="number"
+                           step="0.01"
+                           min="0"
+                           id="local_contribution"
+                           name="local_contribution"
+                           class="form-control select-input budget-number-input {{ ($budgetLockedByApproval ?? false) ? 'readonly-input' : '' }}"
                            value="{{ old('local_contribution', $project->local_contribution ?? 0.00) }}"
                            oninput="calculateBudgetFields()"
-                           placeholder="0.00">
+                           placeholder="0.00"
+                           @if($budgetLockedByApproval ?? false) readonly disabled @endif>
                     <div class="form-text text-info">
                         <i class="fas fa-info-circle"></i> Add any community/other contributions committed.
                     </div>
@@ -125,11 +137,11 @@
                         Amount Sanctioned (To Request): Rs.
                         <small class="text-muted">(Overall Budget - (Amount Forwarded + Local Contribution))</small>
                     </label>
-                    <input type="number" 
-                           id="amount_sanctioned_preview" 
-                           name="amount_sanctioned_preview" 
-                           class="form-control readonly-input budget-number-input budget-summary-input" 
-                           readonly 
+                    <input type="number"
+                           id="amount_sanctioned_preview"
+                           name="amount_sanctioned_preview"
+                           class="form-control readonly-input budget-number-input budget-summary-input"
+                           readonly
                            value="{{ old('amount_sanctioned', $project->amount_sanctioned ?? 0) }}"
                            >
                     <div class="form-text">
@@ -143,11 +155,11 @@
                         Opening Balance: Rs.
                         <small class="text-muted">(Amount Sanctioned + (Amount Forwarded + Local Contribution))</small>
                     </label>
-                    <input type="number" 
-                           id="opening_balance_preview" 
-                           name="opening_balance_preview" 
-                           class="form-control readonly-input budget-number-input budget-summary-input" 
-                           readonly 
+                    <input type="number"
+                           id="opening_balance_preview"
+                           name="opening_balance_preview"
+                           class="form-control readonly-input budget-number-input budget-summary-input"
+                           readonly
                            value="{{ old('opening_balance', $project->opening_balance ?? 0) }}"
                            >
                     <div class="form-text">
@@ -272,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function() {
     particularTextareas.forEach(textarea => {
         // Set initial height
         autoResizeTextarea(textarea);
-        
+
         // Auto-resize on input
         textarea.addEventListener('input', function() {
             autoResizeTextarea(this);

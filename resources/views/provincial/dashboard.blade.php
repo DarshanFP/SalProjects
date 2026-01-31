@@ -39,6 +39,8 @@
     <link rel="stylesheet" href="{{ asset('css/custom/textarea-auto-resize.css') }}">
     <!-- Common table styles -->
     <link rel="stylesheet" href="{{ asset('css/custom/common-tables.css') }}">
+    <!-- Shared sidebar scroll behavior -->
+    <link rel="stylesheet" href="{{ asset('css/custom/sidebar.css') }}">
     <!-- End custom form styles -->
 
     <link rel="shortcut icon" href="{{ asset('backend/assets/images/favicon.png') }}" />

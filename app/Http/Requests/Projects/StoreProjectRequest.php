@@ -53,6 +53,7 @@ class StoreProjectRequest extends FormRequest
             'target_beneficiaries' => 'nullable|string',
             'general_situation' => 'nullable|string',
             'need_of_project' => 'nullable|string',
+            'economic_situation' => 'nullable|string',
             'goal' => 'nullable|string',
             'total_amount_sanctioned' => 'nullable|numeric|min:0',
             'amount_forwarded' => [

@@ -147,6 +147,14 @@
 
                 <button type="button" class="btn btn-primary" onclick="addOutlook()">Add More Outlook</button>
 
+                <!-- Phase 4 (read-only): Optional note when report overview is 0 but project has non-zero sanctioned -->
+                @if(!empty($showBudgetDiscrepancyNote))
+                <div class="mb-3 alert alert-info" role="alert">
+                    <i class="feather icon-info"></i>
+                    Project sanctioned amount has been updated; consider updating the report overview if this report should reflect the current project sanctioned amount.
+                </div>
+                @endif
+
                 <!-- Statements of Account Section -->
                 @if($project->project_type === 'Individual - Livelihood Application')
                     @include('reports.monthly.partials.edit.statements_of_account.individual_livelihood', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report, 'project' => $project])

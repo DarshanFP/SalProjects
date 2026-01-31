@@ -3,8 +3,10 @@
 @php
     $userRole = Auth::user()->role ?? 'executor'; // Default to executor if not set
     $layout = match ($userRole) {
+        'admin' => 'admin.layout',
         'provincial' => 'provincial.dashboard',
         'coordinator' => 'coordinator.dashboard',
+        'general' => 'general.dashboard',
         default => 'executor.dashboard', // fallback to executor if role not matched
     };
 @endphp
@@ -95,6 +97,14 @@
                 </div>
             </div>
 
+            <!-- Phase 4 (read-only): Informational note when report sanctioned differs from project-level -->
+            @if(!empty($showBudgetDiscrepancyNote))
+            <div class="mb-3 alert alert-info" role="alert">
+                <i class="feather icon-info"></i>
+                Project-level budget has since been updated. This report shows the values as entered when it was created.
+            </div>
+            @endif
+
             <!-- Statements of Account Section -->
             @include('reports.monthly.partials.view.statements_of_account', ['budgets' => $budgets, 'project' => $project])
 
@@ -117,8 +127,9 @@
             @include('reports.monthly.partials.view.pmc_comments')
         </div>
     </div>
-    <!-- Download Buttons -->
+    <!-- Download Buttons (admin has no download route in Phase 4) -->
     <div class="card-footer">
+        @if($userRole !== 'admin')
         @php
             $downloadRoute = match ($userRole) {
                 'coordinator' => route('coordinator.monthly.report.downloadPdf', $report->report_id),
@@ -129,6 +140,7 @@
         <a href="{{ $downloadRoute }}" class="btn btn-secondary">
             Download PDF
         </a>
+        @endif
     </div>
 </div>
 @include('reports.monthly.partials.comments')
@@ -188,8 +200,10 @@
         ]);
 
         $backToReportsUrl = match($userRole) {
+            'admin' => route('admin.reports.index'),
             'provincial' => route('provincial.report.list'),
             'coordinator' => route('coordinator.report.list'),
+            'general' => route('general.reports'),
             default => route('monthly.report.index'),
         };
     @endphp

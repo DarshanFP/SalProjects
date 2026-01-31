@@ -7,15 +7,34 @@ use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IIES\ProjectIIESExpenses;
 use App\Models\OldProjects\IIES\ProjectIIESExpenseDetail;
 use App\Models\OldProjects\Project;
+use App\Services\Budget\BudgetSyncService;
+use App\Services\Budget\BudgetSyncGuard;
+use App\Services\Budget\BudgetAuditLogger;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\Projects\IIES\StoreIIESExpensesRequest;
 use App\Http\Requests\Projects\IIES\UpdateIIESExpensesRequest;
 
 class IIESExpensesController extends Controller
 {
+    /** Phase 3: User-facing message when budget edit is blocked (project approved). */
+    private const BUDGET_LOCKED_MESSAGE = 'Project is approved. Budget edits are locked until the project is reverted.';
+
     public function store(FormRequest $request, $projectId)
     {
+        // Phase 3: Block budget edits when project is approved
+        $project = Project::where('project_id', $projectId)->first();
+        if ($project && !BudgetSyncGuard::canEditBudget($project)) {
+            BudgetAuditLogger::logBlockedEditAttempt(
+                $projectId,
+                Auth::id(),
+                'iies_expenses_store',
+                $project->status ?? ''
+            );
+            return response()->json(['error' => self::BUDGET_LOCKED_MESSAGE], 403);
+        }
+
         // Use all() to get all form data including particulars[], amounts[] arrays
         // These fields are not in StoreProjectRequest validation rules
         $validated = $request->all();
@@ -32,14 +51,14 @@ class IIESExpensesController extends Controller
                 $existingExpenses->delete();
             }
 
-            // Create new entry
+            // Create new entry (Phase 2: server-side defaults for NOT NULL decimal columns)
             $projectExpenses = new ProjectIIESExpenses();
             $projectExpenses->project_id = $projectId;
-            $projectExpenses->iies_total_expenses = $validated['iies_total_expenses'] ?? null;
-            $projectExpenses->iies_expected_scholarship_govt = $validated['iies_expected_scholarship_govt'] ?? null;
-            $projectExpenses->iies_support_other_sources = $validated['iies_support_other_sources'] ?? null;
-            $projectExpenses->iies_beneficiary_contribution = $validated['iies_beneficiary_contribution'] ?? null;
-            $projectExpenses->iies_balance_requested = $validated['iies_balance_requested'] ?? null;
+            $projectExpenses->iies_total_expenses = $validated['iies_total_expenses'] ?? 0;
+            $projectExpenses->iies_expected_scholarship_govt = $validated['iies_expected_scholarship_govt'] ?? 0;
+            $projectExpenses->iies_support_other_sources = $validated['iies_support_other_sources'] ?? 0;
+            $projectExpenses->iies_beneficiary_contribution = $validated['iies_beneficiary_contribution'] ?? 0;
+            $projectExpenses->iies_balance_requested = $validated['iies_balance_requested'] ?? 0;
             $projectExpenses->save();
 
             $particulars = $validated['iies_particulars'] ?? [];
@@ -55,6 +74,13 @@ class IIESExpensesController extends Controller
             }
 
             DB::commit();
+
+            // Phase 2: Sync project-level budget fields for pre-approval projects (feature-flagged)
+            $project = Project::where('project_id', $projectId)->first();
+            if ($project) {
+                app(BudgetSyncService::class)->syncFromTypeSave($project);
+            }
+
             Log::info('IIESExpensesController@store - Success', [
                 'project_id' => $projectId,
                 'expense_id' => $projectExpenses->IIES_expense_id ?? null,

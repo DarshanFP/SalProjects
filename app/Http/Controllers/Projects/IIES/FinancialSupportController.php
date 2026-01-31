@@ -17,20 +17,20 @@ class FinancialSupportController extends Controller
     {
         // Use all() to get all form data including fields not in StoreProjectRequest validation rules
         $validated = $request->all();
-        
+
         DB::beginTransaction();
         try {
             Log::info('Storing IIES Financial Support', ['project_id' => $projectId]);
 
-            // Create or update the financial support
+            // Create or update the financial support (Phase 1: server-side defaults for NOT NULL columns)
             ProjectIIESScopeFinancialSupport::updateOrCreate(
                 ['project_id' => $projectId],
                 [
-                    'govt_eligible_scholarship' => $validated['govt_eligible_scholarship'] ?? null,
-                    'scholarship_amt' => $validated['scholarship_amt'] ?? null,
-                    'other_eligible_scholarship' => $validated['other_eligible_scholarship'] ?? null,
-                    'other_scholarship_amt' => $validated['other_scholarship_amt'] ?? null,
-                    'family_contrib' => $validated['family_contrib'] ?? null,
+                    'govt_eligible_scholarship' => (int) ($validated['govt_eligible_scholarship'] ?? 0),
+                    'scholarship_amt' => $validated['scholarship_amt'] ?? 0,
+                    'other_eligible_scholarship' => (int) ($validated['other_eligible_scholarship'] ?? 0),
+                    'other_scholarship_amt' => $validated['other_scholarship_amt'] ?? 0,
+                    'family_contrib' => $validated['family_contrib'] ?? 0,
                     'no_contrib_reason' => $validated['no_contrib_reason'] ?? null,
                 ]
             );
@@ -119,21 +119,21 @@ public function update(FormRequest $request, $projectId)
 {
     // Use all() to get all form data including fields not in UpdateProjectRequest validation rules
     $validated = $request->all();
-    
+
     DB::beginTransaction();
 
     try {
         Log::info('Updating IIES Financial Support', ['project_id' => $projectId]);
 
-        // Fetch the existing record or create a new one if it doesn't exist
+        // Fetch the existing record or create a new one if it doesn't exist (Phase 1: server-side defaults for NOT NULL columns)
         $IIESFinancialSupport = ProjectIIESScopeFinancialSupport::updateOrCreate(
             ['project_id' => $projectId],
             [
-                'govt_eligible_scholarship' => $validated['govt_eligible_scholarship'] ?? null,
-                'scholarship_amt' => $validated['scholarship_amt'] ?? null,
-                'other_eligible_scholarship' => $validated['other_eligible_scholarship'] ?? null,
-                'other_scholarship_amt' => $validated['other_scholarship_amt'] ?? null,
-                'family_contrib' => $validated['family_contrib'] ?? null,
+                'govt_eligible_scholarship' => (int) ($validated['govt_eligible_scholarship'] ?? 0),
+                'scholarship_amt' => $validated['scholarship_amt'] ?? 0,
+                'other_eligible_scholarship' => (int) ($validated['other_eligible_scholarship'] ?? 0),
+                'other_scholarship_amt' => $validated['other_scholarship_amt'] ?? 0,
+                'family_contrib' => $validated['family_contrib'] ?? 0,
                 'no_contrib_reason' => $validated['no_contrib_reason'] ?? null,
             ]
         );

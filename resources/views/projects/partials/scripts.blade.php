@@ -207,6 +207,7 @@ function calculateBudgetFields() {
     const amountForwardedField = document.getElementById('amount_forwarded');
     const amountSanctionedField = document.getElementById('amount_sanctioned_preview');
     const openingBalanceField = document.getElementById('opening_balance_preview');
+    const localContributionField = document.getElementById('local_contribution');
 
     // Exit if required fields are not present
     if (!overallBudgetField) {
@@ -302,6 +303,9 @@ function addBudgetRow(button) {
 
 // Remove a budget row from the budget table
 function removeBudgetRow(button) {
+    const tableBody = document.querySelector('.budget-rows');
+    if (!tableBody) return;
+    if (tableBody.querySelectorAll('tr').length <= 1) return; // Keep at least one row
     const row = button.closest('tr');
     row.remove();
     reindexBudgetRows(); // Reindex all rows after removing

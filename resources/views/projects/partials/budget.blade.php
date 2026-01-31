@@ -30,8 +30,8 @@
                             <td style="width: 5%; text-align: center; vertical-align: middle;">1</td>
                             <td class="particular-cell-create" style="width: 40%;"><textarea name="phases[0][budget][0][particular]" class="form-control select-input particular-textarea" rows="1">{{ old('phases.0.budget.0.particular') }}</textarea></td>
                             <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_quantity]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_quantity') }}"></td>
-                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_multiplier]" class="form-control select-input budget-number-input" value="1" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_multiplier', 1) }}"></td>
-                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_duration]" class="form-control select-input budget-number-input" value="1" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_duration', 1) }}"></td>
+                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_multiplier]" class="form-control select-input budget-number-input" value="{{ old('phases.0.budget.0.rate_multiplier', 1) }}" oninput="calculateBudgetRowTotals(this)"></td>
+                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_duration]" class="form-control select-input budget-number-input" value="{{ old('phases.0.budget.0.rate_duration', 1) }}" oninput="calculateBudgetRowTotals(this)"></td>
                             <td style="width: 12%;"><input type="number" name="phases[0][budget][0][this_phase]" class="form-control readonly-input budget-number-input" readonly value="{{ old('phases.0.budget.0.this_phase') }}"></td>
                             <td style="width: 7%; padding: 4px;"><button type="button" class="btn btn-danger budget-remove-btn" onclick="removeBudgetRow(this)">Remove</button></td>
                         </tr>
@@ -60,10 +60,10 @@
                         Overall Project Budget: Rs.
                         <small class="text-muted">(Auto-calculated from budget items)</small>
                     </label>
-                    <input type="number" 
-                           id="overall_project_budget_display" 
-                           class="form-control readonly-input budget-number-input budget-summary-input" 
-                           readonly 
+                    <input type="number"
+                           id="overall_project_budget_display"
+                           class="form-control readonly-input budget-number-input budget-summary-input"
+                           readonly
                            value="{{ old('overall_project_budget', 0) }}"
                            >
                 </div>
@@ -74,12 +74,12 @@
                         Amount Forwarded (Existing Funds): Rs.
                         <small class="text-muted">(Optional - Enter if you have existing funds)</small>
                     </label>
-                    <input type="number" 
-                           step="0.01" 
-                           min="0" 
-                           id="amount_forwarded" 
-                           name="amount_forwarded" 
-                           class="form-control select-input budget-number-input" 
+                    <input type="number"
+                           step="0.01"
+                           min="0"
+                           id="amount_forwarded"
+                           name="amount_forwarded"
+                           class="form-control select-input budget-number-input"
                            value="{{ old('amount_forwarded', 0.00) }}"
                            oninput="calculateBudgetFields()"
                            placeholder="0.00">
@@ -97,12 +97,12 @@
                         Local Contribution: Rs.
                         <small class="text-muted">(Optional - Community/Other contributions)</small>
                     </label>
-                    <input type="number" 
-                           step="0.01" 
-                           min="0" 
-                           id="local_contribution" 
-                           name="local_contribution" 
-                           class="form-control select-input budget-number-input" 
+                    <input type="number"
+                           step="0.01"
+                           min="0"
+                           id="local_contribution"
+                           name="local_contribution"
+                           class="form-control select-input budget-number-input"
                            value="{{ old('local_contribution', 0.00) }}"
                            oninput="calculateBudgetFields()"
                            placeholder="0.00">
@@ -120,11 +120,11 @@
                         Amount Sanctioned (To Request): Rs.
                         <small class="text-muted">(Overall Budget - (Amount Forwarded + Local Contribution))</small>
                     </label>
-                    <input type="number" 
-                           id="amount_sanctioned_preview" 
-                           name="amount_sanctioned_preview" 
-                           class="form-control readonly-input budget-number-input budget-summary-input" 
-                           readonly 
+                    <input type="number"
+                           id="amount_sanctioned_preview"
+                           name="amount_sanctioned_preview"
+                           class="form-control readonly-input budget-number-input budget-summary-input"
+                           readonly
                            value="{{ old('amount_sanctioned', 0) }}"
                            >
                     <div class="form-text">
@@ -138,11 +138,11 @@
                         Opening Balance: Rs.
                         <small class="text-muted">(Amount Sanctioned + (Amount Forwarded + Local Contribution))</small>
                     </label>
-                    <input type="number" 
-                           id="opening_balance_preview" 
-                           name="opening_balance_preview" 
-                           class="form-control readonly-input budget-number-input budget-summary-input" 
-                           readonly 
+                    <input type="number"
+                           id="opening_balance_preview"
+                           name="opening_balance_preview"
+                           class="form-control readonly-input budget-number-input budget-summary-input"
+                           readonly
                            value="{{ old('opening_balance', 0) }}"
                            >
                     <div class="form-text">

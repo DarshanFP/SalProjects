@@ -5,20 +5,40 @@ namespace App\Http\Controllers\Projects\IGE;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IGE\ProjectIGEBudget;
+use App\Models\OldProjects\Project;
+use App\Services\Budget\BudgetSyncService;
+use App\Services\Budget\BudgetSyncGuard;
+use App\Services\Budget\BudgetAuditLogger;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\Projects\IGE\StoreIGEBudgetRequest;
 use App\Http\Requests\Projects\IGE\UpdateIGEBudgetRequest;
 
 class IGEBudgetController extends Controller
 {
+    /** Phase 3: User-facing message when budget edit is blocked (project approved). */
+    private const BUDGET_LOCKED_MESSAGE = 'Project is approved. Budget edits are locked until the project is reverted.';
+
     // Store or update budget for a project
     public function store(FormRequest $request, $projectId)
     {
+        // Phase 3: Block budget edits when project is approved
+        $project = Project::where('project_id', $projectId)->first();
+        if ($project && !BudgetSyncGuard::canEditBudget($project)) {
+            BudgetAuditLogger::logBlockedEditAttempt(
+                $projectId,
+                Auth::id(),
+                'ige_budget_store',
+                $project->status ?? ''
+            );
+            return redirect()->back()->with('error', self::BUDGET_LOCKED_MESSAGE);
+        }
+
         // Use all() to get all form data including name[], study_proposed[], etc. arrays
         // These fields are not in StoreProjectRequest validation rules
         $validated = $request->all();
-        
+
         DB::beginTransaction();
         try {
             Log::info('Storing IGE budget', ['project_id' => $projectId]);
@@ -54,6 +74,13 @@ class IGEBudgetController extends Controller
             }
 
             DB::commit();
+
+            // Phase 2: Sync project-level budget fields for pre-approval projects (feature-flagged)
+            $project = Project::where('project_id', $projectId)->first();
+            if ($project) {
+                app(BudgetSyncService::class)->syncFromTypeSave($project);
+            }
+
             Log::info('IGE budget saved successfully', ['project_id' => $projectId]);
             return redirect()->route('projects.edit', $projectId)->with('success', 'IGE budget saved successfully.');
         } catch (\Exception $e) {

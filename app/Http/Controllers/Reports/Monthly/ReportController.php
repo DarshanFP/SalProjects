@@ -30,6 +30,7 @@ use App\Services\ProjectQueryService;
 use App\Services\ReportMonitoringService;
 use App\Services\ReportPhotoOptimizationService;
 use App\Services\ReportStatusService;
+use App\Services\Budget\BudgetAuditLogger;
 use App\Models\User;
 use App\Traits\HandlesReportPhotoActivity;
 
@@ -1191,6 +1192,21 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             Log::warning('Report monitoring (type-specific) failed', ['report_id' => $report->report_id, 'error' => $e->getMessage()]);
         }
 
+        // Phase 4 (read-only): Canonical project-level budget for display/reference; discrepancy visibility
+        $projectAmountSanctioned = (float) ($project->amount_sanctioned ?? 0);
+        $projectOpeningBalance = (float) ($project->opening_balance ?? 0);
+        $reportSanctioned = (float) ($report->amount_sanctioned_overview ?? 0);
+        $tolerance = 0.01;
+        $showBudgetDiscrepancyNote = abs($reportSanctioned - $projectAmountSanctioned) > $tolerance;
+        if ($showBudgetDiscrepancyNote) {
+            BudgetAuditLogger::logReportProjectDiscrepancy(
+                $report->report_id,
+                $project->project_id,
+                $reportSanctioned,
+                $projectAmountSanctioned
+            );
+        }
+
         // Pass data to the view
         return view('reports.monthly.show', compact(
             'report',
@@ -1207,7 +1223,10 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             'budgetOverspendRows',
             'budgetNegativeBalanceRows',
             'budgetUtilisation',
-            'typeSpecificChecks'
+            'typeSpecificChecks',
+            'projectAmountSanctioned',
+            'projectOpeningBalance',
+            'showBudgetDiscrepancyNote'
         ));
     }
 
@@ -1295,12 +1314,17 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
                                     ->get();
         Log::info('Objectives retrieved with activities and results', ['objectives' => $objectives->toArray()]);
 
-        // Sanctioned amount (amount_forwarded no longer used in reports)
+        // Sanctioned amount from canonical project (Phase 4: projects.amount_sanctioned)
         $amountSanctioned = $project->amount_sanctioned ?? 0.00;
         $amountForwarded = 0.00; // Always set to 0 - no longer used in reports
         Log::info('Sanctioned amount', [
             'amountSanctioned' => $amountSanctioned,
         ]);
+
+        // Phase 4 (read-only): Optional note when report overview is 0 but project has non-zero sanctioned
+        $reportSanctionedOverview = (float) ($report->amount_sanctioned_overview ?? 0);
+        $projectSanctioned = (float) ($project->amount_sanctioned ?? 0);
+        $showBudgetDiscrepancyNote = $reportSanctionedOverview <= 0 && $projectSanctioned > 0;
 
         $months = [
             'January', 'February', 'March', 'April', 'May', 'June',
@@ -1391,7 +1415,8 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             'ageProfiles',
             'traineeProfiles',
             'inmateProfiles',
-            'months'
+            'months',
+            'showBudgetDiscrepancyNote'
         ));
     }
 

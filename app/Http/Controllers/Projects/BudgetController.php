@@ -6,12 +6,33 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\OldProjects\Project;
 use App\Models\OldProjects\ProjectBudget;
+use App\Services\Budget\BudgetSyncService;
+use App\Services\Budget\BudgetSyncGuard;
+use App\Services\Budget\BudgetAuditLogger;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class BudgetController extends Controller
 {
+    /** Phase 3: User-facing message when budget edit is blocked (project approved). */
+    private const BUDGET_LOCKED_MESSAGE = 'Project is approved. Budget edits are locked until the project is reverted.';
+
     public function store(Request $request, Project $project)
     {
+        // Phase 3: Block budget edits when project is approved
+        if (!BudgetSyncGuard::canEditBudget($project)) {
+            BudgetAuditLogger::logBlockedEditAttempt(
+                $project->project_id,
+                Auth::id(),
+                'budget_store',
+                $project->status ?? ''
+            );
+            throw new HttpResponseException(
+                redirect()->back()->with('error', self::BUDGET_LOCKED_MESSAGE)
+            );
+        }
+
         // Use all() to get all form data including phases[][budget][] arrays
         // These fields are not in StoreProjectRequest validation rules
         $request->validate([
@@ -65,6 +86,19 @@ class BudgetController extends Controller
 
     public function update(Request $request, Project $project)
 {
+    // Phase 3: Block budget edits when project is approved
+    if (!BudgetSyncGuard::canEditBudget($project)) {
+        BudgetAuditLogger::logBlockedEditAttempt(
+            $project->project_id,
+            Auth::id(),
+            'budget_update',
+            $project->status ?? ''
+        );
+        throw new HttpResponseException(
+            redirect()->back()->with('error', self::BUDGET_LOCKED_MESSAGE)
+        );
+    }
+
     // Validate structure and values
     $request->validate([
         'phases' => 'nullable|array',
@@ -112,6 +146,11 @@ class BudgetController extends Controller
     }
 
     Log::info('BudgetController@update - Data passed to database', ['project_id' => $project->project_id]);
+
+    // Phase 2: Sync project-level budget fields for pre-approval Development projects (feature-flagged)
+    $project->refresh();
+    $project->load('budgets');
+    app(BudgetSyncService::class)->syncFromTypeSave($project);
 
     return $project;
 }

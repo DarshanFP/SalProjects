@@ -5,22 +5,42 @@ namespace App\Http\Controllers\Projects\IAH;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IAH\ProjectIAHBudgetDetails;
+use App\Models\OldProjects\Project;
+use App\Services\Budget\BudgetSyncService;
+use App\Services\Budget\BudgetSyncGuard;
+use App\Services\Budget\BudgetAuditLogger;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\Projects\IAH\StoreIAHBudgetDetailsRequest;
 use App\Http\Requests\Projects\IAH\UpdateIAHBudgetDetailsRequest;
 
 class IAHBudgetDetailsController extends Controller
 {
+    /** Phase 3: User-facing message when budget edit is blocked (project approved). */
+    private const BUDGET_LOCKED_MESSAGE = 'Project is approved. Budget edits are locked until the project is reverted.';
+
     /**
      * Store budget details for a project (creates fresh entries after deleting old ones).
      */
     public function store(FormRequest $request, $projectId)
     {
+        // Phase 3: Block budget edits when project is approved
+        $project = Project::where('project_id', $projectId)->first();
+        if ($project && !BudgetSyncGuard::canEditBudget($project)) {
+            BudgetAuditLogger::logBlockedEditAttempt(
+                $projectId,
+                Auth::id(),
+                'iah_budget_store',
+                $project->status ?? ''
+            );
+            return response()->json(['error' => self::BUDGET_LOCKED_MESSAGE], 403);
+        }
+
         // Use all() to get all form data including budget detail arrays
         // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
         $validated = $request->all();
-        
+
         Log::info('IAHBudgetDetailsController@store - Start', [
             'project_id' => $projectId
         ]);
@@ -53,6 +73,13 @@ class IAHBudgetDetailsController extends Controller
             }
 
             DB::commit();
+
+            // Phase 2: Sync project-level budget fields for pre-approval projects (feature-flagged)
+            $project = Project::where('project_id', $projectId)->first();
+            if ($project) {
+                app(BudgetSyncService::class)->syncFromTypeSave($project);
+            }
+
             Log::info('IAHBudgetDetailsController@store - Success: All budget details stored', [
                 'project_id' => $projectId
             ]);
@@ -73,10 +100,22 @@ class IAHBudgetDetailsController extends Controller
      */
     public function update(FormRequest $request, $projectId)
     {
+        // Phase 3: Block budget edits when project is approved
+        $project = Project::where('project_id', $projectId)->first();
+        if ($project && !BudgetSyncGuard::canEditBudget($project)) {
+            BudgetAuditLogger::logBlockedEditAttempt(
+                $projectId,
+                Auth::id(),
+                'iah_budget_update',
+                $project->status ?? ''
+            );
+            return response()->json(['error' => self::BUDGET_LOCKED_MESSAGE], 403);
+        }
+
         // Use all() to get all form data including budget detail arrays
         // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
         $validated = $request->all();
-        
+
         Log::info('IAHBudgetDetailsController@update - Start', [
             'project_id' => $projectId
         ]);
@@ -113,6 +152,13 @@ class IAHBudgetDetailsController extends Controller
             }
 
             DB::commit();
+
+            // Phase 2: Sync project-level budget fields for pre-approval projects (feature-flagged)
+            $project = Project::where('project_id', $projectId)->first();
+            if ($project) {
+                app(BudgetSyncService::class)->syncFromTypeSave($project);
+            }
+
             Log::info('IAHBudgetDetailsController@update - Success: Budget details updated', [
                 'project_id' => $projectId
             ]);

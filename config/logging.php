@@ -123,6 +123,24 @@ return [
             'handler' => NullHandler::class,
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | Budget / Resolver Log Channel (Phase 0)
+        |--------------------------------------------------------------------------
+        |
+        | Dedicated channel for budget alignment, resolver calls, and sync events.
+        | Used for audit trail and Phase 1+ discrepancy logging.
+        | Writes to storage/logs/budget-YYYY-MM-DD.log for easier review.
+        |
+        */
+        'budget' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/budget.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 90,
+            'replace_placeholders' => true,
+        ],
+
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],

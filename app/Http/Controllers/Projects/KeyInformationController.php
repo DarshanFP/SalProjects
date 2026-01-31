@@ -28,6 +28,7 @@ class KeyInformationController extends Controller
             'target_beneficiaries' => 'nullable|string',
             'general_situation' => 'nullable|string',
             'need_of_project' => 'nullable|string',
+            'economic_situation' => 'nullable|string',
             'goal' => 'nullable|string',
             'problem_tree_image' => 'nullable|file|image|mimes:jpeg,jpg,png|max:7168',
         ]);
@@ -49,6 +50,9 @@ class KeyInformationController extends Controller
             }
             if (array_key_exists('need_of_project', $validated)) {
                 $project->need_of_project = $validated['need_of_project'];
+            }
+            if (array_key_exists('economic_situation', $validated)) {
+                $project->economic_situation = $validated['economic_situation'];
             }
             if (array_key_exists('goal', $validated)) {
                 $project->goal = $validated['goal'];
@@ -79,6 +83,7 @@ class KeyInformationController extends Controller
             'target_beneficiaries' => 'nullable|string',
             'general_situation' => 'nullable|string',
             'need_of_project' => 'nullable|string',
+            'economic_situation' => 'nullable|string',
             'goal' => 'nullable|string',
             'problem_tree_image' => 'nullable|file|image|mimes:jpeg,jpg,png|max:7168',
     ]);
@@ -100,6 +105,9 @@ class KeyInformationController extends Controller
             }
             if (array_key_exists('need_of_project', $validated)) {
                 $project->need_of_project = $validated['need_of_project'];
+            }
+            if (array_key_exists('economic_situation', $validated)) {
+                $project->economic_situation = $validated['economic_situation'];
             }
         if (array_key_exists('goal', $validated)) {
             $project->goal = $validated['goal'];

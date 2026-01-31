@@ -33,7 +33,7 @@ class IIESFamilyWorkingMembersController extends Controller
             $monthlyIncomes = $validated['iies_monthly_income'] ?? [];
 
             for ($i = 0; $i < count($memberNames); $i++) {
-                if (!empty($memberNames[$i]) && !empty($workNatures[$i]) && !empty($monthlyIncomes[$i])) {
+                if (!empty($memberNames[$i]) && !empty($workNatures[$i]) && array_key_exists($i, $monthlyIncomes)) {
                     ProjectIIESFamilyWorkingMembers::create([
                         'project_id'          => $projectId,
                         'iies_member_name'    => $memberNames[$i],
@@ -131,7 +131,7 @@ public function update(FormRequest $request, $projectId)
         $monthlyIncomes = $validatedData['iies_monthly_income'] ?? [];
 
         for ($i = 0; $i < count($memberNames); $i++) {
-            if (!empty($memberNames[$i]) && !empty($workNatures[$i]) && isset($monthlyIncomes[$i])) {
+            if (!empty($memberNames[$i]) && !empty($workNatures[$i]) && array_key_exists($i, $monthlyIncomes)) {
                 ProjectIIESFamilyWorkingMembers::create([
                     'project_id'          => $projectId,
                     'iies_member_name'    => $memberNames[$i],

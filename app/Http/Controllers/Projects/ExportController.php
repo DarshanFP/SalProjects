@@ -1004,35 +1004,46 @@ private function addKeyInformationSection(PhpWord $phpWord, $project)
     // Add a horizontal rule for visual separation
     $section->addText(str_repeat('-', 50), ['color' => 'gray']);
 
-    // Add Initial Information
+    // Subheading: Background of the project
+    $section->addText("Background of the project", ['bold' => true, 'size' => 12]);
+    $section->addTextBreak(0.3);
+
+    // Prevailing social situation in the project area and its adverse effect on life
     if ($project->initial_information) {
-        $section->addText("Initial Information:", ['bold' => true]);
+        $section->addText("Prevailing social situation in the project area and its adverse effect on life:", ['bold' => true]);
         $this->addTextWithLineBreaks($section, $project->initial_information);
         $section->addTextBreak(0.5);
     }
 
-    // Add Target Beneficiaries
+    // Detailed information on target beneficiary of the project
     if ($project->target_beneficiaries) {
-        $section->addText("Target Beneficiaries:", ['bold' => true]);
+        $section->addText("Detailed information on target beneficiary of the project:", ['bold' => true]);
         $this->addTextWithLineBreaks($section, $project->target_beneficiaries);
         $section->addTextBreak(0.5);
     }
 
-    // Add General Situation
+    // Educational & cultural situation in the project area
     if ($project->general_situation) {
-        $section->addText("General Situation:", ['bold' => true]);
+        $section->addText("Educational & cultural situation in the project area:", ['bold' => true]);
         $this->addTextWithLineBreaks($section, $project->general_situation);
         $section->addTextBreak(0.5);
     }
 
-    // Add Need of the Project
+    // Need of the Project
     if ($project->need_of_project) {
         $section->addText("Need of the Project:", ['bold' => true]);
         $this->addTextWithLineBreaks($section, $project->need_of_project);
         $section->addTextBreak(0.5);
     }
 
-    // Add Goal of the Project (last field)
+    // Prevailing economic situation in the project area
+    if (!empty($project->economic_situation)) {
+        $section->addText("Prevailing economic situation in the project area:", ['bold' => true]);
+        $this->addTextWithLineBreaks($section, $project->economic_situation);
+        $section->addTextBreak(0.5);
+    }
+
+    // Goal of the Project (last field)
     if ($project->goal) {
         $section->addText("Goal of the Project:", ['bold' => true]);
         $this->addTextWithLineBreaks($section, $project->goal);
@@ -1040,8 +1051,10 @@ private function addKeyInformationSection(PhpWord $phpWord, $project)
     }
 
     // If no key information fields are present
-    if (!$project->initial_information && !$project->target_beneficiaries && 
-        !$project->general_situation && !$project->need_of_project && !$project->goal) {
+    $hasAny = $project->initial_information || $project->target_beneficiaries ||
+        $project->general_situation || $project->need_of_project ||
+        !empty($project->economic_situation) || $project->goal;
+    if (!$hasAny) {
         $section->addText("No key information provided yet.", ['italic' => true]);
     }
 

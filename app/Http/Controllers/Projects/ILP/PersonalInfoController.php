@@ -17,7 +17,7 @@ class PersonalInfoController extends Controller
     {
         // Use all() to get all form data including fields not in StoreProjectRequest validation rules
         $validated = $request->all();
-        
+
         DB::beginTransaction();
         try {
             Log::info('Storing ILP Personal Information', ['project_id' => $projectId]);
@@ -41,7 +41,7 @@ class PersonalInfoController extends Controller
                     'religion' => $validated['religion'] ?? null,
                     'caste' => $validated['caste'] ?? null,
                     'family_situation' => $validated['family_situation'] ?? null,
-                    'small_business_status' => $validated['small_business_status'] ?? null,
+                    'small_business_status' => (int) ($validated['small_business_status'] ?? 0),
                     'small_business_details' => ($validated['small_business_status'] ?? '') == '1' ? ($validated['small_business_details'] ?? null) : null,
                     'monthly_income' => $validated['monthly_income'] ?? null,
                     'business_plan' => $validated['business_plan'] ?? null,

@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Log;
 use App\Services\ProjectStatusService;
 use App\Services\ReportStatusService;
 use App\Services\NotificationService;
+use App\Services\Budget\BudgetSyncService;
 use App\Constants\ProjectStatus;
 use App\Http\Requests\Projects\ApproveProjectRequest;
 use Carbon\Carbon;
@@ -274,14 +275,8 @@ class CoordinatorController extends Controller
             ]
         ];
         foreach ($projects as $project) {
-            $projectBudget = 0;
-            if ($project->overall_project_budget && $project->overall_project_budget > 0) {
-                $projectBudget = $project->overall_project_budget;
-            } elseif ($project->amount_sanctioned && $project->amount_sanctioned > 0) {
-                $projectBudget = $project->amount_sanctioned;
-            } elseif ($project->budgets && $project->budgets->count() > 0) {
-                $projectBudget = $project->budgets->sum('this_phase');
-            }
+            // Phase 4: Use only canonical project fields (no recalculation from type tables)
+            $projectBudget = (float) ($project->amount_sanctioned ?? $project->overall_project_budget ?? 0);
             if ($projectBudget == 0 && $project->reports && $project->reports->count() > 0) {
                 foreach ($project->reports as $report) {
                     if ($report->isApproved() && $report->accountDetails && $report->accountDetails->count() > 0) {
@@ -571,13 +566,8 @@ class CoordinatorController extends Controller
             ->map(function($project) {
                 // Calculate budget
                 $projectBudget = 0;
-                if ($project->overall_project_budget && $project->overall_project_budget > 0) {
-                    $projectBudget = $project->overall_project_budget;
-                } elseif ($project->amount_sanctioned && $project->amount_sanctioned > 0) {
-                    $projectBudget = $project->amount_sanctioned;
-                } elseif ($project->budgets && $project->budgets->count() > 0) {
-                    $projectBudget = $project->budgets->sum('this_phase');
-                }
+                // Phase 4: Use only canonical project fields (no recalculation from type tables)
+                $projectBudget = (float) ($project->amount_sanctioned ?? $project->overall_project_budget ?? 0);
 
                 // Calculate expenses from approved reports (optimized - use direct query instead of loading all)
                 $projectApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
@@ -1080,6 +1070,10 @@ public function approveProject(ApproveProjectRequest $request, $project_id)
         'project_status' => $project->status,
         'budgets_count' => $project->budgets ? $project->budgets->count() : 0,
     ]);
+
+    // Phase 2: Sync project-level budget fields before approval so validation/computation see correct data
+    app(BudgetSyncService::class)->syncBeforeApproval($project);
+    $project->refresh();
 
     // Create commencement date (validation already ensures it's not in the past)
     $commencementDate = Carbon::create(
@@ -2053,8 +2047,7 @@ public function budgetOverview()
 
         // Calculate total budget, expenses, remaining
         $totalBudget = $approvedProjects->sum(function($p) {
-            return $p->amount_sanctioned ?? $p->overall_project_budget ??
-                   ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+            return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
         });
 
         // Calculate approved expenses (from approved reports)
@@ -2084,8 +2077,7 @@ public function budgetOverview()
         $budgetByProjectType = [];
         foreach ($approvedProjects->groupBy('project_type') as $type => $projects) {
             $typeBudget = $projects->sum(function($p) {
-                return $p->amount_sanctioned ?? $p->overall_project_budget ??
-                       ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+                return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
             });
 
             $typeProjectIds = $projects->pluck('project_id');
@@ -2124,8 +2116,7 @@ public function budgetOverview()
         $budgetByProvince = [];
         foreach ($approvedProjects->groupBy(function($p) { return $p->user->province ?? 'Unknown'; }) as $province => $projects) {
             $provinceBudget = $projects->sum(function($p) {
-                return $p->amount_sanctioned ?? $p->overall_project_budget ??
-                       ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+                return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
             });
 
             $provinceProjectIds = $projects->pluck('project_id');
@@ -2166,8 +2157,7 @@ public function budgetOverview()
             if (empty($center) || $center === 'Unknown') continue;
 
             $centerBudget = $projects->sum(function($p) {
-                return $p->amount_sanctioned ?? $p->overall_project_budget ??
-                       ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+                return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
             });
 
             $centerProjectIds = $projects->pluck('project_id');
@@ -2213,8 +2203,7 @@ public function budgetOverview()
             $provincialName = $provincial ? $provincial->name : 'Unknown';
 
             $provincialBudget = $projects->sum(function($p) {
-                return $p->amount_sanctioned ?? $p->overall_project_budget ??
-                       ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+                return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
             });
 
             $provincialProjectIds = $projects->pluck('project_id');
@@ -2261,11 +2250,9 @@ public function budgetOverview()
 
         // Top Projects by Budget
         $topProjectsByBudget = $approvedProjects->sortByDesc(function($p) {
-            return $p->amount_sanctioned ?? $p->overall_project_budget ??
-                   ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+            return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
         })->take(10)->map(function($p) {
-            $projectBudget = $p->amount_sanctioned ?? $p->overall_project_budget ??
-                           ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+            $projectBudget = (float) ($p->amount_sanctioned ?? $p->overall_project_budget ?? 0);
 
             $projectApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
                 ->where('project_id', $p->project_id)
@@ -2330,8 +2317,7 @@ public function budgetOverview()
 
             $provinceBudget = $provinceProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
                 ->sum(function($p) {
-                    return $p->amount_sanctioned ?? $p->overall_project_budget ??
-                           ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
                 });
 
             $provinceApprovedReportIds = $provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->pluck('report_id');
@@ -2429,10 +2415,9 @@ public function budgetOverview()
                 $pendingTeamReports = $teamReports->where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR);
                 $approvedTeamReports = $teamReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR);
 
-                // Calculate budget and expenses
+                // Calculate budget and expenses (Phase 4: canonical project fields only)
                 $teamBudget = $approvedTeamProjects->sum(function($p) {
-                    return $p->amount_sanctioned ?? $p->overall_project_budget ??
-                           ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
                 });
 
                 $teamApprovedReportIds = $approvedTeamReports->pluck('report_id');

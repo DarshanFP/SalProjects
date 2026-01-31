@@ -4,27 +4,29 @@
         <h4>Edit: Key Information</h4>
     </div>
     <div class="card-body">
-        <!-- Initial Information -->
+        <h5 class="mb-3">Background of the project</h5>
+
+        <!-- Prevailing social situation in the project area and its adverse effect on life -->
         <div class="mb-3">
-            <label for="initial_information" class="form-label">Initial Information</label>
+            <label for="initial_information" class="form-label">Prevailing social situation in the project area and its adverse effect on life</label>
             <textarea name="initial_information" id="initial_information" class="form-control sustainability-textarea" rows="3">{{ old('initial_information', $project->initial_information) }}</textarea>
             @error('initial_information')
                 <span class="text-danger">{{ $message }}</span>
             @enderror
         </div>
 
-        <!-- Target Beneficiaries -->
+        <!-- Detailed information on target beneficiary of the project -->
         <div class="mb-3">
-            <label for="target_beneficiaries" class="form-label">Target Beneficiaries</label>
+            <label for="target_beneficiaries" class="form-label">Detailed information on target beneficiary of the project</label>
             <textarea name="target_beneficiaries" id="target_beneficiaries" class="form-control sustainability-textarea" rows="3">{{ old('target_beneficiaries', $project->target_beneficiaries) }}</textarea>
             @error('target_beneficiaries')
                 <span class="text-danger">{{ $message }}</span>
             @enderror
         </div>
 
-        <!-- General Situation -->
+        <!-- Educational & cultural situation in the project area -->
         <div class="mb-3">
-            <label for="general_situation" class="form-label">General Situation</label>
+            <label for="general_situation" class="form-label">Educational & cultural situation in the project area</label>
             <textarea name="general_situation" id="general_situation" class="form-control sustainability-textarea" rows="3">{{ old('general_situation', $project->general_situation) }}</textarea>
             @error('general_situation')
                 <span class="text-danger">{{ $message }}</span>
@@ -36,6 +38,15 @@
             <label for="need_of_project" class="form-label">Need of the Project</label>
             <textarea name="need_of_project" id="need_of_project" class="form-control sustainability-textarea" rows="3">{{ old('need_of_project', $project->need_of_project) }}</textarea>
             @error('need_of_project')
+                <span class="text-danger">{{ $message }}</span>
+            @enderror
+        </div>
+
+        <!-- Prevailing economic situation in the project area -->
+        <div class="mb-3">
+            <label for="economic_situation" class="form-label">Prevailing economic situation in the project area</label>
+            <textarea name="economic_situation" id="economic_situation" class="form-control sustainability-textarea" rows="3">{{ old('economic_situation', $project->economic_situation) }}</textarea>
+            @error('economic_situation')
                 <span class="text-danger">{{ $message }}</span>
             @enderror
         </div>
@@ -52,6 +63,7 @@
         <!-- Problem Tree Image -->
         <div class="mb-3 problem-tree-upload-wrapper" data-has-existing="{{ $project->problem_tree_file_path ? '1' : '0' }}">
             <label for="problem_tree_image" class="form-label">Problem Tree (image)</label>
+            <small class="d-block text-muted mb-1">Cause and effect of the problem</small>
             @if($project->problem_tree_file_path)
                 <div class="mb-2 problem-tree-current-preview">
                     <span class="d-block small text-muted mb-1">Current image (preview):</span>
@@ -114,6 +126,7 @@
             });
         })();
         </script>
+        <script src="{{ asset('js/key-information-validation.js') }}"></script>
     </div>
 </div>
 

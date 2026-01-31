@@ -23,6 +23,7 @@ use App\Models\ActivityHistory;
 use App\Services\ProjectStatusService;
 use App\Services\ReportStatusService;
 use App\Services\ProjectQueryService;
+use App\Services\Budget\BudgetSyncService;
 use Carbon\Carbon;
 use Exception;
 
@@ -2209,15 +2210,8 @@ class GeneralController extends Controller
         $allProjects = $projectsFromCoordinators->map(function($project) use ($approvedExpensesByProject, $unapprovedExpensesCoordinator) {
             $project->source = 'coordinator_hierarchy';
 
-            // Calculate budget
-            $projectBudget = 0;
-            if ($project->overall_project_budget && $project->overall_project_budget > 0) {
-                $projectBudget = $project->overall_project_budget;
-            } elseif ($project->amount_sanctioned && $project->amount_sanctioned > 0) {
-                $projectBudget = $project->amount_sanctioned;
-            } elseif ($project->budgets && $project->budgets->count() > 0) {
-                $projectBudget = $project->budgets->sum('this_phase');
-            }
+            // Phase 4: Use only canonical project fields (no recalculation from type tables)
+            $projectBudget = (float) ($project->amount_sanctioned ?? $project->overall_project_budget ?? 0);
 
             // Get expenses from pre-fetched data (avoid N+1 queries)
             $totalExpenses = (float)($approvedExpensesByProject[$project->project_id] ?? 0);
@@ -2246,15 +2240,8 @@ class GeneralController extends Controller
         })->merge($projectsFromDirectTeam->map(function($project) use ($approvedExpensesByProject, $unapprovedExpensesDirectTeam) {
             $project->source = 'direct_team';
 
-            // Calculate budget
-            $projectBudget = 0;
-            if ($project->overall_project_budget && $project->overall_project_budget > 0) {
-                $projectBudget = $project->overall_project_budget;
-            } elseif ($project->amount_sanctioned && $project->amount_sanctioned > 0) {
-                $projectBudget = $project->amount_sanctioned;
-            } elseif ($project->budgets && $project->budgets->count() > 0) {
-                $projectBudget = $project->budgets->sum('this_phase');
-            }
+            // Phase 4: Use only canonical project fields (no recalculation from type tables)
+            $projectBudget = (float) ($project->amount_sanctioned ?? $project->overall_project_budget ?? 0);
 
             // Get expenses from pre-fetched data (avoid N+1 queries)
             $totalExpenses = (float)($approvedExpensesByProject[$project->project_id] ?? 0);
@@ -2515,6 +2502,9 @@ class GeneralController extends Controller
 
         try {
             if ($approvalContext === 'coordinator') {
+                // Phase 2: Sync project-level budget fields before approval so validation/computation see correct data
+                app(BudgetSyncService::class)->syncBeforeApproval($project);
+                $project->refresh();
                 // Approve as Coordinator - requires commencement date and budget validation
                 $request->validate([
                     'commencement_month' => 'required|integer|min:1|max:12',
@@ -3514,8 +3504,7 @@ class GeneralController extends Controller
             $calculateBudgetData = function($projects, $projectIds, $reportStatusApproved, $reportStatusUnapproved) {
                 // Calculate total budget
                 $totalBudget = $projects->sum(function($p) {
-                    return $p->amount_sanctioned ?? $p->overall_project_budget ??
-                           ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
                 });
 
                 // Calculate approved expenses (from approved reports)
@@ -3557,8 +3546,7 @@ class GeneralController extends Controller
                 foreach ($projects->groupBy('project_type') as $type => $typeProjects) {
                     $typeProjectIds = $typeProjects->pluck('project_id');
                     $typeBudget = $typeProjects->sum(function($p) {
-                        return $p->amount_sanctioned ?? $p->overall_project_budget ??
-                               ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+                        return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
                     });
 
                     $typeApprovedExpenses = DPAccountDetail::whereIn('report_id', $approvedReportIds)
@@ -3694,7 +3682,7 @@ class GeneralController extends Controller
             foreach ($coordinatorHierarchyProjects->groupBy(function($p) { return $p->user->province ?? 'Unknown'; }) as $province => $projects) {
                 $provinceProjectIds = $projects->pluck('project_id');
                 $provinceBudget = $projects->sum(function($p) {
-                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
                 });
                 $provinceApprovedExpenses = DPAccountDetail::whereIn('report_id', $coordinatorHierarchyData['approved_report_ids'])
                     ->whereHas('report', function($q) use ($provinceProjectIds) {
@@ -3716,7 +3704,7 @@ class GeneralController extends Controller
                 if (empty($center) || $center === 'Unknown') continue;
                 $centerProjectIds = $projects->pluck('project_id');
                 $centerBudget = $projects->sum(function($p) {
-                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
                 });
                 $centerApprovedExpenses = DPAccountDetail::whereIn('report_id', $directTeamData['approved_report_ids'])
                     ->whereHas('report', function($q) use ($centerProjectIds) {
@@ -3744,7 +3732,7 @@ class GeneralController extends Controller
                 if ($coordinatorProjects->isEmpty()) continue;
                 $coordinatorProjectIds = $coordinatorProjects->pluck('project_id');
                 $coordinatorBudget = $coordinatorProjects->sum(function($p) {
-                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? ($p->budgets ? $p->budgets->sum('this_phase') : 0);
+                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
                 });
                 $coordinatorApprovedExpenses = DPAccountDetail::whereIn('report_id', $coordinatorHierarchyData['approved_report_ids'])
                     ->whereHas('report', function($q) use ($coordinatorProjectIds) {

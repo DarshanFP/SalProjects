@@ -22,6 +22,7 @@ use App\Services\ProjectStatusService;
 use App\Services\ProjectPhaseService;
 use App\Traits\HandlesErrors;
 use App\Services\ProjectQueryService;
+use App\Services\Budget\BudgetSyncGuard;
 // Aliases for CCI Controllers with prefix 'CCI' -
 use App\Http\Controllers\Projects\CCI\AchievementsController as CCIAchievementsController;
 use App\Http\Controllers\Projects\CCI\AgeProfileController as CCIAgeProfileController;
@@ -80,6 +81,7 @@ use App\Http\Controllers\Projects\IIES\IIESPersonalInfoController as IIESPersona
 use App\Http\Controllers\Projects\IIES\IIESExpensesController as IIESExpensesController;
 use App\Models\OldProjects\IIES\ProjectIIESExpenses;
 use App\Models\OldProjects\IIES\ProjectIIESEducationBackground;
+use App\Services\Budget\ProjectFundFieldsResolver;
 
 class ProjectController extends Controller
 {
@@ -483,6 +485,7 @@ public function getProjectDetails($project_id)
             'target_beneficiaries' => $project->target_beneficiaries,
             'general_situation' => $project->general_situation,
             'need_of_project' => $project->need_of_project,
+            'economic_situation' => $project->economic_situation,
             'goal' => $project->goal,
             'beneficiaries_areas' => $project->DPRSTBeneficiariesAreas->map(function ($area) {
                 return [
@@ -743,7 +746,15 @@ public function show($project_id)
                 'sustainabilities',
                 'user',
                 'statusHistory.changedBy',
-                'reports.accountDetails' // Load reports with account details for budget calculations
+                'reports.accountDetails', // Load reports with account details for budget calculations
+                // IIES (Individual - Initial - Educational support) so Show partials can use $project->iiesXXX
+                'iiesPersonalInfo',
+                'iiesFamilyWorkingMembers',
+                'iiesImmediateFamilyDetails',
+                'iiesEducationBackground',
+                'iiesFinancialSupport',
+                'iiesAttachments.files',
+                'iiesExpenses.expenseDetails',
             ])
             ->firstOrFail();
 
@@ -997,6 +1008,25 @@ public function show($project_id)
             ]);
         }
 
+        // Phase 1: Resolved fund fields for display. Always resolve for types that use type-specific
+        // budget (IIES, IES, ILP, IAH, IGE) so Basic Info shows correct Local Contribution etc.;
+        // when resolver_enabled, resolve for all types. Read-only, no writes.
+        $typesWithTypeSpecificBudget = [
+            'Individual - Initial - Educational support',
+            'Individual - Ongoing Educational support',
+            'Individual - Livelihood Application',
+            'Individual - Access to Health',
+            'Institutional Ongoing Group Educational proposal',
+        ];
+        $shouldResolveForShow = config('budget.resolver_enabled')
+            || in_array($project->project_type ?? '', $typesWithTypeSpecificBudget, true);
+        if ($shouldResolveForShow) {
+            $resolver = app(ProjectFundFieldsResolver::class);
+            $data['resolvedFundFields'] = $resolver->resolve($project, true);
+        } else {
+            $data['resolvedFundFields'] = null;
+        }
+
         Log::info('ProjectController@show - Data prepared for view', [
             'project_id' => $project_id,
             'data_keys' => array_keys($data)
@@ -1246,6 +1276,9 @@ public function edit($project_id)
             'project_id' => $project_id
         ]);
 
+        // Phase 3: Budget locked when project is approved (restrict flag on)
+        $budgetLockedByApproval = !BudgetSyncGuard::canEditBudget($project);
+
         return view('projects.Oldprojects.edit', compact(
             'project', 'developmentProjects', 'user', 'users',
             'basicInfo', 'targetGroups', 'annexedTargetGroups', 'cicBasicInfo',
@@ -1265,7 +1298,8 @@ public function edit($project_id)
             'IAHSupportDetails', 'IAHBudgetDetails', 'IAHDocuments',
             'IIESPersonalInfo', 'IIESFamilyWorkingMembers',
             'IIESImmediateFamilyDetails', 'IIESEducationBackground',
-            'IIESFinancialSupport', 'IIESAttachments', 'iiesExpenses'
+            'IIESFinancialSupport', 'IIESAttachments', 'iiesExpenses',
+            'budgetLockedByApproval'
         ));
     } catch (\Exception $e) {
         Log::error('ProjectController@edit - Error retrieving project data', [
