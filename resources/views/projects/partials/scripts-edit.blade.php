@@ -182,9 +182,12 @@
             const activityDescription = activityDescriptionTextarea.value;
             const timeFrameRow = timeFrameRows[index];
             if (timeFrameRow && activityDescription) {
-                const descriptionText = timeFrameRow.querySelector('.activity-description-text');
-                if (descriptionText) {
-                    descriptionText.innerText = activityDescription;
+                const descriptionTextarea = timeFrameRow.querySelector('.activity-description-text textarea');
+                const descriptionCell = timeFrameRow.querySelector('.activity-description-text');
+                if (descriptionTextarea) {
+                    descriptionTextarea.value = activityDescription;
+                } else if (descriptionCell) {
+                    descriptionCell.innerText = activityDescription;
                 }
             }
         });
@@ -317,28 +320,35 @@
                 <button type="button" class="mb-3 btn btn-primary" onclick="addActivity(this)">Add Activity</button>
             </div>
 
-            <!-- Time Frame Section -->
+            <!-- Time Frame Section (15 columns: No., Activities, Jan-Dec, Action) -->
             <div class="mt-4 card time-frame-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h6>Time Frame for Activities</h6>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="addTimeFrameRow(this)">Add Row</button>
                 </div>
                 <div class="card-body">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th scope="col" style="width: 40%;">Activities</th>
-                                ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(month => `<th scope="col">${month}</th>`).join('')}
-                                <th scope="col" style="width: 6%;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="activity-timeframe-row">
-                                <td class="activity-description-text"></td>
-                                ${Array(12).fill(0).map(() => `<td class="text-center"><input type="checkbox" class="month-checkbox" value="1" name=""></td>`).join('')}
-                                <td><button type="button" class="btn btn-danger btn-sm" onclick="removeTimeFrameRow(this)">Remove</button></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm timeframe-table" style="table-layout: fixed; width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th scope="col" style="width: 3%;">No.</th>
+                                    <th scope="col" style="width: 45%;">Activities</th>
+                                    ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(month => `<th scope="col" class="month-header" style="width: calc(45% / 12);">${month}</th>`).join('')}
+                                    <th scope="col" style="width: 5%;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="activity-timeframe-row">
+                                    <td style="text-align: center; vertical-align: middle;">1</td>
+                                    <td class="activity-description-text table-cell-wrap" style="width: 45%; vertical-align: top;">
+                                        <textarea name="" class="form-control select-input logical-textarea" rows="3"></textarea>
+                                    </td>
+                                    ${Array(12).fill(0).map((_, i) => `<td class="text-center month-checkbox-cell" style="width: calc(45% / 12);"><input type="checkbox" class="month-checkbox" value="1" name=""></td>`).join('')}
+                                    <td style="width: 5%;"><button type="button" class="btn btn-danger btn-sm" onclick="removeTimeFrameRow(this)">Remove</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         `;
@@ -402,20 +412,23 @@
         `;
         activitiesTableBody.appendChild(activityRow);
 
-        // Reset the Time Frame section
-        const timeFrameCard = template.querySelector('.time-frame-card tbody');
-        if (timeFrameCard) {
-            timeFrameCard.querySelectorAll('.activity-timeframe-row').forEach(row => row.remove());
+        // Reset the Time Frame section (15 columns: No., Activities, Jan-Dec, Action)
+        const timeFrameTbody = template.querySelector('.time-frame-card tbody');
+        if (timeFrameTbody) {
+            timeFrameTbody.querySelectorAll('.activity-timeframe-row').forEach(row => row.remove());
 
-            // Add one empty time frame row
+            // Add one empty time frame row with full 15-cell structure
             const timeFrameRow = document.createElement('tr');
             timeFrameRow.className = 'activity-timeframe-row';
             timeFrameRow.innerHTML = `
-                <td class="activity-description-text"></td>
-                ${Array(12).fill(0).map(() => `<td class="text-center"><input type="checkbox" class="month-checkbox" value="1" name=""></td>`).join('')}
-                <td><button type="button" class="btn btn-danger btn-sm" onclick="removeTimeFrameRow(this)">Remove</button></td>
+                <td style="text-align: center; vertical-align: middle;">1</td>
+                <td class="activity-description-text table-cell-wrap" style="width: 45%; vertical-align: top;">
+                    <textarea name="" class="form-control select-input logical-textarea" rows="3"></textarea>
+                </td>
+                ${Array(12).fill(0).map(() => `<td class="text-center month-checkbox-cell" style="width: calc(45% / 12);"><input type="checkbox" class="month-checkbox" value="1" name=""></td>`).join('')}
+                <td style="width: 5%;"><button type="button" class="btn btn-danger btn-sm" onclick="removeTimeFrameRow(this)">Remove</button></td>
             `;
-            timeFrameCard.appendChild(timeFrameRow);
+            timeFrameTbody.appendChild(timeFrameRow);
         }
     }
 
@@ -467,10 +480,15 @@
             // Update the timeframe for this activity if applicable
             const timeFrameRow = timeFrameRows[activityIndex];
             if (timeFrameRow) {
-                const descriptionText = timeFrameRow.querySelector('.activity-description-text');
-                if (descriptionText && activityDescriptionTextarea) {
-                    // Sync the activity description to the time frame row
-                    descriptionText.innerText = activityDescriptionTextarea.value;
+                const descriptionCell = timeFrameRow.querySelector('.activity-description-text');
+                const descriptionTextarea = timeFrameRow.querySelector('.activity-description-text textarea');
+                if (descriptionTextarea) {
+                    descriptionTextarea.name = `objectives[${objectiveIndex}][activities][${activityIndex}][timeframe][description]`;
+                    if (activityDescriptionTextarea) {
+                        descriptionTextarea.value = activityDescriptionTextarea.value;
+                    }
+                } else if (descriptionCell && activityDescriptionTextarea) {
+                    descriptionCell.innerText = activityDescriptionTextarea.value;
                 }
 
                 // Update checkbox names
@@ -504,9 +522,12 @@
                 const timeFrameRows = timeFrameTbody.querySelectorAll('.activity-timeframe-row');
                 const timeFrameRow = timeFrameRows[index];
                 if (timeFrameRow) {
-                    const descriptionText = timeFrameRow.querySelector('.activity-description-text');
-                    if (descriptionText) {
-                        descriptionText.innerText = activityDescription;
+                    const descriptionTextarea = timeFrameRow.querySelector('.activity-description-text textarea');
+                    const descriptionCell = timeFrameRow.querySelector('.activity-description-text');
+                    if (descriptionTextarea) {
+                        descriptionTextarea.value = activityDescription;
+                    } else if (descriptionCell) {
+                        descriptionCell.innerText = activityDescription;
                     }
                 }
             };
@@ -725,9 +746,12 @@
         const newTimeFrameRow = lastTimeFrameRow.cloneNode(true);
 
         // Clear the activity description and checkboxes
-        const descriptionText = newTimeFrameRow.querySelector('.activity-description-text');
-        if (descriptionText) {
-            descriptionText.innerText = '';
+        const descriptionTextarea = newTimeFrameRow.querySelector('.activity-description-text textarea');
+        const descriptionCell = newTimeFrameRow.querySelector('.activity-description-text');
+        if (descriptionTextarea) {
+            descriptionTextarea.value = '';
+        } else if (descriptionCell) {
+            descriptionCell.innerText = '';
         }
         newTimeFrameRow.querySelectorAll('.month-checkbox').forEach(checkbox => {
             checkbox.checked = false;
