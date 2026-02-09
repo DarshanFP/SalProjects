@@ -18,9 +18,6 @@
         @if(empty($provincePerformance) || count($provincePerformance) === 0)
             {{-- Empty State --}}
             <div class="text-center py-5">
-                <div class="mb-3">
-                    <i class="feather icon-map" style="font-size: 48px; color: #ccc;"></i>
-                </div>
                 <h5 class="text-muted">No Province Data Available</h5>
                 <p class="text-muted">There are no provinces with performance data yet.</p>
             </div>

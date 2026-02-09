@@ -15,31 +15,32 @@ class GeographicalAreaController extends Controller
     // Store or update geographical areas
     public function store(FormRequest $request, $projectId)
     {
-    // Use all() instead of validated() because mandal, village, town, no_of_beneficiaries
-    // fields are not in StoreProjectRequest validation rules
-    // This ensures we get all form data including these fields
-    $validated = $request->all();
-        
+        $fillable = ['mandal', 'village', 'town', 'no_of_beneficiaries'];
+        $data = $request->only($fillable);
+
+        $mandals = is_array($data['mandal'] ?? null) ? ($data['mandal'] ?? []) : (isset($data['mandal']) && $data['mandal'] !== '' ? [$data['mandal']] : []);
+        $villages = is_array($data['village'] ?? null) ? ($data['village'] ?? []) : (isset($data['village']) && $data['village'] !== '' ? [$data['village']] : []);
+        $towns = is_array($data['town'] ?? null) ? ($data['town'] ?? []) : (isset($data['town']) && $data['town'] !== '' ? [$data['town']] : []);
+        $noOfBeneficiaries = is_array($data['no_of_beneficiaries'] ?? null) ? ($data['no_of_beneficiaries'] ?? []) : (isset($data['no_of_beneficiaries']) && $data['no_of_beneficiaries'] !== '' ? [$data['no_of_beneficiaries']] : []);
+
         DB::beginTransaction();
         try {
             Log::info('Storing Geographical Areas for RST', ['project_id' => $projectId]);
 
-            // Delete existing geographical areas for the project
             ProjectRSTGeographicalArea::where('project_id', $projectId)->delete();
 
-            // Insert new geographical area data
-            $mandals = $validated['mandal'] ?? [];
-            $villages = $validated['village'] ?? [];
-            $towns = $validated['town'] ?? [];
-            $noOfBeneficiaries = $validated['no_of_beneficiaries'] ?? [];
-            
             foreach ($mandals as $index => $mandal) {
+                $mandalVal = is_array($mandal ?? null) ? (reset($mandal) ?? null) : ($mandal ?? null);
+                $villagesVal = is_array($villages[$index] ?? null) ? (reset($villages[$index]) ?? null) : ($villages[$index] ?? null);
+                $townVal = is_array($towns[$index] ?? null) ? (reset($towns[$index]) ?? null) : ($towns[$index] ?? null);
+                $noOfBeneficiariesVal = is_array($noOfBeneficiaries[$index] ?? null) ? (reset($noOfBeneficiaries[$index]) ?? null) : ($noOfBeneficiaries[$index] ?? null);
+
                 ProjectRSTGeographicalArea::create([
                     'project_id' => $projectId,
-                    'mandal' => $mandal,
-                    'villages' => $villages[$index] ?? null,
-                    'town' => $towns[$index] ?? null,
-                    'no_of_beneficiaries' => $noOfBeneficiaries[$index] ?? null,
+                    'mandal' => $mandalVal,
+                    'villages' => $villagesVal,
+                    'town' => $townVal,
+                    'no_of_beneficiaries' => $noOfBeneficiariesVal,
                 ]);
             }
 
@@ -89,54 +90,9 @@ class GeographicalAreaController extends Controller
     }
 
     public function update(FormRequest $request, $projectId)
-{
-    // Use all() instead of validated() because mandal, village, town, no_of_beneficiaries
-    // fields are not in UpdateProjectRequest validation rules
-    // This ensures we get all form data including these fields
-    $validatedData = $request->all();
-    
-    DB::beginTransaction();
-    try {
-        Log::info('Updating Geographical Areas for RST', ['project_id' => $projectId]);
-
-        // Fetch existing geographical areas for the project
-        $existingAreas = ProjectRSTGeographicalArea::where('project_id', $projectId)->get();
-
-        // Update or insert new geographical area data
-        $mandals = $validatedData['mandal'] ?? [];
-        $villages = $validatedData['village'] ?? [];
-        $towns = $validatedData['town'] ?? [];
-        $noOfBeneficiaries = $validatedData['no_of_beneficiaries'] ?? [];
-        
-        foreach ($mandals as $index => $mandal) {
-            $areaData = [
-                'project_id' => $projectId,
-                'mandal' => $mandal,
-                'villages' => $villages[$index] ?? null,
-                'town' => $towns[$index] ?? null,
-                'no_of_beneficiaries' => $noOfBeneficiaries[$index] ?? null,
-            ];
-
-            // Check if a record exists for the mandal
-            $existingArea = $existingAreas->where('mandal', $mandal)->first();
-            if ($existingArea) {
-                // Update the existing record
-                $existingArea->update($areaData);
-            } else {
-                // Create a new record if it doesn't exist
-                ProjectRSTGeographicalArea::create($areaData);
-            }
-        }
-
-        DB::commit();
-        Log::info('Geographical Areas updated successfully for RST', ['project_id' => $projectId]);
-        return response()->json(['message' => 'Geographical Areas updated successfully.'], 200);
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error updating Geographical Areas for RST', ['error' => $e->getMessage()]);
-        return response()->json(['error' => 'Failed to update Geographical Areas.'], 500);
+    {
+        return $this->store($request, $projectId);
     }
-}
 
 
     // Delete geographical areas for a project

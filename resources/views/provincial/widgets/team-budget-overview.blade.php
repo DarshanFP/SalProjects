@@ -6,16 +6,10 @@
 {{-- Team Budget Overview Widget (Enhanced) --}}
 <div class="card mb-4 widget-card" data-widget-id="team-budget-overview">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="dollar-sign" class="me-2"></i>Team Budget Overview
-        </h5>
+        <h5 class="mb-0">Team Budget Overview</h5>
         <div>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportBudgetData()" title="Export Data">
-                <i data-feather="download"></i>
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="team-budget-overview" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportBudgetData()" title="Export Data">Export</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="team-budget-overview" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body widget-content">

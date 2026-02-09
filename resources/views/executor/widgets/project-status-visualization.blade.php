@@ -1,13 +1,8 @@
 {{-- Project Status Visualization Widget - Dark Theme Compatible with ApexCharts --}}
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="activity" class="me-2"></i>
-            Project Status Overview
-        </h5>
-        <div class="widget-drag-handle">
-            <i data-feather="move" style="width: 16px; height: 16px;" class="text-muted"></i>
-        </div>
+        <h5 class="mb-0">Project Status Overview</h5>
+        <div class="widget-drag-handle"></div>
     </div>
     <div class="card-body">
         <div class="row">
@@ -188,8 +183,8 @@ function initializeProjectStatusCharts() {
         projectTypeChart.render();
     } else {
         // Show empty state message
-        document.querySelector("#projectStatusChart").innerHTML = '<div class="text-center py-5 text-muted"><i data-feather="inbox" style="width: 32px; height: 32px;" class="mb-2"></i><p>No projects to display</p></div>';
-        document.querySelector("#projectTypeChart").innerHTML = '<div class="text-center py-5 text-muted"><i data-feather="inbox" style="width: 32px; height: 32px;" class="mb-2"></i><p>No projects to display</p></div>';
+        document.querySelector("#projectStatusChart").innerHTML = '<div class="text-center py-5 text-muted"><p>No projects to display</p></div>';
+        document.querySelector("#projectTypeChart").innerHTML = '<div class="text-center py-5 text-muted"><p>No projects to display</p></div>';
         if (typeof feather !== 'undefined') {
             feather.replace();
         }

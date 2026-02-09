@@ -35,9 +35,18 @@ class IGEBudgetController extends Controller
             return redirect()->back()->with('error', self::BUDGET_LOCKED_MESSAGE);
         }
 
-        // Use all() to get all form data including name[], study_proposed[], etc. arrays
-        // These fields are not in StoreProjectRequest validation rules
-        $validated = $request->all();
+        $fillable = ['name', 'study_proposed', 'college_fees', 'hostel_fees', 'total_amount', 'scholarship_eligibility', 'family_contribution', 'amount_requested'];
+        $data = $request->only($fillable);
+
+        // Scalar-to-array normalization; per-value scalar coercion
+        $names = is_array($data['name'] ?? null) ? ($data['name'] ?? []) : (isset($data['name']) && $data['name'] !== '' ? [$data['name']] : []);
+        $studiesProposed = is_array($data['study_proposed'] ?? null) ? ($data['study_proposed'] ?? []) : (isset($data['study_proposed']) ? [$data['study_proposed']] : []);
+        $collegeFees = is_array($data['college_fees'] ?? null) ? ($data['college_fees'] ?? []) : (isset($data['college_fees']) ? [$data['college_fees']] : []);
+        $hostelFees = is_array($data['hostel_fees'] ?? null) ? ($data['hostel_fees'] ?? []) : (isset($data['hostel_fees']) ? [$data['hostel_fees']] : []);
+        $totalAmounts = is_array($data['total_amount'] ?? null) ? ($data['total_amount'] ?? []) : (isset($data['total_amount']) ? [$data['total_amount']] : []);
+        $scholarshipEligibility = is_array($data['scholarship_eligibility'] ?? null) ? ($data['scholarship_eligibility'] ?? []) : (isset($data['scholarship_eligibility']) ? [$data['scholarship_eligibility']] : []);
+        $familyContributions = is_array($data['family_contribution'] ?? null) ? ($data['family_contribution'] ?? []) : (isset($data['family_contribution']) ? [$data['family_contribution']] : []);
+        $amountRequested = is_array($data['amount_requested'] ?? null) ? ($data['amount_requested'] ?? []) : (isset($data['amount_requested']) ? [$data['amount_requested']] : []);
 
         DB::beginTransaction();
         try {
@@ -46,29 +55,26 @@ class IGEBudgetController extends Controller
             // First, delete all existing budget records for the project
             ProjectIGEBudget::where('project_id', $projectId)->delete();
 
-            // Insert new budget entries
-            $names = $validated['name'] ?? [];
-            $studiesProposed = $validated['study_proposed'] ?? [];
-            $collegeFees = $validated['college_fees'] ?? [];
-            $hostelFees = $validated['hostel_fees'] ?? [];
-            $totalAmounts = $validated['total_amount'] ?? [];
-            $scholarshipEligibility = $validated['scholarship_eligibility'] ?? [];
-            $familyContributions = $validated['family_contribution'] ?? [];
-            $amountRequested = $validated['amount_requested'] ?? [];
-
-            // Store each budget row
             foreach ($names as $i => $name) {
-                if (!empty($name)) {
+                $nameVal = is_array($name ?? null) ? (reset($name) ?? '') : ($name ?? '');
+                if (!empty($nameVal)) {
+                    $study = is_array($studiesProposed[$i] ?? null) ? (reset($studiesProposed[$i]) ?? null) : ($studiesProposed[$i] ?? null);
+                    $college = is_array($collegeFees[$i] ?? null) ? (reset($collegeFees[$i]) ?? null) : ($collegeFees[$i] ?? null);
+                    $hostel = is_array($hostelFees[$i] ?? null) ? (reset($hostelFees[$i]) ?? null) : ($hostelFees[$i] ?? null);
+                    $total = is_array($totalAmounts[$i] ?? null) ? (reset($totalAmounts[$i]) ?? null) : ($totalAmounts[$i] ?? null);
+                    $scholarship = is_array($scholarshipEligibility[$i] ?? null) ? (reset($scholarshipEligibility[$i]) ?? null) : ($scholarshipEligibility[$i] ?? null);
+                    $family = is_array($familyContributions[$i] ?? null) ? (reset($familyContributions[$i]) ?? null) : ($familyContributions[$i] ?? null);
+                    $amount = is_array($amountRequested[$i] ?? null) ? (reset($amountRequested[$i]) ?? null) : ($amountRequested[$i] ?? null);
                     ProjectIGEBudget::create([
                         'project_id' => $projectId,
-                        'name' => $name,
-                        'study_proposed' => $studiesProposed[$i] ?? null,
-                        'college_fees' => $collegeFees[$i] ?? null,
-                        'hostel_fees' => $hostelFees[$i] ?? null,
-                        'total_amount' => $totalAmounts[$i] ?? null,
-                        'scholarship_eligibility' => $scholarshipEligibility[$i] ?? null,
-                        'family_contribution' => $familyContributions[$i] ?? null,
-                        'amount_requested' => $amountRequested[$i] ?? null,
+                        'name' => $nameVal,
+                        'study_proposed' => $study,
+                        'college_fees' => $college,
+                        'hostel_fees' => $hostel,
+                        'total_amount' => $total,
+                        'scholarship_eligibility' => $scholarship,
+                        'family_contribution' => $family,
+                        'amount_requested' => $amount,
                     ]);
                 }
             }

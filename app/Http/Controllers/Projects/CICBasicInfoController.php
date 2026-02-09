@@ -3,33 +3,32 @@
 namespace App\Http\Controllers\Projects;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\ProjectCICBasicInfo;
-use Illuminate\Support\Facades\Log;
+use App\Services\FormDataExtractor;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CICBasicInfoController extends Controller
 {
     // Store basic information for a project
     public function store(Request $request, $projectId)
     {
+        $fillable = array_diff(
+            (new ProjectCICBasicInfo())->getFillable(),
+            ['project_id', 'cic_basic_info_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
         DB::beginTransaction();
         try {
             Log::info('Storing CIC basic info', ['project_id' => $projectId]);
 
-            $basicInfo = new ProjectCICBasicInfo();
-            $basicInfo->project_id = $projectId;
-            $basicInfo->number_served_since_inception = $request->input('number_served_since_inception');
-            $basicInfo->number_served_previous_year = $request->input('number_served_previous_year');
-            $basicInfo->beneficiary_categories = $request->input('beneficiary_categories');
-            $basicInfo->sisters_intervention = $request->input('sisters_intervention');
-            $basicInfo->beneficiary_conditions = $request->input('beneficiary_conditions');
-            $basicInfo->beneficiary_problems = $request->input('beneficiary_problems');
-            $basicInfo->institution_challenges = $request->input('institution_challenges');
-            $basicInfo->support_received = $request->input('support_received');
-            $basicInfo->project_need = $request->input('project_need');
-            $basicInfo->save();
+            $basicInfo = ProjectCICBasicInfo::updateOrCreate(
+                ['project_id' => $projectId],
+                $data
+            );
 
             DB::commit();
             Log::info('CIC basic info saved successfully', ['project_id' => $projectId]);
@@ -81,34 +80,7 @@ class CICBasicInfoController extends Controller
     // Update basic info for a project
     public function update(FormRequest $request, $projectId)
     {
-        // Validation and authorization already done by FormRequest
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
-        DB::beginTransaction();
-        try {
-            Log::info('Updating CIC basic info', ['project_id' => $projectId]);
-
-            $basicInfo = ProjectCICBasicInfo::where('project_id', $projectId)->firstOrFail();
-            $basicInfo->number_served_since_inception = $validated['number_served_since_inception'] ?? null;
-            $basicInfo->number_served_previous_year = $validated['number_served_previous_year'] ?? null;
-            $basicInfo->beneficiary_categories = $validated['beneficiary_categories'] ?? null;
-            $basicInfo->sisters_intervention = $validated['sisters_intervention'] ?? null;
-            $basicInfo->beneficiary_conditions = $validated['beneficiary_conditions'] ?? null;
-            $basicInfo->beneficiary_problems = $validated['beneficiary_problems'] ?? null;
-            $basicInfo->institution_challenges = $validated['institution_challenges'] ?? null;
-            $basicInfo->support_received = $validated['support_received'] ?? null;
-            $basicInfo->project_need = $validated['project_need'] ?? null;
-            $basicInfo->save();
-
-            DB::commit();
-            Log::info('CIC basic info updated successfully', ['project_id' => $projectId]);
-            return response()->json($basicInfo, 200);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error updating CIC basic info', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to update CIC basic info.'], 500);
-        }
+        return $this->store($request, $projectId);
     }
 
     // Delete basic info for a project

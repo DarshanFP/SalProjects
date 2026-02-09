@@ -3,45 +3,62 @@
 namespace App\Http\Controllers\Projects\ILP;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\ILP\ProjectILPAttachedDocuments;
 use App\Models\OldProjects\Project;
-use Illuminate\Support\Facades\Storage;
+use App\Services\Attachment\AttachmentContext;
+use App\Services\ProjectAttachmentHandler;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Http\Requests\Projects\ILP\StoreILPAttachedDocumentsRequest;
-use App\Http\Requests\Projects\ILP\UpdateILPAttachedDocumentsRequest;
+use Illuminate\Support\Facades\Storage;
 
 class AttachedDocumentsController extends Controller
 {
+    private const ILP_FIELDS = [
+        'aadhar_doc',
+        'request_letter_doc',
+        'purchase_quotation_doc',
+        'other_doc',
+    ];
+
+    /** @return array<string, array> */
+    private static function ilpFieldConfig(): array
+    {
+        return array_fill_keys(self::ILP_FIELDS, []);
+    }
+
     // 🟢 STORE DOCUMENTS
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
         DB::beginTransaction();
         try {
-            // Ensure the project exists before proceeding
             if (!Project::where('project_id', $projectId)->exists()) {
                 return response()->json(['error' => 'Project not found.'], 404);
             }
 
-            // Log which files exist
-            Log::info('Files received in request:', [
-                'aadhar_doc' => $request->hasFile('attachments.aadhar_doc'),
-                'request_letter_doc' => $request->hasFile('attachments.request_letter_doc'),
-                'purchase_quotation_doc' => $request->hasFile('attachments.purchase_quotation_doc'),
-                'other_doc' => $request->hasFile('attachments.other_doc'),
-            ]);
+            $result = ProjectAttachmentHandler::handle(
+                $request,
+                (string) $projectId,
+                AttachmentContext::forILP(),
+                self::ilpFieldConfig()
+            );
 
-            // Handle the documents
-            ProjectILPAttachedDocuments::handleDocuments($request, $projectId);
+            if (!$result->success) {
+                DB::rollBack();
+                Log::warning('ILP Attached Documents validation failed', [
+                    'project_id' => $projectId,
+                    'errors' => $result->errorsByField,
+                ]);
+                return response()->json([
+                    'error' => 'Failed to save Attached Documents.',
+                    'errors' => $result->errorsByField,
+                ], 422);
+            }
 
             DB::commit();
             Log::info('ILP Attached Documents saved successfully', ['project_id' => $projectId]);
             return response()->json(['message' => 'Attached Documents saved successfully.'], 200);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Error saving ILP Attached Documents', [
                 'error' => $e->getMessage(),
@@ -138,36 +155,42 @@ class AttachedDocumentsController extends Controller
 
     // 🟢 UPDATE DOCUMENTS
     public function update(FormRequest $request, $projectId)
-{
-    // Use all() to get all form data including fields not in UpdateProjectRequest validation rules
-    $validated = $request->all();
-    
-    DB::beginTransaction();
-    try {
-        Log::info('Updating ILP Attached Documents', ['project_id' => $projectId]);
+    {
+        DB::beginTransaction();
+        try {
+            Log::info('Updating ILP Attached Documents', ['project_id' => $projectId]);
 
-        // Call the new handleDocuments with extra logging
-        $documents = ProjectILPAttachedDocuments::handleDocuments($request, $projectId);
+            $result = ProjectAttachmentHandler::handle(
+                $request,
+                (string) $projectId,
+                AttachmentContext::forILP(),
+                self::ilpFieldConfig()
+            );
 
-        DB::commit();
-        Log::info('ILP Attached Documents updated successfully', [
-            'project_id' => $projectId,
-            'paths_in_db' => $documents->only(['aadhar_doc','request_letter_doc','purchase_quotation_doc','other_doc'])
-        ]);
+            if (!$result->success) {
+                DB::rollBack();
+                Log::warning('ILP Attached Documents validation failed on update', [
+                    'project_id' => $projectId,
+                    'errors' => $result->errorsByField,
+                ]);
+                return response()->json([
+                    'error' => 'Failed to update Attached Documents.',
+                    'errors' => $result->errorsByField,
+                ], 422);
+            }
 
-        return response()->json(['message' => 'Attached Documents updated successfully.'], 200);
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error updating ILP Attached Documents', [
-            'project_id' => $projectId,
-            'error' => $e->getMessage(),
-        ]);
-
-        return response()->json(['error' => 'Failed to update Attached Documents.'], 500);
+            DB::commit();
+            Log::info('ILP Attached Documents updated successfully', ['project_id' => $projectId]);
+            return response()->json(['message' => 'Attached Documents updated successfully.'], 200);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Error updating ILP Attached Documents', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['error' => 'Failed to update Attached Documents.'], 500);
+        }
     }
-}
-
-
 
     // 🔵 DELETE DOCUMENTS
     public function destroy($projectId)

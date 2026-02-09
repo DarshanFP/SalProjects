@@ -32,7 +32,7 @@ class StoreGeneralInfoRequest extends FormRequest
             'executor_name' => 'nullable|string|max:255',
             'executor_mobile' => 'nullable|string|max:255',
             'executor_email' => 'nullable|string|max:255',
-            'full_address' => 'nullable|string|max:255',
+            'gi_full_address' => 'nullable|string|max:255',
             'overall_project_period' => 'nullable|integer',
             'current_phase' => 'nullable|integer',
             'commencement_month' => 'nullable|integer|min:1|max:12',

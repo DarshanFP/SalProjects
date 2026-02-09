@@ -8,20 +8,15 @@
 {{-- System Health Widget --}}
 <div class="card mb-4 widget-card" data-widget-id="system-health">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="heart" class="me-2"></i>System Health
-        </h5>
+        <h5 class="mb-0">System Health</h5>
         <div>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="system-health" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="system-health" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body widget-content">
         @if(empty($healthData))
             <div class="text-center py-4">
-                <i data-feather="heart" class="text-muted" style="width: 48px; height: 48px;"></i>
-                <p class="text-muted mt-3">No health data available</p>
+                <p class="text-muted">No health data available</p>
             </div>
         @else
             {{-- Overall Health Score --}}
@@ -141,15 +136,11 @@
                     <div class="col-md-12">
                         <div class="card">
                             <div class="card-header">
-                                <h6 class="mb-0">
-                                    <i data-feather="alert-triangle" class="me-2" style="width: 16px; height: 16px;"></i>
-                                    System Alerts
-                                </h6>
+                                <h6 class="mb-0">System Alerts</h6>
                             </div>
                             <div class="card-body">
                                 @foreach($combined['alerts'] as $alert)
                                     <div class="alert alert-{{ $alert['type'] === 'critical' ? 'danger' : ($alert['type'] === 'warning' ? 'warning' : 'info') }} d-flex align-items-center mb-2" role="alert">
-                                        <i data-feather="{{ $alert['icon'] ?? 'alert-circle' }}" class="me-2" style="width: 18px; height: 18px;"></i>
                                         <div>{{ $alert['message'] }}</div>
                                     </div>
                                 @endforeach

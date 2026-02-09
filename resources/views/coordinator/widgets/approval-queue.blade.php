@@ -1,19 +1,14 @@
 {{-- Approval Queue Widget --}}
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i class="feather icon-inbox text-primary"></i> Approval Queue
+        <h5 class="mb-0">Approval Queue
             @if(isset($pendingApprovalsData['total_pending']) && $pendingApprovalsData['total_pending'] > 0)
                 <span class="badge badge-danger ms-2">{{ $pendingApprovalsData['total_pending'] }}</span>
             @endif
         </h5>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-success" id="bulkApproveBtn" disabled>
-                <i class="feather icon-check"></i> Bulk Approve
-            </button>
-            <a href="{{ route('coordinator.report.list', ['status' => 'forwarded_to_coordinator']) }}" class="btn btn-sm btn-primary">
-                View All <i class="feather icon-arrow-right"></i>
-            </a>
+            <button type="button" class="btn btn-sm btn-success" id="bulkApproveBtn" disabled>Bulk Approve</button>
+            <a href="{{ route('coordinator.report.list', ['status' => 'forwarded_to_coordinator']) }}" class="btn btn-sm btn-primary">View All</a>
         </div>
     </div>
     <div class="card-body">
@@ -42,9 +37,7 @@
                     <input type="text" class="form-control form-control-sm" id="searchFilter" placeholder="Search by Report ID...">
                 </div>
                 <div class="col-md-3">
-                    <button type="button" class="btn btn-sm btn-secondary w-100" onclick="clearFilters()">
-                        <i class="feather icon-x"></i> Clear Filters
-                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary w-100" onclick="clearFilters()">Clear Filters</button>
                 </div>
             </div>
 
@@ -146,8 +139,7 @@
             </div>
         @else
             <div class="text-center py-4">
-                <i class="feather icon-check-circle text-success" style="font-size: 3rem;"></i>
-                <p class="text-muted mt-2">No reports pending approval! All caught up.</p>
+                <p class="text-muted">No reports pending approval! All caught up.</p>
             </div>
         @endif
     </div>

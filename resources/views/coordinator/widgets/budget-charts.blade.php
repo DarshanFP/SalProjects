@@ -9,10 +9,7 @@
 <div class="row mb-4">
     {{-- Budget Charts Section --}}
     <div class="col-md-12">
-        <h5 class="text-muted mb-3">
-            <i data-feather="pie-chart" style="width: 18px; height: 18px;" class="me-2"></i>
-            Budget Analytics
-        </h5>
+        <h5 class="text-muted mb-3">Budget Analytics</h5>
     </div>
 </div>
 
@@ -21,21 +18,15 @@
     <div class="col-md-6 col-lg-6 mb-4">
         <div class="card widget-card" data-widget-id="budget-by-project-type-chart">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">
-                    <i data-feather="pie-chart" class="me-2" style="width: 16px; height: 16px;"></i>
-                    Budget by Project Type
-                </h6>
-                <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="budget-by-project-type-chart" title="Minimize">
-                    <i data-feather="chevron-up"></i>
-                </button>
+                <h6 class="mb-0">Budget by Project Type</h6>
+                <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="budget-by-project-type-chart" title="Minimize">−</button>
             </div>
             <div class="card-body widget-content">
                 @if(count($byProjectType) > 0)
                     <div id="budgetByProjectTypeChart" style="min-height: 300px;"></div>
                 @else
                     <div class="text-center py-4 text-muted">
-                        <i data-feather="pie-chart" style="width: 32px; height: 32px; opacity: 0.3;"></i>
-                        <p class="mt-2 mb-0">No project type data available</p>
+                        <p class="mb-0">No project type data available</p>
                     </div>
                 @endif
             </div>
@@ -44,21 +35,15 @@
     <div class="col-md-6 col-lg-6 mb-4">
         <div class="card widget-card" data-widget-id="budget-by-province-chart">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">
-                    <i data-feather="bar-chart-2" class="me-2" style="width: 16px; height: 16px;"></i>
-                    Budget by Province
-                </h6>
-                <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="budget-by-province-chart" title="Minimize">
-                    <i data-feather="chevron-up"></i>
-                </button>
+                <h6 class="mb-0">Budget by Province</h6>
+                <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="budget-by-province-chart" title="Minimize">−</button>
             </div>
             <div class="card-body widget-content">
                 @if(count($byProvince) > 0)
                     <div id="budgetByProvinceChart" style="min-height: 300px;"></div>
                 @else
                     <div class="text-center py-4 text-muted">
-                        <i data-feather="bar-chart-2" style="width: 32px; height: 32px; opacity: 0.3;"></i>
-                        <p class="mt-2 mb-0">No province data available</p>
+                        <p class="mb-0">No province data available</p>
                     </div>
                 @endif
             </div>
@@ -71,21 +56,15 @@
     <div class="col-md-12">
         <div class="card widget-card" data-widget-id="expense-trends-chart">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">
-                    <i data-feather="trending-up" class="me-2" style="width: 16px; height: 16px;"></i>
-                    Expense Trends (Last 6 Months)
-                </h6>
-                <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="expense-trends-chart" title="Minimize">
-                    <i data-feather="chevron-up"></i>
-                </button>
+                <h6 class="mb-0">Expense Trends (Last 6 Months)</h6>
+                <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="expense-trends-chart" title="Minimize">−</button>
             </div>
             <div class="card-body widget-content">
                 @if(count($expenseTrends) > 0)
                     <div id="expenseTrendsChart" style="min-height: 350px;"></div>
                 @else
                     <div class="text-center py-4 text-muted">
-                        <i data-feather="trending-up" style="width: 32px; height: 32px; opacity: 0.3;"></i>
-                        <p class="mt-2 mb-0">No expense trend data available</p>
+                        <p class="mb-0">No expense trend data available</p>
                     </div>
                 @endif
             </div>

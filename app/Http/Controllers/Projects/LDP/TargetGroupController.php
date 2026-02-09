@@ -15,29 +15,33 @@ class TargetGroupController extends Controller
     // Store or update the target group
     public function store(FormRequest $request, $projectId)
     {
-        // Validation already done by FormRequest
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = ['L_beneficiary_name', 'L_family_situation', 'L_nature_of_livelihood', 'L_amount_requested'];
+        $data = $request->only($fillable);
+
+        $beneficiaryNames = is_array($data['L_beneficiary_name'] ?? null) ? ($data['L_beneficiary_name'] ?? []) : (isset($data['L_beneficiary_name']) && $data['L_beneficiary_name'] !== '' ? [$data['L_beneficiary_name']] : []);
+        $familySituations = is_array($data['L_family_situation'] ?? null) ? ($data['L_family_situation'] ?? []) : (isset($data['L_family_situation']) && $data['L_family_situation'] !== '' ? [$data['L_family_situation']] : []);
+        $natureOfLivelihoods = is_array($data['L_nature_of_livelihood'] ?? null) ? ($data['L_nature_of_livelihood'] ?? []) : (isset($data['L_nature_of_livelihood']) && $data['L_nature_of_livelihood'] !== '' ? [$data['L_nature_of_livelihood']] : []);
+        $amountRequested = is_array($data['L_amount_requested'] ?? null) ? ($data['L_amount_requested'] ?? []) : (isset($data['L_amount_requested']) && $data['L_amount_requested'] !== '' ? [$data['L_amount_requested']] : []);
+
         DB::beginTransaction();
         try {
             Log::info('Storing LDP Target Group', ['project_id' => $projectId]);
 
-            // Delete existing target groups for the project
             ProjectLDPTargetGroup::where('project_id', $projectId)->delete();
 
-            // Insert new target groups
-            $beneficiaryNames = $validated['L_beneficiary_name'] ?? [];
             foreach ($beneficiaryNames as $index => $name) {
-                // Skip if all fields are null
-                if (!is_null($name) || !is_null($validated['L_family_situation'][$index] ?? null) ||
-                    !is_null($validated['L_nature_of_livelihood'][$index] ?? null) || !is_null($validated['L_amount_requested'][$index] ?? null)) {
+                $nameVal = is_array($name ?? null) ? (reset($name) ?? null) : ($name ?? null);
+                $familyVal = is_array($familySituations[$index] ?? null) ? (reset($familySituations[$index]) ?? null) : ($familySituations[$index] ?? null);
+                $natureVal = is_array($natureOfLivelihoods[$index] ?? null) ? (reset($natureOfLivelihoods[$index]) ?? null) : ($natureOfLivelihoods[$index] ?? null);
+                $amountVal = is_array($amountRequested[$index] ?? null) ? (reset($amountRequested[$index]) ?? null) : ($amountRequested[$index] ?? null);
+
+                if (!is_null($nameVal) || !is_null($familyVal) || !is_null($natureVal) || !is_null($amountVal)) {
                     ProjectLDPTargetGroup::create([
                         'project_id' => $projectId,
-                        'L_beneficiary_name' => $name,
-                        'L_family_situation' => $validated['L_family_situation'][$index] ?? null,
-                        'L_nature_of_livelihood' => $validated['L_nature_of_livelihood'][$index] ?? null,
-                        'L_amount_requested' => $validated['L_amount_requested'][$index] ?? null,
+                        'L_beneficiary_name' => $nameVal,
+                        'L_family_situation' => $familyVal,
+                        'L_nature_of_livelihood' => $natureVal,
+                        'L_amount_requested' => $amountVal,
                     ]);
                 }
             }

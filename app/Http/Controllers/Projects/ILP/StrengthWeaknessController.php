@@ -15,9 +15,13 @@ class StrengthWeaknessController extends Controller
     // Store or update strengths and weaknesses
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = ['strengths', 'weaknesses'];
+        $data = $request->only($fillable);
+
+        // Ensure arrays for json_encode (scalar-to-array normalization)
+        $strengths  = is_array($data['strengths'] ?? null) ? ($data['strengths'] ?? []) : (isset($data['strengths']) && $data['strengths'] !== '' ? [$data['strengths']] : []);
+        $weaknesses = is_array($data['weaknesses'] ?? null) ? ($data['weaknesses'] ?? []) : (isset($data['weaknesses']) && $data['weaknesses'] !== '' ? [$data['weaknesses']] : []);
+
         DB::beginTransaction();
         try {
             Log::info('Storing ILP Strengths and Weaknesses', ['project_id' => $projectId]);
@@ -27,8 +31,8 @@ class StrengthWeaknessController extends Controller
 
             ProjectILPBusinessStrengthWeakness::create([
                 'project_id' => $projectId,
-                'strengths' => json_encode($validated['strengths'] ?? []),
-                'weaknesses' => json_encode($validated['weaknesses'] ?? []),
+                'strengths' => json_encode($strengths),
+                'weaknesses' => json_encode($weaknesses),
             ]);
 
             DB::commit();
@@ -112,42 +116,7 @@ class StrengthWeaknessController extends Controller
 
     public function update(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in UpdateProjectRequest validation rules
-        $validatedData = $request->all();
-        
-        DB::beginTransaction();
-
-        try {
-            Log::info('Updating ILP Strengths and Weaknesses', ['project_id' => $projectId]);
-
-            // Fetch the existing record
-            $strengthWeakness = ProjectILPBusinessStrengthWeakness::where('project_id', $projectId)->first();
-
-            if ($strengthWeakness) {
-                // Update existing record
-                $strengthWeakness->update([
-                    'strengths' => json_encode($validatedData['strengths']),
-                    'weaknesses' => json_encode($validatedData['weaknesses']),
-                ]);
-            } else {
-                // Create new record if none exists
-                ProjectILPBusinessStrengthWeakness::create([
-                    'project_id' => $projectId,
-                    'strengths' => json_encode($validatedData['strengths']),
-                    'weaknesses' => json_encode($validatedData['weaknesses']),
-                ]);
-            }
-
-            DB::commit();
-            Log::info('ILP Strengths and Weaknesses updated successfully', ['project_id' => $projectId]);
-
-            return response()->json(['message' => 'Strengths and weaknesses updated successfully.'], 200);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error updating ILP Strengths and Weaknesses', ['error' => $e->getMessage()]);
-
-            return response()->json(['error' => 'Failed to update strengths and weaknesses.'], 500);
-        }
+        return $this->store($request, $projectId);
     }
 
 

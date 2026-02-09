@@ -1,12 +1,8 @@
 {{-- System Performance Summary Widget --}}
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i class="feather icon-bar-chart-2 text-success"></i> System Performance Summary
-        </h5>
-        <button type="button" class="btn btn-sm btn-secondary" onclick="refreshSystemPerformance()">
-            <i class="feather icon-refresh-cw"></i> Refresh
-        </button>
+        <h5 class="mb-0">System Performance Summary</h5>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="refreshSystemPerformance()">Refresh</button>
     </div>
     <div class="card-body">
         @if(isset($systemPerformanceData))
@@ -165,8 +161,7 @@
             </div>
         @else
             <div class="text-center py-4">
-                <i class="feather icon-bar-chart-2 text-muted" style="font-size: 3rem;"></i>
-                <p class="text-muted mt-2">No system performance data available</p>
+                <p class="text-muted">No system performance data available</p>
             </div>
         @endif
     </div>

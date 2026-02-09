@@ -47,6 +47,7 @@
         }
     },
     "scripts": {
+        "test:architecture": "php artisan test tests/Architecture",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

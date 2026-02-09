@@ -42,22 +42,22 @@ class BudgetValidationService
     /**
      * Calculate all budget-related data for validation
      *
+     * Financial fields delegated to ProjectFinancialResolver.
+     * This service now acts as aggregator + validator only.
+     *
      * @param Project $project
      * @return array
      */
     private static function calculateBudgetData(Project $project): array
     {
-        // Overall budget
-        $overallBudget = $project->overall_project_budget ?? 0;
-        if ($overallBudget == 0 && $project->relationLoaded('budgets')) {
-            $overallBudget = $project->budgets->sum('this_phase');
-        }
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $financials = $resolver->resolve($project);
 
-        // Amounts
-        $amountForwarded = $project->amount_forwarded ?? 0;
-        $localContribution = $project->local_contribution ?? 0;
-        $amountSanctioned = $overallBudget - $amountForwarded - $localContribution;
-        $openingBalance = $amountSanctioned + $amountForwarded + $localContribution;
+        $overallBudget = (float) ($financials['overall_project_budget'] ?? 0);
+        $amountForwarded = (float) ($financials['amount_forwarded'] ?? 0);
+        $localContribution = (float) ($financials['local_contribution'] ?? 0);
+        $amountSanctioned = (float) ($financials['amount_sanctioned'] ?? 0);
+        $openingBalance = (float) ($financials['opening_balance'] ?? 0);
 
         // Calculate expenses from reports - SEPARATE APPROVED AND UNAPPROVED
         $approvedExpenses = 0;
@@ -91,14 +91,16 @@ class BudgetValidationService
             ]);
         }
 
-        // Remaining balance
-        $remainingBalance = $openingBalance - $totalExpenses;
+        $calc = app(\App\Services\Budget\DerivedCalculationService::class);
 
-        // Percentage used
-        $percentageUsed = $openingBalance > 0 ? ($totalExpenses / $openingBalance) * 100 : 0;
+        $remainingBalance = $calc->calculateRemainingBalance($openingBalance, $totalExpenses);
+        $percentageUsed = $calc->calculateUtilization($totalExpenses, $openingBalance);
         $percentageRemaining = 100 - $percentageUsed;
 
-        // Budget items total
+        $approvedPercentage = $calc->calculateUtilization($approvedExpenses, $openingBalance);
+        $unapprovedPercentage = $calc->calculateUtilization($unapprovedExpenses, $openingBalance);
+
+        // Budget items total (for validation mismatch check)
         $budgetItemsTotal = $project->relationLoaded('budgets')
             ? $project->budgets->sum('this_phase')
             : 0;
@@ -112,8 +114,8 @@ class BudgetValidationService
             'total_expenses' => $totalExpenses,
             'approved_expenses' => $approvedExpenses,
             'unapproved_expenses' => $unapprovedExpenses,
-            'approved_percentage' => $openingBalance > 0 ? ($approvedExpenses / $openingBalance) * 100 : 0,
-            'unapproved_percentage' => $openingBalance > 0 ? ($unapprovedExpenses / $openingBalance) * 100 : 0,
+            'approved_percentage' => $approvedPercentage,
+            'unapproved_percentage' => $unapprovedPercentage,
             'remaining_balance' => $remainingBalance,
             'percentage_used' => $percentageUsed,
             'percentage_remaining' => $percentageRemaining,

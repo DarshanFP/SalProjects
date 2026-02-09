@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Projects\CCI;
 
 use App\Http\Controllers\Controller;
 use App\Models\OldProjects\CCI\ProjectCCIRationale;
+use App\Services\FormDataExtractor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -15,18 +16,20 @@ class RationaleController extends Controller
     // Store new rationale entry
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = array_diff(
+            (new ProjectCCIRationale())->getFillable(),
+            ['project_id', 'CCI_rationale_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
         DB::beginTransaction();
         try {
             Log::info('Storing CCI Rationale', ['project_id' => $projectId]);
 
-            // Create new rationale entry
-            $rationale = new ProjectCCIRationale();
-            $rationale->project_id = $projectId;
-            $rationale->description = $validated['description'] ?? null;
-            $rationale->save();
+            $rationale = ProjectCCIRationale::updateOrCreate(
+                ['project_id' => $projectId],
+                $data
+            );
 
             DB::commit();
             Log::info('CCI Rationale saved successfully', ['project_id' => $projectId]);
@@ -75,29 +78,9 @@ class RationaleController extends Controller
 
     // Update rationale entry
     public function update(FormRequest $request, $projectId)
-{
-    // Use all() to get all form data including fields not in UpdateProjectRequest validation rules
-    $validated = $request->all();
-    
-    DB::beginTransaction();
-    try {
-        Log::info('Updating or Creating CCI Rationale', ['project_id' => $projectId]);
-
-        // Use updateOrCreate to either update an existing rationale or create a new one
-        $rationale = ProjectCCIRationale::updateOrCreate(
-            ['project_id' => $projectId], // Condition to find the record
-            ['description' => $validated['description'] ?? null] // Data to update or create
-        );
-
-        DB::commit();
-        Log::info('CCI Rationale updated or created successfully', ['project_id' => $projectId]);
-        return redirect()->route('projects.edit', $projectId)->with('success', 'Rationale updated successfully.');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error updating or creating CCI Rationale', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-        return redirect()->back()->with('error', 'Failed to update or create Rationale.');
+    {
+        return $this->store($request, $projectId);
     }
-}
 
 
 

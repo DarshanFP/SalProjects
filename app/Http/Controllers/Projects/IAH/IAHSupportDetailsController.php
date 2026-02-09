@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects\IAH;
 
 use App\Http\Controllers\Controller;
+use App\Services\FormDataExtractor;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IAH\ProjectIAHSupportDetails;
 use Illuminate\Support\Facades\Log;
@@ -17,9 +18,12 @@ class IAHSupportDetailsController extends Controller
      */
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = array_diff(
+            (new ProjectIAHSupportDetails())->getFillable(),
+            ['project_id', 'IAH_support_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
         Log::info('IAHSupportDetailsController@store - Start', [
             'project_id' => $projectId
         ]);
@@ -30,13 +34,8 @@ class IAHSupportDetailsController extends Controller
             ProjectIAHSupportDetails::where('project_id', $projectId)->delete();
 
             $supportDetails = new ProjectIAHSupportDetails();
-            $supportDetails->project_id          = $projectId;
-            $supportDetails->employed_at_st_ann  = $validated['employed_at_st_ann'] ?? null;
-            $supportDetails->employment_details  = $validated['employment_details'] ?? null;
-            $supportDetails->received_support    = $validated['received_support'] ?? null;
-            $supportDetails->support_details     = $validated['support_details'] ?? null;
-            $supportDetails->govt_support        = $validated['govt_support'] ?? null;
-            $supportDetails->govt_support_nature = $validated['govt_support_nature'] ?? null;
+            $supportDetails->project_id = $projectId;
+            $supportDetails->fill($data);
             $supportDetails->save();
 
             DB::commit();
@@ -59,41 +58,7 @@ class IAHSupportDetailsController extends Controller
      */
     public function update(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
-        Log::info('IAHSupportDetailsController@update - Start', [
-            'project_id' => $projectId
-        ]);
-
-        DB::beginTransaction();
-        try {
-            $supportDetails = ProjectIAHSupportDetails::where('project_id', $projectId)->firstOrFail();
-            Log::info('IAHSupportDetailsController@update - Found existing row', [
-                'id' => $supportDetails->id
-            ]);
-
-            $supportDetails->employed_at_st_ann  = $validated['employed_at_st_ann'] ?? null;
-            $supportDetails->employment_details  = $validated['employment_details'] ?? null;
-            $supportDetails->received_support    = $validated['received_support'] ?? null;
-            $supportDetails->support_details     = $validated['support_details'] ?? null;
-            $supportDetails->govt_support        = $validated['govt_support'] ?? null;
-            $supportDetails->govt_support_nature = $validated['govt_support_nature'] ?? null;
-            $supportDetails->save();
-
-            DB::commit();
-            Log::info('IAHSupportDetailsController@update - Success', [
-                'project_id' => $projectId
-            ]);
-            return response()->json($supportDetails, 200);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('IAHSupportDetailsController@update - Error', [
-                'project_id' => $projectId,
-                'error'      => $e->getMessage()
-            ]);
-            return response()->json(['error' => 'Failed to update IAH support details.'], 500);
-        }
+        return $this->store($request, $projectId);
     }
 
     /**

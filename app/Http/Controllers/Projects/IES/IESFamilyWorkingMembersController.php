@@ -52,10 +52,9 @@ class IESFamilyWorkingMembersController extends Controller
     //Updared for both IES and IIES
     public function store(FormRequest $request, $projectId)
 {
-    // Use all() to get all form data including member_name[], work_nature[], monthly_income[] arrays
-    // These fields are not in StoreProjectRequest validation rules
-    $validated = $request->all();
-    
+    $fillable = ['member_name', 'work_nature', 'monthly_income'];
+    $data = $request->only($fillable);
+
     DB::beginTransaction();
 
     try {
@@ -70,16 +69,16 @@ class IESFamilyWorkingMembersController extends Controller
         // 3) Delete existing family working members to allow "fresh" save
         ProjectIESFamilyWorkingMembers::where('project_id', $projectId)->delete();
 
-        // 4) Retrieve arrays from validated data
-        $memberNames    = $validated['member_name'] ?? [];
-        $workNatures    = $validated['work_nature'] ?? [];
-        $monthlyIncomes = $validated['monthly_income'] ?? [];
+        // 4) Retrieve arrays from scoped data (normalize scalar to single-element array for iteration)
+        $memberNames    = is_array($data['member_name'] ?? null) ? ($data['member_name'] ?? []) : (isset($data['member_name']) && $data['member_name'] !== '' ? [$data['member_name']] : []);
+        $workNatures    = is_array($data['work_nature'] ?? null) ? ($data['work_nature'] ?? []) : (isset($data['work_nature']) && $data['work_nature'] !== '' ? [$data['work_nature']] : []);
+        $monthlyIncomes = is_array($data['monthly_income'] ?? null) ? ($data['monthly_income'] ?? []) : (isset($data['monthly_income']) && $data['monthly_income'] !== '' ? [$data['monthly_income']] : []);
 
-        // 5) Loop and create new records
+        // 5) Loop and create new records (scalar coercion prevents "Array to string conversion")
         for ($i = 0; $i < count($memberNames); $i++) {
-            $memberName   = $memberNames[$i];
-            $workNature   = $workNatures[$i] ?? '';
-            $monthlyIncome = $monthlyIncomes[$i] ?? '';
+            $memberName   = is_array($memberNames[$i] ?? null) ? (reset($memberNames[$i]) ?? '') : ($memberNames[$i] ?? '');
+            $workNature   = is_array($workNatures[$i] ?? null) ? (reset($workNatures[$i]) ?? '') : ($workNatures[$i] ?? '');
+            $monthlyIncome = is_array($monthlyIncomes[$i] ?? null) ? (reset($monthlyIncomes[$i]) ?? '') : ($monthlyIncomes[$i] ?? '');
 
             if (!empty($memberName) && !empty($workNature) && !empty($monthlyIncome)) {
                 ProjectIESFamilyWorkingMembers::create([

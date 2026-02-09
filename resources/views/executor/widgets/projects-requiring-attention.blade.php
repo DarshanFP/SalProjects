@@ -1,24 +1,18 @@
 {{-- Projects Requiring Attention Widget - Dark Theme Compatible --}}
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center position-relative">
-        <h5 class="mb-0">
-            <i data-feather="alert-triangle" class="me-2"></i>
-            Projects Requiring Attention
-        </h5>
+        <h5 class="mb-0">Projects Requiring Attention</h5>
         <div class="d-flex align-items-center gap-2">
             @if(isset($projectsRequiringAttention) && $projectsRequiringAttention['total'] > 0)
                 <span class="badge bg-danger">{{ $projectsRequiringAttention['total'] }}</span>
             @endif
-            <div class="widget-drag-handle ms-2">
-                <i data-feather="move" style="width: 16px; height: 16px;" class="text-muted"></i>
-            </div>
+            <div class="widget-drag-handle ms-2"></div>
         </div>
     </div>
     <div class="card-body">
         @if(!isset($projectsRequiringAttention) || $projectsRequiringAttention['total'] == 0)
             <div class="text-center py-4">
-                <i data-feather="check-circle" class="text-success" style="width: 48px; height: 48px;"></i>
-                <p class="text-muted mt-3 mb-0">No projects require attention. All projects are in good standing!</p>
+                <p class="text-muted mb-0">No projects require attention. All projects are in good standing!</p>
             </div>
         @else
             @php
@@ -29,9 +23,7 @@
             {{-- Draft Projects --}}
             @if($grouped['draft']->count() > 0)
                 <div class="mb-4">
-                    <h6 class="text-secondary mb-3">
-                        <i data-feather="file" class="me-1" style="width: 16px; height: 16px;"></i>
-                        Draft Projects ({{ $grouped['draft']->count() }})
+                    <h6 class="text-secondary mb-3">Draft Projects ({{ $grouped['draft']->count() }})
                     </h6>
                     <div class="list-group">
                         @foreach($grouped['draft']->take(5) as $project)
@@ -61,16 +53,12 @@
                                                 <span class="text-muted">{{ $project->place }}</span>
                                             @endif
                                         </p>
-                                        <small class="text-muted">
-                                            <i data-feather="calendar" style="width: 12px; height: 12px;"></i>
-                                            Last updated: {{ $project->updated_at->diffForHumans() }}
-                                        </small>
+                                        <small class="text-muted">Last updated: {{ $project->updated_at->diffForHumans() }}</small>
                                     </div>
                                     <div>
                                         <a href="{{ route('projects.edit', $project->project_id) }}"
                                            class="btn btn-sm btn-warning">
-                                            <i data-feather="edit" style="width: 14px; height: 14px;"></i>
-                                            Edit
+Edit
                                         </a>
                                     </div>
                                 </div>
@@ -90,9 +78,7 @@
             {{-- Reverted Projects --}}
             @if($grouped['reverted']->count() > 0)
                 <div class="mb-4">
-                    <h6 class="text-danger mb-3">
-                        <i data-feather="rotate-ccw" class="me-1" style="width: 16px; height: 16px;"></i>
-                        Reverted Projects ({{ $grouped['reverted']->count() }})
+                    <h6 class="text-danger mb-3">Reverted Projects ({{ $grouped['reverted']->count() }})
                     </h6>
                     <div class="list-group">
                         @foreach($grouped['reverted']->take(5) as $project)
@@ -125,21 +111,14 @@
                                             @endif
                                         </p>
                                         @if($project->revert_reason)
-                                            <small class="text-warning d-block mt-1">
-                                                <i data-feather="message-square" style="width: 12px; height: 12px;"></i>
-                                                {{ Str::limit($project->revert_reason, 100) }}
-                                            </small>
+                                            <small class="text-warning d-block mt-1">{{ Str::limit($project->revert_reason, 100) }}</small>
                                         @endif
-                                        <small class="text-muted">
-                                            <i data-feather="calendar" style="width: 12px; height: 12px;"></i>
-                                            Reverted: {{ $project->updated_at->diffForHumans() }}
-                                        </small>
+                                        <small class="text-muted">Reverted: {{ $project->updated_at->diffForHumans() }}</small>
                                     </div>
                                     <div>
                                         <a href="{{ route('projects.edit', $project->project_id) }}"
                                            class="btn btn-sm btn-danger">
-                                            <i data-feather="edit" style="width: 14px; height: 14px;"></i>
-                                            Update
+Update
                                         </a>
                                     </div>
                                 </div>
@@ -161,8 +140,7 @@
                 <div class="row g-2">
                     <div class="col-12">
                         <a href="{{ route('executor.dashboard') }}?show=needs_work" class="btn btn-outline-danger btn-sm w-100">
-                            <i data-feather="folder" style="width: 14px; height: 14px;"></i>
-                            View All Projects Requiring Attention
+View All Projects Requiring Attention
                         </a>
                     </div>
                 </div>

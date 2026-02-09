@@ -13,6 +13,10 @@
             @error('initial_information')
                 <span class="text-danger">{{ $message }}</span>
             @enderror
+            <div class="word-guidance d-flex justify-content-between align-items-center" data-target="initial_information">
+                <small style="color:#6bbb59ff;">Minimum 100 words required.</small>
+                <span class="word-counter" id="initial_information_counter" style="color:#6bbb59ff;">0 / 100 words</span>
+            </div>
         </div>
 
         <!-- Detailed information on target beneficiary of the project -->
@@ -22,6 +26,10 @@
             @error('target_beneficiaries')
                 <span class="text-danger">{{ $message }}</span>
             @enderror
+            <div class="word-guidance d-flex justify-content-between align-items-center" data-target="target_beneficiaries">
+                <small style="color:#6bbb59ff;">Minimum 100 words required.</small>
+                <span class="word-counter" id="target_beneficiaries_counter" style="color:#6bbb59ff;">0 / 100 words</span>
+            </div>
         </div>
 
         <!-- Educational & cultural situation in the project area -->
@@ -31,6 +39,10 @@
             @error('general_situation')
                 <span class="text-danger">{{ $message }}</span>
             @enderror
+            <div class="word-guidance d-flex justify-content-between align-items-center" data-target="general_situation">
+                <small style="color:#6bbb59ff;">Minimum 100 words required.</small>
+                <span class="word-counter" id="general_situation_counter" style="color:#6bbb59ff;">0 / 100 words</span>
+            </div>
         </div>
 
         <!-- Need of the Project -->
@@ -40,6 +52,10 @@
             @error('need_of_project')
                 <span class="text-danger">{{ $message }}</span>
             @enderror
+            <div class="word-guidance d-flex justify-content-between align-items-center" data-target="need_of_project">
+                <small style="color:#6bbb59ff;">Minimum 100 words required.</small>
+                <span class="word-counter" id="need_of_project_counter" style="color:#6bbb59ff;">0 / 100 words</span>
+            </div>
         </div>
 
         <!-- Prevailing economic situation in the project area -->
@@ -49,6 +65,10 @@
             @error('economic_situation')
                 <span class="text-danger">{{ $message }}</span>
             @enderror
+            <div class="word-guidance d-flex justify-content-between align-items-center" data-target="economic_situation">
+                <small style="color:#6bbb59ff;">Minimum 100 words required.</small>
+                <span class="word-counter" id="economic_situation_counter" style="color:#6bbb59ff;">0 / 100 words</span>
+            </div>
         </div>
 
         <!-- Goal of the Project (Existing, Last) -->
@@ -98,6 +118,28 @@
             });
         })();
         </script>
-        <script src="{{ asset('js/key-information-validation.js') }}"></script>
+        <script>
+        (function() {
+            function setupWordCounter(textareaId, counterId) {
+                var textarea = document.getElementById(textareaId);
+                var counter = document.getElementById(counterId);
+                if (!textarea || !counter) return;
+                function updateCount() {
+                    var text = textarea.value.trim();
+                    var words = text.length > 0 ? text.split(/\s+/).filter(Boolean).length : 0;
+                    counter.textContent = words + " / 100 words";
+                }
+                textarea.addEventListener('input', updateCount);
+                updateCount();
+            }
+            document.addEventListener('DOMContentLoaded', function() {
+                setupWordCounter('initial_information', 'initial_information_counter');
+                setupWordCounter('target_beneficiaries', 'target_beneficiaries_counter');
+                setupWordCounter('general_situation', 'general_situation_counter');
+                setupWordCounter('need_of_project', 'need_of_project_counter');
+                setupWordCounter('economic_situation', 'economic_situation_counter');
+            });
+        })();
+        </script>
     </div>
 </div>

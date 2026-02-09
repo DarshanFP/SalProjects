@@ -1,28 +1,15 @@
 {{-- Budget Analytics Widget - Dark Theme Compatible with ApexCharts --}}
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="pie-chart" class="me-2"></i>
-            Budget Analytics
-        </h5>
+        <h5 class="mb-0">Budget Analytics</h5>
         <div class="d-flex align-items-center gap-2">
             <div class="btn-group btn-group-sm" role="group">
-            <button type="button" class="btn btn-outline-secondary active" onclick="showBudgetChart(event, 'utilization')">
-                <i data-feather="trending-up" style="width: 14px; height: 14px;"></i> Utilization
-            </button>
-            <button type="button" class="btn btn-outline-secondary" onclick="showBudgetChart(event, 'distribution')">
-                <i data-feather="pie-chart" style="width: 14px; height: 14px;"></i> Distribution
-            </button>
-            <button type="button" class="btn btn-outline-secondary" onclick="showBudgetChart(event, 'comparison')">
-                <i data-feather="bar-chart-2" style="width: 14px; height: 14px;"></i> Comparison
-            </button>
-            <button type="button" class="btn btn-outline-secondary" onclick="showBudgetChart(event, 'trends')">
-                <i data-feather="activity" style="width: 14px; height: 14px;"></i> Trends
-            </button>
+            <button type="button" class="btn btn-outline-secondary active" onclick="showBudgetChart(event, 'utilization')">Utilization</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="showBudgetChart(event, 'distribution')">Distribution</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="showBudgetChart(event, 'comparison')">Comparison</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="showBudgetChart(event, 'trends')">Trends</button>
             </div>
-            <div class="widget-drag-handle ms-2">
-                <i data-feather="move" style="width: 16px; height: 16px;" class="text-muted"></i>
-            </div>
+            <div class="widget-drag-handle ms-2"></div>
         </div>
     </div>
     <div class="card-body">
@@ -513,7 +500,7 @@ function initializeBudgetCharts() {
             budgetTrendsChart = new ApexCharts(document.querySelector("#budgetTrendsChart"), trendsChartOptions);
             budgetTrendsChart.render();
         } else {
-            document.querySelector("#budgetTrendsChart").innerHTML = '<div class="text-center py-5 text-muted"><i data-feather="inbox" style="width: 32px; height: 32px;" class="mb-2"></i><p>No expense trends data available</p></div>';
+            document.querySelector("#budgetTrendsChart").innerHTML = '<div class="text-center py-5 text-muted"><p>No expense trends data available</p></div>';
             if (typeof feather !== 'undefined') {
                 feather.replace();
             }

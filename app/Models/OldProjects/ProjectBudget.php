@@ -3,6 +3,7 @@
 namespace App\Models\OldProjects;
 
 use App\Models\Reports\Monthly\DPAccountDetail;
+use App\Services\Budget\DerivedCalculationService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -74,14 +75,22 @@ class ProjectBudget extends Model
         return $this->hasMany(DPAccountDetail::class, 'project_id', 'project_id');
     }
 
-    public function calculateTotalBudget()
+    public function calculateTotalBudget(): float
     {
-        return $this->rate_quantity * $this->rate_multiplier * $this->rate_duration * $this->rate_increase;
+        return resolve(DerivedCalculationService::class)->calculateRowTotal(
+            (float) $this->rate_quantity,
+            (float) $this->rate_multiplier,
+            (float) $this->rate_duration
+        );
     }
 
-    public function calculateRemainingBalance()
+    public function calculateRemainingBalance(): float
     {
-        $totalExpenses = $this->dpAccountDetails()->sum('total_expenses');
-        return $this->calculateTotalBudget() - $totalExpenses;
+        $totalExpenses = (float) $this->dpAccountDetails()->sum('total_expenses');
+
+        return resolve(DerivedCalculationService::class)->calculateRemainingBalance(
+            $this->calculateTotalBudget(),
+            $totalExpenses
+        );
     }
 }

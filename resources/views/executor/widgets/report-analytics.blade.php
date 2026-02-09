@@ -1,25 +1,14 @@
 {{-- Report Analytics Widget - Dark Theme Compatible with ApexCharts --}}
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="bar-chart-2" class="me-2"></i>
-            Report Analytics
-        </h5>
+        <h5 class="mb-0">Report Analytics</h5>
         <div class="d-flex align-items-center gap-2">
             <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-outline-secondary active" onclick="showReportChart(event, 'status')">
-                    <i data-feather="pie-chart" style="width: 14px; height: 14px;"></i> Status
-                </button>
-                <button type="button" class="btn btn-outline-secondary" onclick="showReportChart(event, 'timeline')">
-                    <i data-feather="trending-up" style="width: 14px; height: 14px;"></i> Timeline
-                </button>
-                <button type="button" class="btn btn-outline-secondary" onclick="showReportChart(event, 'completion')">
-                    <i data-feather="target" style="width: 14px; height: 14px;"></i> Completion
-                </button>
+                <button type="button" class="btn btn-outline-secondary active" onclick="showReportChart(event, 'status')">Status</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="showReportChart(event, 'timeline')">Timeline</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="showReportChart(event, 'completion')">Completion</button>
             </div>
-            <div class="widget-drag-handle ms-2">
-                <i data-feather="move" style="width: 16px; height: 16px;" class="text-muted"></i>
-            </div>
+            <div class="widget-drag-handle ms-2"></div>
         </div>
     </div>
     <div class="card-body">
@@ -178,7 +167,7 @@ function initializeReportCharts() {
             reportStatusChart = new ApexCharts(document.querySelector("#reportStatusChart"), statusChartOptions);
             reportStatusChart.render();
         } else {
-            document.querySelector("#reportStatusChart").innerHTML = '<div class="text-center py-5 text-muted"><i data-feather="inbox" style="width: 32px; height: 32px;" class="mb-2"></i><p>No reports to display</p></div>';
+            document.querySelector("#reportStatusChart").innerHTML = '<div class="text-center py-5 text-muted"><p>No reports to display</p></div>';
             if (typeof feather !== 'undefined') {
                 feather.replace();
             }
@@ -281,7 +270,7 @@ function initializeReportCharts() {
             reportTimelineChart = new ApexCharts(document.querySelector("#reportTimelineChart"), timelineChartOptions);
             reportTimelineChart.render();
         } else {
-            document.querySelector("#reportTimelineChart").innerHTML = '<div class="text-center py-5 text-muted"><i data-feather="inbox" style="width: 32px; height: 32px;" class="mb-2"></i><p>No timeline data available</p></div>';
+            document.querySelector("#reportTimelineChart").innerHTML = '<div class="text-center py-5 text-muted"><p>No timeline data available</p></div>';
             if (typeof feather !== 'undefined') {
                 feather.replace();
             }

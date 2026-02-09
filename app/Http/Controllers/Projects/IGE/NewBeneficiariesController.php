@@ -15,9 +15,15 @@ class NewBeneficiariesController extends Controller
     // Store or update new beneficiaries for a project
     public function store(FormRequest $request, $projectId, $shouldRedirect = true)
     {
-        // Use all() to get all form data including beneficiary_name[], caste[], etc. arrays
-        // These fields are not in StoreProjectRequest validation rules
-        $validated = $request->all();
+        $fillable = ['beneficiary_name', 'caste', 'address', 'group_year_of_study', 'family_background_need'];
+        $data = $request->only($fillable);
+
+        // Scalar-to-array normalization; per-value scalar coercion
+        $beneficiaryNames = is_array($data['beneficiary_name'] ?? null) ? ($data['beneficiary_name'] ?? []) : (isset($data['beneficiary_name']) && $data['beneficiary_name'] !== '' ? [$data['beneficiary_name']] : []);
+        $castes = is_array($data['caste'] ?? null) ? ($data['caste'] ?? []) : (isset($data['caste']) ? [$data['caste']] : []);
+        $addresses = is_array($data['address'] ?? null) ? ($data['address'] ?? []) : (isset($data['address']) ? [$data['address']] : []);
+        $groupYearOfStudies = is_array($data['group_year_of_study'] ?? null) ? ($data['group_year_of_study'] ?? []) : (isset($data['group_year_of_study']) ? [$data['group_year_of_study']] : []);
+        $familyBackgroundNeeds = is_array($data['family_background_need'] ?? null) ? ($data['family_background_need'] ?? []) : (isset($data['family_background_need']) ? [$data['family_background_need']] : []);
 
         // Check if we're already in a transaction (called from ProjectController@update)
         $inTransaction = DB::transactionLevel() > 0;
@@ -30,30 +36,28 @@ class NewBeneficiariesController extends Controller
             Log::info('Storing IGE New Beneficiaries Information', [
                 'project_id' => $projectId,
                 'in_transaction' => $inTransaction,
-                'beneficiary_names_count' => count($validated['beneficiary_name'] ?? []),
-                'request_keys' => array_keys($validated)
+                'beneficiary_names_count' => count($beneficiaryNames),
+                'request_keys' => array_keys($data)
             ]);
 
             // Delete existing beneficiaries for the project
             ProjectIGENewBeneficiaries::where('project_id', $projectId)->delete();
 
-            // Insert new beneficiaries
-            $beneficiaryNames = $validated['beneficiary_name'] ?? [];
-            $castes = $validated['caste'] ?? [];
-            $addresses = $validated['address'] ?? [];
-            $groupYearOfStudies = $validated['group_year_of_study'] ?? [];
-            $familyBackgroundNeeds = $validated['family_background_need'] ?? [];
-
             $savedCount = 0;
             foreach ($beneficiaryNames as $index => $name) {
-                if (!empty(trim($name ?? ''))) {
+                $nameVal = is_array($name ?? null) ? (reset($name) ?? '') : ($name ?? '');
+                if (!empty(trim($nameVal))) {
+                    $caste = is_array($castes[$index] ?? null) ? (reset($castes[$index]) ?? null) : ($castes[$index] ?? null);
+                    $address = is_array($addresses[$index] ?? null) ? (reset($addresses[$index]) ?? null) : ($addresses[$index] ?? null);
+                    $groupYear = is_array($groupYearOfStudies[$index] ?? null) ? (reset($groupYearOfStudies[$index]) ?? null) : ($groupYearOfStudies[$index] ?? null);
+                    $familyBg = is_array($familyBackgroundNeeds[$index] ?? null) ? (reset($familyBackgroundNeeds[$index]) ?? null) : ($familyBackgroundNeeds[$index] ?? null);
                     ProjectIGENewBeneficiaries::create([
                         'project_id' => $projectId,
-                        'beneficiary_name' => $name,
-                        'caste' => $castes[$index] ?? null,
-                        'address' => $addresses[$index] ?? null,
-                        'group_year_of_study' => $groupYearOfStudies[$index] ?? null,
-                        'family_background_need' => $familyBackgroundNeeds[$index] ?? null,
+                        'beneficiary_name' => $nameVal,
+                        'caste' => $caste,
+                        'address' => $address,
+                        'group_year_of_study' => $groupYear,
+                        'family_background_need' => $familyBg,
                     ]);
                     $savedCount++;
                 }

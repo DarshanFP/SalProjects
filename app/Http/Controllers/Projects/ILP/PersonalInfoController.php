@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects\ILP;
 
 use App\Http\Controllers\Controller;
+use App\Services\FormDataExtractor;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\ILP\ProjectILPPersonalInfo;
 use Illuminate\Support\Facades\DB;
@@ -15,8 +16,17 @@ class PersonalInfoController extends Controller
     // Store or update personal information
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
-        $validated = $request->all();
+        $fillable = array_diff(
+            (new ProjectILPPersonalInfo())->getFillable(),
+            ['project_id', 'ILP_personal_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
+        // Preserve conditional logic (unchanged from original)
+        $data['spouse_name'] = ($data['marital_status'] ?? '') == 'Married' ? ($data['spouse_name'] ?? null) : null;
+        $rawStatus = $data['small_business_status'] ?? 0;
+        $data['small_business_status'] = (int) $rawStatus;
+        $data['small_business_details'] = ($rawStatus == '1' || $rawStatus === 1) ? ($data['small_business_details'] ?? null) : null;
 
         DB::beginTransaction();
         try {
@@ -24,28 +34,7 @@ class PersonalInfoController extends Controller
 
             ProjectILPPersonalInfo::updateOrCreate(
                 ['project_id' => $projectId],
-                [
-                    'name' => $validated['name'] ?? null,
-                    'age' => $validated['age'] ?? null,
-                    'gender' => $validated['gender'] ?? null,
-                    'dob' => $validated['dob'] ?? null,
-                    'email' => $validated['email'] ?? null,
-                    'contact_no' => $validated['contact_no'] ?? null,
-                    'aadhar_id' => $validated['aadhar_id'] ?? null,
-                    'address' => $validated['address'] ?? null,
-                    'occupation' => $validated['occupation'] ?? null,
-                    'marital_status' => $validated['marital_status'] ?? null,
-                    'spouse_name' => ($validated['marital_status'] ?? '') == 'Married' ? ($validated['spouse_name'] ?? null) : null,
-                    'children_no' => $validated['children_no'] ?? null,
-                    'children_edu' => $validated['children_edu'] ?? null,
-                    'religion' => $validated['religion'] ?? null,
-                    'caste' => $validated['caste'] ?? null,
-                    'family_situation' => $validated['family_situation'] ?? null,
-                    'small_business_status' => (int) ($validated['small_business_status'] ?? 0),
-                    'small_business_details' => ($validated['small_business_status'] ?? '') == '1' ? ($validated['small_business_details'] ?? null) : null,
-                    'monthly_income' => $validated['monthly_income'] ?? null,
-                    'business_plan' => $validated['business_plan'] ?? null,
-                ]
+                $data
             );
 
             DB::commit();

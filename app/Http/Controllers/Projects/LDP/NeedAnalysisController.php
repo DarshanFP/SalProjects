@@ -14,10 +14,6 @@ class NeedAnalysisController extends Controller
     // Store or update the Need Analysis
     public function store(FormRequest $request, $projectId)
     {
-        // Validation already done by FormRequest
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-
         try {
             Log::info('Storing Need Analysis', ['project_id' => $projectId]);
 
@@ -92,10 +88,6 @@ class NeedAnalysisController extends Controller
 
     public function update(FormRequest $request, $projectId)
     {
-        // Validation and authorization already done by FormRequest
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-
         try {
             Log::info('Updating Need Analysis', ['project_id' => $projectId]);
 

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Projects;
 
 use App\Http\Controllers\Controller;
+use App\Constants\ProjectType;
 use App\Models\OldProjects\Project;
+use App\Services\Budget\DerivedCalculationService;
 use App\Models\OldProjects\RST\ProjectDPRSTBeneficiariesArea;
 use App\Models\OldProjects\RST\ProjectRSTInstitutionInfo;
 use App\Models\OldProjects\RST\ProjectRSTTargetGroup;
@@ -184,6 +186,8 @@ class ExportController extends Controller
     protected $iiesAttachmentsController;
     protected $iiesExpensesController;
 
+    private DerivedCalculationService $calculationService;
+
     public function __construct(
         // Edu-RUT
         ProjectEduRUTBasicInfoController $eduRUTBasicInfoController,
@@ -245,7 +249,8 @@ class ExportController extends Controller
         IIESFamilyWorkingMembersController $iiesFamilyWorkingMembersController,
         IIESImmediateFamilyDetailsController $iiesImmediateFamilyDetailsController,
         IIESPersonalInfoController $iiesPersonalInfoController,
-        IIESExpensesController $iiesExpensesController
+        IIESExpensesController $iiesExpensesController,
+        DerivedCalculationService $calculationService
     ) {
         $this->eduRUTBasicInfoController = $eduRUTBasicInfoController;
         $this->eduRUTTargetGroupController = $eduRUTTargetGroupController;
@@ -298,6 +303,7 @@ class ExportController extends Controller
         $this->iiesFinancialSupportController = $iiesFinancialSupportController;
         $this->iiesAttachmentsController = $iiesAttachmentsController;
         $this->iiesExpensesController = $iiesExpensesController;
+        $this->calculationService = $calculationService;
     }
 
     public function downloadPdf($project_id)
@@ -863,8 +869,10 @@ class ExportController extends Controller
             // 1. General Information
             $this->addGeneralInfoSection($phpWord, $project, $projectRoles);
 
-            // 2. Key Information
-            $this->addKeyInformationSection($phpWord, $project);
+            // 2. Key Information (excluded for Individual project types)
+            if (!in_array($project->project_type, ProjectType::getIndividualTypes())) {
+                $this->addKeyInformationSection($phpWord, $project);
+            }
 
             // 3. CCI Specific Partials
             if ($project->project_type === 'CHILD CARE INSTITUTION') {
@@ -2504,7 +2512,7 @@ private function addBudgetSection(PhpWord $phpWord, $project)
     foreach ($groupedBudgets as $phase => $budgets) {
         // Add Phase Header
         $section->addText("Phase {$phase}", ['bold' => true, 'size' => 14]);
-        $section->addText("Amount Sanctioned in Phase {$phase}: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($budgets->sum('this_phase'), 2));
+        $section->addText("Amount Sanctioned in Phase {$phase}: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($this->calculationService->calculateProjectTotal($budgets->map(fn ($b) => (float) ($b->this_phase ?? 0))), 2));
         $section->addTextBreak(1);
 
         // Define table style
@@ -2551,8 +2559,8 @@ private function addBudgetSection(PhpWord $phpWord, $project)
         $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budgets->sum('rate_multiplier'), 2), ['bold' => true]);
         $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budgets->sum('rate_duration'), 2), ['bold' => true]);
         $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budgets->sum('rate_increase'), 2), ['bold' => true]);
-        $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budgets->sum('this_phase'), 2), ['bold' => true]);
-        $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($budgets->sum('next_phase'), 2), ['bold' => true]);
+        $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($this->calculationService->calculateProjectTotal($budgets->map(fn ($b) => (float) ($b->this_phase ?? 0))), 2), ['bold' => true]);
+        $table->addCell(1500)->addText(\App\Helpers\NumberFormatHelper::formatIndian($this->calculationService->calculateProjectTotal($budgets->map(fn ($b) => (float) ($b->next_phase ?? 0))), 2), ['bold' => true]);
 
         // Add spacing between phases
         $section->addTextBreak(1);

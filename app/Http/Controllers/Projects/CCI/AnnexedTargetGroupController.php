@@ -15,27 +15,36 @@ class AnnexedTargetGroupController extends Controller
     // Store new annexed target group entries
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including annexed_target_group[] arrays
-        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = ['annexed_target_group'];
+        $data = $request->only($fillable);
+
+        $groups = is_array($data['annexed_target_group'] ?? null)
+            ? ($data['annexed_target_group'] ?? [])
+            : (isset($data['annexed_target_group']) && $data['annexed_target_group'] !== '' ? [$data['annexed_target_group']] : []);
+
         DB::beginTransaction();
         try {
             Log::info('Storing CCI Annexed Target Group', ['project_id' => $projectId]);
 
-            // Loop through each annexed target group entry
-            foreach (($validated['annexed_target_group'] ?? []) as $group) {
-                // Log each beneficiary entry data before inserting
+            foreach ($groups as $group) {
+                if (!is_array($group)) {
+                    continue;
+                }
                 Log::info('Beneficiary Entry:', $group);
 
-                // Create a new entry for each annexed target group
+                $beneficiaryName = is_array($group['beneficiary_name'] ?? null) ? (reset($group['beneficiary_name']) ?? null) : ($group['beneficiary_name'] ?? null);
+                $dob = is_array($group['dob'] ?? null) ? (reset($group['dob']) ?? null) : ($group['dob'] ?? null);
+                $dateOfJoining = is_array($group['date_of_joining'] ?? null) ? (reset($group['date_of_joining']) ?? null) : ($group['date_of_joining'] ?? null);
+                $classOfStudy = is_array($group['class_of_study'] ?? null) ? (reset($group['class_of_study']) ?? null) : ($group['class_of_study'] ?? null);
+                $familyBackground = is_array($group['family_background_description'] ?? null) ? (reset($group['family_background_description']) ?? null) : ($group['family_background_description'] ?? null);
+
                 ProjectCCIAnnexedTargetGroup::create([
                     'project_id' => $projectId,
-                    'beneficiary_name' => $group['beneficiary_name'] ?? null,
-                    'dob' => $group['dob'] ?? null,
-                    'date_of_joining' => $group['date_of_joining'] ?? null,
-                    'class_of_study' => $group['class_of_study'] ?? null,
-                    'family_background_description' => $group['family_background_description'] ?? null,
+                    'beneficiary_name' => $beneficiaryName,
+                    'dob' => $dob,
+                    'date_of_joining' => $dateOfJoining,
+                    'class_of_study' => $classOfStudy,
+                    'family_background_description' => $familyBackground,
                 ]);
             }
 
@@ -52,28 +61,37 @@ class AnnexedTargetGroupController extends Controller
     // Update or create annexed target group entries
     public function update(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including annexed_target_group[] arrays
-        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = ['annexed_target_group'];
+        $data = $request->only($fillable);
+
+        $groups = is_array($data['annexed_target_group'] ?? null)
+            ? ($data['annexed_target_group'] ?? [])
+            : (isset($data['annexed_target_group']) && $data['annexed_target_group'] !== '' ? [$data['annexed_target_group']] : []);
+
         DB::beginTransaction();
         try {
             Log::info('Updating or Creating CCI Annexed Target Group', ['project_id' => $projectId]);
 
-            // Loop through each annexed target group entry
-            foreach (($validated['annexed_target_group'] ?? []) as $group) {
-                // Log each beneficiary entry data before inserting/updating
+            foreach ($groups as $group) {
+                if (!is_array($group)) {
+                    continue;
+                }
                 Log::info('Beneficiary Entry:', $group);
 
-                // Use updateOrCreate to either update or create a new entry for each annexed target group
+                $beneficiaryName = is_array($group['beneficiary_name'] ?? null) ? (reset($group['beneficiary_name']) ?? null) : ($group['beneficiary_name'] ?? null);
+                $dob = is_array($group['dob'] ?? null) ? (reset($group['dob']) ?? null) : ($group['dob'] ?? null);
+                $dateOfJoining = is_array($group['date_of_joining'] ?? null) ? (reset($group['date_of_joining']) ?? null) : ($group['date_of_joining'] ?? null);
+                $classOfStudy = is_array($group['class_of_study'] ?? null) ? (reset($group['class_of_study']) ?? null) : ($group['class_of_study'] ?? null);
+                $familyBackground = is_array($group['family_background_description'] ?? null) ? (reset($group['family_background_description']) ?? null) : ($group['family_background_description'] ?? null);
+
                 ProjectCCIAnnexedTargetGroup::updateOrCreate(
-                    ['project_id' => $projectId, 'beneficiary_name' => $group['beneficiary_name'] ?? null], // Identifying condition
+                    ['project_id' => $projectId, 'beneficiary_name' => $beneficiaryName],
                     [
-                        'dob' => $group['dob'] ?? null,
-                        'date_of_joining' => $group['date_of_joining'] ?? null,
-                        'class_of_study' => $group['class_of_study'] ?? null,
-                        'family_background_description' => $group['family_background_description'] ?? null,
-                    ] // Fields to update or create
+                        'dob' => $dob,
+                        'date_of_joining' => $dateOfJoining,
+                        'class_of_study' => $classOfStudy,
+                        'family_background_description' => $familyBackground,
+                    ]
                 );
             }
 

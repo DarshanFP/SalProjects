@@ -1,14 +1,10 @@
 {{-- Coordinator Overview Widget --}}
 <div class="card mb-4 widget-card" data-widget-id="coordinator-overview">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="users" class="me-2"></i>Coordinator Overview
-        </h5>
+        <h5 class="mb-0">Coordinator Overview</h5>
         <div>
             <a href="{{ route('general.coordinators') }}" class="btn btn-sm btn-outline-primary me-2">View All Coordinators</a>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="coordinator-overview" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="coordinator-overview" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body widget-content">
@@ -170,7 +166,6 @@
                         @empty
                             <tr>
                                 <td colspan="10" class="text-center text-muted py-4">
-                                    <i data-feather="users" style="width: 48px; height: 48px;" class="text-muted"></i>
                                     <p class="mt-2">No coordinators found</p>
                                 </td>
                             </tr>
@@ -188,10 +183,9 @@
             @endif
         @else
             <div class="text-center py-4">
-                <i data-feather="users" class="text-muted" style="width: 48px; height: 48px;"></i>
                 <p class="text-muted mt-3">No coordinators found. Create your first coordinator to get started.</p>
                 <a href="{{ route('general.createCoordinator') }}" class="btn btn-sm btn-primary">
-                    <i data-feather="plus"></i> Create Coordinator
+Create Coordinator
                 </a>
             </div>
         @endif

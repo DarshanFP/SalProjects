@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects\IES;
 
 use App\Http\Controllers\Controller;
+use App\Services\FormDataExtractor;
 use Illuminate\Http\Request;
 use App\Models\OldProjects\IES\ProjectIESImmediateFamilyDetails;
 use Illuminate\Support\Facades\Log;
@@ -21,6 +22,12 @@ class IESImmediateFamilyDetailsController extends Controller
     // Store immediate family details for a project
     public function store(Request $request, $projectId)
     {
+        $fillable = array_diff(
+            (new ProjectIESImmediateFamilyDetails())->getFillable(),
+            ['project_id', 'IES_family_detail_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
         DB::beginTransaction();
         try {
             Log::info('Storing IES immediate family details', ['project_id' => $projectId]);
@@ -28,7 +35,7 @@ class IESImmediateFamilyDetailsController extends Controller
             // Find or create a new immediate family details record
             $familyDetails = ProjectIESImmediateFamilyDetails::where('project_id', $projectId)->first() ?: new ProjectIESImmediateFamilyDetails();
             $familyDetails->project_id = $projectId;
-            $familyDetails->fill($request->all());
+            $familyDetails->fill($data);
             // Phase 2: normalize NOT NULL booleans so null/empty never written
             foreach (self::NOT_NULL_BOOLEAN_FIELDS as $field) {
                 $val = $familyDetails->$field;

@@ -87,12 +87,8 @@
     </div>
     <div class="row mt-2">
         <div class="col-md-12">
-            <button type="submit" class="btn btn-primary btn-sm">
-                <i data-feather="filter" style="width: 14px; height: 14px;"></i> Apply Filters
-            </button>
-            <a href="{{ route('general.dashboard') }}" class="btn btn-secondary btn-sm">
-                <i data-feather="refresh-cw" style="width: 14px; height: 14px;"></i> Reset
-            </a>
+            <button type="submit" class="btn btn-primary btn-sm">Apply Filters</button>
+            <a href="{{ route('general.dashboard') }}" class="btn btn-secondary btn-sm">Reset</a>
         </div>
     </div>
 </form>
@@ -126,9 +122,6 @@
 @if($totalBudget == 0)
     {{-- Empty State --}}
     <div class="text-center py-5">
-        <div class="mb-3">
-            <i data-feather="inbox" style="width: 48px; height: 48px; color: #ccc;"></i>
-        </div>
         <h5 class="text-muted">No Budget Data Available</h5>
         <p class="text-muted">
             @if(request('province') || request('center') || request('project_type') || request('coordinator_id'))
@@ -144,65 +137,37 @@
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="card bg-primary bg-opacity-25 border-primary h-100">
                 <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <small class="text-muted d-block">Total Budget</small>
-                            <h4 class="mb-0 text-white">{{ format_indian_currency($totalBudget, 2) }}</h4>
-                        </div>
-                        <div class="text-primary">
-                            <i data-feather="dollar-sign" style="width: 32px; height: 32px;"></i>
-                        </div>
-                    </div>
+                    <small class="text-muted d-block">Total Budget</small>
+                    <h4 class="mb-0 text-white">{{ format_indian_currency($totalBudget, 2) }}</h4>
                 </div>
             </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="card bg-success bg-opacity-25 border-success h-100">
                 <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <small class="text-muted d-block">Approved Expenses</small>
-                            <h4 class="mb-0 text-white">{{ format_indian_currency($approvedExpenses, 2) }}</h4>
-                            <small class="text-muted">
-                                {{ $context === 'coordinator_hierarchy' ? 'Coordinator approved' : 'Provincial approved' }}
-                            </small>
-                        </div>
-                        <div class="text-success">
-                            <i data-feather="check-circle" style="width: 32px; height: 32px;"></i>
-                        </div>
-                    </div>
+                    <small class="text-muted d-block">Approved Expenses</small>
+                    <h4 class="mb-0 text-white">{{ format_indian_currency($approvedExpenses, 2) }}</h4>
+                    <small class="text-muted">
+                        {{ $context === 'coordinator_hierarchy' ? 'Coordinator approved' : 'Provincial approved' }}
+                    </small>
                 </div>
             </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="card bg-warning bg-opacity-25 border-warning h-100">
                 <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <small class="text-muted d-block">Unapproved Expenses</small>
-                            <h4 class="mb-0 text-white">{{ format_indian_currency($unapprovedExpenses, 2) }}</h4>
-                            <small class="text-muted">In pipeline / Pending approval</small>
-                        </div>
-                        <div class="text-warning">
-                            <i data-feather="clock" style="width: 32px; height: 32px;"></i>
-                        </div>
-                    </div>
+                    <small class="text-muted d-block">Unapproved Expenses</small>
+                    <h4 class="mb-0 text-white">{{ format_indian_currency($unapprovedExpenses, 2) }}</h4>
+                    <small class="text-muted">In pipeline / Pending approval</small>
                 </div>
             </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="card bg-info bg-opacity-25 border-info h-100">
                 <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <small class="text-muted d-block">Total Remaining</small>
-                            <h4 class="mb-0 text-white">{{ format_indian_currency($totalRemaining, 2) }}</h4>
-                            <small class="text-muted">{{ format_indian_percentage($remainingPercent, 1) }} remaining</small>
-                        </div>
-                        <div class="text-info">
-                            <i data-feather="trending-up" style="width: 32px; height: 32px;"></i>
-                        </div>
-                    </div>
+                    <small class="text-muted d-block">Total Remaining</small>
+                    <h4 class="mb-0 text-white">{{ format_indian_currency($totalRemaining, 2) }}</h4>
+                    <small class="text-muted">{{ format_indian_percentage($remainingPercent, 1) }} remaining</small>
                 </div>
             </div>
         </div>

@@ -8,8 +8,7 @@
 {{-- Approval Queue Widget (Projects & Reports) --}}
 <div class="card mb-4 widget-card" data-widget-id="approval-queue">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="inbox" class="me-2"></i>Approval Queue
+        <h5 class="mb-0">Approval Queue
             @if($totalQueueCount > 0)
                 <span class="badge bg-danger ms-2">{{ $totalQueueCount }}</span>
                 <small class="text-muted ms-2">({{ isset($approvalQueueProjects) ? $approvalQueueProjects->count() : 0 }} Projects, {{ isset($approvalQueueReports) ? $approvalQueueReports->count() : 0 }} Reports)</small>
@@ -17,22 +16,17 @@
         </h5>
         <div>
             @if(isset($approvalQueueReports) && $approvalQueueReports->count() > 0)
-                <button type="button" class="btn btn-sm btn-outline-success me-2" id="bulkApproveBtn" disabled>
-                    <i data-feather="check-circle"></i> Bulk Approve Reports
-                </button>
+                <button type="button" class="btn btn-sm btn-outline-success me-2" id="bulkApproveBtn" disabled>Bulk Approve Reports</button>
             @endif
             <a href="{{ route('provincial.projects.list') }}" class="btn btn-sm btn-outline-primary me-2">View Projects</a>
             <a href="{{ route('provincial.report.pending') }}" class="btn btn-sm btn-outline-primary me-2">View Reports</a>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="approval-queue" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="approval-queue" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body widget-content">
         @if($totalQueueCount == 0)
             <div class="text-center py-4">
-                <i data-feather="check-circle" class="text-success" style="width: 48px; height: 48px;"></i>
-                <p class="mt-3 text-muted">Approval queue is empty</p>
+                <p class="text-muted">Approval queue is empty</p>
             </div>
         @else
             {{-- Tabs for Projects and Reports --}}
@@ -44,7 +38,7 @@
                             data-bs-target="#queue-projects"
                             type="button"
                             role="tab">
-                        <i data-feather="folder" style="width: 16px; height: 16px;"></i> Projects
+Projects
                         @if(isset($approvalQueueProjects) && $approvalQueueProjects->count() > 0)
                             <span class="badge bg-danger ms-2">{{ $approvalQueueProjects->count() }}</span>
                         @endif
@@ -57,7 +51,7 @@
                             data-bs-target="#queue-reports"
                             type="button"
                             role="tab">
-                        <i data-feather="file-text" style="width: 16px; height: 16px;"></i> Reports
+Reports
                         @if(isset($approvalQueueReports) && $approvalQueueReports->count() > 0)
                             <span class="badge bg-danger ms-2">{{ $approvalQueueReports->count() }}</span>
                         @endif
@@ -70,8 +64,7 @@
                 <div class="tab-pane fade show active" id="queue-projects" role="tabpanel">
                     @if(!isset($approvalQueueProjects) || $approvalQueueProjects->isEmpty())
                         <div class="text-center py-4">
-                            <i data-feather="folder" class="text-muted" style="width: 48px; height: 48px;"></i>
-                            <p class="mt-3 text-muted">No pending projects in queue</p>
+                            <p class="text-muted">No pending projects in queue</p>
                         </div>
                     @else
                         {{-- Filters for Projects --}}
@@ -219,8 +212,7 @@
                 <div class="tab-pane fade" id="queue-reports" role="tabpanel">
                     @if(!isset($approvalQueueReports) || $approvalQueueReports->isEmpty())
                         <div class="text-center py-4">
-                            <i data-feather="file-text" class="text-muted" style="width: 48px; height: 48px;"></i>
-                            <p class="mt-3 text-muted">No pending reports in queue</p>
+                            <p class="text-muted">No pending reports in queue</p>
                         </div>
                     @else
                         {{-- Filters for Reports --}}
@@ -473,7 +465,7 @@ window.filterProjectQueue = function() {
             if (!noResultsMsg) {
                 noResultsMsg = document.createElement('div');
                 noResultsMsg.className = 'alert alert-info text-center mt-3 no-results-message';
-                noResultsMsg.innerHTML = '<i data-feather="info" style="width: 16px; height: 16px;" class="me-2"></i>No projects match the selected filters.';
+                noResultsMsg.innerHTML = 'No projects match the selected filters.';
                 const tableContainer = projectsTab.querySelector('.table-responsive');
                 if (tableContainer && tableContainer.parentNode) {
                     tableContainer.parentNode.insertBefore(noResultsMsg, tableContainer.nextSibling);
@@ -533,7 +525,7 @@ window.filterQueue = function() {
             if (!noResultsMsg) {
                 noResultsMsg = document.createElement('div');
                 noResultsMsg.className = 'alert alert-info text-center mt-3 no-results-message';
-                noResultsMsg.innerHTML = '<i data-feather="info" style="width: 16px; height: 16px;" class="me-2"></i>No reports match the selected filters.';
+                noResultsMsg.innerHTML = 'No reports match the selected filters.';
                 const tableContainer = reportsTab.querySelector('.table-responsive');
                 if (tableContainer && tableContainer.parentNode) {
                     tableContainer.parentNode.insertBefore(noResultsMsg, tableContainer.nextSibling);

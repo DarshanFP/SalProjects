@@ -551,7 +551,16 @@ public function getProjectDetails($project_id)
 }
 public function store(StoreProjectRequest $request)
 {
+    // Phase 2 observability: request payload at entry
+    Log::info('ProjectController@store - Entry', [
+        'project_type' => $request->project_type,
+        'save_as_draft' => $request->has('save_as_draft') ? $request->input('save_as_draft') : null,
+        'has_iies_bname' => $request->has('iies_bname'),
+    ]);
+
+    Log::info('ProjectController@store - Transaction begin');
     DB::beginTransaction();
+    Log::info('ProjectController@store - Transaction started');
 
     try {
         Log::info('ProjectController@store - Data received from form', [
@@ -563,164 +572,39 @@ public function store(StoreProjectRequest $request)
         ]);
         Log::info('Received Project Type:', ['project_type' => $request->project_type]);
 
-        // Step 1: Store general project details
-        $project = (new GeneralInfoController())->store($request);
-        Log::info('General project details saved', ['project_id' => $project->project_id]);
+        $project = $this->storeGeneralInfoAndMergeProjectId($request);
 
-        // Add the project ID to the request for downstream use
-        $request->merge(['project_id' => $project->project_id]);
-
-        // Step 2: Handle common sections for non-individual project types
-        // Use ProjectType helper method instead of hard-coded array
-        if (ProjectType::isInstitutional($request->project_type)) {
-            // Store logical framework (objectives) - can return null if no objectives provided
-            $logicalFrameworkResponse = $this->logicalFrameworkController->store($request);
-            // Check if LogicalFrameworkController returned a redirect (error case - should not happen now)
-            if ($logicalFrameworkResponse instanceof \Illuminate\Http\RedirectResponse) {
-                DB::rollBack();
-                return $logicalFrameworkResponse;
-            }
-            // Continue with other common sections
-            $this->sustainabilityController->store($request, $project->project_id);
-            (new BudgetController())->store($request, $project);
-            if ($request->hasFile('file')) { // Check for the common attachment partial
-                (new AttachmentController())->store($request, $project);
-            }
+        $institutionalRedirect = $this->storeInstitutionalSections($request, $project);
+        if ($institutionalRedirect !== null) {
+            return $institutionalRedirect;
         }
 
-        // Step 3: Handle key information (applies to all project types)
-        (new KeyInformationController())->store($request, $project);
-
-        // Step 4: Handle project type-specific logic
-        switch ($request->project_type) {
-            case ProjectType::RURAL_URBAN_TRIBAL:
-                Log::info('Processing Rural-Urban-Tribal project type');
-                $this->eduRUTBasicInfoController->store($request, $project->project_id);
-                $this->eduRUTTargetGroupController->store($request, $project->project_id);
-                $this->eduRUTAnnexedTargetGroupController->store($request);
-                break;
-
-            case ProjectType::CHILD_CARE_INSTITUTION:
-                Log::info('Processing Child Care Institution project type');
-                $this->cciAchievementsController->store($request, $project->project_id);
-                $this->cciAgeProfileController->store($request, $project->project_id);
-                $this->cciAnnexedTargetGroupController->store($request, $project->project_id);
-                $this->cciEconomicBackgroundController->store($request, $project->project_id);
-                $this->cciPersonalSituationController->store($request, $project->project_id);
-                $this->cciPresentSituationController->store($request, $project->project_id);
-                $this->cciRationaleController->store($request, $project->project_id);
-                $this->cciStatisticsController->store($request, $project->project_id);
-                break;
-
-            case ProjectType::INSTITUTIONAL_ONGOING_GROUP_EDUCATIONAL:
-                Log::info('Processing Institutional Ongoing Group Educational proposal');
-                $this->igeInstitutionInfoController->store($request, $project->project_id);
-                $this->igeBeneficiariesSupportedController->store($request, $project->project_id);
-                $this->igeNewBeneficiariesController->store($request, $project->project_id);
-                $this->igeOngoingBeneficiariesController->store($request, $project->project_id);
-                $this->igeBudgetController->store($request, $project->project_id);
-                $this->igeDevelopmentMonitoringController->store($request, $project->project_id);
-                break;
-
-            case ProjectType::LIVELIHOOD_DEVELOPMENT_PROJECTS:
-                Log::info('Processing Livelihood Development Projects');
-                $this->ldpInterventionLogicController->store($request, $project->project_id);
-                $this->ldpNeedAnalysisController->store($request, $project->project_id);
-                $this->ldpTargetGroupController->store($request, $project->project_id);
-                break;
-
-            case ProjectType::RESIDENTIAL_SKILL_TRAINING:
-                Log::info('Processing Residential Skill Training Proposal 2');
-                $this->rstBeneficiariesAreaController->store($request, $project->project_id);
-                $this->rstGeographicalAreaController->store($request, $project->project_id);
-                $this->rstInstitutionInfoController->store($request, $project->project_id);
-                $this->rstTargetGroupAnnexureController->store($request, $project->project_id);
-                $this->rstTargetGroupController->store($request, $project->project_id);
-                break;
-
-            case ProjectType::DEVELOPMENT_PROJECTS:
-                Log::info('Processing Development Projects');
-                $this->rstBeneficiariesAreaController->store($request, $project->project_id);
-                break;
-
-            case ProjectType::NEXT_PHASE_DEVELOPMENT_PROPOSAL:
-                Log::info('Processing NEXT PHASE - DEVELOPMENT PROPOSAL');
-                $this->rstBeneficiariesAreaController->store($request, $project->project_id);
-                break;
-
-            case ProjectType::CRISIS_INTERVENTION_CENTER:
-                Log::info('Processing PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER');
-                $this->cicBasicInfoController->store($request, $project->project_id);
-                break;
-
-            case ProjectType::INDIVIDUAL_ONGOING_EDUCATIONAL:
-                Log::info('Processing Individual - Ongoing Educational Support project type');
-                $this->iesPersonalInfoController->store($request, $project->project_id);
-                $this->iesFamilyWorkingMembersController->store($request, $project->project_id);
-                $this->iesImmediateFamilyDetailsController->store($request, $project->project_id);
-                $this->iesEducationBackgroundController->store($request, $project->project_id);
-                $this->iesExpensesController->store($request, $project->project_id);
-                $this->iesAttachmentsController->store($request, $project->project_id); // Specific IES controller
-                break;
-
-            case ProjectType::INDIVIDUAL_LIVELIHOOD_APPLICATION:
-                Log::info('Processing Individual - Livelihood Application');
-                $this->ilpPersonalInfoController->store($request, $project->project_id);
-                $this->ilpRevenueGoalsController->store($request, $project->project_id);
-                $this->ilpStrengthWeaknessController->store($request, $project->project_id);
-                $this->ilpRiskAnalysisController->store($request, $project->project_id);
-                $this->ilpAttachedDocumentsController->store($request, $project->project_id); // Specific ILP controller
-                $this->ilpBudgetController->store($request, $project->project_id);
-                break;
-
-            case ProjectType::INDIVIDUAL_ACCESS_TO_HEALTH:
-                Log::info('Processing Individual - Access to Health');
-                $this->iahPersonalInfoController->store($request, $project->project_id);
-                $this->iahEarningMembersController->store($request, $project->project_id);
-                $this->iahHealthConditionController->store($request, $project->project_id);
-                $this->iahSupportDetailsController->store($request, $project->project_id);
-                $this->iahBudgetDetailsController->store($request, $project->project_id);
-                $this->iahDocumentsController->store($request, $project->project_id); // Specific IAH controller
-                break;
-
-            case ProjectType::INDIVIDUAL_INITIAL_EDUCATIONAL:
-                Log::info('Processing Individual - Initial - Educational support project type');
-                $this->iiesPersonalInfoController->store($request, $project->project_id);
-                $this->iiesFamilyWorkingMembersController->store($request, $project->project_id);
-                $this->iiesImmediateFamilyDetailsController->store($request, $project->project_id);
-                $this->iiesEducationBackgroundController->store($request, $project->project_id);
-                $this->iiesFinancialSupportController->store($request, $project->project_id);
-                $this->iiesAttachmentsController->store($request, $project->project_id); // Specific IIES controller
-                $this->iiesExpensesController->store($request, $project->project_id);
-                break;
-
-            default:
-                Log::warning('Unknown project type', ['project_type' => $request->project_type]);
-                break;
+        // Step 3: Handle key information (excluded for Individual project types)
+        if (!in_array($request->project_type, ProjectType::getIndividualTypes())) {
+            (new KeyInformationController())->store($request, $project);
         }
 
-        DB::commit();
-        // Set status based on whether it's a draft save
-        if ($request->has('save_as_draft') && $request->input('save_as_draft') == '1') {
-            $project->status = ProjectStatus::DRAFT;
-            $project->save();
-            Log::info('Project saved as draft', ['project_id' => $project->project_id]);
+        Log::info('ProjectController@store - Before project type switch', [
+            'project_type' => $request->project_type,
+        ]);
+        $handlers = $this->getProjectTypeStoreHandlers();
+        $handler = $handlers[$request->project_type] ?? null;
+        if ($handler !== null) {
+            $handler($request, $project);
         } else {
-            // For complete submissions, set status to draft (users submit manually later)
-            $project->status = ProjectStatus::DRAFT;
-            $project->save();
+            Log::warning('Unknown project type', ['project_type' => $request->project_type]);
         }
 
-        Log::info('Project and all related data saved successfully', ['project_id' => $project->project_id]);
-
-        if ($request->has('save_as_draft') && $request->input('save_as_draft') == '1') {
-            return redirect()->route('projects.edit', $project->project_id)
-                ->with('success', 'Project saved as draft. You can continue editing later.');
-        }
-
-        return redirect()->route('projects.index')->with('success', 'Project created successfully.');
+        Log::info('ProjectController@store - Transaction commit');
+        DB::commit();
+        return $this->applyPostCommitStatusAndRedirect($request, $project);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        DB::rollBack();
+        $this->logStoreRollback($e, 'ValidationException');
+        throw $e;
     } catch (\Exception $e) {
         DB::rollBack();
+        $this->logStoreRollback($e, 'Exception');
         Log::error('ProjectController@store - Error during project creation', [
             'error' => $e->getMessage(),
             'trace' => $e->getTraceAsString()
@@ -729,6 +613,172 @@ public function store(StoreProjectRequest $request)
     }
 }
 
+private function storeGeneralInfoAndMergeProjectId(StoreProjectRequest $request): Project
+{
+    $project = (new GeneralInfoController())->store($request);
+    Log::info('General project details stored', ['project_id' => $project->project_id]);
+    $request->merge(['project_id' => $project->project_id]);
+    return $project;
+}
+
+private function storeInstitutionalSections(StoreProjectRequest $request, Project $project): ?\Illuminate\Http\RedirectResponse
+{
+    if (!ProjectType::isInstitutional($request->project_type)) {
+        return null;
+    }
+    $logicalFrameworkResponse = $this->logicalFrameworkController->store($request);
+    if ($logicalFrameworkResponse instanceof \Illuminate\Http\RedirectResponse) {
+        DB::rollBack();
+        return $logicalFrameworkResponse;
+    }
+    $this->sustainabilityController->store($request, $project->project_id);
+    (new BudgetController())->store($request, $project);
+    if ($request->hasFile('file')) {
+        (new AttachmentController())->store($request, $project);
+    }
+    return null;
+}
+
+private function storeIiesType(StoreProjectRequest $request, Project $project): void
+{
+    Log::info('Processing Individual - Initial - Educational support project type');
+    $isIiesDraft = $request->has('save_as_draft') && $request->input('save_as_draft') == '1';
+    $willCallPersonalInfoStore = $request->filled('iies_bname');
+    $hasFinancialSupportData = $request->has('govt_eligible_scholarship') && $request->has('other_eligible_scholarship');
+    Log::info('ProjectController@store - IIES case', [
+        'is_draft' => $isIiesDraft,
+        'iies_bname_filled' => $request->filled('iies_bname'),
+        'will_call_personal_info_store' => $willCallPersonalInfoStore,
+    ]);
+    if (!$isIiesDraft) {
+        $request->validate(['iies_bname' => 'required|string|max:255']);
+    }
+    if ($willCallPersonalInfoStore) {
+        $this->iiesPersonalInfoController->store($request, $project->project_id);
+    }
+    $this->iiesFamilyWorkingMembersController->store($request, $project->project_id);
+    $this->iiesImmediateFamilyDetailsController->store($request, $project->project_id);
+    $this->iiesEducationBackgroundController->store($request, $project->project_id);
+    if (!$isIiesDraft || $hasFinancialSupportData) {
+        $this->iiesFinancialSupportController->store($request, $project->project_id);
+    }
+    $this->iiesAttachmentsController->store($request, $project->project_id);
+    $this->iiesExpensesController->store($request, $project->project_id);
+}
+
+private function getProjectTypeStoreHandlers(): array
+{
+    return [
+        ProjectType::RURAL_URBAN_TRIBAL => function ($request, $project) {
+            Log::info('Processing Rural-Urban-Tribal project type');
+            $this->eduRUTBasicInfoController->store($request, $project->project_id);
+            $this->eduRUTTargetGroupController->store($request, $project->project_id);
+            $this->eduRUTAnnexedTargetGroupController->store($request);
+        },
+        ProjectType::CHILD_CARE_INSTITUTION => function ($request, $project) {
+            Log::info('Processing Child Care Institution project type');
+            $this->cciAchievementsController->store($request, $project->project_id);
+            $this->cciAgeProfileController->store($request, $project->project_id);
+            $this->cciAnnexedTargetGroupController->store($request, $project->project_id);
+            $this->cciEconomicBackgroundController->store($request, $project->project_id);
+            $this->cciPersonalSituationController->store($request, $project->project_id);
+            $this->cciPresentSituationController->store($request, $project->project_id);
+            $this->cciRationaleController->store($request, $project->project_id);
+            $this->cciStatisticsController->store($request, $project->project_id);
+        },
+        ProjectType::INSTITUTIONAL_ONGOING_GROUP_EDUCATIONAL => function ($request, $project) {
+            Log::info('Processing Institutional Ongoing Group Educational proposal');
+            $this->igeInstitutionInfoController->store($request, $project->project_id);
+            $this->igeBeneficiariesSupportedController->store($request, $project->project_id);
+            $this->igeNewBeneficiariesController->store($request, $project->project_id);
+            $this->igeOngoingBeneficiariesController->store($request, $project->project_id);
+            $this->igeBudgetController->store($request, $project->project_id);
+            $this->igeDevelopmentMonitoringController->store($request, $project->project_id);
+        },
+        ProjectType::LIVELIHOOD_DEVELOPMENT_PROJECTS => function ($request, $project) {
+            Log::info('Processing Livelihood Development Projects');
+            $this->ldpInterventionLogicController->store($request, $project->project_id);
+            $this->ldpNeedAnalysisController->store($request, $project->project_id);
+            $this->ldpTargetGroupController->store($request, $project->project_id);
+        },
+        ProjectType::RESIDENTIAL_SKILL_TRAINING => function ($request, $project) {
+            Log::info('Processing Residential Skill Training Proposal 2');
+            $this->rstBeneficiariesAreaController->store($request, $project->project_id);
+            $this->rstGeographicalAreaController->store($request, $project->project_id);
+            $this->rstInstitutionInfoController->store($request, $project->project_id);
+            $this->rstTargetGroupAnnexureController->store($request, $project->project_id);
+            $this->rstTargetGroupController->store($request, $project->project_id);
+        },
+        ProjectType::DEVELOPMENT_PROJECTS => function ($request, $project) {
+            Log::info('Processing Development Projects');
+            $this->rstBeneficiariesAreaController->store($request, $project->project_id);
+        },
+        ProjectType::NEXT_PHASE_DEVELOPMENT_PROPOSAL => function ($request, $project) {
+            Log::info('Processing NEXT PHASE - DEVELOPMENT PROPOSAL');
+            $this->rstBeneficiariesAreaController->store($request, $project->project_id);
+        },
+        ProjectType::CRISIS_INTERVENTION_CENTER => function ($request, $project) {
+            Log::info('Processing PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER');
+            $this->cicBasicInfoController->store($request, $project->project_id);
+        },
+        ProjectType::INDIVIDUAL_ONGOING_EDUCATIONAL => function ($request, $project) {
+            Log::info('Processing Individual - Ongoing Educational Support project type');
+            $this->iesPersonalInfoController->store($request, $project->project_id);
+            $this->iesFamilyWorkingMembersController->store($request, $project->project_id);
+            $this->iesImmediateFamilyDetailsController->store($request, $project->project_id);
+            $this->iesEducationBackgroundController->store($request, $project->project_id);
+            $this->iesExpensesController->store($request, $project->project_id);
+            $this->iesAttachmentsController->store($request, $project->project_id);
+        },
+        ProjectType::INDIVIDUAL_LIVELIHOOD_APPLICATION => function ($request, $project) {
+            Log::info('Processing Individual - Livelihood Application');
+            $this->ilpPersonalInfoController->store($request, $project->project_id);
+            $this->ilpRevenueGoalsController->store($request, $project->project_id);
+            $this->ilpStrengthWeaknessController->store($request, $project->project_id);
+            $this->ilpRiskAnalysisController->store($request, $project->project_id);
+            $this->ilpAttachedDocumentsController->store($request, $project->project_id);
+            $this->ilpBudgetController->store($request, $project->project_id);
+        },
+        ProjectType::INDIVIDUAL_ACCESS_TO_HEALTH => function ($request, $project) {
+            Log::info('Processing Individual - Access to Health');
+            $this->iahPersonalInfoController->store($request, $project->project_id);
+            $this->iahEarningMembersController->store($request, $project->project_id);
+            $this->iahHealthConditionController->store($request, $project->project_id);
+            $this->iahSupportDetailsController->store($request, $project->project_id);
+            $this->iahBudgetDetailsController->store($request, $project->project_id);
+            $this->iahDocumentsController->store($request, $project->project_id);
+        },
+        ProjectType::INDIVIDUAL_INITIAL_EDUCATIONAL => function ($request, $project) {
+            $this->storeIiesType($request, $project);
+        },
+    ];
+}
+
+private function logStoreRollback(\Throwable $e, string $context): void
+{
+    Log::info("ProjectController@store - Rollback ({$context})", [
+        'exception_class' => get_class($e),
+        'message' => $e->getMessage(),
+    ]);
+}
+
+private function applyPostCommitStatusAndRedirect(StoreProjectRequest $request, Project $project): \Illuminate\Http\RedirectResponse
+{
+    if ($request->has('save_as_draft') && $request->input('save_as_draft') == '1') {
+        $project->status = ProjectStatus::DRAFT;
+        $project->save();
+        Log::info('Project saved as draft', ['project_id' => $project->project_id]);
+    } else {
+        $project->status = ProjectStatus::DRAFT;
+        $project->save();
+    }
+    Log::info('Project and all related data saved successfully', ['project_id' => $project->project_id]);
+    if ($request->has('save_as_draft') && $request->input('save_as_draft') == '1') {
+        return redirect()->route('projects.edit', $project->project_id)
+            ->with('success', 'Project saved as draft. You can continue editing later.');
+    }
+    return redirect()->route('projects.index')->with('success', 'Project created successfully.');
+}
 
 public function show($project_id)
 {
@@ -1057,6 +1107,10 @@ public function edit($project_id)
             'attachments_count' => $project->attachments->count()
         ]);
 
+        $budgetsForEdit = $project->budgets
+            ->where('phase', (int) ($project->current_phase ?? 1))
+            ->values();
+
         $user = Auth::user();
 
         // Always fetch development projects for predecessor selection (for all project types)
@@ -1299,7 +1353,7 @@ public function edit($project_id)
             'IIESPersonalInfo', 'IIESFamilyWorkingMembers',
             'IIESImmediateFamilyDetails', 'IIESEducationBackground',
             'IIESFinancialSupport', 'IIESAttachments', 'iiesExpenses',
-            'budgetLockedByApproval'
+            'budgetsForEdit', 'budgetLockedByApproval'
         ));
     } catch (\Exception $e) {
         Log::error('ProjectController@edit - Error retrieving project data', [
@@ -1344,7 +1398,9 @@ public function edit($project_id)
             // Update general project details
             Log::info('ProjectController@update - Updating general info');
             $project = (new GeneralInfoController())->update($request, $project->project_id);
-            $keyInformation = (new KeyInformationController())->update($request, $project);
+            if (!in_array($project->project_type, ProjectType::getIndividualTypes())) {
+                (new KeyInformationController())->update($request, $project);
+            }
             Log::info('ProjectController@update - General info and key information updated');
 
             // Handle common sections for non-individual project types
@@ -1486,6 +1542,9 @@ public function edit($project_id)
             ]);
 
             return redirect()->route('projects.index')->with('success', 'Project updated successfully.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('ProjectController@update - Error during update', [

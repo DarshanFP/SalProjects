@@ -15,10 +15,16 @@ class OngoingBeneficiariesController extends Controller
     // Store or update ongoing beneficiaries for a project
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including obeneficiary_name[], ocaste[], etc. arrays
-        // These fields are not in StoreProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = ['obeneficiary_name', 'ocaste', 'oaddress', 'ocurrent_group_year_of_study', 'operformance_details'];
+        $data = $request->only($fillable);
+
+        // Scalar-to-array normalization; per-value scalar coercion
+        $obeneficiaryNames = is_array($data['obeneficiary_name'] ?? null) ? ($data['obeneficiary_name'] ?? []) : (isset($data['obeneficiary_name']) && $data['obeneficiary_name'] !== '' ? [$data['obeneficiary_name']] : []);
+        $ocastes = is_array($data['ocaste'] ?? null) ? ($data['ocaste'] ?? []) : (isset($data['ocaste']) ? [$data['ocaste']] : []);
+        $oaddresses = is_array($data['oaddress'] ?? null) ? ($data['oaddress'] ?? []) : (isset($data['oaddress']) ? [$data['oaddress']] : []);
+        $ocurrentGroupYearOfStudies = is_array($data['ocurrent_group_year_of_study'] ?? null) ? ($data['ocurrent_group_year_of_study'] ?? []) : (isset($data['ocurrent_group_year_of_study']) ? [$data['ocurrent_group_year_of_study']] : []);
+        $operformanceDetails = is_array($data['operformance_details'] ?? null) ? ($data['operformance_details'] ?? []) : (isset($data['operformance_details']) ? [$data['operformance_details']] : []);
+
         DB::beginTransaction();
         try {
             Log::info('Storing IGE Ongoing Beneficiaries Information', ['project_id' => $projectId]);
@@ -26,22 +32,20 @@ class OngoingBeneficiariesController extends Controller
             // Delete existing ongoing beneficiaries for the project
             ProjectIGEOngoingBeneficiaries::where('project_id', $projectId)->delete();
 
-            // Insert new ongoing beneficiaries
-            $obeneficiaryNames = $validated['obeneficiary_name'] ?? [];
-            $ocastes = $validated['ocaste'] ?? [];
-            $oaddresses = $validated['oaddress'] ?? [];
-            $ocurrentGroupYearOfStudies = $validated['ocurrent_group_year_of_study'] ?? [];
-            $operformanceDetails = $validated['operformance_details'] ?? [];
-            
             foreach ($obeneficiaryNames as $index => $name) {
-                if (!is_null($name)) {
+                $nameVal = is_array($name ?? null) ? (reset($name) ?? null) : ($name ?? null);
+                if ($nameVal !== null) {
+                    $ocaste = is_array($ocastes[$index] ?? null) ? (reset($ocastes[$index]) ?? null) : ($ocastes[$index] ?? null);
+                    $oaddress = is_array($oaddresses[$index] ?? null) ? (reset($oaddresses[$index]) ?? null) : ($oaddresses[$index] ?? null);
+                    $ocurrentGroup = is_array($ocurrentGroupYearOfStudies[$index] ?? null) ? (reset($ocurrentGroupYearOfStudies[$index]) ?? null) : ($ocurrentGroupYearOfStudies[$index] ?? null);
+                    $operf = is_array($operformanceDetails[$index] ?? null) ? (reset($operformanceDetails[$index]) ?? null) : ($operformanceDetails[$index] ?? null);
                     ProjectIGEOngoingBeneficiaries::create([
                         'project_id' => $projectId,
-                        'obeneficiary_name' => $name,
-                        'ocaste' => $ocastes[$index] ?? null,
-                        'oaddress' => $oaddresses[$index] ?? null,
-                        'ocurrent_group_year_of_study' => $ocurrentGroupYearOfStudies[$index] ?? null,
-                        'operformance_details' => $operformanceDetails[$index] ?? null,
+                        'obeneficiary_name' => $nameVal,
+                        'ocaste' => $ocaste,
+                        'oaddress' => $oaddress,
+                        'ocurrent_group_year_of_study' => $ocurrentGroup,
+                        'operformance_details' => $operf,
                     ]);
                 }
             }

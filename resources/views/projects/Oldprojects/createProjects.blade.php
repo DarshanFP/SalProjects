@@ -32,8 +32,15 @@
                     </div>
                 @endif
 
-                <!-- Key Information Section (Always Visible) -->
-                @include('projects.partials.key_information')
+                <!-- Key Information Section (excluded for Individual project types) -->
+                @php
+                    $selectedProjectType = old('project_type') ?? request()->input('project_type');
+                @endphp
+                @if (!in_array($selectedProjectType, \App\Constants\ProjectType::getIndividualTypes()))
+                    <div id="keyInformationSection">
+                        @include('projects.partials.key_information')
+                    </div>
+                @endif
 
                 <!-- Project Area Section (Development Projects and NEXT PHASE) -->
                 <div id="project-area-section" style="display:none;">
@@ -204,6 +211,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const defaultSections = document.getElementById('default-sections');
     const projectAreaSection = document.getElementById('project-area-section');
     const predecessorSection = document.getElementById('predecessor-section');
+    const keyInformationSection = document.getElementById('keyInformationSection');
+
+    const individualTypes = @json(\App\Constants\ProjectType::getIndividualTypes());
 
     const allSections = [
         iahSections, eduRUTSections, cicSection, cciSection, ldpSection, rstSection,
@@ -290,6 +300,17 @@ document.addEventListener('DOMContentLoaded', function() {
             enableInputsIn(defaultSections);
         } else {
             disableInputsIn(defaultSections);
+        }
+
+        // Key Information: hide for Individual types, show for others
+        if (keyInformationSection) {
+            if (individualTypes.includes(projectType)) {
+                keyInformationSection.style.display = 'none';
+                disableInputsIn(keyInformationSection);
+            } else {
+                keyInformationSection.style.display = 'block';
+                enableInputsIn(keyInformationSection);
+            }
         }
     }
 

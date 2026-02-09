@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Projects\RST;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\RST\ProjectRSTInstitutionInfo;
+use App\Services\FormDataExtractor;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Requests\Projects\RST\StoreRSTInstitutionInfoRequest;
@@ -15,23 +16,19 @@ class InstitutionInfoController extends Controller
     // Store or update institution info
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() instead of validated() because year_setup, total_students_trained, etc.
-        // fields are not in StoreProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = array_diff(
+            (new ProjectRSTInstitutionInfo())->getFillable(),
+            ['project_id', 'RST_institution_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
         DB::beginTransaction();
         try {
             Log::info('Storing Institution Info for RST', ['project_id' => $projectId]);
 
-            // Delete existing institution info for the project and insert new data
             ProjectRSTInstitutionInfo::updateOrCreate(
                 ['project_id' => $projectId],
-                [
-                    'year_setup' => $validated['year_setup'] ?? null,
-                    'total_students_trained' => $validated['total_students_trained'] ?? null,
-                    'beneficiaries_last_year' => $validated['beneficiaries_last_year'] ?? null,
-                    'training_outcome' => $validated['training_outcome'] ?? null,
-                ]
+                $data
             );
 
             DB::commit();
@@ -81,40 +78,10 @@ class InstitutionInfoController extends Controller
     }
 
     // Update institution info for a project
-public function update(FormRequest $request, $projectId)
-{
-    // Use all() instead of validated() because year_setup, total_students_trained, etc.
-    // fields are not in UpdateProjectRequest validation rules
-    $validated = $request->all();
-    
-    DB::beginTransaction();
-    try {
-        Log::info('Updating Institution Info for RST', ['project_id' => $projectId]);
-
-        // Check if the institution info exists for the given project ID
-        $institutionInfo = ProjectRSTInstitutionInfo::where('project_id', $projectId)->first();
-        if (!$institutionInfo) {
-            Log::warning('No Institution Info found to update for RST', ['project_id' => $projectId]);
-            return response()->json(['error' => 'Institution Info not found.'], 404);
-        }
-
-        // Update the institution info
-        $institutionInfo->update([
-            'year_setup' => $validated['year_setup'] ?? null,
-            'total_students_trained' => $validated['total_students_trained'] ?? null,
-            'beneficiaries_last_year' => $validated['beneficiaries_last_year'] ?? null,
-            'training_outcome' => $validated['training_outcome'] ?? null,
-        ]);
-
-        DB::commit();
-        Log::info('Institution Info updated successfully for RST', ['project_id' => $projectId]);
-        return response()->json(['message' => 'Institution Info updated successfully.'], 200);
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error updating Institution Info for RST', ['error' => $e->getMessage()]);
-        return response()->json(['error' => 'Failed to update Institution Info.'], 500);
+    public function update(FormRequest $request, $projectId)
+    {
+        return $this->store($request, $projectId);
     }
-}
 
 
     // Delete institution info for a project

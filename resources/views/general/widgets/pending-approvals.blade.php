@@ -12,8 +12,7 @@
 {{-- Unified Pending Approvals Widget --}}
 <div class="card mb-4 widget-card" data-widget-id="pending-approvals">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="clock" class="me-2"></i>Pending Approvals
+        <h5 class="mb-0">Pending Approvals
             @if($totalPending > 0)
                 <span class="badge bg-danger ms-2">{{ $totalPending }}</span>
             @endif
@@ -21,16 +20,13 @@
         <div>
             <a href="{{ route('general.reports') }}" class="btn btn-sm btn-outline-primary me-2">View All Reports</a>
             <a href="{{ route('general.projects') }}" class="btn btn-sm btn-outline-primary me-2">View All Projects</a>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="pending-approvals" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="pending-approvals" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body widget-content">
         @if($totalPending == 0)
             <div class="text-center py-4">
-                <i data-feather="check-circle" class="text-success" style="width: 48px; height: 48px;"></i>
-                <p class="mt-3 text-muted">No pending approvals</p>
+                <p class="text-muted">No pending approvals</p>
             </div>
         @else
             {{-- Summary Cards with Fixed Height --}}
@@ -88,7 +84,7 @@
                             data-bs-target="#coordinator-hierarchy-pending"
                             type="button"
                             role="tab">
-                        <i data-feather="users" style="width: 16px; height: 16px;"></i> Coordinator Hierarchy
+Coordinator Hierarchy
                         @if(($coordHierarchy['total_count'] ?? 0) > 0)
                             <span class="badge bg-danger ms-2">{{ $coordHierarchy['total_count'] ?? 0 }}</span>
                         @endif
@@ -101,7 +97,7 @@
                             data-bs-target="#direct-team-pending"
                             type="button"
                             role="tab">
-                        <i data-feather="user" style="width: 16px; height: 16px;"></i> Direct Team
+Direct Team
                         @if(($directTeam['total_count'] ?? 0) > 0)
                             <span class="badge bg-danger ms-2">{{ $directTeam['total_count'] ?? 0 }}</span>
                         @endif
@@ -114,7 +110,7 @@
                             data-bs-target="#all-pending"
                             type="button"
                             role="tab">
-                        <i data-feather="layers" style="width: 16px; height: 16px;"></i> All Pending
+All Pending
                         @if($totalPending > 0)
                             <span class="badge bg-danger ms-2">{{ $totalPending }}</span>
                         @endif
@@ -127,8 +123,7 @@
                 <div class="tab-pane fade show active" id="coordinator-hierarchy-pending" role="tabpanel">
                     @if(($coordHierarchy['total_count'] ?? 0) == 0)
                         <div class="text-center py-4">
-                            <i data-feather="check-circle" class="text-success" style="width: 48px; height: 48px;"></i>
-                            <p class="mt-3 text-muted">No pending approvals from Coordinator Hierarchy</p>
+                            <p class="text-muted">No pending approvals from Coordinator Hierarchy</p>
                         </div>
                     @else
                         {{-- Projects/Reports Sub-tabs --}}
@@ -140,7 +135,7 @@
                                         data-bs-target="#coord-projects-pending"
                                         type="button"
                                         role="tab">
-                                    <i data-feather="folder" style="width: 16px; height: 16px;"></i> Projects
+Projects
                                     <span class="badge bg-danger ms-2">{{ $coordHierarchy['projects_count'] ?? 0 }}</span>
                                 </button>
                             </li>
@@ -151,7 +146,7 @@
                                         data-bs-target="#coord-reports-pending"
                                         type="button"
                                         role="tab">
-                                    <i data-feather="file-text" style="width: 16px; height: 16px;"></i> Reports
+Reports
                                     <span class="badge bg-danger ms-2">{{ $coordHierarchy['reports_count'] ?? 0 }}</span>
                                 </button>
                             </li>
@@ -162,7 +157,6 @@
                             <div class="tab-pane fade show active" id="coord-projects-pending" role="tabpanel">
                                 @if(($coordHierarchy['pending_projects'] ?? collect())->isEmpty())
                                     <div class="text-center py-4">
-                                        <i data-feather="folder" class="text-muted" style="width: 48px; height: 48px;"></i>
                                         <p class="mt-3 text-muted">No pending projects from Coordinator Hierarchy</p>
                                     </div>
                                 @else
@@ -185,7 +179,6 @@
                             <div class="tab-pane fade" id="coord-reports-pending" role="tabpanel">
                                 @if(($coordHierarchy['pending_reports'] ?? collect())->isEmpty())
                                     <div class="text-center py-4">
-                                        <i data-feather="file-text" class="text-muted" style="width: 48px; height: 48px;"></i>
                                         <p class="mt-3 text-muted">No pending reports from Coordinator Hierarchy</p>
                                     </div>
                                 @else
@@ -211,7 +204,6 @@
                 <div class="tab-pane fade" id="direct-team-pending" role="tabpanel">
                     @if(($directTeam['total_count'] ?? 0) == 0)
                         <div class="text-center py-4">
-                            <i data-feather="check-circle" class="text-success" style="width: 48px; height: 48px;"></i>
                             <p class="mt-3 text-muted">No pending approvals from Direct Team</p>
                         </div>
                     @else
@@ -224,7 +216,7 @@
                                         data-bs-target="#direct-projects-pending"
                                         type="button"
                                         role="tab">
-                                    <i data-feather="folder" style="width: 16px; height: 16px;"></i> Projects
+Projects
                                     <span class="badge bg-danger ms-2">{{ $directTeam['projects_count'] ?? 0 }}</span>
                                 </button>
                             </li>
@@ -235,7 +227,7 @@
                                         data-bs-target="#direct-reports-pending"
                                         type="button"
                                         role="tab">
-                                    <i data-feather="file-text" style="width: 16px; height: 16px;"></i> Reports
+Reports
                                     <span class="badge bg-danger ms-2">{{ $directTeam['reports_count'] ?? 0 }}</span>
                                 </button>
                             </li>
@@ -246,7 +238,6 @@
                             <div class="tab-pane fade show active" id="direct-projects-pending" role="tabpanel">
                                 @if(($directTeam['pending_projects'] ?? collect())->isEmpty())
                                     <div class="text-center py-4">
-                                        <i data-feather="folder" class="text-muted" style="width: 48px; height: 48px;"></i>
                                         <p class="mt-3 text-muted">No pending projects from Direct Team</p>
                                     </div>
                                 @else
@@ -269,7 +260,6 @@
                             <div class="tab-pane fade" id="direct-reports-pending" role="tabpanel">
                                 @if(($directTeam['pending_reports'] ?? collect())->isEmpty())
                                     <div class="text-center py-4">
-                                        <i data-feather="file-text" class="text-muted" style="width: 48px; height: 48px;"></i>
                                         <p class="mt-3 text-muted">No pending reports from Direct Team</p>
                                     </div>
                                 @else
@@ -302,7 +292,7 @@
                                     data-bs-target="#all-projects-pending"
                                     type="button"
                                     role="tab">
-                                <i data-feather="folder" style="width: 16px; height: 16px;"></i> Projects
+Projects
                                 <span class="badge bg-danger ms-2">{{ $all['projects_count'] ?? 0 }}</span>
                             </button>
                         </li>
@@ -313,7 +303,7 @@
                                     data-bs-target="#all-reports-pending"
                                     type="button"
                                     role="tab">
-                                <i data-feather="file-text" style="width: 16px; height: 16px;"></i> Reports
+Reports
                                 <span class="badge bg-danger ms-2">{{ $all['reports_count'] ?? 0 }}</span>
                             </button>
                         </li>
@@ -324,7 +314,6 @@
                         <div class="tab-pane fade show active" id="all-projects-pending" role="tabpanel">
                             @if(($all['pending_projects'] ?? collect())->isEmpty())
                                 <div class="text-center py-4">
-                                    <i data-feather="folder" class="text-muted" style="width: 48px; height: 48px;"></i>
                                     <p class="mt-3 text-muted">No pending projects</p>
                                 </div>
                             @else
@@ -347,7 +336,6 @@
                         <div class="tab-pane fade" id="all-reports-pending" role="tabpanel">
                             @if(($all['pending_reports'] ?? collect())->isEmpty())
                                 <div class="text-center py-4">
-                                    <i data-feather="file-text" class="text-muted" style="width: 48px; height: 48px;"></i>
                                     <p class="mt-3 text-muted">No pending reports</p>
                                 </div>
                             @else

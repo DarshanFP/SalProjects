@@ -26,14 +26,14 @@
                         </tr>
                     </thead>
                     <tbody class="budget-rows">
-                    @if($project->budgets && $project->budgets->count())
-                        @foreach($project->budgets as $budgetIndex => $budget)
+                    @if(($budgetsForEdit ?? $project->budgets) && ($budgetsForEdit ?? $project->budgets)->count())
+                        @foreach(($budgetsForEdit ?? $project->budgets) as $budgetIndex => $budget)
                             <tr>
                                 <td style="width: 5%; text-align: center; vertical-align: middle;">{{ $budgetIndex + 1 }}</td>
                                 <td class="particular-cell-create" style="width: 40%;"><textarea name="phases[0][budget][{{ $budgetIndex }}][particular]" class="form-control select-input particular-textarea {{ ($budgetLockedByApproval ?? false) ? 'readonly-input' : '' }}" rows="1" @if($budgetLockedByApproval ?? false) readonly disabled @endif>{{ old('phases.0.budget.' . $budgetIndex . '.particular', $budget->particular) }}</textarea></td>
-                                <td style="width: 12%;"><input type="number" name="phases[0][budget][{{ $budgetIndex }}][rate_quantity]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.' . $budgetIndex . '.rate_quantity', $budget->rate_quantity) }}" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
-                                <td style="width: 12%;"><input type="number" name="phases[0][budget][{{ $budgetIndex }}][rate_multiplier]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.' . $budgetIndex . '.rate_multiplier', $budget->rate_multiplier ?? 1) }}" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
-                                <td style="width: 12%;"><input type="number" name="phases[0][budget][{{ $budgetIndex }}][rate_duration]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.' . $budgetIndex . '.rate_duration', $budget->rate_duration ?? 1) }}" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
+                                <td style="width: 12%;"><input type="number" name="phases[0][budget][{{ $budgetIndex }}][rate_quantity]" class="form-control select-input budget-number-input" oninput="calculateRowTotal(this)" value="{{ old('phases.0.budget.' . $budgetIndex . '.rate_quantity', $budget->rate_quantity) }}" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
+                                <td style="width: 12%;"><input type="number" name="phases[0][budget][{{ $budgetIndex }}][rate_multiplier]" class="form-control select-input budget-number-input" oninput="calculateRowTotal(this)" value="{{ old('phases.0.budget.' . $budgetIndex . '.rate_multiplier', $budget->rate_multiplier ?? 1) }}" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
+                                <td style="width: 12%;"><input type="number" name="phases[0][budget][{{ $budgetIndex }}][rate_duration]" class="form-control select-input budget-number-input" oninput="calculateRowTotal(this)" value="{{ old('phases.0.budget.' . $budgetIndex . '.rate_duration', $budget->rate_duration ?? 1) }}" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
                                 <td style="width: 12%;"><input type="number" name="phases[0][budget][{{ $budgetIndex }}][this_phase]" class="form-control readonly-input budget-number-input" readonly value="{{ old('phases.0.budget.' . $budgetIndex . '.this_phase', $budget->this_phase) }}"></td>
                                 <td style="width: 7%; padding: 4px;">@if(!($budgetLockedByApproval ?? false))<button type="button" class="btn btn-danger budget-remove-btn" onclick="removeBudgetRow(this)">Remove</button>@endif</td>
                             </tr>
@@ -42,9 +42,9 @@
                         <tr>
                             <td style="width: 5%; text-align: center; vertical-align: middle;">1</td>
                             <td class="particular-cell-create" style="width: 40%;"><textarea name="phases[0][budget][0][particular]" class="form-control select-input particular-textarea {{ ($budgetLockedByApproval ?? false) ? 'readonly-input' : '' }}" rows="1" @if($budgetLockedByApproval ?? false) readonly disabled @endif>{{ old('phases.0.budget.0.particular') }}</textarea></td>
-                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_quantity]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_quantity') }}" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
-                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_multiplier]" class="form-control select-input budget-number-input" value="{{ old('phases.0.budget.0.rate_multiplier', 1) }}" oninput="calculateBudgetRowTotals(this)" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
-                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_duration]" class="form-control select-input budget-number-input" value="{{ old('phases.0.budget.0.rate_duration', 1) }}" oninput="calculateBudgetRowTotals(this)" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
+                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_quantity]" class="form-control select-input budget-number-input" oninput="calculateRowTotal(this)" value="{{ old('phases.0.budget.0.rate_quantity') }}" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
+                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_multiplier]" class="form-control select-input budget-number-input" value="{{ old('phases.0.budget.0.rate_multiplier', 1) }}" oninput="calculateRowTotal(this)" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
+                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_duration]" class="form-control select-input budget-number-input" value="{{ old('phases.0.budget.0.rate_duration', 1) }}" oninput="calculateRowTotal(this)" @if($budgetLockedByApproval ?? false) readonly disabled @endif></td>
                             <td style="width: 12%;"><input type="number" name="phases[0][budget][0][this_phase]" class="form-control readonly-input budget-number-input" readonly value="{{ old('phases.0.budget.0.this_phase') }}"></td>
                             <td style="width: 7%; padding: 4px;">@if(!($budgetLockedByApproval ?? false))<button type="button" class="btn btn-danger budget-remove-btn" onclick="removeBudgetRow(this)">Remove</button>@endif</td>
                         </tr>
@@ -96,7 +96,7 @@
                            name="amount_forwarded"
                            class="form-control select-input budget-number-input {{ ($budgetLockedByApproval ?? false) ? 'readonly-input' : '' }}"
                            value="{{ old('amount_forwarded', $project->amount_forwarded ?? 0.00) }}"
-                           oninput="calculateBudgetFields()"
+                           oninput="calculateAmountSanctioned()"
                            placeholder="0.00"
                            @if($budgetLockedByApproval ?? false) readonly disabled @endif>
                     <div class="form-text text-info">
@@ -120,7 +120,7 @@
                            name="local_contribution"
                            class="form-control select-input budget-number-input {{ ($budgetLockedByApproval ?? false) ? 'readonly-input' : '' }}"
                            value="{{ old('local_contribution', $project->local_contribution ?? 0.00) }}"
-                           oninput="calculateBudgetFields()"
+                           oninput="calculateAmountSanctioned()"
                            placeholder="0.00"
                            @if($budgetLockedByApproval ?? false) readonly disabled @endif>
                     <div class="form-text text-info">

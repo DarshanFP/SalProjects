@@ -6,11 +6,11 @@ use Tests\TestCase;
 use App\Helpers\ProjectPermissionHelper;
 use App\Models\OldProjects\Project;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 
 class ProjectPermissionHelperTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     /** @test */
     public function it_allows_owner_to_edit_project()

@@ -3,29 +3,30 @@
 namespace App\Http\Controllers\Projects\LDP;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\OldProjects\LDP\ProjectLDPInterventionLogic;
+use App\Services\FormDataExtractor;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Foundation\Http\FormRequest;
 
 class InterventionLogicController extends Controller
 {
     // Store or update intervention logic
     public function store(FormRequest $request, $projectId)
     {
-        // Validation already done by FormRequest
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = array_diff(
+            (new ProjectLDPInterventionLogic())->getFillable(),
+            ['project_id', 'LDP_intervention_logic_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
         DB::beginTransaction();
         try {
             Log::info('Storing LDP Intervention Logic', ['project_id' => $projectId]);
 
-            // Use create or update logic
             ProjectLDPInterventionLogic::updateOrCreate(
-                ['project_id' => $projectId], // Search by project_id
-                ['intervention_description' => $validated['intervention_description'] ?? null] // Update intervention description
+                ['project_id' => $projectId],
+                $data
             );
 
             DB::commit();
@@ -76,28 +77,7 @@ class InterventionLogicController extends Controller
     // Update intervention logic for a project
     public function update(FormRequest $request, $projectId)
     {
-        // Validation and authorization already done by FormRequest
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
-        DB::beginTransaction();
-        try {
-            Log::info('Updating LDP Intervention Logic', ['project_id' => $projectId]);
-
-            // Use updateOrCreate logic to either update or create a new record
-            ProjectLDPInterventionLogic::updateOrCreate(
-                ['project_id' => $projectId], // Search by project_id
-                ['intervention_description' => $validated['intervention_description'] ?? null] // Update intervention description
-            );
-
-            DB::commit();
-            Log::info('LDP Intervention Logic updated successfully', ['project_id' => $projectId]);
-            return response()->json(['message' => 'Intervention logic updated successfully.'], 200);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error updating LDP Intervention Logic', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to update intervention logic.'], 500);
-        }
+        return $this->store($request, $projectId);
     }
 
     // Delete intervention logic for a project

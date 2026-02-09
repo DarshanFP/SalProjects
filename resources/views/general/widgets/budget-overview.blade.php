@@ -39,13 +39,9 @@
 
 <div class="card mb-4 widget-card" data-widget-id="budget-overview">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="dollar-sign" class="me-2"></i>Budget Overview
-        </h5>
+        <h5 class="mb-0">Budget Overview</h5>
         <div>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="budget-overview" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="budget-overview" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body widget-content">
@@ -59,7 +55,7 @@
                         type="button"
                         role="tab"
                         onclick="setBudgetContext('coordinator_hierarchy')">
-                    <i data-feather="users" style="width: 16px; height: 16px;"></i> Coordinator Hierarchy
+Coordinator Hierarchy
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -70,7 +66,7 @@
                         type="button"
                         role="tab"
                         onclick="setBudgetContext('direct_team')">
-                    <i data-feather="user" style="width: 16px; height: 16px;"></i> Direct Team
+Direct Team
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -81,7 +77,7 @@
                         type="button"
                         role="tab"
                         onclick="setBudgetContext('combined')">
-                    <i data-feather="layers" style="width: 16px; height: 16px;"></i> Combined
+Combined
                 </button>
             </li>
         </ul>

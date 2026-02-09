@@ -29,9 +29,9 @@
                         <tr>
                             <td style="width: 5%; text-align: center; vertical-align: middle;">1</td>
                             <td class="particular-cell-create" style="width: 40%;"><textarea name="phases[0][budget][0][particular]" class="form-control select-input particular-textarea" rows="1">{{ old('phases.0.budget.0.particular') }}</textarea></td>
-                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_quantity]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)" value="{{ old('phases.0.budget.0.rate_quantity') }}"></td>
-                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_multiplier]" class="form-control select-input budget-number-input" value="{{ old('phases.0.budget.0.rate_multiplier', 1) }}" oninput="calculateBudgetRowTotals(this)"></td>
-                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_duration]" class="form-control select-input budget-number-input" value="{{ old('phases.0.budget.0.rate_duration', 1) }}" oninput="calculateBudgetRowTotals(this)"></td>
+                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_quantity]" class="form-control select-input budget-number-input" oninput="calculateRowTotal(this)" value="{{ old('phases.0.budget.0.rate_quantity') }}"></td>
+                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_multiplier]" class="form-control select-input budget-number-input" value="{{ old('phases.0.budget.0.rate_multiplier', 1) }}" oninput="calculateRowTotal(this)"></td>
+                            <td style="width: 12%;"><input type="number" name="phases[0][budget][0][rate_duration]" class="form-control select-input budget-number-input" value="{{ old('phases.0.budget.0.rate_duration', 1) }}" oninput="calculateRowTotal(this)"></td>
                             <td style="width: 12%;"><input type="number" name="phases[0][budget][0][this_phase]" class="form-control readonly-input budget-number-input" readonly value="{{ old('phases.0.budget.0.this_phase') }}"></td>
                             <td style="width: 7%; padding: 4px;"><button type="button" class="btn btn-danger budget-remove-btn" onclick="removeBudgetRow(this)">Remove</button></td>
                         </tr>
@@ -81,7 +81,7 @@
                            name="amount_forwarded"
                            class="form-control select-input budget-number-input"
                            value="{{ old('amount_forwarded', 0.00) }}"
-                           oninput="calculateBudgetFields()"
+                           oninput="calculateAmountSanctioned()"
                            placeholder="0.00">
                     <div class="form-text text-info">
                         <i class="fas fa-info-circle"></i> Enter any funds you already have available.
@@ -104,7 +104,7 @@
                            name="local_contribution"
                            class="form-control select-input budget-number-input"
                            value="{{ old('local_contribution', 0.00) }}"
-                           oninput="calculateBudgetFields()"
+                           oninput="calculateAmountSanctioned()"
                            placeholder="0.00">
                     <div class="form-text text-info">
                         <i class="fas fa-info-circle"></i> Add any community/other contributions committed.

@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Projects\IIES;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Foundation\Http\FormRequest;
+use App\Helpers\LogHelper;
 use App\Models\OldProjects\IIES\ProjectIIESAttachments;
 use App\Models\OldProjects\IIES\ProjectIIESAttachmentFile;
 use App\Models\OldProjects\Project;
+use App\Services\Attachment\AttachmentContext;
+use App\Services\ProjectAttachmentHandler;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -15,47 +18,70 @@ use App\Http\Requests\Projects\IIES\UpdateIIESAttachmentsRequest;
 
 class IIESAttachmentsController extends Controller
 {
+    private const IIES_FIELDS = [
+        'iies_aadhar_card', 'iies_fee_quotation', 'iies_scholarship_proof', 'iies_medical_confirmation',
+        'iies_caste_certificate', 'iies_self_declaration', 'iies_death_certificate', 'iies_request_letter',
+    ];
+
+    /** @return array<string, array> */
+    private static function iiesFieldConfig(): array
+    {
+        return array_fill_keys(self::IIES_FIELDS, []);
+    }
+
     /**
      * STORE: handle initial file uploads for IIES Attachments.
      */
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-
         Log::info('IIESAttachmentsController@store - Start', [
             'project_id' => $projectId
         ]);
 
-        DB::beginTransaction();
         try {
-
             // Ensure project exists
             if (!Project::where('project_id', $projectId)->exists()) {
-                return response()->json(['error' => 'Project not found.'], 404);
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException('Project not found.');
+            }
+            // Phase 4: Defensive persistence — avoid empty attachment record when no files
+            $hasAnyFile = collect(self::IIES_FIELDS)->contains(fn ($field) => $request->hasFile($field));
+            if (!$hasAnyFile) {
+                Log::info('IIESAttachmentsController@store - Skipping save; no attachment files present', ['project_id' => $projectId]);
+                return response()->json(['message' => 'IIES attachments skipped (no files present).'], 200);
             }
 
-            // Model’s static handleAttachments(...) does the actual file + DB work
-            $attachments = ProjectIIESAttachments::handleAttachments($request, $projectId);
+            $result = ProjectAttachmentHandler::handle(
+                $request,
+                (string) $projectId,
+                AttachmentContext::forIIES(),
+                self::iiesFieldConfig()
+            );
 
-            DB::commit();
-            Log::info('IIESAttachmentsController@store - Success', [
-                'project_id' => $projectId,
-                'attachment_id' => $attachments->IIES_attachment_id ?? null,
-            ]);
+            if (!$result->success) {
+                Log::warning('IIES attachment validation failed', [
+                    'project_id' => $projectId,
+                    'errors' => $result->errorsByField,
+                ]);
+                throw \Illuminate\Validation\ValidationException::withMessages($result->errorsByField);
+            }
 
             return response()->json([
                 'message' => 'IIES attachments stored successfully.',
-                'attachments' => $attachments
+                'attachments' => $result->attachmentRecord
             ], 200);
 
-        } catch (\Exception $e) {
-            DB::rollBack();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('IIESAttachmentsController@store - Validation error', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        } catch (\Throwable $e) {
             Log::error('IIESAttachmentsController@store - Error', [
                 'project_id' => $projectId,
                 'error' => $e->getMessage()
             ]);
-            return response()->json(['error' => 'Failed to store IIES attachments.'], 500);
+            throw $e;
         }
     }
 
@@ -132,37 +158,47 @@ class IIESAttachmentsController extends Controller
      */
     public function update(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-
         Log::info('IIESAttachmentsController@update - Start', [
             'project_id' => $projectId
         ]);
 
-        DB::beginTransaction();
         try {
+            $result = ProjectAttachmentHandler::handle(
+                $request,
+                (string) $projectId,
+                AttachmentContext::forIIES(),
+                self::iiesFieldConfig()
+            );
 
-            $attachments = ProjectIIESAttachments::handleAttachments($request, $projectId);
+            if (!$result->success) {
+                Log::warning('IIES attachment validation failed on update', [
+                    'project_id' => $projectId,
+                    'errors' => $result->errorsByField,
+                ]);
+                throw \Illuminate\Validation\ValidationException::withMessages($result->errorsByField);
+            }
 
-            DB::commit();
-            Log::info('IIESAttachmentsController@update - Success', [
+            LogHelper::logSafeRequest('Files received for update', $request, [
                 'project_id' => $projectId,
-                'attachment_id' => $attachments->IIES_attachment_id ?? null
             ]);
 
-            // If you prefer returning JSON:
             return response()->json([
                 'message' => 'IIES attachments updated successfully.',
-                'attachments' => $attachments
+                'attachments' => $result->attachmentRecord
             ], 200);
 
-        } catch (\Exception $e) {
-            DB::rollBack();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('IIESAttachmentsController@update - Validation error', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        } catch (\Throwable $e) {
             Log::error('IIESAttachmentsController@update - Error', [
                 'project_id' => $projectId,
                 'error' => $e->getMessage()
             ]);
-            return response()->json(['error' => 'Failed to update IIES attachments.'], 500);
+            throw $e;
         }
     }
 

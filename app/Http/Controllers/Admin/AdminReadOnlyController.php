@@ -47,6 +47,8 @@ class AdminReadOnlyController extends Controller
             $projectsQuery->where('project_type', $request->project_type);
         }
 
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $calc = app(\App\Services\Budget\DerivedCalculationService::class);
         $totalProjects = $projectsQuery->count();
         $perPage = $request->get('per_page', 50);
         $currentPage = (int) $request->get('page', 1);
@@ -54,16 +56,17 @@ class AdminReadOnlyController extends Controller
             ->skip(($currentPage - 1) * $perPage)
             ->take($perPage)
             ->get()
-            ->map(function ($project) {
-                $projectBudget = (float) ($project->amount_sanctioned ?? $project->overall_project_budget ?? 0);
+            ->map(function ($project) use ($resolver, $calc) {
+                $financials = $resolver->resolve($project);
+                $projectBudget = (float) ($financials['opening_balance'] ?? 0);
                 $projectApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
                     ->where('project_id', $project->project_id)
                     ->pluck('report_id');
                 $totalExpenses = DPAccountDetail::whereIn('report_id', $projectApprovedReportIds)->sum('total_expenses') ?? 0;
                 $project->calculated_budget = $projectBudget;
                 $project->calculated_expenses = $totalExpenses;
-                $project->calculated_remaining = $projectBudget - $totalExpenses;
-                $project->budget_utilization = $projectBudget > 0 ? round(($totalExpenses / $projectBudget) * 100, 2) : 0;
+                $project->calculated_remaining = $calc->calculateRemainingBalance($projectBudget, $totalExpenses);
+                $project->budget_utilization = round($calc->calculateUtilization($totalExpenses, $projectBudget), 2);
                 return $project;
             });
 

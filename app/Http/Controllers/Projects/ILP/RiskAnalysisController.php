@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects\ILP;
 
 use App\Http\Controllers\Controller;
+use App\Services\FormDataExtractor;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\ILP\ProjectILPRiskAnalysis;
 use Illuminate\Support\Facades\DB;
@@ -15,9 +16,12 @@ class RiskAnalysisController extends Controller
     // Store or update risk analysis
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = array_diff(
+            (new ProjectILPRiskAnalysis())->getFillable(),
+            ['project_id', 'ILP_risk_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
         DB::beginTransaction();
         try {
             Log::info('Storing ILP Risk Analysis', ['project_id' => $projectId]);
@@ -25,13 +29,10 @@ class RiskAnalysisController extends Controller
             // Delete existing risk analysis if any
             ProjectILPRiskAnalysis::where('project_id', $projectId)->delete();
 
-            ProjectILPRiskAnalysis::create([
-                'project_id' => $projectId,
-                'identified_risks' => $validated['identified_risks'] ?? null,
-                'mitigation_measures' => $validated['mitigation_measures'] ?? null,
-                'business_sustainability' => $validated['business_sustainability'] ?? null,
-                'expected_profits' => $validated['expected_profits'] ?? null,
-            ]);
+            $riskAnalysis = new ProjectILPRiskAnalysis();
+            $riskAnalysis->project_id = $projectId;
+            $riskAnalysis->fill($data);
+            $riskAnalysis->save();
 
             DB::commit();
             Log::info('ILP Risk Analysis saved successfully', ['project_id' => $projectId]);
@@ -112,39 +113,15 @@ class RiskAnalysisController extends Controller
     // Update risk analysis for a project
     public function update(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in UpdateProjectRequest validation rules
-        $validatedData = $request->all();
-        
-        DB::beginTransaction();
-
-        try {
-            Log::info('Updating ILP Risk Analysis', ['project_id' => $projectId]);
-
-            // Update or create risk analysis
-            $riskAnalysis = ProjectILPRiskAnalysis::updateOrCreate(
-                ['project_id' => $projectId],
-                [
-                    'identified_risks' => $validatedData['identified_risks'],
-                    'mitigation_measures' => $validatedData['mitigation_measures'],
-                    'business_sustainability' => $validatedData['business_sustainability'],
-                    'expected_profits' => $validatedData['expected_profits'],
-                ]
-            );
-
-            DB::commit();
-            Log::info('ILP Risk Analysis updated successfully', ['project_id' => $projectId]);
-
+        $result = $this->store($request, $projectId);
+        if ($result->getStatusCode() === 200) {
+            $riskAnalysis = ProjectILPRiskAnalysis::where('project_id', $projectId)->first();
             return response()->json([
                 'message' => 'Risk analysis updated successfully.',
                 'data' => $riskAnalysis
             ], 200);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error updating ILP Risk Analysis', ['error' => $e->getMessage()]);
-
-            return response()->json(['error' => 'Failed to update Risk Analysis.'], 500);
         }
+        return $result;
     }
 
     // Delete risk analysis for a project

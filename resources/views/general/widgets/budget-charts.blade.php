@@ -48,18 +48,14 @@
 
 <div class="card mb-4 widget-card" data-widget-id="budget-charts">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="pie-chart" class="me-2"></i>Budget Analytics Charts
-        </h5>
+        <h5 class="mb-0">Budget Analytics Charts</h5>
         <div>
             <select class="form-select form-select-sm d-inline-block" id="budgetChartsContextFilter" style="width: auto;" onchange="setBudgetChartsContext(this.value)">
                 <option value="combined" {{ $context === 'combined' || !$context ? 'selected' : '' }}>Combined</option>
                 <option value="coordinator_hierarchy" {{ $context === 'coordinator_hierarchy' ? 'selected' : '' }}>Coordinator Hierarchy</option>
                 <option value="direct_team" {{ $context === 'direct_team' ? 'selected' : '' }}>Direct Team</option>
             </select>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle ms-2" data-widget="budget-charts" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle ms-2" data-widget="budget-charts" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body widget-content">
@@ -69,18 +65,14 @@
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-header">
-                            <h6 class="mb-0">
-                                <i data-feather="pie-chart" class="me-2" style="width: 16px; height: 16px;"></i>
-                                Budget by Context
-                            </h6>
+                            <h6 class="mb-0">Budget by Context</h6>
                         </div>
                         <div class="card-body">
                             @if(!empty($budgetByContext) && (($budgetByContext['coordinator_hierarchy'] ?? 0) > 0 || ($budgetByContext['direct_team'] ?? 0) > 0))
                                 <div id="budgetByContextChart" style="min-height: 300px;"></div>
                             @else
                                 <div class="text-center py-4 text-muted">
-                                    <i data-feather="pie-chart" style="width: 32px; height: 32px; opacity: 0.3;"></i>
-                                    <p class="mt-2 mb-0">No context data available</p>
+                                    <p class="mb-0">No context data available</p>
                                 </div>
                             @endif
                         </div>
@@ -89,18 +81,14 @@
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-header">
-                            <h6 class="mb-0">
-                                <i data-feather="pie-chart" class="me-2" style="width: 16px; height: 16px;"></i>
-                                Budget by Project Type
-                            </h6>
+                            <h6 class="mb-0">Budget by Project Type</h6>
                         </div>
                         <div class="card-body">
                             @if(count($byProjectType) > 0)
                                 <div id="budgetByProjectTypeChart" style="min-height: 300px;"></div>
                             @else
                                 <div class="text-center py-4 text-muted">
-                                    <i data-feather="pie-chart" style="width: 32px; height: 32px; opacity: 0.3;"></i>
-                                    <p class="mt-2 mb-0">No project type data available</p>
+                                    <p class="mb-0">No project type data available</p>
                                 </div>
                             @endif
                         </div>
@@ -113,18 +101,14 @@
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-header">
-                            <h6 class="mb-0">
-                                <i data-feather="pie-chart" class="me-2" style="width: 16px; height: 16px;"></i>
-                                Budget by Project Type
-                            </h6>
+                            <h6 class="mb-0">Budget by Project Type</h6>
                         </div>
                         <div class="card-body">
                             @if(count($byProjectType) > 0)
                                 <div id="budgetByProjectTypeChart" style="min-height: 300px;"></div>
                             @else
                                 <div class="text-center py-4 text-muted">
-                                    <i data-feather="pie-chart" style="width: 32px; height: 32px; opacity: 0.3;"></i>
-                                    <p class="mt-2 mb-0">No project type data available</p>
+                                    <p class="mb-0">No project type data available</p>
                                 </div>
                             @endif
                         </div>
@@ -139,10 +123,7 @@
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-header">
-                            <h6 class="mb-0">
-                                <i data-feather="bar-chart-2" class="me-2" style="width: 16px; height: 16px;"></i>
-                                Budget vs Expenses by Project Type ({{ $context === 'coordinator_hierarchy' ? 'Coordinator Hierarchy' : ($context === 'direct_team' ? 'Direct Team' : 'Combined') }})
-                            </h6>
+                            <h6 class="mb-0">Budget vs Expenses by Project Type ({{ $context === 'coordinator_hierarchy' ? 'Coordinator Hierarchy' : ($context === 'direct_team' ? 'Direct Team' : 'Combined') }})</h6>
                         </div>
                         <div class="card-body">
                             <div id="budgetVsExpensesByProjectTypeChart" style="min-height: 350px;"></div>
@@ -157,18 +138,14 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header">
-                        <h6 class="mb-0">
-                            <i data-feather="layers" class="me-2" style="width: 16px; height: 16px;"></i>
-                            Budget Breakdown by {{ $locationLabel }} ({{ $context === 'coordinator_hierarchy' ? 'Coordinator Hierarchy' : ($context === 'direct_team' ? 'Direct Team' : 'Combined') }})
-                        </h6>
+                            <h6 class="mb-0">Budget Breakdown by {{ $locationLabel }} ({{ $context === 'coordinator_hierarchy' ? 'Coordinator Hierarchy' : ($context === 'direct_team' ? 'Direct Team' : 'Combined') }})</h6>
                     </div>
                     <div class="card-body">
                         @if($showLocationChart)
                             <div id="budgetByLocationChart" style="min-height: 350px;"></div>
                         @else
                             <div class="text-center py-4 text-muted">
-                                <i data-feather="layers" style="width: 32px; height: 32px; opacity: 0.3;"></i>
-                                <p class="mt-2 mb-0">No {{ strtolower($locationLabel) }} data available</p>
+                                <p class="mb-0">No {{ strtolower($locationLabel) }} data available</p>
                             </div>
                         @endif
                     </div>
@@ -181,10 +158,7 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">
-                            <i data-feather="trending-up" class="me-2" style="width: 16px; height: 16px;"></i>
-                            Expense Trends (Last 6 Months)
-                        </h6>
+                            <h6 class="mb-0">Expense Trends (Last 6 Months)</h6>
                         @if(!empty($expenseTrendIndicators))
                             @php
                                 $expenseTrend = $expenseTrendIndicators;
@@ -193,7 +167,6 @@
                                 $trendSign = $expenseTrend['change'] > 0 ? '+' : '';
                             @endphp
                             <small class="{{ $trendColor }}">
-                                <i data-feather="{{ $trendIcon }}" style="width: 14px; height: 14px;"></i>
                                 {{ $trendSign }}₹{{ number_format(abs($expenseTrend['change']), 2) }}
                                 ({{ $trendSign }}{{ number_format($expenseTrend['change_percent'], 1) }}%)
                             </small>
@@ -204,8 +177,7 @@
                             <div id="expenseTrendsChart" style="min-height: 350px;"></div>
                         @else
                             <div class="text-center py-4 text-muted">
-                                <i data-feather="trending-up" style="width: 32px; height: 32px; opacity: 0.3;"></i>
-                                <p class="mt-2 mb-0">No expense trend data available</p>
+                                <p class="mb-0">No expense trend data available</p>
                             </div>
                         @endif
                     </div>

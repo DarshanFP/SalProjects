@@ -1,14 +1,9 @@
 {{-- Project Budgets Overview Widget - Dark Theme Compatible --}}
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center position-relative">
-        <h5 class="mb-0">
-            <i data-feather="dollar-sign" class="me-2"></i>
-            Project Budgets Overview
-        </h5>
+        <h5 class="mb-0">Project Budgets Overview</h5>
         <div class="d-flex align-items-center gap-2">
-            <div class="widget-drag-handle ms-2">
-                <i data-feather="move" style="width: 16px; height: 16px;" class="text-muted"></i>
-            </div>
+            <div class="widget-drag-handle ms-2"></div>
         </div>
     </div>
     <div class="card-body">
@@ -30,14 +25,8 @@
                     </select>
                 </div>
                 <div class="col-md-4 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary me-2">
-                        <i data-feather="filter" style="width: 14px; height: 14px;"></i>
-                        Apply Filters
-                    </button>
-                    <a href="{{ route('executor.dashboard') }}" class="btn btn-secondary">
-                        <i data-feather="refresh-cw" style="width: 14px; height: 14px;"></i>
-                        Reset
-                    </a>
+                    <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+                    <a href="{{ route('executor.dashboard') }}" class="btn btn-secondary">Reset</a>
                 </div>
             </form>
         </div>
@@ -48,63 +37,35 @@
                 <div class="col-md-3">
                     <div class="card bg-primary bg-opacity-25 border-primary h-100">
                         <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <small class="text-muted d-block">Total Budget</small>
-                                    <h4 class="mb-0 text-white">{{ format_indian_currency($budgetSummaries['total']['total_budget'], 2) }}</h4>
-                                </div>
-                                <div class="text-primary">
-                                    <i data-feather="dollar-sign" style="width: 32px; height: 32px;"></i>
-                                </div>
-                            </div>
+                            <small class="text-muted d-block">Total Budget</small>
+                            <h4 class="mb-0 text-white">{{ format_indian_currency($budgetSummaries['total']['total_budget'], 2) }}</h4>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card bg-success bg-opacity-25 border-success h-100">
                         <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <small class="text-muted d-block">Approved Expenses</small>
-                                    <h4 class="mb-0 text-white">{{ format_indian_currency($budgetSummaries['total']['approved_expenses'] ?? 0, 2) }}</h4>
-                                    <small class="text-muted">Coordinator approved</small>
-                                </div>
-                                <div class="text-success">
-                                    <i data-feather="check-circle" style="width: 32px; height: 32px;"></i>
-                                </div>
-                            </div>
+                            <small class="text-muted d-block">Approved Expenses</small>
+                            <h4 class="mb-0 text-white">{{ format_indian_currency($budgetSummaries['total']['approved_expenses'] ?? 0, 2) }}</h4>
+                            <small class="text-muted">Coordinator approved</small>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card bg-warning bg-opacity-25 border-warning h-100">
                         <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <small class="text-muted d-block">Unapproved Expenses</small>
-                                    <h4 class="mb-0 text-white">{{ format_indian_currency($budgetSummaries['total']['unapproved_expenses'] ?? 0, 2) }}</h4>
-                                    <small class="text-muted">Pending approval</small>
-                                </div>
-                                <div class="text-warning">
-                                    <i data-feather="clock" style="width: 32px; height: 32px;"></i>
-                                </div>
-                            </div>
+                            <small class="text-muted d-block">Unapproved Expenses</small>
+                            <h4 class="mb-0 text-white">{{ format_indian_currency($budgetSummaries['total']['unapproved_expenses'] ?? 0, 2) }}</h4>
+                            <small class="text-muted">Pending approval</small>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card bg-info bg-opacity-25 border-info h-100">
                         <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <small class="text-muted d-block">Total Remaining</small>
-                                    <h4 class="mb-0 text-white">{{ format_indian_currency($budgetSummaries['total']['total_remaining'], 2) }}</h4>
-                                    <small class="text-muted">Based on approved expenses</small>
-                                </div>
-                                <div class="text-info">
-                                    <i data-feather="trending-up" style="width: 32px; height: 32px;"></i>
-                                </div>
-                            </div>
+                            <small class="text-muted d-block">Total Remaining</small>
+                            <h4 class="mb-0 text-white">{{ format_indian_currency($budgetSummaries['total']['total_remaining'], 2) }}</h4>
+                            <small class="text-muted">Based on approved expenses</small>
                         </div>
                     </div>
                 </div>
@@ -128,23 +89,11 @@
             @endphp
             <div class="mt-3">
                 <div class="d-flex justify-content-between align-items-center mb-2">
+                    <small class="text-muted">Budget Utilization (Based on Approved Expenses)</small>
                     <small class="text-muted">
-                        <i data-feather="trending-up" style="width: 14px; height: 14px;" class="me-1"></i>
-                        Budget Utilization (Based on Approved Expenses)
-                    </small>
-                    <small class="text-muted">
-                        <span class="text-success">
-                            <i data-feather="check-circle" style="width: 12px; height: 12px;" class="me-1"></i>
-                            Approved: {{ format_indian_percentage($approvedPercent, 1) }}
-                        </span> |
-                        <span class="text-warning">
-                            <i data-feather="clock" style="width: 12px; height: 12px;" class="me-1"></i>
-                            Pending: {{ format_indian_percentage($unapprovedPercent, 1) }}
-                        </span> |
-                        <span class="text-info">
-                            <i data-feather="trending-up" style="width: 12px; height: 12px;" class="me-1"></i>
-                            Remaining: {{ format_indian_percentage($remainingPercent, 1) }}
-                        </span>
+                        <span class="text-success">Approved: {{ format_indian_percentage($approvedPercent, 1) }}</span> |
+                        <span class="text-warning">Pending: {{ format_indian_percentage($unapprovedPercent, 1) }}</span> |
+                        <span class="text-info">Remaining: {{ format_indian_percentage($remainingPercent, 1) }}</span>
                     </small>
                 </div>
                 {{-- Main Progress Bar: Approved vs Remaining (unapproved shown separately) --}}
@@ -182,7 +131,6 @@
                 @if($unapprovedPercent > 0)
                     <div class="alert alert-warning alert-dismissible fade show mb-0" role="alert">
                         <div class="d-flex align-items-center">
-                            <i data-feather="clock" style="width: 16px; height: 16px;" class="me-2"></i>
                             <div class="flex-grow-1">
                                 <strong>Unapproved Expenses:</strong> {{ format_indian_currency($unapprovedExpenses, 2) }}
                                 ({{ format_indian_percentage($unapprovedPercent, 1) }} of total budget) -
@@ -192,7 +140,6 @@
                     </div>
                 @endif
                 <small class="text-muted mt-2 d-block">
-                    <i data-feather="info" style="width: 12px; height: 12px;" class="me-1"></i>
                     <strong>Note:</strong> Remaining budget is calculated using approved expenses only. Unapproved expenses are shown above separately and do not reduce available budget until approved by coordinator.
                 </small>
             </div>
@@ -200,10 +147,7 @@
 
         <!-- By Project Type -->
         <div class="mb-4">
-            <h6 class="mb-3">
-                <i data-feather="pie-chart" class="me-1" style="width: 16px; height: 16px;"></i>
-                Budget Summary by Project Type
-            </h6>
+            <h6 class="mb-3">Budget Summary by Project Type</h6>
             <div class="table-responsive">
                 <table class="table table-bordered table-striped table-hover">
                     <thead class="table-dark">

@@ -20,8 +20,7 @@
 {{-- Pending Approvals Widget (Projects & Reports) --}}
 <div class="card mb-4 widget-card" data-widget-id="pending-approvals">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="clock" class="me-2"></i>Pending Approvals
+        <h5 class="mb-0">Pending Approvals
             @if($totalPendingCount > 0)
                 <span class="badge bg-danger ms-2">{{ $totalPendingCount }}</span>
             @endif
@@ -29,16 +28,13 @@
         <div>
             <a href="{{ route('coordinator.report.list', ['status' => 'forwarded_to_coordinator']) }}" class="btn btn-sm btn-outline-primary me-2">View All Reports</a>
             <a href="{{ route('coordinator.projects.list', ['status' => 'forwarded_to_coordinator']) }}" class="btn btn-sm btn-outline-primary me-2">View All Projects</a>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="pending-approvals" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="pending-approvals" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body widget-content">
         @if($totalPendingCount == 0)
             <div class="text-center py-4">
-                <i data-feather="check-circle" class="text-success" style="width: 48px; height: 48px;"></i>
-                <p class="mt-3 text-muted">No pending approvals</p>
+                <p class="text-muted">No pending approvals</p>
             </div>
         @else
             {{-- Summary Cards with Fixed Height --}}
@@ -90,7 +86,7 @@
                             data-bs-target="#projects-pending"
                             type="button"
                             role="tab">
-                        <i data-feather="folder" style="width: 16px; height: 16px;"></i> Projects
+Projects
                         @if($pendingProjectsCount > 0)
                             <span class="badge bg-danger ms-2">{{ $pendingProjectsCount }}</span>
                         @endif
@@ -103,7 +99,7 @@
                             data-bs-target="#reports-pending"
                             type="button"
                             role="tab">
-                        <i data-feather="file-text" style="width: 16px; height: 16px;"></i> Reports
+Reports
                         @if($pendingReportsCount > 0)
                             <span class="badge bg-danger ms-2">{{ $pendingReportsCount }}</span>
                         @endif
@@ -116,8 +112,7 @@
                 <div class="tab-pane fade show active" id="projects-pending" role="tabpanel">
                     @if($pendingProjects->isEmpty())
                         <div class="text-center py-4">
-                            <i data-feather="folder" class="text-muted" style="width: 48px; height: 48px;"></i>
-                            <p class="mt-3 text-muted">No pending projects</p>
+                            <p class="text-muted">No pending projects</p>
                         </div>
                     @else
                         <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
@@ -211,8 +206,7 @@
                 <div class="tab-pane fade" id="reports-pending" role="tabpanel">
                     @if($pendingReports->isEmpty())
                         <div class="text-center py-4">
-                            <i data-feather="file-text" class="text-muted" style="width: 48px; height: 48px;"></i>
-                            <p class="mt-3 text-muted">No pending reports</p>
+                            <p class="text-muted">No pending reports</p>
                         </div>
                     @else
                         <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">

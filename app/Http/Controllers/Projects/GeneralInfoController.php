@@ -30,7 +30,7 @@ class GeneralInfoController extends Controller
             'executor_name' => 'nullable|string|max:255',
             'executor_mobile' => 'nullable|string|max:255',
             'executor_email' => 'nullable|string|max:255',
-            'full_address' => 'nullable|string|max:255',
+            'gi_full_address' => 'nullable|string|max:255',
             'overall_project_period' => 'nullable|integer',
             'current_phase' => 'nullable|integer',
             'commencement_month' => 'nullable|integer',
@@ -74,6 +74,12 @@ class GeneralInfoController extends Controller
         if (isset($validated['predecessor_project'])) {
             $validated['predecessor_project_id'] = $validated['predecessor_project'] ?: null;
             unset($validated['predecessor_project']);
+        }
+
+        // Phase 2.4: Map gi_full_address (form field) to full_address (database column)
+        if (array_key_exists('gi_full_address', $validated)) {
+            $validated['full_address'] = $validated['gi_full_address'];
+            unset($validated['gi_full_address']);
         }
 
         // Log only non-sensitive data
@@ -192,6 +198,12 @@ class GeneralInfoController extends Controller
     if (isset($validated['predecessor_project'])) {
         $validated['predecessor_project_id'] = $validated['predecessor_project'] ?: null;
         unset($validated['predecessor_project']);
+    }
+
+    // Phase 2.4: Map gi_full_address (form field) to full_address (database column)
+    if (array_key_exists('gi_full_address', $validated)) {
+        $validated['full_address'] = $validated['gi_full_address'];
+        unset($validated['gi_full_address']);
     }
 
     $project->update($validated);

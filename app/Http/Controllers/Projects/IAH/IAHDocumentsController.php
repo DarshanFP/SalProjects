@@ -3,52 +3,76 @@
 namespace App\Http\Controllers\Projects\IAH;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IAH\ProjectIAHDocuments;
 use App\Models\OldProjects\Project;
+use App\Services\Attachment\AttachmentContext;
+use App\Services\ProjectAttachmentHandler;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use App\Http\Requests\Projects\IAH\StoreIAHDocumentsRequest;
-use App\Http\Requests\Projects\IAH\UpdateIAHDocumentsRequest;
 
 class IAHDocumentsController extends Controller
 {
+    private const IAH_FIELDS = [
+        'aadhar_copy',
+        'request_letter',
+        'medical_reports',
+        'other_docs',
+    ];
+
+    /** @return array<string, array> */
+    private static function iahFieldConfig(): array
+    {
+        return array_fill_keys(self::IAH_FIELDS, []);
+    }
+
     /**
      * STORE: handle initial file uploads for IAH Documents.
      */
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
         Log::info('IAHDocumentsController@store - Start', [
             'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
         try {
-
-            // Ensure project exists
             if (!Project::where('project_id', $projectId)->exists()) {
                 return response()->json(['error' => 'Project not found.'], 404);
             }
 
-            // Model's static handleDocuments(...) does the actual file + DB work
-            $documents = ProjectIAHDocuments::handleDocuments($request, $projectId);
+            $result = ProjectAttachmentHandler::handle(
+                $request,
+                (string) $projectId,
+                AttachmentContext::forIAH(),
+                self::iahFieldConfig()
+            );
+
+            if (!$result->success) {
+                DB::rollBack();
+                Log::warning('IAH documents validation failed', [
+                    'project_id' => $projectId,
+                    'errors' => $result->errorsByField,
+                ]);
+                return response()->json([
+                    'error' => 'Failed to store IAH documents.',
+                    'errors' => $result->errorsByField,
+                ], 422);
+            }
 
             DB::commit();
             Log::info('IAHDocumentsController@store - Success', [
                 'project_id' => $projectId,
-                'doc_id' => $documents->IAH_doc_id ?? null,
+                'doc_id' => $result->attachmentRecord->IAH_doc_id ?? null,
             ]);
 
             return response()->json([
                 'message' => 'IAH documents stored successfully.',
-                'documents' => $documents
+                'documents' => $result->attachmentRecord,
             ], 200);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('IAHDocumentsController@store - Error', [
                 'project_id' => $projectId,
@@ -129,31 +153,43 @@ class IAHDocumentsController extends Controller
      */
     public function update(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
         Log::info('IAHDocumentsController@update - Start', [
             'project_id' => $projectId
         ]);
 
         DB::beginTransaction();
         try {
+            $result = ProjectAttachmentHandler::handle(
+                $request,
+                (string) $projectId,
+                AttachmentContext::forIAH(),
+                self::iahFieldConfig()
+            );
 
-            $documents = ProjectIAHDocuments::handleDocuments($request, $projectId);
+            if (!$result->success) {
+                DB::rollBack();
+                Log::warning('IAH documents validation failed on update', [
+                    'project_id' => $projectId,
+                    'errors' => $result->errorsByField,
+                ]);
+                return response()->json([
+                    'error' => 'Failed to update IAH documents.',
+                    'errors' => $result->errorsByField,
+                ], 422);
+            }
 
             DB::commit();
             Log::info('IAHDocumentsController@update - Success', [
                 'project_id' => $projectId,
-                'doc_id' => $documents->IAH_doc_id ?? null
+                'doc_id' => $result->attachmentRecord->IAH_doc_id ?? null
             ]);
 
-            // If you prefer returning JSON:
             return response()->json([
                 'message' => 'IAH documents updated successfully.',
-                'documents' => $documents
+                'documents' => $result->attachmentRecord,
             ], 200);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('IAHDocumentsController@update - Error', [
                 'project_id' => $projectId,

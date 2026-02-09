@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects\IIES;
 
 use App\Http\Controllers\Controller;
+use App\Services\FormDataExtractor;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IIES\ProjectIIESEducationBackground;
 use Illuminate\Support\Facades\DB;
@@ -15,36 +16,25 @@ class EducationBackgroundController extends Controller
     // Store or update education background
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
-        $validated = $request->all();
-        
-        DB::beginTransaction();
+        $fillable = array_diff(
+            (new ProjectIIESEducationBackground())->getFillable(),
+            ['project_id', 'IIES_education_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
         try {
             Log::info('Storing IIES Educational Background', ['project_id' => $projectId]);
 
-            // Create or update the education background
-            ProjectIIESEducationBackground::updateOrCreate(
-                ['project_id' => $projectId],
-                [
-                    'prev_education' => $validated['prev_education'] ?? null,
-                    'prev_institution' => $validated['prev_institution'] ?? null,
-                    'prev_insti_address' => $validated['prev_insti_address'] ?? null,
-                    'prev_marks' => $validated['prev_marks'] ?? null,
-                    'current_studies' => $validated['current_studies'] ?? null,
-                    'curr_institution' => $validated['curr_institution'] ?? null,
-                    'curr_insti_address' => $validated['curr_insti_address'] ?? null,
-                    'aspiration' => $validated['aspiration'] ?? null,
-                    'long_term_effect' => $validated['long_term_effect'] ?? null,
-                ]
-            );
+            $educationBackground = ProjectIIESEducationBackground::where('project_id', $projectId)->first()
+                ?: new ProjectIIESEducationBackground();
+            $educationBackground->project_id = $projectId;
+            $educationBackground->fill($data);
+            $educationBackground->save();
 
-            DB::commit();
-            Log::info('IIES Educational Background saved successfully', ['project_id' => $projectId]);
             return response()->json(['message' => 'Educational Background saved successfully.'], 200);
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Error saving IIES Educational Background', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to save Educational Background.'], 500);
+            throw $e;
         }
     }
 
@@ -114,42 +104,10 @@ public function edit($projectId)
 }
 
 
-/**
- * Field names for Educational Background (matches form names and model fillable).
- */
-private function getEducationBackgroundFields(): array
-{
-    return [
-        'prev_education', 'prev_institution', 'prev_insti_address', 'prev_marks',
-        'current_studies', 'curr_institution', 'curr_insti_address',
-        'aspiration', 'long_term_effect',
-    ];
-}
-
 // Update education background for a project. Creates record if missing (same as store).
 public function update(FormRequest $request, $projectId)
 {
-    DB::beginTransaction();
-
-    try {
-        Log::info('Updating IIES Educational Background', ['project_id' => $projectId]);
-
-        $educationBackground = ProjectIIESEducationBackground::firstOrNew(['project_id' => $projectId]);
-        $educationBackground->project_id = $projectId;
-        foreach ($this->getEducationBackgroundFields() as $field) {
-            $educationBackground->$field = $request->input($field);
-        }
-        $educationBackground->save();
-
-        DB::commit();
-        Log::info('IIES Educational Background updated successfully', ['project_id' => $projectId]);
-
-        return response()->json(['message' => 'Educational Background updated successfully.'], 200);
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error updating IIES Educational Background', ['error' => $e->getMessage()]);
-        return response()->json(['error' => 'Failed to update Educational Background.'], 500);
-    }
+    return $this->store($request, $projectId);
 }
 
 

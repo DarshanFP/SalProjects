@@ -1,17 +1,12 @@
 {{-- Report Overview Widget - Dark Theme Compatible --}}
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="file-text" class="me-2"></i>
-            Report Overview
-        </h5>
+        <h5 class="mb-0">Report Overview</h5>
         <div class="d-flex align-items-center gap-2">
             <a href="{{ route('executor.report.list') }}" class="text-info small">
                 View All →
             </a>
-            <div class="widget-drag-handle ms-2">
-                <i data-feather="move" style="width: 16px; height: 16px;" class="text-muted"></i>
-            </div>
+            <div class="widget-drag-handle ms-2"></div>
         </div>
     </div>
     <div class="card-body">
@@ -133,26 +128,18 @@
                                                       class="d-inline"
                                                       onsubmit="return confirm('Are you sure you want to submit this report?')">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-primary">
-                                                        <i data-feather="send" style="width: 12px; height: 12px;"></i>
-                                                    </button>
+                                                    <button type="submit" class="btn btn-sm btn-primary" title="Submit">Submit</button>
                                                 </form>
                                             @elseif(in_array($report->status, [App\Models\Reports\Monthly\DPReport::STATUS_DRAFT, App\Models\Reports\Monthly\DPReport::STATUS_REVERTED_BY_PROVINCIAL, App\Models\Reports\Monthly\DPReport::STATUS_REVERTED_BY_COORDINATOR]))
                                                 <a href="{{ route('monthly.report.edit', $report->report_id) }}"
-                                                   class="btn btn-sm btn-warning">
-                                                    <i data-feather="edit" style="width: 12px; height: 12px;"></i>
-                                                </a>
+                                                   class="btn btn-sm btn-warning" title="Edit">Edit</a>
                                             @endif
                                             @if(\Route::has('monthly.report.show'))
                                                 <a href="{{ route('monthly.report.show', $report->report_id) }}"
-                                                   class="btn btn-sm btn-info">
-                                                    <i data-feather="eye" style="width: 12px; height: 12px;"></i>
-                                                </a>
+                                                   class="btn btn-sm btn-info" title="View">View</a>
                                             @else
                                                 <a href="{{ route('monthly.report.edit', $report->report_id) }}"
-                                                   class="btn btn-sm btn-info">
-                                                    <i data-feather="eye" style="width: 12px; height: 12px;"></i>
-                                                </a>
+                                                   class="btn btn-sm btn-info" title="View">View</a>
                                             @endif
                                         </div>
                                     </td>
@@ -163,8 +150,7 @@
                 </div>
             @else
                 <div class="text-center py-3">
-                    <i data-feather="inbox" class="text-muted" style="width: 32px; height: 32px;"></i>
-                    <p class="text-muted mt-2 mb-0">No reports yet</p>
+                    <p class="text-muted mb-0">No reports yet</p>
                 </div>
             @endif
         </div>
@@ -174,14 +160,12 @@
             <div class="row g-2">
                 <div class="col-6">
                     <a href="{{ route('executor.report.pending') }}" class="btn btn-outline-warning btn-sm w-100">
-                        <i data-feather="clock" style="width: 14px; height: 14px;"></i>
-                        Pending Reports
+Pending Reports
                     </a>
                 </div>
                 <div class="col-6">
                     <a href="{{ route('executor.report.approved') }}" class="btn btn-outline-success btn-sm w-100">
-                        <i data-feather="check-circle" style="width: 14px; height: 14px;"></i>
-                        Approved Reports
+Approved Reports
                     </a>
                 </div>
             </div>

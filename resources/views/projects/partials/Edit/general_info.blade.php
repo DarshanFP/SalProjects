@@ -213,11 +213,11 @@
             </div>
         </div>
 
-        {{-- FULL ADDRESS --}}
+        {{-- FULL ADDRESS (Phase 2.4: gi_full_address for GeneralInfo ownership) --}}
         <div class="mb-3">
-            <label for="full_address" class="form-label">Full Address</label>
-            <textarea name="full_address" id="full_address" class="form-control select-input sustainability-textarea" rows="2"
-                     >{{ old('full_address', $project->full_address ?? $user->address) }}</textarea>
+            <label for="gi_full_address" class="form-label">Full Address</label>
+            <textarea name="gi_full_address" id="gi_full_address" class="form-control select-input sustainability-textarea" rows="2"
+                     >{{ old('gi_full_address', $project->full_address ?? $user->address) }}</textarea>
         </div>
 
         {{-- OVERALL PROJECT PERIOD --}}

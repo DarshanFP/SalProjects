@@ -35,8 +35,8 @@ class BudgetController extends Controller
             return response()->json(['error' => self::BUDGET_LOCKED_MESSAGE], 403);
         }
 
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
+        $fillable = ['budget_desc', 'cost', 'beneficiary_contribution', 'amount_requested'];
+        $data = $request->only($fillable);
 
         DB::beginTransaction();
         try {
@@ -45,16 +45,21 @@ class BudgetController extends Controller
             // Delete existing budget rows and insert updated data
             ProjectILPBudget::where('project_id', $projectId)->delete();
 
-            $budgetDescs = $validated['budget_desc'] ?? [];
-            $costs = $validated['cost'] ?? [];
+            // Scalar-to-array normalization; per-value scalar coercion
+            $budgetDescs = is_array($data['budget_desc'] ?? null) ? ($data['budget_desc'] ?? []) : (isset($data['budget_desc']) && $data['budget_desc'] !== '' ? [$data['budget_desc']] : []);
+            $costs       = is_array($data['cost'] ?? null) ? ($data['cost'] ?? []) : (isset($data['cost']) && $data['cost'] !== '' ? [$data['cost']] : []);
+            $beneficiaryContribution = is_array($data['beneficiary_contribution'] ?? null) ? (reset($data['beneficiary_contribution']) ?? null) : ($data['beneficiary_contribution'] ?? null);
+            $amountRequested         = is_array($data['amount_requested'] ?? null) ? (reset($data['amount_requested']) ?? null) : ($data['amount_requested'] ?? null);
 
             foreach ($budgetDescs as $index => $description) {
+                $budgetDesc = is_array($description ?? null) ? (reset($description) ?? '') : ($description ?? '');
+                $cost       = is_array($costs[$index] ?? null) ? (reset($costs[$index]) ?? null) : ($costs[$index] ?? null);
                 ProjectILPBudget::create([
                     'project_id' => $projectId,
-                    'budget_desc' => $description,
-                    'cost' => $costs[$index] ?? null,
-                    'beneficiary_contribution' => $validated['beneficiary_contribution'] ?? null,
-                    'amount_requested' => $validated['amount_requested'] ?? null,
+                    'budget_desc' => $budgetDesc,
+                    'cost' => $cost,
+                    'beneficiary_contribution' => $beneficiaryContribution,
+                    'amount_requested' => $amountRequested,
                 ]);
             }
 
@@ -151,45 +156,7 @@ class BudgetController extends Controller
             return response()->json(['error' => self::BUDGET_LOCKED_MESSAGE], 403);
         }
 
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-
-        DB::beginTransaction();
-        try {
-            Log::info('Updating ILP Budget', ['project_id' => $projectId]);
-
-            // Delete existing budget records for the project
-            ProjectILPBudget::where('project_id', $projectId)->delete();
-
-            // Insert new budget data from validated data
-            $budgetDescs = $validated['budget_desc'] ?? [];
-            $costs = $validated['cost'] ?? [];
-
-            foreach ($budgetDescs as $index => $description) {
-                ProjectILPBudget::create([
-                    'project_id' => $projectId,
-                    'budget_desc' => $description,
-                    'cost' => $costs[$index] ?? null,
-                    'beneficiary_contribution' => $validated['beneficiary_contribution'] ?? null,
-                    'amount_requested' => $validated['amount_requested'] ?? null,
-                ]);
-            }
-
-            DB::commit();
-
-            // Phase 2: Sync project-level budget fields for pre-approval projects (feature-flagged)
-            $project = Project::where('project_id', $projectId)->first();
-            if ($project) {
-                app(BudgetSyncService::class)->syncFromTypeSave($project);
-            }
-
-            Log::info('ILP Budget updated successfully', ['project_id' => $projectId]);
-            return response()->json(['message' => 'Budget updated successfully.'], 200);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error updating ILP Budget', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to update budget.'], 500);
-        }
+        return $this->store($request, $projectId);
     }
 
 

@@ -24,11 +24,17 @@ use App\Services\ProjectStatusService;
 use App\Services\ReportStatusService;
 use App\Services\ProjectQueryService;
 use App\Services\Budget\BudgetSyncService;
+use App\Services\Budget\DerivedCalculationService;
 use Carbon\Carbon;
 use Exception;
 
 class GeneralController extends Controller
 {
+    public function __construct(
+        private readonly DerivedCalculationService $calculationService
+    ) {
+    }
+
     /**
      * General Dashboard - Combined view showing coordinator hierarchy + direct team
      *
@@ -2206,19 +2212,21 @@ class GeneralController extends Controller
                 });
         }
 
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $calc = app(\App\Services\Budget\DerivedCalculationService::class);
         // Calculate budget information for each project (optimized)
-        $allProjects = $projectsFromCoordinators->map(function($project) use ($approvedExpensesByProject, $unapprovedExpensesCoordinator) {
+        $allProjects = $projectsFromCoordinators->map(function($project) use ($approvedExpensesByProject, $unapprovedExpensesCoordinator, $resolver, $calc) {
             $project->source = 'coordinator_hierarchy';
 
-            // Phase 4: Use only canonical project fields (no recalculation from type tables)
-            $projectBudget = (float) ($project->amount_sanctioned ?? $project->overall_project_budget ?? 0);
+            $financials = $resolver->resolve($project);
+            $projectBudget = (float) ($financials['opening_balance'] ?? 0);
 
             // Get expenses from pre-fetched data (avoid N+1 queries)
             $totalExpenses = (float)($approvedExpensesByProject[$project->project_id] ?? 0);
             $unapprovedExpenses = (float)($unapprovedExpensesCoordinator[$project->project_id] ?? 0);
 
-            $remainingBudget = $projectBudget - $totalExpenses;
-            $budgetUtilization = $projectBudget > 0 ? ($totalExpenses / $projectBudget) * 100 : 0;
+            $remainingBudget = $calc->calculateRemainingBalance($projectBudget, $totalExpenses);
+            $budgetUtilization = $calc->calculateUtilization($totalExpenses, $projectBudget);
 
             $project->calculated_budget = $projectBudget;
             $project->calculated_expenses = $totalExpenses;
@@ -2237,18 +2245,18 @@ class GeneralController extends Controller
             }
 
             return $project;
-        })->merge($projectsFromDirectTeam->map(function($project) use ($approvedExpensesByProject, $unapprovedExpensesDirectTeam) {
+        })->merge($projectsFromDirectTeam->map(function($project) use ($approvedExpensesByProject, $unapprovedExpensesDirectTeam, $resolver, $calc) {
             $project->source = 'direct_team';
 
-            // Phase 4: Use only canonical project fields (no recalculation from type tables)
-            $projectBudget = (float) ($project->amount_sanctioned ?? $project->overall_project_budget ?? 0);
+            $financials = $resolver->resolve($project);
+            $projectBudget = (float) ($financials['opening_balance'] ?? 0);
 
             // Get expenses from pre-fetched data (avoid N+1 queries)
             $totalExpenses = (float)($approvedExpensesByProject[$project->project_id] ?? 0);
             $unapprovedExpenses = (float)($unapprovedExpensesDirectTeam[$project->project_id] ?? 0);
 
-            $remainingBudget = $projectBudget - $totalExpenses;
-            $budgetUtilization = $projectBudget > 0 ? ($totalExpenses / $projectBudget) * 100 : 0;
+            $remainingBudget = $calc->calculateRemainingBalance($projectBudget, $totalExpenses);
+            $budgetUtilization = $calc->calculateUtilization($totalExpenses, $projectBudget);
 
             $project->calculated_budget = $projectBudget;
             $project->calculated_expenses = $totalExpenses;
@@ -2532,16 +2540,14 @@ class GeneralController extends Controller
                 // Use General-specific service method
                 ProjectStatusService::approveAsCoordinator($project, $general);
 
-                // Budget validation and calculation (same as CoordinatorController)
-                $overallBudget = $project->overall_project_budget ?? 0;
-                $amountForwarded = $project->amount_forwarded ?? 0;
-                $localContribution = $project->local_contribution ?? 0;
+                // Budget validation and persistence (values from resolver)
+                $financials = app(\App\Domain\Budget\ProjectFinancialResolver::class)->resolve($project);
+                $overallBudget = (float) ($financials['overall_project_budget'] ?? 0);
+                $amountForwarded = (float) ($financials['amount_forwarded'] ?? 0);
+                $localContribution = (float) ($financials['local_contribution'] ?? 0);
                 $combinedContribution = $amountForwarded + $localContribution;
-
-                // Fallback: calculate from budget details if overall_project_budget is not set
-                if ($overallBudget == 0 && $project->budgets && $project->budgets->count() > 0) {
-                    $overallBudget = $project->budgets->sum('this_phase');
-                }
+                $amountSanctioned = (float) ($financials['amount_sanctioned'] ?? 0);
+                $openingBalance = (float) ($financials['opening_balance'] ?? 0);
 
                 // Validate: combined contribution cannot exceed overall budget
                 if ($combinedContribution > $overallBudget) {
@@ -2553,10 +2559,6 @@ class GeneralController extends Controller
                         ->with('error', 'Cannot approve project: (Amount Forwarded + Local Contribution) of Rs. ' . number_format($combinedContribution, 2) . ' exceeds Overall Project Budget (Rs. ' . number_format($overallBudget, 2) . '). Please ask the executor to correct this.')
                         ->withInput();
                 }
-
-                // Calculate amount_sanctioned and opening_balance
-                $amountSanctioned = max(0, $overallBudget - $combinedContribution);
-                $openingBalance = $amountSanctioned + $combinedContribution;
 
                 $project->amount_sanctioned = $amountSanctioned;
                 $project->opening_balance = $openingBalance;
@@ -3474,6 +3476,9 @@ class GeneralController extends Controller
         $cacheKey = "general_budget_overview_data_{$context}_{$filterHash}";
 
         return Cache::remember($cacheKey, now()->addMinutes(15), function () use ($general, $request) {
+            $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+            $calc = app(\App\Services\Budget\DerivedCalculationService::class);
+
             // Get coordinator IDs and direct team IDs
             $coordinatorIds = User::where('parent_id', $general->id)
                 ->where('role', 'coordinator')
@@ -3501,11 +3506,10 @@ class GeneralController extends Controller
             $context = $request ? ($request->get('budget_context', 'combined') ?? 'combined') : 'combined';
 
             // Helper function to calculate budget data for a set of projects
-            $calculateBudgetData = function($projects, $projectIds, $reportStatusApproved, $reportStatusUnapproved) {
-                // Calculate total budget
-                $totalBudget = $projects->sum(function($p) {
-                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
-                });
+            $calculateBudgetData = function($projects, $projectIds, $reportStatusApproved, $reportStatusUnapproved, $resolvedFinancials, $calc) {
+                $totalBudget = $projects->sum(
+                    fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0)
+                );
 
                 // Calculate approved expenses (from approved reports)
                 $approvedReportIds = DPReport::where('status', $reportStatusApproved)
@@ -3523,9 +3527,8 @@ class GeneralController extends Controller
                 $unapprovedExpenses = DPAccountDetail::whereIn('report_id', $unapprovedReportIds)
                     ->sum('total_expenses') ?? 0;
 
-                // Remaining budget (based on approved expenses only)
-                $totalRemaining = $totalBudget - $approvedExpenses;
-                $utilization = $totalBudget > 0 ? ($approvedExpenses / $totalBudget) * 100 : 0;
+                $totalRemaining = $calc->calculateRemainingBalance($totalBudget, $approvedExpenses);
+                $utilization = $calc->calculateUtilization($approvedExpenses, $totalBudget);
 
                 return [
                     'budget' => $totalBudget,
@@ -3541,13 +3544,13 @@ class GeneralController extends Controller
             };
 
             // Helper function to get breakdown by project type
-            $getBreakdownByProjectType = function($projects, $approvedReportIds, $unapprovedReportIds) {
+            $getBreakdownByProjectType = function($projects, $approvedReportIds, $unapprovedReportIds, $resolvedFinancials, $calc) {
                 $breakdown = [];
                 foreach ($projects->groupBy('project_type') as $type => $typeProjects) {
                     $typeProjectIds = $typeProjects->pluck('project_id');
-                    $typeBudget = $typeProjects->sum(function($p) {
-                        return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
-                    });
+                    $typeBudget = $typeProjects->sum(
+                        fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0)
+                    );
 
                     $typeApprovedExpenses = DPAccountDetail::whereIn('report_id', $approvedReportIds)
                         ->whereHas('report', function($q) use ($typeProjectIds) {
@@ -3561,12 +3564,15 @@ class GeneralController extends Controller
                         })
                         ->sum('total_expenses') ?? 0;
 
+                    $typeRemaining = $calc->calculateRemainingBalance($typeBudget, $typeApprovedExpenses);
+                    $typeUtilization = $calc->calculateUtilization($typeApprovedExpenses, $typeBudget);
+
                     $breakdown[$type] = [
                         'budget' => $typeBudget,
                         'approved_expenses' => $typeApprovedExpenses,
                         'unapproved_expenses' => $typeUnapprovedExpenses,
-                        'remaining' => $typeBudget - $typeApprovedExpenses,
-                        'utilization' => $typeBudget > 0 ? ($typeApprovedExpenses / $typeBudget) * 100 : 0,
+                        'remaining' => $typeRemaining,
+                        'utilization' => $typeUtilization,
                         'projects_count' => $typeProjects->count(),
                     ];
                 }
@@ -3601,12 +3607,6 @@ class GeneralController extends Controller
             }
 
             $coordinatorHierarchyProjects = $coordinatorHierarchyProjectsQuery->get();
-            $coordinatorHierarchyData = $calculateBudgetData(
-                $coordinatorHierarchyProjects,
-                $coordinatorHierarchyProjects->pluck('project_id'),
-                DPReport::STATUS_APPROVED_BY_COORDINATOR,
-                DPReport::STATUS_FORWARDED_TO_COORDINATOR
-            );
 
             // DIRECT TEAM BUDGET
             $directTeamProjectsQuery = Project::where(function($query) use ($directTeamIds) {
@@ -3632,36 +3632,61 @@ class GeneralController extends Controller
             }
 
             $directTeamProjects = $directTeamProjectsQuery->get();
+
+            // Memoize resolved financials (resolve each project exactly once)
+            $resolvedFinancials = [];
+            foreach ($coordinatorHierarchyProjects as $project) {
+                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+            }
+            foreach ($directTeamProjects as $project) {
+                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+            }
+
+            $coordinatorHierarchyData = $calculateBudgetData(
+                $coordinatorHierarchyProjects,
+                $coordinatorHierarchyProjects->pluck('project_id'),
+                DPReport::STATUS_APPROVED_BY_COORDINATOR,
+                DPReport::STATUS_FORWARDED_TO_COORDINATOR,
+                $resolvedFinancials,
+                $calc
+            );
+
             $directTeamData = $calculateBudgetData(
                 $directTeamProjects,
                 $directTeamProjects->pluck('project_id'),
                 DPReport::STATUS_APPROVED_BY_COORDINATOR, // For direct team, approved reports are also approved by coordinator
-                DPReport::STATUS_SUBMITTED_TO_PROVINCIAL
+                DPReport::STATUS_SUBMITTED_TO_PROVINCIAL,
+                $resolvedFinancials,
+                $calc
             );
 
             // COMBINED BUDGET
             $combinedProjects = $coordinatorHierarchyProjects->merge($directTeamProjects);
+            $combinedBudget = $coordinatorHierarchyData['budget'] + $directTeamData['budget'];
+            $combinedApprovedExpenses = $coordinatorHierarchyData['approved_expenses'] + $directTeamData['approved_expenses'];
             $combinedData = [
-                'budget' => $coordinatorHierarchyData['budget'] + $directTeamData['budget'],
-                'approved_expenses' => $coordinatorHierarchyData['approved_expenses'] + $directTeamData['approved_expenses'],
+                'budget' => $combinedBudget,
+                'approved_expenses' => $combinedApprovedExpenses,
                 'unapproved_expenses' => $coordinatorHierarchyData['unapproved_expenses'] + $directTeamData['unapproved_expenses'],
-                'remaining' => ($coordinatorHierarchyData['budget'] + $directTeamData['budget']) - ($coordinatorHierarchyData['approved_expenses'] + $directTeamData['approved_expenses']),
-                'utilization' => 0,
+                'remaining' => $calc->calculateRemainingBalance($combinedBudget, $combinedApprovedExpenses),
+                'utilization' => $calc->calculateUtilization($combinedApprovedExpenses, $combinedBudget),
                 'projects' => $combinedProjects,
             ];
-            $combinedBudget = $combinedData['budget'];
-            $combinedData['utilization'] = $combinedBudget > 0 ? (($combinedData['approved_expenses'] / $combinedBudget) * 100) : 0;
 
             // Get breakdowns
             $coordinatorHierarchyData['by_project_type'] = $getBreakdownByProjectType(
                 $coordinatorHierarchyProjects,
                 $coordinatorHierarchyData['approved_report_ids'],
-                $coordinatorHierarchyData['unapproved_report_ids']
+                $coordinatorHierarchyData['unapproved_report_ids'],
+                $resolvedFinancials,
+                $calc
             );
             $directTeamData['by_project_type'] = $getBreakdownByProjectType(
                 $directTeamProjects,
                 $directTeamData['approved_report_ids'],
-                $directTeamData['unapproved_report_ids']
+                $directTeamData['unapproved_report_ids'],
+                $resolvedFinancials,
+                $calc
             );
             $combinedData['by_project_type'] = [];
             foreach (array_merge(array_keys($coordinatorHierarchyData['by_project_type']), array_keys($directTeamData['by_project_type'])) as $type) {
@@ -3674,16 +3699,16 @@ class GeneralController extends Controller
                     'projects_count' => ($coordinatorHierarchyData['by_project_type'][$type]['projects_count'] ?? 0) + ($directTeamData['by_project_type'][$type]['projects_count'] ?? 0),
                 ];
                 $typeBudget = $combinedData['by_project_type'][$type]['budget'];
-                $combinedData['by_project_type'][$type]['utilization'] = $typeBudget > 0 ? (($combinedData['by_project_type'][$type]['approved_expenses'] / $typeBudget) * 100) : 0;
+                $combinedData['by_project_type'][$type]['utilization'] = $calc->calculateUtilization($combinedData['by_project_type'][$type]['approved_expenses'], $typeBudget);
             }
 
             // Budget by Province (Coordinator Hierarchy)
             $coordinatorHierarchyData['by_province'] = [];
             foreach ($coordinatorHierarchyProjects->groupBy(function($p) { return $p->user->province ?? 'Unknown'; }) as $province => $projects) {
                 $provinceProjectIds = $projects->pluck('project_id');
-                $provinceBudget = $projects->sum(function($p) {
-                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
-                });
+                $provinceBudget = $projects->sum(
+                    fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0)
+                );
                 $provinceApprovedExpenses = DPAccountDetail::whereIn('report_id', $coordinatorHierarchyData['approved_report_ids'])
                     ->whereHas('report', function($q) use ($provinceProjectIds) {
                         $q->whereIn('project_id', $provinceProjectIds);
@@ -3692,8 +3717,8 @@ class GeneralController extends Controller
                 $coordinatorHierarchyData['by_province'][$province] = [
                     'budget' => $provinceBudget,
                     'approved_expenses' => $provinceApprovedExpenses,
-                    'remaining' => $provinceBudget - $provinceApprovedExpenses,
-                    'utilization' => $provinceBudget > 0 ? ($provinceApprovedExpenses / $provinceBudget) * 100 : 0,
+                    'remaining' => $calc->calculateRemainingBalance($provinceBudget, $provinceApprovedExpenses),
+                    'utilization' => $calc->calculateUtilization($provinceApprovedExpenses, $provinceBudget),
                     'projects_count' => $projects->count(),
                 ];
             }
@@ -3703,9 +3728,9 @@ class GeneralController extends Controller
             foreach ($directTeamProjects->groupBy(function($p) { return $p->user->center ?? 'Unknown'; }) as $center => $projects) {
                 if (empty($center) || $center === 'Unknown') continue;
                 $centerProjectIds = $projects->pluck('project_id');
-                $centerBudget = $projects->sum(function($p) {
-                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
-                });
+                $centerBudget = $projects->sum(
+                    fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0)
+                );
                 $centerApprovedExpenses = DPAccountDetail::whereIn('report_id', $directTeamData['approved_report_ids'])
                     ->whereHas('report', function($q) use ($centerProjectIds) {
                         $q->whereIn('project_id', $centerProjectIds);
@@ -3714,8 +3739,8 @@ class GeneralController extends Controller
                 $directTeamData['by_center'][$center] = [
                     'budget' => $centerBudget,
                     'approved_expenses' => $centerApprovedExpenses,
-                    'remaining' => $centerBudget - $centerApprovedExpenses,
-                    'utilization' => $centerBudget > 0 ? ($centerApprovedExpenses / $centerBudget) * 100 : 0,
+                    'remaining' => $calc->calculateRemainingBalance($centerBudget, $centerApprovedExpenses),
+                    'utilization' => $calc->calculateUtilization($centerApprovedExpenses, $centerBudget),
                     'projects_count' => $projects->count(),
                 ];
             }
@@ -3731,9 +3756,9 @@ class GeneralController extends Controller
                 });
                 if ($coordinatorProjects->isEmpty()) continue;
                 $coordinatorProjectIds = $coordinatorProjects->pluck('project_id');
-                $coordinatorBudget = $coordinatorProjects->sum(function($p) {
-                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
-                });
+                $coordinatorBudget = $coordinatorProjects->sum(
+                    fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0)
+                );
                 $coordinatorApprovedExpenses = DPAccountDetail::whereIn('report_id', $coordinatorHierarchyData['approved_report_ids'])
                     ->whereHas('report', function($q) use ($coordinatorProjectIds) {
                         $q->whereIn('project_id', $coordinatorProjectIds);
@@ -3745,8 +3770,8 @@ class GeneralController extends Controller
                     'province' => $coordinator->province ?? 'Unknown',
                     'budget' => $coordinatorBudget,
                     'approved_expenses' => $coordinatorApprovedExpenses,
-                    'remaining' => $coordinatorBudget - $coordinatorApprovedExpenses,
-                    'utilization' => $coordinatorBudget > 0 ? ($coordinatorApprovedExpenses / $coordinatorBudget) * 100 : 0,
+                    'remaining' => $calc->calculateRemainingBalance($coordinatorBudget, $coordinatorApprovedExpenses),
+                    'utilization' => $calc->calculateUtilization($coordinatorApprovedExpenses, $coordinatorBudget),
                     'projects_count' => $coordinatorProjects->count(),
                 ];
             }
@@ -3877,6 +3902,9 @@ class GeneralController extends Controller
         $cacheKey = 'general_system_performance_data';
 
         return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($general) {
+            $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+            $calc = app(\App\Services\Budget\DerivedCalculationService::class);
+
             // Get coordinator IDs and direct team IDs
             $coordinatorIds = User::where('parent_id', $general->id)
                 ->where('role', 'coordinator')
@@ -3913,8 +3941,14 @@ class GeneralController extends Controller
             $directTeamReports = DPReport::whereIn('project_id', $directTeamProjectIds)
                 ->with(['user'])->get();
 
+            // Memoize resolved financials (resolve each project exactly once)
+            $resolvedFinancials = [];
+            foreach ($coordinatorHierarchyProjects->merge($directTeamProjects) as $project) {
+                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+            }
+
             // Helper function to calculate performance metrics
-            $calculateMetrics = function($projects, $reports, $projectIds) {
+            $calculateMetrics = function($projects, $reports, $projectIds, $resolvedFinancials, $calc) {
                 $totalProjects = $projects->count();
                 $totalReports = $reports->count();
 
@@ -3949,15 +3983,15 @@ class GeneralController extends Controller
                 $submissionRate = $reportsLastMonth > 0 ? (($reportsThisMonth - $reportsLastMonth) / $reportsLastMonth) * 100 : 0;
 
                 // Budget and expenses
-                $totalBudget = $approvedProjects->sum(function($p) {
-                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
-                });
+                $totalBudget = $approvedProjects->sum(
+                    fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0)
+                );
 
                 $approvedReportIds = $approvedReports->pluck('report_id');
                 $totalExpenses = DPAccountDetail::whereIn('report_id', $approvedReportIds)
                     ->sum('total_expenses') ?? 0;
 
-                $budgetUtilization = $totalBudget > 0 ? ($totalExpenses / $totalBudget) * 100 : 0;
+                $budgetUtilization = $calc->calculateUtilization($totalExpenses, $totalBudget);
 
                 // Projects by status
                 $projectsByStatus = $projects->groupBy('status')->map->count();
@@ -3986,13 +4020,17 @@ class GeneralController extends Controller
             $coordinatorHierarchyMetrics = $calculateMetrics(
                 $coordinatorHierarchyProjects,
                 $coordinatorHierarchyReports,
-                $coordinatorProjectIds
+                $coordinatorProjectIds,
+                $resolvedFinancials,
+                $calc
             );
 
             $directTeamMetrics = $calculateMetrics(
                 $directTeamProjects,
                 $directTeamReports,
-                $directTeamProjectIds
+                $directTeamProjectIds,
+                $resolvedFinancials,
+                $calc
             );
 
             // Combined metrics
@@ -4002,7 +4040,9 @@ class GeneralController extends Controller
             $combinedMetrics = $calculateMetrics(
                 $combinedProjects,
                 $combinedReports,
-                $combinedProjectIds
+                $combinedProjectIds,
+                $resolvedFinancials,
+                $calc
             );
 
             return [
@@ -4282,6 +4322,9 @@ class GeneralController extends Controller
         $cacheKey = 'general_context_comparison_data';
 
         return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($general) {
+            $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+            $calc = app(\App\Services\Budget\DerivedCalculationService::class);
+
             // Get coordinator IDs and direct team IDs
             $coordinatorIds = User::where('parent_id', $general->id)
                 ->where('role', 'coordinator')
@@ -4312,16 +4355,25 @@ class GeneralController extends Controller
             $directTeamProjects = Project::whereIn('project_id', $directTeamProjectIds)->get();
             $directTeamReports = DPReport::whereIn('project_id', $directTeamProjectIds)->get();
 
-            // Calculate comparison metrics
-            $coordinatorHierarchyBudget = $coordinatorHierarchyProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
-                ->sum(function($p) {
-                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
-                });
+            // Memoize resolved financials (resolve each project exactly once)
+            $resolvedFinancials = [];
+            foreach ($coordinatorHierarchyProjects as $project) {
+                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+            }
+            foreach ($directTeamProjects as $project) {
+                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+            }
 
-            $directTeamBudget = $directTeamProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
-                ->sum(function($p) {
-                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
-                });
+            $coordinatorApprovedProjects = $coordinatorHierarchyProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+            $directApprovedProjects = $directTeamProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+
+            $coordinatorHierarchyBudget = $coordinatorApprovedProjects->sum(
+                fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0)
+            );
+
+            $directTeamBudget = $directApprovedProjects->sum(
+                fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0)
+            );
 
             $coordinatorHierarchyApprovedReportIds = $coordinatorHierarchyReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->pluck('report_id');
             $coordinatorHierarchyExpenses = DPAccountDetail::whereIn('report_id', $coordinatorHierarchyApprovedReportIds)
@@ -4371,7 +4423,7 @@ class GeneralController extends Controller
                     'reports_count' => $coordinatorHierarchyReports->count(),
                     'budget' => $coordinatorHierarchyBudget,
                     'expenses' => $coordinatorHierarchyExpenses,
-                    'budget_utilization' => $coordinatorHierarchyBudget > 0 ? ($coordinatorHierarchyExpenses / $coordinatorHierarchyBudget) * 100 : 0,
+                    'budget_utilization' => $calc->calculateUtilization($coordinatorHierarchyExpenses, $coordinatorHierarchyBudget),
                     'approval_rate' => round($coordinatorHierarchyApprovalRate, 2),
                     'avg_processing_time' => $coordinatorAvgProcessingTime,
                     'project_completion_rate' => round($coordinatorProjectCompletionRate, 2),
@@ -4381,7 +4433,7 @@ class GeneralController extends Controller
                     'reports_count' => $directTeamReports->count(),
                     'budget' => $directTeamBudget,
                     'expenses' => $directTeamExpenses,
-                    'budget_utilization' => $directTeamBudget > 0 ? ($directTeamExpenses / $directTeamBudget) * 100 : 0,
+                    'budget_utilization' => $calc->calculateUtilization($directTeamExpenses, $directTeamBudget),
                     'approval_rate' => round($directTeamApprovalRate, 2),
                     'avg_processing_time' => $directTeamAvgProcessingTime,
                     'project_completion_rate' => round($directTeamProjectCompletionRate, 2),
@@ -4538,6 +4590,9 @@ class GeneralController extends Controller
         $cacheKey = 'general_system_health_data';
 
         return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($general) {
+            $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+            $calc = app(\App\Services\Budget\DerivedCalculationService::class);
+
             // Get coordinator IDs and direct team IDs
             $coordinatorIds = User::where('parent_id', $general->id)
                 ->where('role', 'coordinator')
@@ -4568,8 +4623,14 @@ class GeneralController extends Controller
             $directTeamProjects = Project::whereIn('project_id', $directTeamProjectIds)->get();
             $directTeamReports = DPReport::whereIn('project_id', $directTeamProjectIds)->get();
 
+            // Memoize resolved financials (resolve each project exactly once)
+            $resolvedFinancials = [];
+            foreach ($coordinatorHierarchyProjects->merge($directTeamProjects) as $project) {
+                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+            }
+
             // Helper function to calculate health metrics
-            $calculateHealthMetrics = function($projects, $reports) {
+            $calculateHealthMetrics = function($projects, $reports, $resolvedFinancials, $calc) {
                 $totalProjects = $projects->count();
                 $totalReports = $reports->count();
 
@@ -4591,13 +4652,13 @@ class GeneralController extends Controller
                 }
 
                 // Budget utilization
-                $totalBudget = $approvedProjects->sum(function($p) {
-                    return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
-                });
+                $totalBudget = $approvedProjects->sum(
+                    fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0)
+                );
                 $approvedReportIds = $approvedReports->pluck('report_id');
                 $totalExpenses = DPAccountDetail::whereIn('report_id', $approvedReportIds)
                     ->sum('total_expenses') ?? 0;
-                $budgetUtilization = $totalBudget > 0 ? ($totalExpenses / $totalBudget) * 100 : 0;
+                $budgetUtilization = $calc->calculateUtilization($totalExpenses, $totalBudget);
 
                 // Activity rate (users active in last 30 days)
                 $allUserIds = $projects->pluck('user_id')->merge($projects->pluck('in_charge'))
@@ -4683,18 +4744,22 @@ class GeneralController extends Controller
             // Calculate metrics for both contexts
             $coordinatorHierarchyHealth = $calculateHealthMetrics(
                 $coordinatorHierarchyProjects,
-                $coordinatorHierarchyReports
+                $coordinatorHierarchyReports,
+                $resolvedFinancials,
+                $calc
             );
 
             $directTeamHealth = $calculateHealthMetrics(
                 $directTeamProjects,
-                $directTeamReports
+                $directTeamReports,
+                $resolvedFinancials,
+                $calc
             );
 
             // Combined metrics
             $combinedProjects = $coordinatorHierarchyProjects->merge($directTeamProjects);
             $combinedReports = $coordinatorHierarchyReports->merge($directTeamReports);
-            $combinedHealth = $calculateHealthMetrics($combinedProjects, $combinedReports);
+            $combinedHealth = $calculateHealthMetrics($combinedProjects, $combinedReports, $resolvedFinancials, $calc);
 
             return [
                 'coordinator_hierarchy' => $coordinatorHierarchyHealth,

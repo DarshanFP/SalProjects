@@ -1,12 +1,8 @@
 {{-- Dashboard Customization Settings Panel --}}
 <div class="card mb-4" id="dashboardSettingsCard">
     <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
-        <h5 class="mb-0 text-white">
-            <i data-feather="settings" class="me-2"></i>Dashboard Customization
-        </h5>
-        <button type="button" class="btn btn-sm btn-light" onclick="toggleDashboardSettings()">
-            <i data-feather="x"></i> Close
-        </button>
+        <h5 class="mb-0 text-white">Dashboard Customization</h5>
+        <button type="button" class="btn btn-sm btn-light" onclick="toggleDashboardSettings()">Close</button>
     </div>
     <div class="card-body">
         <div class="row">
@@ -36,24 +32,19 @@
                                        checked
                                        onchange="toggleWidgetVisibility('{{ $widgetId }}', this.checked)">
                                 <label class="form-check-label ms-2" for="widget-{{ $widgetId }}">
-                                    <i data-feather="{{ $widget['icon'] }}" style="width: 16px; height: 16px;" class="me-2"></i>
                                     {{ $widget['label'] }}
                                     <span class="badge bg-{{ $widget['priority'] === 'critical' ? 'danger' : ($widget['priority'] === 'medium' ? 'warning' : 'secondary') }} badge-sm ms-2">
                                         {{ ucfirst($widget['priority']) }}
                                     </span>
                                 </label>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary handle" title="Drag to reorder">
-                                <i data-feather="move"></i>
-                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary handle" title="Drag to reorder">⋯</button>
                         </div>
                     @endforeach
                 </div>
 
                 <div class="mt-3">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetDashboardLayout()">
-                        <i data-feather="rotate-ccw"></i> Reset to Default Layout
-                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetDashboardLayout()">Reset to Default Layout</button>
                 </div>
             </div>
 
@@ -63,7 +54,6 @@
                 
                 <div class="d-grid gap-2">
                     <button type="button" class="btn btn-outline-primary text-start" onclick="applyLayoutPreset('default')">
-                        <i data-feather="layout" class="me-2"></i>
                         <div>
                             <strong>Default Layout</strong>
                             <br><small class="text-muted">Balanced view with all widgets</small>
@@ -71,7 +61,6 @@
                     </button>
                     
                     <button type="button" class="btn btn-outline-primary text-start" onclick="applyLayoutPreset('approval')">
-                        <i data-feather="check-circle" class="me-2"></i>
                         <div>
                             <strong>Approval Focus</strong>
                             <br><small class="text-muted">Emphasis on approval widgets</small>
@@ -79,7 +68,6 @@
                     </button>
                     
                     <button type="button" class="btn btn-outline-primary text-start" onclick="applyLayoutPreset('analytics')">
-                        <i data-feather="bar-chart-2" class="me-2"></i>
                         <div>
                             <strong>Analytics Focus</strong>
                             <br><small class="text-muted">Emphasis on charts and analytics</small>
@@ -87,7 +75,6 @@
                     </button>
                     
                     <button type="button" class="btn btn-outline-primary text-start" onclick="applyLayoutPreset('team')">
-                        <i data-feather="users" class="me-2"></i>
                         <div>
                             <strong>Team Focus</strong>
                             <br><small class="text-muted">Emphasis on team management</small>
@@ -103,13 +90,9 @@
                         @foreach($availableWidgets as $widgetId => $widget)
                             <div class="list-group-item widget-order-item" data-widget-id="{{ $widgetId }}" style="cursor: move;">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <i data-feather="{{ $widget['icon'] }}" style="width: 16px; height: 16px;" class="me-2"></i>
-                                        {{ $widget['label'] }}
-                                    </div>
+                                    <div>{{ $widget['label'] }}</div>
                                     <div>
                                         <span class="badge bg-secondary">Position: <span class="widget-position">{{ $loop->iteration }}</span></span>
-                                        <i data-feather="grip-vertical" class="ms-2 text-muted"></i>
                                     </div>
                                 </div>
                             </div>
@@ -393,17 +376,15 @@ document.addEventListener('click', function(e) {
         
         if (widgetCard) {
             const content = widgetCard.querySelector('.widget-content');
-            const icon = toggle.querySelector('i');
             
             if (content) {
                 if (content.style.display === 'none') {
                     content.style.display = '';
-                    icon.setAttribute('data-feather', 'chevron-up');
+                    toggle.textContent = '−';
                 } else {
                     content.style.display = 'none';
-                    icon.setAttribute('data-feather', 'chevron-down');
+                    toggle.textContent = '+';
                 }
-                if (typeof feather !== 'undefined') feather.replace();
             }
         }
     }

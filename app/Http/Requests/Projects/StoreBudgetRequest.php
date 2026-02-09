@@ -2,41 +2,68 @@
 
 namespace App\Http\Requests\Projects;
 
+use App\Http\Requests\Concerns\NormalizesInput;
+use App\Rules\NumericBoundsRule;
+use App\Support\Normalization\PlaceholderNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Log;
 
 class StoreBudgetRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+    use NormalizesInput;
+
     public function authorize(): bool
     {
-        // Allow authenticated users to create budget
         return auth()->check();
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
+    protected function normalizeInput(array $input): array
+    {
+        if (empty($input['phases']) || ! is_array($input['phases'])) {
+            return $input;
+        }
+        $decimalKeys = ['amount_sanctioned', 'rate_quantity', 'rate_multiplier', 'rate_duration', 'rate_increase', 'this_phase', 'next_phase'];
+        foreach ($input['phases'] as $pi => $phase) {
+            if (isset($phase['amount_sanctioned'])) {
+                $before = $input['phases'][$pi]['amount_sanctioned'];
+                $input['phases'][$pi]['amount_sanctioned'] = PlaceholderNormalizer::normalizeToNull($input['phases'][$pi]['amount_sanctioned']);
+                if ($before !== $input['phases'][$pi]['amount_sanctioned']) {
+                    Log::debug('Budget normalized', ['path' => "phases.{$pi}.amount_sanctioned", 'before' => $before, 'after' => $input['phases'][$pi]['amount_sanctioned']]);
+                }
+            }
+            if (isset($phase['budget']) && is_array($phase['budget'])) {
+                foreach ($phase['budget'] as $bi => $row) {
+                    foreach ($decimalKeys as $key) {
+                        if (array_key_exists($key, $row)) {
+                            $before = $input['phases'][$pi]['budget'][$bi][$key] ?? null;
+                            $input['phases'][$pi]['budget'][$bi][$key] = PlaceholderNormalizer::normalizeToZero($row[$key]);
+                            if ($before !== $input['phases'][$pi]['budget'][$bi][$key]) {
+                                Log::debug('Budget normalized', ['path' => "phases.{$pi}.budget.{$bi}.{$key}", 'before' => $before, 'after' => $input['phases'][$pi]['budget'][$bi][$key]]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return $input;
+    }
+
     public function rules(): array
     {
         return [
             'phases' => 'array',
-            'phases.*.amount_sanctioned' => 'nullable|numeric|min:0',
+            'phases.*.amount_sanctioned' => ['nullable', 'numeric', 'min:0', new NumericBoundsRule],
             'phases.*.budget' => 'nullable|array',
             'phases.*.budget.*.particular' => 'nullable|string|max:255',
-            'phases.*.budget.*.rate_quantity' => 'nullable|numeric|min:0',
-            'phases.*.budget.*.rate_multiplier' => 'nullable|numeric|min:0',
-            'phases.*.budget.*.rate_duration' => 'nullable|numeric|min:0',
-            'phases.*.budget.*.rate_increase' => 'nullable|numeric|min:0',
-            'phases.*.budget.*.this_phase' => 'nullable|numeric|min:0',
-            'phases.*.budget.*.next_phase' => 'nullable|numeric|min:0',
+            'phases.*.budget.*.rate_quantity' => ['nullable', 'numeric', 'min:0', new NumericBoundsRule],
+            'phases.*.budget.*.rate_multiplier' => ['nullable', 'numeric', 'min:0', new NumericBoundsRule],
+            'phases.*.budget.*.rate_duration' => ['nullable', 'numeric', 'min:0', new NumericBoundsRule],
+            'phases.*.budget.*.rate_increase' => ['nullable', 'numeric', 'min:0', new NumericBoundsRule],
+            'phases.*.budget.*.this_phase' => ['nullable', 'numeric', 'min:0', new NumericBoundsRule],
+            'phases.*.budget.*.next_phase' => ['nullable', 'numeric', 'min:0', new NumericBoundsRule],
         ];
     }
 
-    /**
-     * Get custom messages for validator errors.
-     */
     public function messages(): array
     {
         return [
@@ -55,4 +82,3 @@ class StoreBudgetRequest extends FormRequest
         ];
     }
 }
-

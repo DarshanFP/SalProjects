@@ -14,28 +14,36 @@ class EduRUTAnnexedTargetGroupController extends Controller
     // Store annexed target group information
     public function store(FormRequest $request)
     {
-        // Validation already done by FormRequest
-        // Use all() to get all form data including annexed target group arrays
-        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = ['annexed_target_group', 'project_id'];
+        $data = $request->only($fillable);
+
+        $projectId = is_array($data['project_id'] ?? null) ? (reset($data['project_id']) ?? null) : ($data['project_id'] ?? null);
+        $groups = is_array($data['annexed_target_group'] ?? null)
+            ? ($data['annexed_target_group'] ?? [])
+            : (isset($data['annexed_target_group']) && $data['annexed_target_group'] !== '' ? [$data['annexed_target_group']] : []);
+
         DB::beginTransaction();
         try {
-            Log::info('Storing annexed target group data', ['project_id' => $validated['project_id']]);
+            Log::info('Storing annexed target group data', ['project_id' => $projectId]);
 
-            $annexedTargetGroups = $validated['annexed_target_group'] ?? [];
-            
-            foreach ($annexedTargetGroups as $group) {
+            foreach ($groups as $group) {
+                if (!is_array($group)) {
+                    continue;
+                }
+                $beneficiaryName = is_array($group['beneficiary_name'] ?? null) ? (reset($group['beneficiary_name']) ?? null) : ($group['beneficiary_name'] ?? null);
+                $familyBackground = is_array($group['family_background'] ?? null) ? (reset($group['family_background']) ?? null) : ($group['family_background'] ?? null);
+                $needOfSupport = is_array($group['need_of_support'] ?? null) ? (reset($group['need_of_support']) ?? null) : ($group['need_of_support'] ?? null);
+
                 ProjectEduRUTAnnexedTargetGroup::create([
-                    'project_id' => $validated['project_id'],
-                    'beneficiary_name' => $group['beneficiary_name'] ?? null,
-                    'family_background' => $group['family_background'] ?? null,
-                    'need_of_support' => $group['need_of_support'] ?? null,
+                    'project_id' => $projectId,
+                    'beneficiary_name' => $beneficiaryName,
+                    'family_background' => $familyBackground,
+                    'need_of_support' => $needOfSupport,
                 ]);
             }
 
             DB::commit();
-            Log::info('Annexed target group data saved successfully', ['project_id' => $request->project_id]);
+            Log::info('Annexed target group data saved successfully', ['project_id' => $projectId]);
 
             return response()->json(['message' => 'Annexed target group data saved successfully.'], 200);
         } catch (\Exception $e) {
@@ -86,25 +94,32 @@ class EduRUTAnnexedTargetGroupController extends Controller
     // Update annexed target group data for a project
     public function update(FormRequest $request, $projectId)
     {
-        // Validation and authorization already done by FormRequest
-        // Use all() to get all form data including annexed target group arrays
-        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = ['annexed_target_group'];
+        $data = $request->only($fillable);
+
+        $groups = is_array($data['annexed_target_group'] ?? null)
+            ? ($data['annexed_target_group'] ?? [])
+            : (isset($data['annexed_target_group']) && $data['annexed_target_group'] !== '' ? [$data['annexed_target_group']] : []);
+
         DB::beginTransaction();
         try {
             Log::info('Updating annexed target group data', ['project_id' => $projectId]);
 
-            ProjectEduRUTAnnexedTargetGroup::where('project_id', $projectId)->delete(); // Delete old data first
+            ProjectEduRUTAnnexedTargetGroup::where('project_id', $projectId)->delete();
 
-            $annexedTargetGroups = $validated['annexed_target_group'] ?? [];
-            
-            foreach ($annexedTargetGroups as $group) {
+            foreach ($groups as $group) {
+                if (!is_array($group)) {
+                    continue;
+                }
+                $beneficiaryName = is_array($group['beneficiary_name'] ?? null) ? (reset($group['beneficiary_name']) ?? null) : ($group['beneficiary_name'] ?? null);
+                $familyBackground = is_array($group['family_background'] ?? null) ? (reset($group['family_background']) ?? null) : ($group['family_background'] ?? null);
+                $needOfSupport = is_array($group['need_of_support'] ?? null) ? (reset($group['need_of_support']) ?? null) : ($group['need_of_support'] ?? null);
+
                 ProjectEduRUTAnnexedTargetGroup::create([
                     'project_id' => $projectId,
-                    'beneficiary_name' => $group['beneficiary_name'] ?? null,
-                    'family_background' => $group['family_background'] ?? null,
-                    'need_of_support' => $group['need_of_support'] ?? null,
+                    'beneficiary_name' => $beneficiaryName,
+                    'family_background' => $familyBackground,
+                    'need_of_support' => $needOfSupport,
                 ]);
             }
 

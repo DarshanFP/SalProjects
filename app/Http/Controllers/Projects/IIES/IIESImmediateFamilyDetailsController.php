@@ -7,8 +7,8 @@ use App\Models\OldProjects\IIES\ProjectIIESFamilyWorkingMembers;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IIES\ProjectIIESImmediateFamilyDetails;
 use App\Models\OldProjects\Project;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Requests\Projects\IIES\StoreIIESImmediateFamilyDetailsRequest;
 use App\Http\Requests\Projects\IIES\UpdateIIESImmediateFamilyDetailsRequest;
 
@@ -54,8 +54,6 @@ class IIESImmediateFamilyDetailsController extends Controller
      */
     public function store(FormRequest $request, $projectId)
     {
-        DB::beginTransaction();
-
         try {
             Log::info('Storing IIES Immediate Family Details', ['project_id' => $projectId]);
 
@@ -64,12 +62,10 @@ class IIESImmediateFamilyDetailsController extends Controller
             $this->mapRequestToImmediateFamily($request, $detail);
             $detail->save();
 
-            DB::commit();
             return response()->json(['message' => 'IIES immediate family details saved successfully.'], 200);
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Error saving IIES immediate family details', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to save details.'], 500);
+            throw $e;
         }
     }
 
@@ -136,8 +132,6 @@ class IIESImmediateFamilyDetailsController extends Controller
      */
     public function update(FormRequest $request, $projectId)
     {
-        DB::beginTransaction();
-
         try {
             Log::info('Updating IIES Immediate Family Details', ['project_id' => $projectId]);
 
@@ -146,12 +140,10 @@ class IIESImmediateFamilyDetailsController extends Controller
             $this->mapRequestToImmediateFamily($request, $detail);
             $detail->save();
 
-            DB::commit();
             return response()->json(['message' => 'IIES Immediate Family Details updated successfully.'], 200);
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Error updating IIES Immediate Family Details', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to update details.'], 500);
+            throw $e;
         }
     }
 

@@ -37,9 +37,8 @@ class IAHBudgetDetailsController extends Controller
             return response()->json(['error' => self::BUDGET_LOCKED_MESSAGE], 403);
         }
 
-        // Use all() to get all form data including budget detail arrays
-        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
+        $fillable = ['particular', 'amount', 'family_contribution'];
+        $data = $request->only($fillable);
 
         Log::info('IAHBudgetDetailsController@store - Start', [
             'project_id' => $projectId
@@ -53,18 +52,20 @@ class IAHBudgetDetailsController extends Controller
                 'project_id' => $projectId
             ]);
 
-            // 2️⃣ Insert new budget details
-            $particulars = $validated['particular'] ?? [];
-            $amounts     = $validated['amount'] ?? [];
-            $familyContribution = $validated['family_contribution'] ?? 0;
+            // 2️⃣ Insert new budget details (scalar-to-array normalization; per-value scalar coercion)
+            $particulars = is_array($data['particular'] ?? null) ? ($data['particular'] ?? []) : (isset($data['particular']) && $data['particular'] !== '' ? [$data['particular']] : []);
+            $amounts     = is_array($data['amount'] ?? null) ? ($data['amount'] ?? []) : (isset($data['amount']) && $data['amount'] !== '' ? [$data['amount']] : []);
+            $familyContribution = is_array($data['family_contribution'] ?? null) ? (reset($data['family_contribution']) ?? 0) : ($data['family_contribution'] ?? 0);
             $totalExpenses      = array_sum($amounts);
 
             for ($i = 0; $i < count($particulars); $i++) {
-                if (!empty($particulars[$i]) && !empty($amounts[$i])) {
+                $particular = is_array($particulars[$i] ?? null) ? (reset($particulars[$i]) ?? '') : ($particulars[$i] ?? '');
+                $amount     = is_array($amounts[$i] ?? null) ? (reset($amounts[$i]) ?? '') : ($amounts[$i] ?? '');
+                if (!empty($particular) && !empty($amount)) {
                     ProjectIAHBudgetDetails::create([
                         'project_id'        => $projectId,
-                        'particular'        => $particulars[$i],
-                        'amount'            => $amounts[$i],
+                        'particular'        => $particular,
+                        'amount'            => $amount,
                         'total_expenses'    => $totalExpenses,
                         'family_contribution' => $familyContribution,
                         'amount_requested'    => $totalExpenses - $familyContribution,
@@ -96,7 +97,7 @@ class IAHBudgetDetailsController extends Controller
     }
 
     /**
-     * Update budget details for a project (same destructive approach but with dedicated logs).
+     * Update budget details for a project (same destructive approach; delegates to store).
      */
     public function update(FormRequest $request, $projectId)
     {
@@ -112,66 +113,7 @@ class IAHBudgetDetailsController extends Controller
             return response()->json(['error' => self::BUDGET_LOCKED_MESSAGE], 403);
         }
 
-        // Use all() to get all form data including budget detail arrays
-        // These fields are not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-
-        Log::info('IAHBudgetDetailsController@update - Start', [
-            'project_id' => $projectId
-        ]);
-
-        DB::beginTransaction();
-        try {
-            // 1️⃣ Delete old budget details
-            Log::info('IAHBudgetDetailsController@update - Deleting existing budget records', ['project_id' => $projectId]);
-            ProjectIAHBudgetDetails::where('project_id', $projectId)->delete();
-
-            // 2️⃣ Insert fresh data
-            $particulars = $validated['particular'] ?? [];
-            $amounts     = $validated['amount'] ?? [];
-            $familyContribution = $validated['family_contribution'] ?? 0;
-            $totalExpenses      = array_sum($amounts);
-
-            Log::info('IAHBudgetDetailsController@update - Inserting new budget records', [
-                'particulars_count' => count($particulars),
-                'family_contribution' => $familyContribution,
-                'total_expenses'      => $totalExpenses
-            ]);
-
-            for ($i = 0; $i < count($particulars); $i++) {
-                if (!empty($particulars[$i]) && !empty($amounts[$i])) {
-                    ProjectIAHBudgetDetails::create([
-                        'project_id'        => $projectId,
-                        'particular'        => $particulars[$i],
-                        'amount'            => $amounts[$i],
-                        'total_expenses'    => $totalExpenses,
-                        'family_contribution' => $familyContribution,
-                        'amount_requested'    => $totalExpenses - $familyContribution,
-                    ]);
-                }
-            }
-
-            DB::commit();
-
-            // Phase 2: Sync project-level budget fields for pre-approval projects (feature-flagged)
-            $project = Project::where('project_id', $projectId)->first();
-            if ($project) {
-                app(BudgetSyncService::class)->syncFromTypeSave($project);
-            }
-
-            Log::info('IAHBudgetDetailsController@update - Success: Budget details updated', [
-                'project_id' => $projectId
-            ]);
-
-            return response()->json(['message' => 'IAH budget details updated successfully.'], 200);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('IAHBudgetDetailsController@update - Error updating budget details', [
-                'project_id' => $projectId,
-                'error'      => $e->getMessage()
-            ]);
-            return response()->json(['error' => 'Failed to update IAH budget details.'], 500);
-        }
+        return $this->store($request, $projectId);
     }
 
     /**

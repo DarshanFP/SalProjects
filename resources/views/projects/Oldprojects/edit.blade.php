@@ -24,8 +24,10 @@
                             </div>
                         </div>
 
-                        <!-- Key Information Section -->
-                        @include('projects.partials.Edit.key_information')
+                        <!-- Key Information Section (excluded for Individual project types) -->
+                        @if (!in_array($project->project_type, \App\Constants\ProjectType::getIndividualTypes()))
+                            @include('projects.partials.Edit.key_information')
+                        @endif
 
                         <!-- Conditional Sections Based on Project Type -->
                         @if ($project->project_type === 'Development Projects')

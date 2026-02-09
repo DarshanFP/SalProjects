@@ -1,24 +1,18 @@
 {{-- Reports Requiring Attention Widget - Dark Theme Compatible --}}
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center position-relative">
-        <h5 class="mb-0">
-            <i data-feather="file-text" class="me-2"></i>
-            Reports Requiring Attention
-        </h5>
+        <h5 class="mb-0">Reports Requiring Attention</h5>
         <div class="d-flex align-items-center gap-2">
             @if(isset($reportsRequiringAttention) && $reportsRequiringAttention['total'] > 0)
                 <span class="badge bg-warning">{{ $reportsRequiringAttention['total'] }}</span>
             @endif
-            <div class="widget-drag-handle ms-2">
-                <i data-feather="move" style="width: 16px; height: 16px;" class="text-muted"></i>
-            </div>
+            <div class="widget-drag-handle ms-2"></div>
         </div>
     </div>
     <div class="card-body">
         @if(!isset($reportsRequiringAttention) || $reportsRequiringAttention['total'] == 0)
             <div class="text-center py-4">
-                <i data-feather="check-circle" class="text-success" style="width: 48px; height: 48px;"></i>
-                <p class="text-muted mt-3 mb-0">No reports require attention. All reports are up to date!</p>
+                <p class="text-muted mb-0">No reports require attention. All reports are up to date!</p>
             </div>
         @else
             @php
@@ -29,9 +23,7 @@
             {{-- Draft Reports --}}
             @if($grouped['draft']->count() > 0)
                 <div class="mb-4">
-                    <h6 class="text-secondary mb-3">
-                        <i data-feather="file" class="me-1" style="width: 16px; height: 16px;"></i>
-                        Draft Reports ({{ $grouped['draft']->count() }})
+                    <h6 class="text-secondary mb-3">Draft Reports ({{ $grouped['draft']->count() }})
                     </h6>
                     <div class="list-group">
                         @foreach($grouped['draft']->take(5) as $report)
@@ -74,16 +66,12 @@
                                                 <span class="text-muted ms-2">- {{ $report->report_month_year }}</span>
                                             @endif
                                         </p>
-                                        <small class="text-muted">
-                                            <i data-feather="calendar" style="width: 12px; height: 12px;"></i>
-                                            Last updated: {{ $report->updated_at->diffForHumans() }}
-                                        </small>
+                                        <small class="text-muted">Last updated: {{ $report->updated_at->diffForHumans() }}</small>
                                     </div>
                                     <div>
                                         <a href="{{ route('monthly.report.edit', $report->report_id) }}"
                                            class="btn btn-sm btn-warning">
-                                            <i data-feather="edit" style="width: 14px; height: 14px;"></i>
-                                            Edit
+Edit
                                         </a>
                                     </div>
                                 </div>
@@ -104,9 +92,7 @@
             {{-- Reverted Reports --}}
             @if($grouped['reverted']->count() > 0)
                 <div class="mb-4">
-                    <h6 class="text-danger mb-3">
-                        <i data-feather="rotate-ccw" class="me-1" style="width: 16px; height: 16px;"></i>
-                        Reverted Reports ({{ $grouped['reverted']->count() }})
+                    <h6 class="text-danger mb-3">Reverted Reports ({{ $grouped['reverted']->count() }})
                     </h6>
                     <div class="list-group">
                         @foreach($grouped['reverted']->take(5) as $report)
@@ -152,21 +138,14 @@
                                             @endif
                                         </p>
                                         @if($report->revert_reason)
-                                            <small class="text-warning d-block mt-1">
-                                                <i data-feather="message-square" style="width: 12px; height: 12px;"></i>
-                                                {{ Str::limit($report->revert_reason, 100) }}
-                                            </small>
+                                            <small class="text-warning d-block mt-1">{{ Str::limit($report->revert_reason, 100) }}</small>
                                         @endif
-                                        <small class="text-muted">
-                                            <i data-feather="calendar" style="width: 12px; height: 12px;"></i>
-                                            Reverted: {{ $report->updated_at->diffForHumans() }}
-                                        </small>
+                                        <small class="text-muted">Reverted: {{ $report->updated_at->diffForHumans() }}</small>
                                     </div>
                                     <div>
                                         <a href="{{ route('monthly.report.edit', $report->report_id) }}"
                                            class="btn btn-sm btn-danger">
-                                            <i data-feather="edit" style="width: 14px; height: 14px;"></i>
-                                            Update
+Update
                                         </a>
                                     </div>
                                 </div>
@@ -188,8 +167,7 @@
                 <div class="row g-2">
                     <div class="col-12">
                         <a href="{{ route('executor.report.pending') }}" class="btn btn-outline-warning btn-sm w-100">
-                            <i data-feather="file-text" style="width: 14px; height: 14px;"></i>
-                            View All Reports Requiring Attention
+View All Reports Requiring Attention
                         </a>
                     </div>
                 </div>

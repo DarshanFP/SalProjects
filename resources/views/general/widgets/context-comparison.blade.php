@@ -7,20 +7,15 @@
 {{-- Context Comparison Widget --}}
 <div class="card mb-4 widget-card" data-widget-id="context-comparison">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="layers" class="me-2"></i>Context Comparison
-        </h5>
+        <h5 class="mb-0">Context Comparison</h5>
         <div>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="context-comparison" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="context-comparison" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body widget-content">
         @if(empty($comparisonData))
             <div class="text-center py-4">
-                <i data-feather="layers" class="text-muted" style="width: 48px; height: 48px;"></i>
-                <p class="text-muted mt-3">No comparison data available</p>
+                <p class="text-muted">No comparison data available</p>
             </div>
         @else
             {{-- Comparison Table --}}
@@ -188,10 +183,7 @@
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">
-                                <i data-feather="bar-chart-2" class="me-2" style="width: 16px; height: 16px;"></i>
-                                Projects & Reports Comparison
-                            </h6>
+                            <h6 class="mb-0">Projects & Reports Comparison</h6>
                         </div>
                         <div class="card-body">
                             <div id="projectsReportsComparisonChart" style="min-height: 300px;"></div>
@@ -201,10 +193,7 @@
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">
-                                <i data-feather="layers" class="me-2" style="width: 16px; height: 16px;"></i>
-                                Budget & Expenses Comparison
-                            </h6>
+                            <h6 class="mb-0">Budget & Expenses Comparison</h6>
                         </div>
                         <div class="card-body">
                             <div id="budgetExpensesComparisonChart" style="min-height: 300px;"></div>
@@ -218,10 +207,7 @@
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">
-                                <i data-feather="trending-up" class="me-2" style="width: 16px; height: 16px;"></i>
-                                Performance Metrics Comparison (Stacked Bar Chart)
-                            </h6>
+                            <h6 class="mb-0">Performance Metrics Comparison (Stacked Bar Chart)</h6>
                         </div>
                         <div class="card-body">
                             <div id="performanceMetricsComparisonChart" style="min-height: 350px;"></div>
@@ -235,10 +221,7 @@
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">
-                                <i data-feather="target" class="me-2" style="width: 16px; height: 16px;"></i>
-                                Multi-Metric Performance Radar
-                            </h6>
+                            <h6 class="mb-0">Multi-Metric Performance Radar</h6>
                         </div>
                         <div class="card-body">
                             <div id="performanceRadarChart" style="min-height: 400px;"></div>

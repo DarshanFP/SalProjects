@@ -5,11 +5,11 @@ namespace Tests\Feature\Projects;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\OldProjects\Project;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 
 class ProjectPermissionTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     /** @test */
     public function owner_can_edit_own_project()

@@ -1,9 +1,7 @@
 {{-- System Analytics Charts Widget --}}
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i class="feather icon-bar-chart-2 text-success"></i> System Analytics
-        </h5>
+        <h5 class="mb-0">System Analytics</h5>
         <div class="btn-group">
             <select class="form-select form-select-sm" id="timeRangeSelector" onchange="updateAnalytics()">
                 <option value="7">Last 7 Days</option>
@@ -13,9 +11,7 @@
                 <option value="365">Last Year</option>
                 <option value="custom">Custom Range</option>
             </select>
-            <button type="button" class="btn btn-sm btn-secondary" onclick="exportAnalytics()">
-                <i class="feather icon-download"></i> Export
-            </button>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="exportAnalytics()">Export</button>
         </div>
     </div>
     <div class="card-body">
@@ -123,8 +119,7 @@
             </div>
         @else
             <div class="text-center py-4">
-                <i class="feather icon-bar-chart-2 text-muted" style="font-size: 3rem;"></i>
-                <p class="text-muted mt-2">No analytics data available</p>
+                <p class="text-muted">No analytics data available</p>
             </div>
         @endif
     </div>

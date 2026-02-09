@@ -7,71 +7,49 @@ use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IIES\ProjectIIESFamilyWorkingMembers;
 use App\Models\OldProjects\Project;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 use App\Http\Requests\Projects\IIES\StoreIIESFamilyWorkingMembersRequest;
 use App\Http\Requests\Projects\IIES\UpdateIIESFamilyWorkingMembersRequest;
+use Illuminate\Support\Facades\Validator;
 
 class IIESFamilyWorkingMembersController extends Controller
 {
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including member_name[], work_nature[], monthly_income[] arrays
-        // These fields are not in StoreProjectRequest validation rules
-        $validated = $request->all();
-        
-        DB::beginTransaction();
+        $formRequest = StoreIIESFamilyWorkingMembersRequest::createFrom($request);
+        $normalized = $formRequest->getNormalizedInput();
+        $validator = Validator::make($normalized, $formRequest->rules());
+        $validator->validate();
+        $validated = $validator->validated();
 
-        try {
-            Log::info('Storing IIES family working members', ['project_id' => $projectId]);
+        Log::info('Storing IIES family working members', ['project_id' => $projectId]);
 
-            $project = Project::where('project_id', $projectId)->firstOrFail();
+        $project = Project::where('project_id', $projectId)->firstOrFail();
 
-            ProjectIIESFamilyWorkingMembers::where('project_id', $projectId)->delete();
+        ProjectIIESFamilyWorkingMembers::where('project_id', $projectId)->delete();
 
-            $memberNames    = $validated['iies_member_name'] ?? [];
-            $workNatures    = $validated['iies_work_nature'] ?? [];
-            $monthlyIncomes = $validated['iies_monthly_income'] ?? [];
+        $memberNames = $validated['iies_member_name'] ?? [];
+        $workNatures = $validated['iies_work_nature'] ?? [];
+        $monthlyIncomes = $validated['iies_monthly_income'] ?? [];
 
-            for ($i = 0; $i < count($memberNames); $i++) {
-                if (!empty($memberNames[$i]) && !empty($workNatures[$i]) && array_key_exists($i, $monthlyIncomes)) {
-                    ProjectIIESFamilyWorkingMembers::create([
-                        'project_id'          => $projectId,
-                        'iies_member_name'    => $memberNames[$i],
-                        'iies_work_nature'    => $workNatures[$i],
-                        'iies_monthly_income' => $monthlyIncomes[$i],
-                    ]);
-                }
+        for ($i = 0; $i < count($memberNames); $i++) {
+            if (! empty($memberNames[$i]) && ! empty($workNatures[$i]) && array_key_exists($i, $monthlyIncomes)) {
+                ProjectIIESFamilyWorkingMembers::create([
+                    'project_id' => $projectId,
+                    'iies_member_name' => $memberNames[$i],
+                    'iies_work_nature' => $workNatures[$i],
+                    'iies_monthly_income' => $monthlyIncomes[$i],
+                ]);
             }
-
-            DB::commit();
-            Log::info('IIES family working members saved successfully', ['project_id' => $projectId]);
-            return response()->json(['message' => 'IIES family working members saved successfully.'], 200);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error saving IIES family working members', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to save IIES family working members.'], 500);
         }
+
+        return response()->json(['message' => 'IIES family working members saved successfully.'], 200);
     }
 
-    // public function show($projectId)
-    // {
-    //     try {
-    //         Log::info('Fetching IIES family working members', ['project_id' => $projectId]);
-    //         $familyMembers = ProjectIIESFamilyWorkingMembers::where('project_id', $projectId)->get();
-    //         Log::info('Fetched IIES family working members', ['project_id' => $projectId, 'data' => $familyMembers]);
-    //         return response()->json($familyMembers, 200);
-    //     } catch (\Exception $e) {
-    //         Log::error('Error fetching IIES family working members', ['error' => $e->getMessage()]);
-    //         return response()->json(['error' => 'Failed to fetch IIES family working members.'], 500);
-    //     }
-    // }
     public function show($projectId)
     {
         try {
             Log::info('Fetching IIES Family Working Members for project', ['project_id' => $projectId]);
 
-            // Retrieve family working members from the database
             $familyMembers = ProjectIIESFamilyWorkingMembers::where('project_id', $projectId)->get();
 
             if ($familyMembers->isEmpty()) {
@@ -80,93 +58,74 @@ class IIESFamilyWorkingMembersController extends Controller
                 Log::info('Fetched IIES Family Working Members', [
                     'project_id' => $projectId,
                     'data_count' => $familyMembers->count(),
-                    'data' => $familyMembers
+                    'data' => $familyMembers,
                 ]);
             }
-//
+
             return $familyMembers;
         } catch (\Exception $e) {
             Log::error('Error fetching IIES Family Working Members', [
                 'project_id' => $projectId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-
-            return response()->json(['error' => 'Failed to fetch IIES family working members.'], 500);
+            throw $e;
         }
     }
 
     public function edit($projectId)
-{
-    try {
-        Log::info('Editing IIES family working members', ['project_id' => $projectId]);
+    {
+        try {
+            Log::info('Editing IIES family working members', ['project_id' => $projectId]);
 
-        $project = Project::where('project_id', $projectId)
-            ->with('iiesFamilyWorkingMembers')
-            ->firstOrFail();
+            $project = Project::where('project_id', $projectId)
+                ->with('iiesFamilyWorkingMembers')
+                ->firstOrFail();
 
-        return view('projects.partials.Edit.IIES.family_working_members', compact('project'));
-    } catch (\Exception $e) {
-        Log::error('Error fetching IIES family working members for edit', ['error' => $e->getMessage()]);
-        return response()->json(['error' => 'Failed to load IIES family working members.'], 500);
+            return view('projects.partials.Edit.IIES.family_working_members', compact('project'));
+        } catch (\Exception $e) {
+            Log::error('Error fetching IIES family working members for edit', ['error' => $e->getMessage()]);
+            throw $e;
+        }
     }
-}
 
-public function update(FormRequest $request, $projectId)
-{
-    // Use all() to get all form data including member_name[], work_nature[], monthly_income[] arrays
-    // These fields are not in UpdateProjectRequest validation rules
-    $validatedData = $request->all();
-    
-    DB::beginTransaction();
+    public function update(FormRequest $request, $projectId)
+    {
+        $formRequest = UpdateIIESFamilyWorkingMembersRequest::createFrom($request);
+        $normalized = $formRequest->getNormalizedInput();
+        $validator = Validator::make($normalized, $formRequest->rules());
+        $validator->validate();
+        $validated = $validator->validated();
 
-    try {
         Log::info('Updating IIES family working members', ['project_id' => $projectId]);
 
-        // Delete old records
         ProjectIIESFamilyWorkingMembers::where('project_id', $projectId)->delete();
 
-        // Insert new records
-        $memberNames    = $validatedData['iies_member_name'] ?? [];
-        $workNatures    = $validatedData['iies_work_nature'] ?? [];
-        $monthlyIncomes = $validatedData['iies_monthly_income'] ?? [];
+        $memberNames = $validated['iies_member_name'] ?? [];
+        $workNatures = $validated['iies_work_nature'] ?? [];
+        $monthlyIncomes = $validated['iies_monthly_income'] ?? [];
 
         for ($i = 0; $i < count($memberNames); $i++) {
-            if (!empty($memberNames[$i]) && !empty($workNatures[$i]) && array_key_exists($i, $monthlyIncomes)) {
+            if (! empty($memberNames[$i]) && ! empty($workNatures[$i]) && array_key_exists($i, $monthlyIncomes)) {
                 ProjectIIESFamilyWorkingMembers::create([
-                    'project_id'          => $projectId,
-                    'iies_member_name'    => $memberNames[$i],
-                    'iies_work_nature'    => $workNatures[$i],
+                    'project_id' => $projectId,
+                    'iies_member_name' => $memberNames[$i],
+                    'iies_work_nature' => $workNatures[$i],
                     'iies_monthly_income' => $monthlyIncomes[$i],
                 ]);
             }
         }
 
-        DB::commit();
-        Log::info('IIES family working members updated successfully', ['project_id' => $projectId]);
         return response()->json(['message' => 'IIES family working members updated successfully.'], 200);
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error updating IIES family working members', ['error' => $e->getMessage()]);
-        return response()->json(['error' => 'Failed to update IIES family working members.'], 500);
     }
-}
-
 
     public function destroy($projectId)
     {
-        DB::beginTransaction();
-        try {
-            Log::info('Deleting IIES family working members', ['project_id' => $projectId]);
+        Log::info('Deleting IIES family working members', ['project_id' => $projectId]);
 
-            ProjectIIESFamilyWorkingMembers::where('project_id', $projectId)->delete();
+        ProjectIIESFamilyWorkingMembers::where('project_id', $projectId)->delete();
 
-            DB::commit();
-            Log::info('IIES family working members deleted successfully', ['project_id' => $projectId]);
-            return response()->json(['message' => 'IIES family working members deleted successfully.'], 200);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error deleting IIES family working members', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to delete IIES family working members.'], 500);
-        }
+        Log::info('IIES family working members deleted successfully', ['project_id' => $projectId]);
+
+        return response()->json(['message' => 'IIES family working members deleted successfully.'], 200);
     }
 }

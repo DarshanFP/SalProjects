@@ -5,9 +5,7 @@
 {{-- Center Performance Comparison Widget --}}
 <div class="card mb-4 widget-card" data-widget-id="center-comparison">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="map-pin" class="me-2"></i>Center Performance Comparison
-        </h5>
+        <h5 class="mb-0">Center Performance Comparison</h5>
         <div>
             <select class="form-select form-select-sm d-inline-block" id="centerComparisonMetric" style="width: auto;">
                 <option value="projects">Projects</option>
@@ -16,16 +14,13 @@
                 <option value="utilization">Utilization</option>
                 <option value="approval_rate">Approval Rate</option>
             </select>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle ms-2" data-widget="center-comparison" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle ms-2" data-widget="center-comparison" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body widget-content">
         @if(empty($centerComparison))
             <div class="text-center py-4">
-                <i data-feather="map-pin" class="text-muted" style="width: 48px; height: 48px;"></i>
-                <p class="mt-3 text-muted">No center data available</p>
+                <p class="text-muted">No center data available</p>
             </div>
         @else
             {{-- Comparison Charts --}}
@@ -131,7 +126,7 @@
                                         <td>
                                             <span class="badge {{ $rankBadge }}">#{{ $rank }}</span>
                                             @if($rank <= 3)
-                                                <i data-feather="award" style="width: 16px; height: 16px;" class="text-warning"></i>
+                                                <span class="text-warning">★</span>
                                             @endif
                                         </td>
                                         <td><strong>{{ $center['name'] }}</strong></td>
@@ -163,9 +158,7 @@
                 <div class="col-md-6">
                     <div class="card bg-success bg-opacity-10 border-success">
                         <div class="card-header bg-success bg-opacity-25">
-                            <h6 class="mb-0 text-success">
-                                <i data-feather="trending-up" class="me-2"></i>Top 3 Performing Centers
-                            </h6>
+                            <h6 class="mb-0 text-success">Top 3 Performing Centers</h6>
                         </div>
                         <div class="card-body">
                             @foreach($rankedCenters->take(3) as $index => $center)
@@ -189,9 +182,7 @@
                 <div class="col-md-6">
                     <div class="card bg-warning bg-opacity-10 border-warning">
                         <div class="card-header bg-warning bg-opacity-25">
-                            <h6 class="mb-0 text-warning">
-                                <i data-feather="trending-down" class="me-2"></i>Centers Needing Attention
-                            </h6>
+                            <h6 class="mb-0 text-warning">Centers Needing Attention</h6>
                         </div>
                         <div class="card-body">
                             @php
@@ -444,8 +435,7 @@ function sortCenterTable(sortBy) {
         const rankBadge = rank <= 3 ? ['1' => 'bg-warning', '2' => 'bg-secondary', '3' => 'bg-info'][rank] : 'bg-light text-dark';
         rankCell.innerHTML = `<span class="badge ${rankBadge}">#${rank}</span>`;
         if (rank <= 3) {
-            rankCell.innerHTML += ' <i data-feather="award" style="width: 16px; height: 16px;" class="text-warning"></i>';
-            if (typeof feather !== 'undefined') feather.replace();
+            rankCell.innerHTML += ' <span class="text-warning">★</span>';
         }
         tbody.appendChild(row);
     });

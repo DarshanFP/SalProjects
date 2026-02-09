@@ -351,6 +351,8 @@ class ExecutorController extends Controller
 
     private function calculateBudgetSummariesFromProjects($projects, $request)
     {
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $calc = app(\App\Services\Budget\DerivedCalculationService::class);
         $budgetSummaries = [
             'by_project_type' => [],
             'total' => [
@@ -363,18 +365,8 @@ class ExecutorController extends Controller
         ];
 
         foreach ($projects as $project) {
-            // Phase 4: Use only canonical project fields (no recalculation from type tables)
-            $projectBudget = (float) ($project->amount_sanctioned ?? $project->overall_project_budget ?? 0);
-
-            // If no budget found, try to get from approved reports
-            if ($projectBudget == 0 && $project->reports && $project->reports->count() > 0) {
-                foreach ($project->reports as $report) {
-                    if ($report->isApproved() && $report->accountDetails && $report->accountDetails->count() > 0) {
-                        $projectBudget = $report->accountDetails->sum('total_amount');
-                        break;
-                    }
-                }
-            }
+            $financials = $resolver->resolve($project);
+            $projectBudget = (float) ($financials['opening_balance'] ?? 0);
 
             // Calculate approved and unapproved expenses separately (following expenses tracking guidelines)
             $approvedExpenses = 0;
@@ -404,7 +396,7 @@ class ExecutorController extends Controller
 
             $totalExpenses = $approvedExpenses + $unapprovedExpenses;
             // Only approved expenses reduce remaining budget (unapproved don't reduce available budget until approved)
-            $remainingBudget = $projectBudget - $approvedExpenses;
+            $remainingBudget = $calc->calculateRemainingBalance($projectBudget, $approvedExpenses);
 
             // Initialize project type if not exists
             if (!isset($budgetSummaries['by_project_type'][$project->project_type])) {
@@ -685,13 +677,13 @@ class ExecutorController extends Controller
      */
     private function enhanceProjectsWithMetadata($projects)
     {
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $calc = app(\App\Services\Budget\DerivedCalculationService::class);
         $enhanced = [];
 
         foreach ($projects as $project) {
-            // Calculate budget
-            $projectBudget = 0;
-            // Phase 4: Use only canonical project fields (no recalculation from type tables)
-            $projectBudget = (float) ($project->amount_sanctioned ?? $project->overall_project_budget ?? 0);
+            $financials = $resolver->resolve($project);
+            $projectBudget = (float) ($financials['opening_balance'] ?? 0);
 
             // Calculate expenses from approved reports
             $totalExpenses = 0;
@@ -708,9 +700,8 @@ class ExecutorController extends Controller
                 }
             }
 
-            // Calculate budget utilization percentage
-            $budgetUtilization = $projectBudget > 0 ? ($totalExpenses / $projectBudget) * 100 : 0;
-            $remainingBudget = $projectBudget - $totalExpenses;
+            $budgetUtilization = $calc->calculateUtilization($totalExpenses, $projectBudget);
+            $remainingBudget = $calc->calculateRemainingBalance($projectBudget, $totalExpenses);
 
             // Calculate project health
             $health = $this->calculateProjectHealth($project, $budgetUtilization, $lastReportDate);
@@ -814,6 +805,9 @@ class ExecutorController extends Controller
      */
     private function getChartData($user, $request)
     {
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $calc = app(\App\Services\Budget\DerivedCalculationService::class);
+
         // Get project IDs where user is owner or in-charge
         $projectIds = ProjectQueryService::getProjectIdsForUser($user);
 
@@ -823,11 +817,14 @@ class ExecutorController extends Controller
 
         $projects = ProjectQueryService::getApprovedProjectsForUser($user, ['reports.accountDetails', 'budgets']);
 
+        // Memoize resolved financials (resolve each project exactly once)
+        $resolvedFinancials = [];
         foreach ($projects as $project) {
-            // Calculate budget
-            $projectBudget = 0;
-            // Phase 4: Use only canonical project fields (no recalculation from type tables)
-            $projectBudget = (float) ($project->amount_sanctioned ?? $project->overall_project_budget ?? 0);
+            $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+        }
+
+        foreach ($projects as $project) {
+            $projectBudget = (float) ($resolvedFinancials[$project->project_id]['opening_balance'] ?? 0);
 
             // Calculate expenses from approved reports
             $totalExpenses = 0;
@@ -872,10 +869,11 @@ class ExecutorController extends Controller
         // Budget vs Expenses by Project Type (for stacked bar chart)
         $budgetVsExpenses = [];
         foreach ($budgetByType as $type => $budget) {
+            $typeExpenses = $expensesByType[$type] ?? 0;
             $budgetVsExpenses[$type] = [
                 'budget' => $budget,
-                'expenses' => $expensesByType[$type] ?? 0,
-                'remaining' => $budget - ($expensesByType[$type] ?? 0),
+                'expenses' => $typeExpenses,
+                'remaining' => $calc->calculateRemainingBalance($budget, $typeExpenses),
             ];
         }
 
@@ -884,14 +882,15 @@ class ExecutorController extends Controller
         $budgetUtilizationTimeline = [];
         $runningExpenses = 0;
         $totalBudget = array_sum($budgetByType);
+        $totalExpensesSum = array_sum($expensesByType);
 
         foreach ($monthlyExpenses as $month => $expenses) {
             $runningExpenses += $expenses;
-            $utilization = $totalBudget > 0 ? ($runningExpenses / $totalBudget) * 100 : 0;
+            $utilization = $calc->calculateUtilization($runningExpenses, $totalBudget);
             $budgetUtilizationTimeline[$month] = [
                 'expenses' => $runningExpenses,
                 'budget' => $totalBudget,
-                'remaining' => $totalBudget - $runningExpenses,
+                'remaining' => $calc->calculateRemainingBalance($totalBudget, $runningExpenses),
                 'utilization' => round($utilization, 2),
             ];
         }
@@ -903,8 +902,8 @@ class ExecutorController extends Controller
             'monthly_expenses' => $monthlyExpenses,
             'budget_utilization_timeline' => $budgetUtilizationTimeline,
             'total_budget' => $totalBudget,
-            'total_expenses' => array_sum($expensesByType),
-            'total_remaining' => $totalBudget - array_sum($expensesByType),
+            'total_expenses' => $totalExpensesSum,
+            'total_remaining' => $calc->calculateRemainingBalance($totalBudget, $totalExpensesSum),
         ];
     }
 
@@ -989,6 +988,9 @@ class ExecutorController extends Controller
      */
     private function getQuickStats($user)
     {
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $calc = app(\App\Services\Budget\DerivedCalculationService::class);
+
         // Get project IDs where user is owner or in-charge
         $projectIds = ProjectQueryService::getProjectIdsForUser($user);
 
@@ -1018,12 +1020,16 @@ class ExecutorController extends Controller
         // Total budget (from approved projects)
         $approvedProjects = ProjectQueryService::getApprovedProjectsForUser($user, ['reports.accountDetails', 'budgets']);
 
+        // Memoize resolved financials (resolve each project exactly once)
+        $resolvedFinancials = [];
+        foreach ($approvedProjects as $project) {
+            $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+        }
+
         $totalBudget = 0;
         $totalExpenses = 0;
         foreach ($approvedProjects as $project) {
-            $projectBudget = 0;
-            // Phase 4: Use only canonical project fields (no recalculation from type tables)
-            $projectBudget = (float) ($project->amount_sanctioned ?? $project->overall_project_budget ?? 0);
+            $projectBudget = (float) ($resolvedFinancials[$project->project_id]['opening_balance'] ?? 0);
             $totalBudget += $projectBudget;
 
             if ($project->reports && $project->reports->count() > 0) {
@@ -1035,7 +1041,7 @@ class ExecutorController extends Controller
             }
         }
 
-        $budgetUtilization = $totalBudget > 0 ? ($totalExpenses / $totalBudget) * 100 : 0;
+        $budgetUtilization = $calc->calculateUtilization($totalExpenses, $totalBudget);
         $averageProjectBudget = $activeProjects > 0 ? $totalBudget / $activeProjects : 0;
 
         // Calculate trends (vs last month)

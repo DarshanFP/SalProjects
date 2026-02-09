@@ -1,4 +1,5 @@
 {{-- resources/views/projects/partials/scripts.blade.php --}}
+<script src="{{ asset('js/budget-calculations.js') }}"></script>
 <script>
 
     function beforeSubmit() {
@@ -42,28 +43,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Calculate initial totals when page loads
-    calculateTotalAmountSanctioned();
+    calculateProjectTotal();
 
     // Add event listener for amount_forwarded input
     const amountForwardedField = document.getElementById('amount_forwarded');
     const localContributionField = document.getElementById('local_contribution');
     if (amountForwardedField) {
-        amountForwardedField.addEventListener('input', calculateBudgetFields);
+        amountForwardedField.addEventListener('input', calculateAmountSanctioned);
         // Initial calculation on page load
-        setTimeout(calculateBudgetFields, 100);
+        setTimeout(calculateAmountSanctioned, 100);
     }
 });
 
 // Calculate the budget totals for a single budget row
-function calculateBudgetRowTotals(element) {
+function calculateRowTotal(element) {
     if (!element) {
-        console.warn('calculateBudgetRowTotals: element is null');
+        console.warn('calculateRowTotal: element is null');
         return;
     }
 
     const row = element.closest('tr');
     if (!row) {
-        console.warn('calculateBudgetRowTotals: row not found');
+        console.warn('calculateRowTotal: row not found');
         return;
     }
 
@@ -73,7 +74,7 @@ function calculateBudgetRowTotals(element) {
     const thisPhaseInput = row.querySelector('[name$="[this_phase]"]');
 
     if (!rateQuantityInput || !rateMultiplierInput || !rateDurationInput || !thisPhaseInput) {
-        console.warn('calculateBudgetRowTotals: required inputs not found');
+        console.warn('calculateRowTotal: required inputs not found');
         return;
     }
 
@@ -81,73 +82,43 @@ function calculateBudgetRowTotals(element) {
     const rateMultiplier = parseFloat(rateMultiplierInput.value) || 1;
     const rateDuration = parseFloat(rateDurationInput.value) || 1;
 
-    const thisPhase = rateQuantity * rateMultiplier * rateDuration;
+    const thisPhase = window.BudgetCalculations.calculateRowTotal(rateQuantity, rateMultiplier, rateDuration);
     thisPhaseInput.value = thisPhase.toFixed(2);
 
     // Recalculate totals whenever a row total is updated
-    calculateTotalAmountSanctioned();
+    calculateProjectTotal();
 }
 
 // Update all budget rows based on the selected project period
 function updateAllBudgetRows() {
     const budgetRows = document.querySelectorAll('.budget-rows tr');
     budgetRows.forEach(row => {
-        calculateBudgetRowTotals(row.querySelector('input'));
+        calculateRowTotal(row.querySelector('input'));
     });
 }
-
-// Calculate the total budget for a phase - COMMENTED OUT TO DISABLE PHASE FUNCTIONALITY
-
-function calculateBudgetTotals(phaseCard) {
-    const rows = phaseCard.querySelectorAll('.budget-rows tr');
-    let totalRateQuantity = 0;
-    let totalRateMultiplier = 0;
-    let totalRateDuration = 0;
-    let totalRateIncrease = 0;
-    let totalThisPhase = 0;
-    let totalNextPhase = 0;
-
-    rows.forEach(row => {
-        totalRateQuantity += parseFloat(row.querySelector('[name$="[rate_quantity]"]').value) || 0;
-        totalRateMultiplier += parseFloat(row.querySelector('[name$="[rate_multiplier]"]').value) || 1;
-        totalRateDuration += parseFloat(row.querySelector('[name$="[rate_duration]"]').value) || 1;
-        totalRateIncrease += parseFloat(row.querySelector('[name$="[rate_increase]"]').value) || 0;
-        totalThisPhase += parseFloat(row.querySelector('[name$="[this_phase]"]').value) || 0;
-        totalNextPhase += parseFloat(row.querySelector('[name$="[next_phase]"]').value) || 0;
-    });
-
-    phaseCard.querySelector('.total_rate_quantity').value = totalRateQuantity.toFixed(2);
-    phaseCard.querySelector('.total_rate_multiplier').value = totalRateMultiplier.toFixed(2);
-    phaseCard.querySelector('.total_rate_duration').value = totalRateDuration.toFixed(2);
-    phaseCard.querySelector('.total_rate_increase').value = totalRateIncrease.toFixed(2);
-    phaseCard.querySelector('.total_this_phase').value = totalThisPhase.toFixed(2);
-    phaseCard.querySelector('.total_next_phase').value = totalNextPhase.toFixed(2);
-
-    calculateTotalAmountSanctioned();
-}
-
 
 // Calculate the total amount sanctioned and update the overall project budget - MODIFIED TO WORK WITHOUT PHASE CARDS
-function calculateTotalAmountSanctioned() {
+function calculateProjectTotal() {
     // Get all budget rows directly from the budget table
     const budgetRows = document.querySelectorAll('.budget-rows tr');
-    let totalAmount = 0;
     let totalRateQuantity = 0;
     let totalRateMultiplier = 0;
     let totalRateDuration = 0;
 
     // Calculate totals from all budget rows
+    const thisPhaseValues = [];
     budgetRows.forEach(row => {
         const thisPhaseValue = parseFloat(row.querySelector('[name$="[this_phase]"]').value) || 0;
         const rateQuantity = parseFloat(row.querySelector('[name$="[rate_quantity]"]').value) || 0;
         const rateMultiplier = parseFloat(row.querySelector('[name$="[rate_multiplier]"]').value) || 0;
         const rateDuration = parseFloat(row.querySelector('[name$="[rate_duration]"]').value) || 0;
 
-        totalAmount += thisPhaseValue;
+        thisPhaseValues.push(thisPhaseValue);
         totalRateQuantity += rateQuantity;
         totalRateMultiplier += rateMultiplier;
         totalRateDuration += rateDuration;
     });
+    const totalAmount = window.BudgetCalculations.calculateProjectTotal(thisPhaseValues);
 
     // Update the total row in the footer
     const totalRateQuantityField = document.querySelector('.total_rate_quantity');
@@ -192,15 +163,15 @@ function calculateTotalAmountSanctioned() {
         overallProjectBudgetDisplayField.value = totalAmount.toFixed(2);
     }
 
-    // Call calculateBudgetFields to update amount_sanctioned and opening_balance
-    calculateBudgetFields();
+    // Call calculateAmountSanctioned to update amount_sanctioned and opening_balance
+    calculateAmountSanctioned();
 }
 
 // Calculate budget fields: amount_sanctioned and opening_balance
 // This function implements the new budget calculation logic:
 // - Amount Sanctioned = Overall Project Budget - Amount Forwarded
 // - Opening Balance = Amount Sanctioned + Amount Forwarded
-function calculateBudgetFields() {
+function calculateAmountSanctioned() {
     // Get all required field elements
     const overallBudgetField = document.getElementById('overall_project_budget');
     const overallBudgetDisplayField = document.getElementById('overall_project_budget_display');
@@ -231,13 +202,13 @@ function calculateBudgetFields() {
             if (amountForwardedField) amountForwardedField.value = newForwarded.toFixed(2);
             if (localContributionField) localContributionField.value = newLocal.toFixed(2);
             // Recalculate after correction
-            setTimeout(calculateBudgetFields, 10);
+            setTimeout(calculateAmountSanctioned, 10);
         }
         return;
     }
 
     // Calculate Amount Sanctioned: Overall Budget - (Amount Forwarded + Local Contribution)
-    const amountSanctioned = overallBudget - combined;
+    const amountSanctioned = window.BudgetCalculations.calculateAmountSanctioned(overallBudget, combined);
 
     // Calculate Opening Balance: Amount Sanctioned + (Amount Forwarded + Local Contribution)
     // Note: This equals Overall Budget, but we keep the formula for clarity
@@ -270,16 +241,16 @@ function addBudgetRow(button) {
     newRow.innerHTML = `
         <td style="width: 5%; text-align: center; vertical-align: middle;">${rowCount + 1}</td>
         <td class="particular-cell-create" style="width: 40%;"><textarea name="phases[${phaseIndex}][budget][${rowCount}][particular]" class="form-control select-input particular-textarea" rows="1"></textarea></td>
-        <td style="width: 12%;"><input type="number" name="phases[${phaseIndex}][budget][${rowCount}][rate_quantity]" class="form-control select-input budget-number-input" oninput="calculateBudgetRowTotals(this)"></td>
-        <td style="width: 12%;"><input type="number" name="phases[${phaseIndex}][budget][${rowCount}][rate_multiplier]" class="form-control select-input budget-number-input" value="1" oninput="calculateBudgetRowTotals(this)"></td>
-        <td style="width: 12%;"><input type="number" name="phases[${phaseIndex}][budget][${rowCount}][rate_duration]" class="form-control select-input budget-number-input" value="1" oninput="calculateBudgetRowTotals(this)"></td>
+        <td style="width: 12%;"><input type="number" name="phases[${phaseIndex}][budget][${rowCount}][rate_quantity]" class="form-control select-input budget-number-input" oninput="calculateRowTotal(this)"></td>
+        <td style="width: 12%;"><input type="number" name="phases[${phaseIndex}][budget][${rowCount}][rate_multiplier]" class="form-control select-input budget-number-input" value="1" oninput="calculateRowTotal(this)"></td>
+        <td style="width: 12%;"><input type="number" name="phases[${phaseIndex}][budget][${rowCount}][rate_duration]" class="form-control select-input budget-number-input" value="1" oninput="calculateRowTotal(this)"></td>
         <td style="width: 12%;"><input type="number" name="phases[${phaseIndex}][budget][${rowCount}][this_phase]" class="form-control readonly-input budget-number-input" readonly></td>
         <td style="width: 7%; padding: 4px;"><button type="button" class="btn btn-danger budget-remove-btn" onclick="removeBudgetRow(this)">Remove</button></td>
     `;
 
     newRow.querySelectorAll('input').forEach(input => {
         input.addEventListener('input', function() {
-            calculateBudgetRowTotals(input);
+            calculateRowTotal(input);
         });
     });
 
@@ -298,7 +269,7 @@ function addBudgetRow(button) {
 
     tableBody.appendChild(newRow);
     reindexBudgetRows(); // Reindex all rows after adding
-    calculateTotalAmountSanctioned();
+    calculateProjectTotal();
 }
 
 // Remove a budget row from the budget table
@@ -309,7 +280,7 @@ function removeBudgetRow(button) {
     const row = button.closest('tr');
     row.remove();
     reindexBudgetRows(); // Reindex all rows after removing
-    calculateTotalAmountSanctioned(); // Recalculate totals after removing a row
+    calculateProjectTotal(); // Recalculate totals after removing a row
 }
 
 // Reindex budget rows to maintain sequential numbering

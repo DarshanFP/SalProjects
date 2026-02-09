@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IIES\ProjectIIESPersonalInfo;
 use App\Models\OldProjects\Project;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Requests\Projects\IIES\StoreIIESPersonalInfoRequest;
 use App\Http\Requests\Projects\IIES\UpdateIIESPersonalInfoRequest;
 
@@ -51,22 +51,29 @@ class IIESPersonalInfoController extends Controller
 
     public function store(FormRequest $request, $projectId)
     {
-        DB::beginTransaction();
-
         try {
-            Log::info('Storing IIES Personal Info', ['project_id' => $projectId]);
+            Log::info('IIESPersonalInfoController@store - Entry', [
+                'project_id' => $projectId,
+                'has_iies_bname' => $request->has('iies_bname'),
+                'iies_bname_input' => $request->input('iies_bname'),
+            ]);
 
             $personalInfo = ProjectIIESPersonalInfo::firstOrNew(['project_id' => $projectId]);
             $personalInfo->project_id = $projectId;
             $this->mapRequestToModel($request, $personalInfo);
+            // Phase 4: Defensive persistence — avoid NOT NULL violation on iies_bname
+            if (!$request->filled('iies_bname')) {
+                Log::info('IIESPersonalInfoController@store - Skipping save; minimum required field iies_bname not present', ['project_id' => $projectId]);
+                return response()->json(['message' => 'IIES Personal Info skipped (minimum data not present).'], 200);
+            }
+            Log::info('IIESPersonalInfoController@store - Before model save', ['project_id' => $projectId]);
             $personalInfo->save();
+            Log::info('IIESPersonalInfoController@store - Model save success', ['project_id' => $projectId]);
 
-            DB::commit();
             return response()->json(['message' => 'IIES Personal Info saved successfully.'], 200);
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Error saving IIES Personal Info', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to save IIES Personal Info.'], 500);
+            throw $e;
         }
     }
 
@@ -114,22 +121,23 @@ class IIESPersonalInfoController extends Controller
      */
     public function update(FormRequest $request, $projectId)
     {
-        DB::beginTransaction();
-
         try {
             Log::info('Updating IIES Personal Info', ['project_id' => $projectId]);
 
             $personalInfo = ProjectIIESPersonalInfo::firstOrNew(['project_id' => $projectId]);
             $personalInfo->project_id = $projectId;
             $this->mapRequestToModel($request, $personalInfo);
+            // Phase 4: Defensive persistence — avoid NOT NULL violation on iies_bname
+            if (!$request->filled('iies_bname')) {
+                Log::info('IIESPersonalInfoController@update - Skipping save; minimum required field iies_bname not present', ['project_id' => $projectId]);
+                return response()->json(['message' => 'IIES Personal Info skipped (minimum data not present).'], 200);
+            }
             $personalInfo->save();
 
-            DB::commit();
             return response()->json(['message' => 'IIES Personal Info updated successfully.'], 200);
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Error updating IIES Personal Info', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to update IIES Personal Info.'], 500);
+            throw $e;
         }
     }
 

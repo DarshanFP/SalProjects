@@ -6,15 +6,11 @@
 {{-- Direct Team Overview Widget --}}
 <div class="card mb-4 widget-card" data-widget-id="direct-team-overview">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="user" class="me-2"></i>Direct Team Overview
-        </h5>
+        <h5 class="mb-0">Direct Team Overview</h5>
         <div>
             <a href="{{ route('general.executors') }}" class="btn btn-sm btn-outline-primary me-2">Manage Team</a>
             <a href="{{ route('general.createExecutor') }}" class="btn btn-sm btn-primary me-2">Add Member</a>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="direct-team-overview" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="direct-team-overview" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body widget-content">
@@ -185,7 +181,6 @@
                         @empty
                             <tr>
                                 <td colspan="11" class="text-center text-muted py-4">
-                                    <i data-feather="user" style="width: 48px; height: 48px;" class="text-muted"></i>
                                     <p class="mt-2">No team members found</p>
                                 </td>
                             </tr>
@@ -203,10 +198,9 @@
             @endif
         @else
             <div class="text-center py-4">
-                <i data-feather="user" class="text-muted" style="width: 48px; height: 48px;"></i>
                 <p class="text-muted mt-3">No direct team members found. Add executors/applicants directly under you to get started.</p>
                 <a href="{{ route('general.createExecutor') }}" class="btn btn-sm btn-primary">
-                    <i data-feather="plus"></i> Add Member
+Add Member
                 </a>
             </div>
         @endif

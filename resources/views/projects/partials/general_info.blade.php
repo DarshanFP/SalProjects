@@ -90,8 +90,8 @@
         </div>
     </div>
     <div class="mb-3">
-        <label for="full_address" class="form-label">Full Address</label>
-        <textarea name="full_address" id="full_address" class="form-control textarea-secondary sustainability-textarea" rows="2">{{ old('full_address', $user->address) }}</textarea>
+        <label for="gi_full_address" class="form-label">Full Address</label>
+        <textarea name="gi_full_address" id="gi_full_address" class="form-control textarea-secondary sustainability-textarea" rows="2">{{ old('gi_full_address', $user->address) }}</textarea>
     </div>
     <div class="mb-3">
         <label for="overall_project_period" class="form-label">Overall Project Period</label>
@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     'in_charge_name': data.in_charge_name,
                     'in_charge_mobile': data.in_charge_mobile,
                     'in_charge_email': data.in_charge_email,
-                    'full_address': data.full_address,
+                    'gi_full_address': data.full_address,
                     'overall_project_period': data.overall_project_period,
                     'current_phase': data.current_phase,
                     'commencement_month': data.commencement_month,

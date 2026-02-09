@@ -106,11 +106,9 @@ After deployment, verify:
 
 ## Next Recommended Step
 
-**Implement JavaScript word-count validation (100 words, frontend-only)**
+~~**Implement JavaScript word-count validation (100 words, frontend-only)**~~ **Word-count validation was implemented then removed (2026-02-01).**
 
-Per the implementation plan:
-- Add client-side validation requiring a minimum of 100 words for each Key Information textarea.
-- Validate only via JavaScript; no Laravel/backend validation.
-- Block form submission if any field has fewer than 100 words.
-- Show inline error messages per field.
-- Skip validation when "Save as Draft" is used.
+Per the implementation plan, word-count validation was added but later removed because:
+- For some project types, Key Information fields may be irrelevant.
+- Requiring 100 words forced users to enter irrelevant filler text.
+- No minimum word count is now enforced; fields remain optional.

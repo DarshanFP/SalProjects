@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects\IES;
 
 use App\Http\Controllers\Controller;
+use App\Support\Normalization\ArrayToScalarNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IES\ProjectIESExpenses;
 use App\Models\OldProjects\IES\ProjectIESExpenseDetail;
@@ -36,9 +37,13 @@ class IESExpensesController extends Controller
             return response()->json(['error' => self::BUDGET_LOCKED_MESSAGE], 403);
         }
 
-        // Use all() to get all form data including particulars[], amounts[] arrays
-        // These fields are not in StoreProjectRequest validation rules
-        $validated = $request->all();
+        $fillableHeader = array_diff(
+            (new ProjectIESExpenses())->getFillable(),
+            ['project_id', 'IES_expense_id']
+        );
+        $allKeys = array_merge($fillableHeader, ['particulars', 'amounts']);
+        $data = $request->only($allKeys);
+        $headerData = ArrayToScalarNormalizer::forFillable($data, $fillableHeader);
 
         DB::beginTransaction();
         try {
@@ -54,22 +59,20 @@ class IESExpensesController extends Controller
             // Create new ProjectIESExpenses
             $projectExpenses = new ProjectIESExpenses();
             $projectExpenses->project_id = $projectId;
-            $projectExpenses->total_expenses = $validated['total_expenses'] ?? null;
-            $projectExpenses->expected_scholarship_govt = $validated['expected_scholarship_govt'] ?? null;
-            $projectExpenses->support_other_sources = $validated['support_other_sources'] ?? null;
-            $projectExpenses->beneficiary_contribution = $validated['beneficiary_contribution'] ?? null;
-            $projectExpenses->balance_requested = $validated['balance_requested'] ?? null;
+            $projectExpenses->fill($headerData);
             $projectExpenses->save();
 
-            // Store each particular and amount as a detail
-            $particulars = $validated['particulars'] ?? [];
-            $amounts = $validated['amounts'] ?? [];
+            // Store each particular and amount as a detail (scalar coercion prevents "Array to string conversion")
+            $particulars = is_array($data['particulars'] ?? null) ? ($data['particulars'] ?? []) : (isset($data['particulars']) && $data['particulars'] !== '' ? [$data['particulars']] : []);
+            $amounts = is_array($data['amounts'] ?? null) ? ($data['amounts'] ?? []) : (isset($data['amounts']) && $data['amounts'] !== '' ? [$data['amounts']] : []);
 
             for ($i = 0; $i < count($particulars); $i++) {
-                if (!empty($particulars[$i]) && !empty($amounts[$i])) {
+                $particular = is_array($particulars[$i] ?? null) ? (reset($particulars[$i]) ?? '') : ($particulars[$i] ?? '');
+                $amount = is_array($amounts[$i] ?? null) ? (reset($amounts[$i]) ?? '') : ($amounts[$i] ?? '');
+                if (!empty($particular) && !empty($amount)) {
                     $projectExpenses->expenseDetails()->create([
-                        'particular' => $particulars[$i],
-                        'amount' => $amounts[$i],
+                        'particular' => $particular,
+                        'amount' => $amount,
                     ]);
                 }
             }

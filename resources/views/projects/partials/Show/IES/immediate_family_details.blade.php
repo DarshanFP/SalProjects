@@ -1,190 +1,103 @@
-{{-- resources/views/projects/partials/Edit/IES/immediate_family_details.blade.php --}}
+{{-- resources/views/projects/partials/Show/IES/immediate_family_details.blade.php --}}
 <div class="mb-3 card">
     <div class="card-header">
-        <h4>Edit: Details about Immediate Family Members</h4>
+        <h4>Details about Immediate Family Members</h4>
     </div>
     <div class="card-body">
-        @if($project->iesImmediateFamilyDetails)
-            @php
-                $familyDetails = $project->iesImmediateFamilyDetails;
-            @endphp
+        @php
+            $familyDetails = $project->iesImmediateFamilyDetails ?? null;
+        @endphp
+
+        @if($familyDetails)
+            <table class="table table-bordered">
+                <tr>
+                    <th>Mother Expired</th>
+                    <td>{{ $familyDetails->mother_expired ? 'Yes' : 'No' }}</td>
+                </tr>
+                <tr>
+                    <th>Father Expired</th>
+                    <td>{{ $familyDetails->father_expired ? 'Yes' : 'No' }}</td>
+                </tr>
+                <tr>
+                    <th>Grandmother Supports Family</th>
+                    <td>{{ $familyDetails->grandmother_support ? 'Yes' : 'No' }}</td>
+                </tr>
+                <tr>
+                    <th>Grandfather Supports Family</th>
+                    <td>{{ $familyDetails->grandfather_support ? 'Yes' : 'No' }}</td>
+                </tr>
+                <tr>
+                    <th>Father Deserted Family</th>
+                    <td>{{ $familyDetails->father_deserted ? 'Yes' : 'No' }}</td>
+                </tr>
+                @if(!empty($familyDetails->family_details_others))
+                <tr>
+                    <th>Other Family Details</th>
+                    <td>{{ $familyDetails->family_details_others }}</td>
+                </tr>
+                @endif
+                <tr>
+                    <th>Father Health Issues</th>
+                    <td>
+                        @if($familyDetails->father_sick) Chronically Sick <br> @endif
+                        @if($familyDetails->father_hiv_aids) HIV/AIDS Positive <br> @endif
+                        @if($familyDetails->father_disabled) Disabled <br> @endif
+                        @if($familyDetails->father_alcoholic) Alcoholic <br> @endif
+                        @if(!empty($familyDetails->father_health_others)) Other: {{ $familyDetails->father_health_others }} @endif
+                        @if(!$familyDetails->father_sick && !$familyDetails->father_hiv_aids && !$familyDetails->father_disabled && !$familyDetails->father_alcoholic && empty($familyDetails->father_health_others)) N/A @endif
+                    </td>
+                </tr>
+                <tr>
+                    <th>Mother Health Issues</th>
+                    <td>
+                        @if($familyDetails->mother_sick) Chronically Sick <br> @endif
+                        @if($familyDetails->mother_hiv_aids) HIV/AIDS Positive <br> @endif
+                        @if($familyDetails->mother_disabled) Disabled <br> @endif
+                        @if($familyDetails->mother_alcoholic) Alcoholic <br> @endif
+                        @if(!empty($familyDetails->mother_health_others)) Other: {{ $familyDetails->mother_health_others }} @endif
+                        @if(!$familyDetails->mother_sick && !$familyDetails->mother_hiv_aids && !$familyDetails->mother_disabled && !$familyDetails->mother_alcoholic && empty($familyDetails->mother_health_others)) N/A @endif
+                    </td>
+                </tr>
+                <tr>
+                    <th>Residential Status</th>
+                    <td>
+                        @if($familyDetails->own_house) Own House <br> @endif
+                        @if($familyDetails->rented_house) Rented House <br> @endif
+                        @if(!empty($familyDetails->residential_others)) Other: {{ $familyDetails->residential_others }} @endif
+                        @if(!$familyDetails->own_house && !$familyDetails->rented_house && empty($familyDetails->residential_others)) N/A @endif
+                    </td>
+                </tr>
+                <tr>
+                    <th>Family Situation</th>
+                    <td>{{ $familyDetails->family_situation ?? 'N/A' }}</td>
+                </tr>
+                <tr>
+                    <th>Assistance Need</th>
+                    <td>{{ $familyDetails->assistance_need ?? 'N/A' }}</td>
+                </tr>
+                <tr>
+                    <th>Received Support Previously?</th>
+                    <td>{{ $familyDetails->received_support ? 'Yes' : 'No' }}</td>
+                </tr>
+                @if($familyDetails->received_support)
+                <tr>
+                    <th>Support Details</th>
+                    <td>{{ $familyDetails->support_details ?? 'N/A' }}</td>
+                </tr>
+                @endif
+                <tr>
+                    <th>Employed with St. Ann's?</th>
+                    <td>{{ $familyDetails->employed_with_stanns ? 'Yes' : 'No' }}</td>
+                </tr>
+                @if($familyDetails->employed_with_stanns)
+                <tr>
+                    <th>Employment Details</th>
+                    <td>{{ $familyDetails->employment_details ?? 'N/A' }}</td>
+                </tr>
+                @endif
+            </table>
         @else
-            @php
-                $familyDetails = new \App\Models\OldProjects\IES\ProjectIESImmediateFamilyDetails();
-            @endphp
+            <p class="text-muted">No family details recorded.</p>
         @endif
-
-        <!-- Immediate Family Details -->
-        <div class="form-group">
-            <label><strong>Immediate Family Details</strong></label>
-            <div class="form-check">
-                <input type="checkbox" name="mother_expired" class="form-check-input" value="1" {{ old('mother_expired', $familyDetails->mother_expired) ? 'checked' : '' }}>
-                <label class="form-check-label">Mother expired</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" name="father_expired" class="form-check-input" value="1" {{ old('father_expired', $familyDetails->father_expired) ? 'checked' : '' }}>
-                <label class="form-check-label">Father expired</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" name="grandmother_support" class="form-check-input" value="1" {{ old('grandmother_support', $familyDetails->grandmother_support) ? 'checked' : '' }}>
-                <label class="form-check-label">Grandmother supports family</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" name="grandfather_support" class="form-check-input" value="1" {{ old('grandfather_support', $familyDetails->grandfather_support) ? 'checked' : '' }}>
-                <label class="form-check-label">Grandfather supports family</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" name="father_deserted" class="form-check-input" value="1" {{ old('father_deserted', $familyDetails->father_deserted) ? 'checked' : '' }}>
-                <label class="form-check-label">Father deserted the family</label>
-            </div>
-            <div class="form-group">
-                <label>Any other:</label>
-                <input type="text" name="other_family_details" class="form-control" value="{{ old('other_family_details', $familyDetails->other_family_details) }}">
-            </div>
-        </div>
-
-        <!-- Health of Father -->
-        <div class="form-group">
-            <label><strong>Health of Father</strong></label>
-            <div class="form-check">
-                <input type="checkbox" name="father_sick" class="form-check-input" value="1" {{ old('father_sick', $familyDetails->father_sick) ? 'checked' : '' }}>
-                <label class="form-check-label">Chronically Sick</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" name="father_hiv_aids" class="form-check-input" value="1" {{ old('father_hiv_aids', $familyDetails->father_hiv_aids) ? 'checked' : '' }}>
-                <label class="form-check-label">HIV/AIDS positive</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" name="father_disabled" class="form-check-input" value="1" {{ old('father_disabled', $familyDetails->father_disabled) ? 'checked' : '' }}>
-                <label class="form-check-label">Disabled</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" name="father_alcoholic" class="form-check-input" value="1" {{ old('father_alcoholic', $familyDetails->father_alcoholic) ? 'checked' : '' }}>
-                <label class="form-check-label">Alcoholic</label>
-            </div>
-            <div class="form-group">
-                <label>Others:</label>
-                <input type="text" name="father_health_others" class="form-control" value="{{ old('father_health_others', $familyDetails->father_health_others) }}">
-            </div>
-        </div>
-
-        <!-- Health of Mother -->
-        <div class="form-group">
-            <label><strong>Health of Mother</strong></label>
-            <div class="form-check">
-                <input type="checkbox" name="mother_sick" class="form-check-input" value="1" {{ old('mother_sick', $familyDetails->mother_sick) ? 'checked' : '' }}>
-                <label class="form-check-label">Chronically Sick</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" name="mother_hiv_aids" class="form-check-input" value="1" {{ old('mother_hiv_aids', $familyDetails->mother_hiv_aids) ? 'checked' : '' }}>
-                <label class="form-check-label">HIV/AIDS positive</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" name="mother_disabled" class="form-check-input" value="1" {{ old('mother_disabled', $familyDetails->mother_disabled) ? 'checked' : '' }}>
-                <label class="form-check-label">Disabled</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" name="mother_alcoholic" class="form-check-input" value="1" {{ old('mother_alcoholic', $familyDetails->mother_alcoholic) ? 'checked' : '' }}>
-                <label class="form-check-label">Alcoholic</label>
-            </div>
-            <div class="form-group">
-                <label>Others:</label>
-                <input type="text" name="mother_health_others" class="form-control" value="{{ old('mother_health_others', $familyDetails->mother_health_others) }}">
-            </div>
-        </div>
-
-        <!-- Residential Status -->
-        <div class="form-group">
-            <label><strong>Residential Status</strong></label>
-            <div class="form-check">
-                <input type="checkbox" name="own_house" class="form-check-input" value="1" {{ old('own_house', $familyDetails->own_house) ? 'checked' : '' }}>
-                <label class="form-check-label">Own house</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" name="rented_house" class="form-check-input" value="1" {{ old('rented_house', $familyDetails->rented_house) ? 'checked' : '' }}>
-                <label class="form-check-label">Rented house</label>
-            </div>
-            <div class="form-group">
-                <label>Others:</label>
-                <input type="text" name="residential_others" class="form-control" value="{{ old('residential_others', $familyDetails->residential_others) }}">
-            </div>
-        </div>
-
-        <!-- Family Situation -->
-        <div class="form-group">
-            <label><strong>Family Situation</strong></label>
-            <textarea name="family_situation" class="form-control sustainability-textarea" rows="3">{{ old('family_situation', $familyDetails->family_situation) }}</textarea>
-        </div>
-
-        <!-- Need of Project Assistance -->
-        <div class="form-group">
-            <label><strong>Need of Project Assistance</strong></label>
-            <textarea name="assistance_need" class="form-control sustainability-textarea" rows="3">{{ old('assistance_need', $familyDetails->assistance_need) }}</textarea>
-        </div>
-
-        <!-- Financial Support -->
-        <div class="form-group">
-            <label><strong>Has the family of the beneficiary received financial support previously through St. Ann's projects?</strong></label>
-            <div class="form-check">
-                <input type="radio" name="received_support" class="form-check-input" value="1" {{ old('received_support', $familyDetails->received_support) == '1' ? 'checked' : '' }}>
-                <label class="form-check-label">Yes</label>
-            </div>
-            <div class="form-check">
-                <input type="radio" name="received_support" class="form-check-input" value="0" {{ old('received_support', $familyDetails->received_support) == '0' ? 'checked' : '' }}>
-                <label class="form-check-label">No</label>
-            </div>
-            <div class="form-group">
-                <label>If yes, give details:</label>
-                <textarea name="support_details" class="form-control sustainability-textarea" rows="3">{{ old('support_details', $familyDetails->support_details) }}</textarea>
-            </div>
-        </div>
-
-        <!-- Employment with St. Ann's -->
-        <div class="form-group">
-            <label><strong>Are the family members of the beneficiary employed with St. Ann's?</strong></label>
-            <div class="form-check">
-                <input type="radio" name="employed_with_stanns" class="form-check-input" value="1" {{ old('employed_with_stanns', $familyDetails->employed_with_stanns) == '1' ? 'checked' : '' }}>
-                <label class="form-check-label">Yes</label>
-            </div>
-            <div class="form-check">
-                <input type="radio" name="employed_with_stanns" class="form-check-input" value="0" {{ old('employed_with_stanns', $familyDetails->employed_with_stanns) == '0' ? 'checked' : '' }}>
-                <label class="form-check-label">No</label>
-            </div>
-            <div class="form-group">
-                <label>If yes, give details:</label>
-                <textarea name="employment_details" class="form-control sustainability-textarea" rows="3">{{ old('employment_details', $familyDetails->employment_details) }}</textarea>
-            </div>
-        </div>
     </div>
 </div>
-
-<style>
-.sustainability-textarea {
-    resize: vertical;
-    min-height: 80px;
-    height: auto;
-    overflow-y: hidden;
-    line-height: 1.5;
-    padding: 8px 12px;
-}
-
-.sustainability-textarea:focus {
-    overflow-y: auto;
-}
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    function autoResizeTextarea(textarea) {
-        textarea.style.height = 'auto';
-        textarea.style.height = (textarea.scrollHeight) + 'px';
-    }
-    const textareas = document.querySelectorAll('.sustainability-textarea');
-    textareas.forEach(textarea => {
-        autoResizeTextarea(textarea);
-        textarea.addEventListener('input', function() {
-            autoResizeTextarea(this);
-        });
-    });
-});
-</script>

@@ -16,11 +16,12 @@ class RolesAndPermissionsSeeder extends Seeder
     public function run()
     {
         // Create roles
-        Role::create(['name' => 'admin']);
-        Role::create(['name' => 'coordinator']);
-        Role::create(['name' => 'provincial']);
-        Role::create(['name' => 'executor']);
-        Role::create(['name' => 'general']);  // Adding the general role
+        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'coordinator', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'provincial', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'executor', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'general', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'applicant', 'guard_name' => 'web']);
 
         // You can create permissions and assign them to roles as needed
         // Permission::create(['name' => 'edit articles']);

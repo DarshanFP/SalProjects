@@ -69,6 +69,11 @@ class ProjectIESAttachments extends Model
         static::creating(function ($model) {
             $model->IES_attachment_id = $model->generateIESAttachmentId();
         });
+        static::deleting(function ($model) {
+            $model->files()->each(function ($file) {
+                $file->delete();
+            });
+        });
     }
 
     private function generateIESAttachmentId()
@@ -92,11 +97,30 @@ class ProjectIESAttachments extends Model
     }
 
     /**
-     * Get files for a specific field
+     * Get files for a specific field.
+     * Prefers project_IES_attachment_files; falls back to legacy column if no rows exist.
      */
     public function getFilesForField($fieldName)
     {
-        return $this->files()->where('field_name', $fieldName)->orderBy('serial_number')->get();
+        $filesFromTable = $this->files()->where('field_name', $fieldName)->orderBy('serial_number')->get();
+
+        if ($filesFromTable->isNotEmpty()) {
+            return $filesFromTable;
+        }
+
+        // Legacy fallback: check if legacy column has a path
+        $legacyPath = $this->{$fieldName} ?? null;
+        if (!empty($legacyPath)) {
+            $legacyFile = (object) [
+                'file_path' => $legacyPath,
+                'file_name' => basename($legacyPath),
+                'description' => '',
+                'serial_number' => '01',
+            ];
+            return collect([$legacyFile]);
+        }
+
+        return collect([]);
     }
 
 
@@ -107,66 +131,80 @@ class ProjectIESAttachments extends Model
             'caste_certificate', 'self_declaration', 'death_certificate', 'request_letter'
         ];
 
-        // Storage path without 'public/' prefix - Laravel's Storage::disk('public') handles this
         $projectDir = "project_attachments/IES/{$projectId}";
-
-        // Ensure the directory exists on public disk
         Storage::disk('public')->makeDirectory($projectDir, 0755, true);
 
         $attachments = self::updateOrCreate(['project_id' => $projectId], []);
 
-        $uploadedFiles = []; // Track uploaded files for cleanup on error
+        $uploadedFiles = [];
 
         try {
-        foreach ($fields as $field) {
-            if ($request->hasFile($field)) {
-                $file = $request->file($field);
+            foreach ($fields as $field) {
+                if ($request->hasFile($field)) {
+                    $files = is_array($request->file($field))
+                        ? $request->file($field)
+                        : [$request->file($field)];
 
-                    // Validate file type
-                    if (!self::isValidFileType($file)) {
-                        \Log::error('Invalid file type for IES attachment', [
-                            'field' => $field,
-                            'mime_type' => $file->getMimeType(),
-                            'extension' => $file->getClientOriginalExtension()
-                        ]);
-                        $allowedTypes = config('attachments.allowed_file_types.image_only');
-                        $typesList = implode(', ', array_map('strtoupper', $allowedTypes['extensions']));
-                        $errorMsg = str_replace(':types', $typesList, config('attachments.messages.file_type_error'));
-                        throw new \Exception("Invalid file type for {$field}. {$errorMsg}");
-                    }
+                    $fileNames = $request->input("{$field}_names", []);
+                    $descriptions = $request->input("{$field}_descriptions", []);
 
-                    // Validate file size (7MB max - allows buffer for files slightly over 5MB)
-                    $maxSize = config('attachments.max_file_size.server_bytes');
-                    if ($file->getSize() > $maxSize) {
-                        $maxSizeMB = config('attachments.max_file_size.display_mb');
-                        $errorMsg = str_replace(':size', $maxSizeMB, config('attachments.messages.file_size_error'));
-                        throw new \Exception("File size exceeds limit for {$field}. {$errorMsg}");
-                    }
-
-                $fileName = "{$projectId}_{$field}." . $file->getClientOriginalExtension();
-
-                    // Save file on public disk - storeAs handles the path correctly
-                    $filePath = $file->storeAs($projectDir, $fileName, 'public');
-
-                    if ($filePath) {
-                        $uploadedFiles[] = $filePath; // Track for cleanup
-
-                        // Remove old file if different from new path
-                        if (!empty($attachments->{$field}) && $attachments->{$field} !== $filePath) {
-                            Storage::disk('public')->delete($attachments->{$field});
+                    foreach ($files as $index => $file) {
+                        if (!$file || !$file->isValid()) {
+                            continue;
                         }
 
-                // ✅ Save the correct path in the database
-                $attachments->{$field} = $filePath;
+                        if (!self::isValidFileType($file)) {
+                            \Log::error('Invalid file type for IES attachment', [
+                                'field' => $field,
+                                'mime_type' => $file->getMimeType(),
+                                'extension' => $file->getClientOriginalExtension()
+                            ]);
+                            $allowedTypes = config('attachments.allowed_file_types.image_only');
+                            $typesList = implode(', ', array_map('strtoupper', $allowedTypes['extensions']));
+                            $errorMsg = str_replace(':types', $typesList, config('attachments.messages.file_type_error'));
+                            throw new \Exception("Invalid file type for {$field}. {$errorMsg}");
+                        }
+
+                        $maxSize = config('attachments.max_file_size.server_bytes');
+                        if ($file->getSize() > $maxSize) {
+                            $maxSizeMB = config('attachments.max_file_size.display_mb');
+                            $errorMsg = str_replace(':size', $maxSizeMB, config('attachments.messages.file_size_error'));
+                            throw new \Exception("File size exceeds limit for {$field}. {$errorMsg}");
+                        }
+
+                        $userProvidedName = $fileNames[$index] ?? null;
+                        $extension = $file->getClientOriginalExtension();
+                        $fileName = AttachmentFileNamingHelper::generateFileName(
+                            $projectId,
+                            $field,
+                            $extension,
+                            $userProvidedName,
+                            'IES'
+                        );
+
+                        $filePath = $file->storeAs($projectDir, $fileName, 'public');
+
+                        if ($filePath && Storage::disk('public')->exists($filePath)) {
+                            $uploadedFiles[] = $filePath;
+
+                            $serialNumber = AttachmentFileNamingHelper::getNextSerialNumber($projectId, $field, 'IES');
+                            $serialFormatted = str_pad($serialNumber, 2, '0', STR_PAD_LEFT);
+
+                            ProjectIESAttachmentFile::create([
+                                'IES_attachment_id' => $attachments->IES_attachment_id,
+                                'project_id' => $projectId,
+                                'field_name' => $field,
+                                'file_path' => $filePath,
+                                'file_name' => $userProvidedName ?? $fileName,
+                                'description' => $descriptions[$index] ?? '',
+                                'serial_number' => $serialFormatted,
+                                'public_url' => Storage::url($filePath),
+                            ]);
+                        }
                     }
+                }
             }
-        }
-
-        $attachments->save();
-        return $attachments;
-
         } catch (\Exception $e) {
-            // Clean up uploaded files on error
             foreach ($uploadedFiles as $filePath) {
                 if (Storage::disk('public')->exists($filePath)) {
                     Storage::disk('public')->delete($filePath);
@@ -174,6 +212,9 @@ class ProjectIESAttachments extends Model
             }
             throw $e;
         }
+
+        $attachments->save();
+        return $attachments;
     }
 
     /**

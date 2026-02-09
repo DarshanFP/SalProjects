@@ -1,6 +1,10 @@
 # Step 4 Completed — Key Information Word-Count Validation (Frontend)
 
-## Objective
+> **REMOVED (2026-02-01):** The 100-word minimum validation was removed. For some project types, fields like "Prevailing social situation", "Target beneficiary", "Educational & cultural situation", "Need of the Project", "Prevailing economic situation", and "Goal of the Project" may be irrelevant. Requiring 100 words forced users to enter irrelevant filler text. No minimum word count is now enforced; fields remain optional as per backend validation.
+
+---
+
+## Objective (Historical)
 
 Implement frontend-only JavaScript validation enforcing a minimum of 100 words for all Key Information textareas. Validation runs **only** when the user submits via the final submit button ("Save Project Application" or "Update Project"). Draft submissions bypass validation entirely.
 

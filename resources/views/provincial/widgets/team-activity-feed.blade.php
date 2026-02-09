@@ -5,12 +5,8 @@
 {{-- Team Activity Feed Widget --}}
 <div class="card mb-4 widget-card" data-widget-id="team-activity-feed">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="activity" class="me-2"></i>Team Activity Feed
-        </h5>
-        <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="team-activity-feed" title="Minimize">
-            <i data-feather="chevron-up"></i>
-        </button>
+        <h5 class="mb-0">Team Activity Feed</h5>
+        <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="team-activity-feed" title="Minimize">−</button>
         <div>
             <select class="form-select form-select-sm d-inline-block" id="activityTypeFilter" style="width: auto;">
                 <option value="">All Activities</option>
@@ -23,8 +19,7 @@
     <div class="card-body widget-content">
         @if(!isset($teamActivities) || $teamActivities->isEmpty())
             <div class="text-center py-4">
-                <i data-feather="inbox" class="text-muted" style="width: 48px; height: 48px;"></i>
-                <p class="mt-3 text-muted">No recent team activities</p>
+                <p class="text-muted">No recent team activities</p>
             </div>
         @else
             {{-- Activity Timeline --}}
@@ -83,9 +78,7 @@
                                  data-status="{{ $activity->new_status }}">
                                 <div class="d-flex align-items-start">
                                     <div class="activity-icon me-3">
-                                        <div class="rounded-circle bg-{{ $color }} bg-opacity-25 p-2">
-                                            <i data-feather="{{ $icon }}" class="text-{{ $color }}" style="width: 20px; height: 20px;"></i>
-                                        </div>
+                                        <div class="rounded-circle bg-{{ $color }} bg-opacity-25 p-2" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">&nbsp;</div>
                                     </div>
                                     <div class="flex-grow-1">
                                         <div class="d-flex justify-content-between align-items-start">
@@ -101,15 +94,9 @@
                                                     <span class="text-muted ms-2">{{ $description }}</span>
                                                 </p>
                                                 @if($activity->notes)
-                                                    <p class="text-muted small mb-1">
-                                                        <i data-feather="message-square" style="width: 14px; height: 14px;" class="me-1"></i>
-                                                        {{ Str::limit($activity->notes, 100) }}
-                                                    </p>
+                                                    <p class="text-muted small mb-1">{{ Str::limit($activity->notes, 100) }}</p>
                                                 @endif
-                                                <small class="text-muted">
-                                                    <i data-feather="clock" style="width: 14px; height: 14px;" class="me-1"></i>
-                                                    {{ $activity->created_at->diffForHumans() }}
-                                                </small>
+                                                <small class="text-muted">{{ $activity->created_at->diffForHumans() }}</small>
                                             </div>
                                             <div class="ms-3">
                                                 <span class="badge {{ $activity->new_status_badge_class ?? 'bg-secondary' }}">
@@ -120,14 +107,10 @@
                                         <div class="mt-2">
                                             @if($activity->type === 'project')
                                                 <a href="{{ route('provincial.projects.show', $activity->related_id) }}" 
-                                                   class="btn btn-sm btn-outline-primary">
-                                                    <i data-feather="eye"></i> View Project
-                                                </a>
+                                                   class="btn btn-sm btn-outline-primary">View Project</a>
                                             @else
                                                 <a href="{{ route('provincial.monthly.report.show', $activity->related_id) }}" 
-                                                   class="btn btn-sm btn-outline-info">
-                                                    <i data-feather="eye"></i> View Report
-                                                </a>
+                                                   class="btn btn-sm btn-outline-info">View Report</a>
                                             @endif
                                         </div>
                                     </div>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects\IGE;
 
 use App\Http\Controllers\Controller;
+use App\Services\FormDataExtractor;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IGE\ProjectIGEInstitutionInfo;
 use Illuminate\Support\Facades\Log;
@@ -15,22 +16,19 @@ class InstitutionInfoController extends Controller
     // Store or update institution information for a project
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = array_diff(
+            (new ProjectIGEInstitutionInfo())->getFillable(),
+            ['project_id', 'IGE_institution_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
         DB::beginTransaction();
         try {
             Log::info('Storing IGE Institution Information', ['project_id' => $projectId]);
 
-            // Update or create the institution information entry
             $IGEinstitutionInfo = ProjectIGEInstitutionInfo::updateOrCreate(
                 ['project_id' => $projectId],
-                [
-                    'institutional_type' => $validated['institutional_type'] ?? null,
-                    'age_group' => $validated['age_group'] ?? null,
-                    'previous_year_beneficiaries' => $validated['previous_year_beneficiaries'] ?? null,
-                    'outcome_impact' => $validated['outcome_impact'] ?? null,
-                ]
+                $data
             );
 
             DB::commit();

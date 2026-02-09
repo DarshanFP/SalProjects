@@ -8,20 +8,15 @@
 {{-- System Performance Widget --}}
 <div class="card mb-4 widget-card" data-widget-id="system-performance">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="bar-chart-2" class="me-2"></i>System Performance
-        </h5>
+        <h5 class="mb-0">System Performance</h5>
         <div>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="system-performance" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="system-performance" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body widget-content">
         @if(empty($performanceData))
             <div class="text-center py-4">
-                <i data-feather="bar-chart-2" class="text-muted" style="width: 48px; height: 48px;"></i>
-                <p class="text-muted mt-3">No performance data available</p>
+                <p class="text-muted">No performance data available</p>
             </div>
         @else
             {{-- Overall Performance Metrics Cards --}}
@@ -69,10 +64,7 @@
                 <div class="col-md-6">
                     <div class="card border-primary">
                         <div class="card-header bg-primary text-white">
-                            <h6 class="mb-0">
-                                <i data-feather="users" class="me-2" style="width: 16px; height: 16px;"></i>
-                                Coordinator Hierarchy Performance
-                            </h6>
+                            <h6 class="mb-0">Coordinator Hierarchy Performance</h6>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -107,10 +99,7 @@
                 <div class="col-md-6">
                     <div class="card border-success">
                         <div class="card-header bg-success text-white">
-                            <h6 class="mb-0">
-                                <i data-feather="user" class="me-2" style="width: 16px; height: 16px;"></i>
-                                Direct Team Performance
-                            </h6>
+                            <h6 class="mb-0">Direct Team Performance</h6>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -149,10 +138,7 @@
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-header">
-                            <h6 class="mb-0">
-                                <i data-feather="bar-chart-2" class="me-2" style="width: 16px; height: 16px;"></i>
-                                Performance Metrics Comparison (Coordinator Hierarchy vs Direct Team)
-                            </h6>
+                            <h6 class="mb-0">Performance Metrics Comparison (Coordinator Hierarchy vs Direct Team)</h6>
                         </div>
                         <div class="card-body">
                             <div id="performanceMetricsComparisonChart" style="min-height: 350px;"></div>
@@ -173,8 +159,7 @@
                                 <div id="projectsStatusChart" style="min-height: 250px;"></div>
                             @else
                                 <div class="text-center py-4 text-muted">
-                                    <i data-feather="pie-chart" style="width: 32px; height: 32px; opacity: 0.3;"></i>
-                                    <p class="mt-2 mb-0">No project status data available</p>
+                                    <p class="mb-0">No project status data available</p>
                                 </div>
                             @endif
                         </div>
@@ -190,8 +175,7 @@
                                 <div id="reportsStatusChart" style="min-height: 250px;"></div>
                             @else
                                 <div class="text-center py-4 text-muted">
-                                    <i data-feather="pie-chart" style="width: 32px; height: 32px; opacity: 0.3;"></i>
-                                    <p class="mt-2 mb-0">No report status data available</p>
+                                    <p class="mb-0">No report status data available</p>
                                 </div>
                             @endif
                         </div>

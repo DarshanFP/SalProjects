@@ -125,15 +125,17 @@
         </div>
     </div>
 
-    <!-- Key Information Section -->
-    <div id="key-info-section" class="mb-3 card">
-        <div class="card-header">
-            <h4>Key Information</h4>
+    <!-- Key Information Section (excluded for Individual project types) -->
+    @if (!in_array($project->project_type, \App\Constants\ProjectType::getIndividualTypes()))
+        <div id="key-info-section" class="mb-3 card">
+            <div class="card-header">
+                <h4>Key Information</h4>
+            </div>
+            <div class="card-body">
+                @include('projects.partials.Show.key_information')
+            </div>
         </div>
-        <div class="card-body">
-            @include('projects.partials.Show.key_information')
-        </div>
-    </div>
+    @endif
 
     <!-- RST Beneficiaries Area for Development Projects -->
     @if ($project->project_type === 'Development Projects')

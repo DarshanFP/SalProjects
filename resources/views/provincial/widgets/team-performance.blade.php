@@ -5,18 +5,14 @@
 {{-- Team Performance Summary Widget --}}
 <div class="card mb-4 widget-card" data-widget-id="team-performance">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="trending-up" class="me-2"></i>Team Performance Summary
-        </h5>
+        <h5 class="mb-0">Team Performance Summary</h5>
         <div class="d-flex align-items-center">
             <div class="btn-group btn-group-sm me-2" role="group">
                 <button type="button" class="btn btn-outline-secondary" id="timeRange7Days">7 Days</button>
                 <button type="button" class="btn btn-outline-secondary" id="timeRange30Days">30 Days</button>
                 <button type="button" class="btn btn-outline-secondary active" id="timeRangeAll">All Time</button>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="team-performance" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="team-performance" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body">

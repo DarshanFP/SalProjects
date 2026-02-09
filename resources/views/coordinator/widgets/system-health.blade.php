@@ -28,9 +28,6 @@
         @if(empty($healthData) || empty($overallScore))
             {{-- Empty State --}}
             <div class="text-center py-5">
-                <div class="mb-3">
-                    <i class="feather icon-activity" style="font-size: 48px; color: #ccc;"></i>
-                </div>
                 <h5 class="text-muted">No Health Data Available</h5>
                 <p class="text-muted">Health indicators will be calculated once there is system activity.</p>
             </div>

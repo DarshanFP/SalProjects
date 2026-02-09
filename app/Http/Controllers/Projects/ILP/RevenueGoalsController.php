@@ -19,50 +19,63 @@ class RevenueGoalsController extends Controller
      */
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including business_plan_items[], annual_income[], annual_expenses[] arrays
-        // These fields are not in StoreProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = ['business_plan_items', 'annual_income', 'annual_expenses'];
+        $data = $request->only($fillable);
+
+        // Scalar-to-array normalization; ensure arrays for iteration
+        $businessPlanItems = is_array($data['business_plan_items'] ?? null) ? ($data['business_plan_items'] ?? []) : (isset($data['business_plan_items']) ? [$data['business_plan_items']] : []);
+        $annualIncome      = is_array($data['annual_income'] ?? null) ? ($data['annual_income'] ?? []) : (isset($data['annual_income']) ? [$data['annual_income']] : []);
+        $annualExpenses    = is_array($data['annual_expenses'] ?? null) ? ($data['annual_expenses'] ?? []) : (isset($data['annual_expenses']) ? [$data['annual_expenses']] : []);
+
         DB::beginTransaction();
         try {
             Log::info('Storing Revenue Goals for Project', ['project_id' => $projectId]);
 
-            // Store Business Plan Items
-            $businessPlanItems = $validated['business_plan_items'] ?? [];
             foreach ($businessPlanItems as $item) {
+                $itemVal = is_array($item['item'] ?? null) ? (reset($item['item']) ?? '') : ($item['item'] ?? '');
+                $y1 = is_array($item['year_1'] ?? null) ? (reset($item['year_1']) ?? null) : ($item['year_1'] ?? null);
+                $y2 = is_array($item['year_2'] ?? null) ? (reset($item['year_2']) ?? null) : ($item['year_2'] ?? null);
+                $y3 = is_array($item['year_3'] ?? null) ? (reset($item['year_3']) ?? null) : ($item['year_3'] ?? null);
+                $y4 = is_array($item['year_4'] ?? null) ? (reset($item['year_4']) ?? null) : ($item['year_4'] ?? null);
                 ProjectILPRevenuePlanItem::create([
                     'project_id' => $projectId,
-                    'item' => $item['item'] ?? '',
-                    'year_1' => $item['year_1'] ?? null,
-                    'year_2' => $item['year_2'] ?? null,
-                    'year_3' => $item['year_3'] ?? null,
-                    'year_4' => $item['year_4'] ?? null,
+                    'item' => $itemVal,
+                    'year_1' => $y1,
+                    'year_2' => $y2,
+                    'year_3' => $y3,
+                    'year_4' => $y4,
                 ]);
             }
 
-            // Store Annual Income
-            $annualIncome = $validated['annual_income'] ?? [];
             foreach ($annualIncome as $income) {
+                $desc = is_array($income['description'] ?? null) ? (reset($income['description']) ?? '') : ($income['description'] ?? '');
+                $y1 = is_array($income['year_1'] ?? null) ? (reset($income['year_1']) ?? null) : ($income['year_1'] ?? null);
+                $y2 = is_array($income['year_2'] ?? null) ? (reset($income['year_2']) ?? null) : ($income['year_2'] ?? null);
+                $y3 = is_array($income['year_3'] ?? null) ? (reset($income['year_3']) ?? null) : ($income['year_3'] ?? null);
+                $y4 = is_array($income['year_4'] ?? null) ? (reset($income['year_4']) ?? null) : ($income['year_4'] ?? null);
                 ProjectILPRevenueIncome::create([
                     'project_id' => $projectId,
-                    'description' => $income['description'] ?? '',
-                    'year_1' => $income['year_1'] ?? null,
-                    'year_2' => $income['year_2'] ?? null,
-                    'year_3' => $income['year_3'] ?? null,
-                    'year_4' => $income['year_4'] ?? null,
+                    'description' => $desc,
+                    'year_1' => $y1,
+                    'year_2' => $y2,
+                    'year_3' => $y3,
+                    'year_4' => $y4,
                 ]);
             }
 
-            // Store Annual Expenses
-            $annualExpenses = $validated['annual_expenses'] ?? [];
             foreach ($annualExpenses as $expense) {
+                $desc = is_array($expense['description'] ?? null) ? (reset($expense['description']) ?? '') : ($expense['description'] ?? '');
+                $y1 = is_array($expense['year_1'] ?? null) ? (reset($expense['year_1']) ?? null) : ($expense['year_1'] ?? null);
+                $y2 = is_array($expense['year_2'] ?? null) ? (reset($expense['year_2']) ?? null) : ($expense['year_2'] ?? null);
+                $y3 = is_array($expense['year_3'] ?? null) ? (reset($expense['year_3']) ?? null) : ($expense['year_3'] ?? null);
+                $y4 = is_array($expense['year_4'] ?? null) ? (reset($expense['year_4']) ?? null) : ($expense['year_4'] ?? null);
                 ProjectILPRevenueExpense::create([
                     'project_id' => $projectId,
-                    'description' => $expense['description'] ?? '',
-                    'year_1' => $expense['year_1'] ?? null,
-                    'year_2' => $expense['year_2'] ?? null,
-                    'year_3' => $expense['year_3'] ?? null,
-                    'year_4' => $expense['year_4'] ?? null,
+                    'description' => $desc,
+                    'year_1' => $y1,
+                    'year_2' => $y2,
+                    'year_3' => $y3,
+                    'year_4' => $y4,
                 ]);
             }
 
@@ -150,53 +163,66 @@ class RevenueGoalsController extends Controller
 
     public function update(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including business_plan_items[], annual_income[], annual_expenses[] arrays
-        // These fields are not in UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = ['business_plan_items', 'annual_income', 'annual_expenses'];
+        $data = $request->only($fillable);
+
+        $businessPlanItems = is_array($data['business_plan_items'] ?? null) ? ($data['business_plan_items'] ?? []) : (isset($data['business_plan_items']) ? [$data['business_plan_items']] : []);
+        $annualIncome      = is_array($data['annual_income'] ?? null) ? ($data['annual_income'] ?? []) : (isset($data['annual_income']) ? [$data['annual_income']] : []);
+        $annualExpenses    = is_array($data['annual_expenses'] ?? null) ? ($data['annual_expenses'] ?? []) : (isset($data['annual_expenses']) ? [$data['annual_expenses']] : []);
+
         DB::beginTransaction();
         try {
             Log::info('Updating Revenue Goals for Project', ['project_id' => $projectId]);
 
-            // Update Business Plan Items
             ProjectILPRevenuePlanItem::where('project_id', $projectId)->delete();
-            $businessPlanItems = $validated['business_plan_items'] ?? [];
+            ProjectILPRevenueIncome::where('project_id', $projectId)->delete();
+            ProjectILPRevenueExpense::where('project_id', $projectId)->delete();
+
             foreach ($businessPlanItems as $item) {
+                $itemVal = is_array($item['item'] ?? null) ? (reset($item['item']) ?? '') : ($item['item'] ?? '');
+                $y1 = is_array($item['year_1'] ?? null) ? (reset($item['year_1']) ?? null) : ($item['year_1'] ?? null);
+                $y2 = is_array($item['year_2'] ?? null) ? (reset($item['year_2']) ?? null) : ($item['year_2'] ?? null);
+                $y3 = is_array($item['year_3'] ?? null) ? (reset($item['year_3']) ?? null) : ($item['year_3'] ?? null);
+                $y4 = is_array($item['year_4'] ?? null) ? (reset($item['year_4']) ?? null) : ($item['year_4'] ?? null);
                 ProjectILPRevenuePlanItem::create([
                     'project_id' => $projectId,
-                    'item' => $item['item'] ?? '',
-                    'year_1' => $item['year_1'] ?? null,
-                    'year_2' => $item['year_2'] ?? null,
-                    'year_3' => $item['year_3'] ?? null,
-                    'year_4' => $item['year_4'] ?? null,
+                    'item' => $itemVal,
+                    'year_1' => $y1,
+                    'year_2' => $y2,
+                    'year_3' => $y3,
+                    'year_4' => $y4,
                 ]);
             }
 
-            // Update Annual Income
-            ProjectILPRevenueIncome::where('project_id', $projectId)->delete();
-            $annualIncome = $validated['annual_income'] ?? [];
             foreach ($annualIncome as $income) {
+                $desc = is_array($income['description'] ?? null) ? (reset($income['description']) ?? '') : ($income['description'] ?? '');
+                $y1 = is_array($income['year_1'] ?? null) ? (reset($income['year_1']) ?? null) : ($income['year_1'] ?? null);
+                $y2 = is_array($income['year_2'] ?? null) ? (reset($income['year_2']) ?? null) : ($income['year_2'] ?? null);
+                $y3 = is_array($income['year_3'] ?? null) ? (reset($income['year_3']) ?? null) : ($income['year_3'] ?? null);
+                $y4 = is_array($income['year_4'] ?? null) ? (reset($income['year_4']) ?? null) : ($income['year_4'] ?? null);
                 ProjectILPRevenueIncome::create([
                     'project_id' => $projectId,
-                    'description' => $income['description'] ?? '', // FIXED field name from 'desc' to 'description'
-                    'year_1' => $income['year_1'] ?? null,
-                    'year_2' => $income['year_2'] ?? null,
-                    'year_3' => $income['year_3'] ?? null,
-                    'year_4' => $income['year_4'] ?? null,
+                    'description' => $desc,
+                    'year_1' => $y1,
+                    'year_2' => $y2,
+                    'year_3' => $y3,
+                    'year_4' => $y4,
                 ]);
             }
 
-            // Update Annual Expenses
-            ProjectILPRevenueExpense::where('project_id', $projectId)->delete();
-            $annualExpenses = $validated['annual_expenses'] ?? [];
             foreach ($annualExpenses as $expense) {
+                $desc = is_array($expense['description'] ?? null) ? (reset($expense['description']) ?? '') : ($expense['description'] ?? '');
+                $y1 = is_array($expense['year_1'] ?? null) ? (reset($expense['year_1']) ?? null) : ($expense['year_1'] ?? null);
+                $y2 = is_array($expense['year_2'] ?? null) ? (reset($expense['year_2']) ?? null) : ($expense['year_2'] ?? null);
+                $y3 = is_array($expense['year_3'] ?? null) ? (reset($expense['year_3']) ?? null) : ($expense['year_3'] ?? null);
+                $y4 = is_array($expense['year_4'] ?? null) ? (reset($expense['year_4']) ?? null) : ($expense['year_4'] ?? null);
                 ProjectILPRevenueExpense::create([
                     'project_id' => $projectId,
-                    'description' => $expense['description'] ?? '', // FIXED field name from 'desc' to 'description'
-                    'year_1' => $expense['year_1'] ?? null,
-                    'year_2' => $expense['year_2'] ?? null,
-                    'year_3' => $expense['year_3'] ?? null,
-                    'year_4' => $expense['year_4'] ?? null,
+                    'description' => $desc,
+                    'year_1' => $y1,
+                    'year_2' => $y2,
+                    'year_3' => $y3,
+                    'year_4' => $y4,
                 ]);
             }
 

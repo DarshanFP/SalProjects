@@ -5,9 +5,7 @@
 {{-- Team Overview Widget (Enhanced) --}}
 <div class="card mb-4 widget-card" data-widget-id="team-overview">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="users" class="me-2"></i>Team Overview
-        </h5>
+        <h5 class="mb-0">Team Overview</h5>
         <div>
             <select class="form-select form-select-sm d-inline-block" id="teamOverviewFilter" style="width: auto;">
                 <option value="">All Members</option>
@@ -18,9 +16,7 @@
             </select>
             <a href="{{ route('provincial.executors') }}" class="btn btn-sm btn-outline-primary ms-2">Manage Team</a>
             <a href="{{ route('provincial.createExecutor') }}" class="btn btn-sm btn-primary ms-2">Add Member</a>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle ms-2" data-widget="team-overview" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle ms-2" data-widget="team-overview" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body widget-content">
@@ -168,8 +164,7 @@
                     @empty
                         <tr>
                             <td colspan="10" class="text-center py-4">
-                                <i data-feather="users" class="text-muted" style="width: 48px; height: 48px;"></i>
-                                <p class="mt-3 text-muted">No team members found</p>
+                                <p class="text-muted">No team members found</p>
                                 <a href="{{ route('provincial.createExecutor') }}" class="btn btn-sm btn-primary">Add Team Member</a>
                             </td>
                         </tr>

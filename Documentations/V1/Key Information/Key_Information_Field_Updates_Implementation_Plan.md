@@ -6,7 +6,7 @@ This document describes the implementation plan for updating the **Key Informati
 
 1. **Label changes (UI only)** — Renaming four existing field labels without changing database column names.
 2. **New field addition** — Adding a new textarea field "Prevailing economic situation in the project area" with a corresponding database column.
-3. **Word count rule (frontend only)** — Enforcing a minimum of 100 words per textarea via JavaScript only; no backend or database validation.
+3. **Word count rule (frontend only)** — ~~Enforcing a minimum of 100 words per textarea via JavaScript only; no backend or database validation.~~ **REMOVED (2026-02-01):** The 100-word minimum was removed. For some project types these fields may be irrelevant; requiring 100 words forced users to enter irrelevant filler text.
 
 ---
 

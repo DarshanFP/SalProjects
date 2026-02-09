@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects\IES;
 
 use App\Http\Controllers\Controller;
+use App\Services\FormDataExtractor;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IES\ProjectIESEducationBackground;
 use App\Models\OldProjects\Project;
@@ -16,9 +17,12 @@ class IESEducationBackgroundController extends Controller
     // Store or update educational background for a project
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = array_diff(
+            (new ProjectIESEducationBackground())->getFillable(),
+            ['project_id', 'IES_education_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
         DB::beginTransaction();
         try {
             Log::info('Storing IES educational background', ['project_id' => $projectId]);
@@ -26,8 +30,7 @@ class IESEducationBackgroundController extends Controller
             // Find or create a new educational background record
             $educationBackground = ProjectIESEducationBackground::where('project_id', $projectId)->first() ?: new ProjectIESEducationBackground();
             $educationBackground->project_id = $projectId;
-            // Use validated data instead of all()
-            $educationBackground->fill($validated);
+            $educationBackground->fill($data);
             $educationBackground->save();
 
             DB::commit();

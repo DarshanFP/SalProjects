@@ -1,13 +1,8 @@
 {{-- Project Health Widget - Dark Theme Compatible --}}
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="activity" class="me-2"></i>
-            Project Health Overview
-        </h5>
-        <div class="widget-drag-handle">
-            <i data-feather="move" style="width: 16px; height: 16px;" class="text-muted"></i>
-        </div>
+        <h5 class="mb-0">Project Health Overview</h5>
+        <div class="widget-drag-handle"></div>
     </div>
     <div class="card-body">
         @if(isset($projectHealthSummary) && $projectHealthSummary['total'] > 0)
@@ -15,21 +10,18 @@
             <div class="row mb-4">
                 <div class="col-md-4 text-center mb-3 mb-md-0">
                     <div class="p-3 bg-success bg-opacity-25 border border-success rounded">
-                        <i data-feather="check-circle" class="text-success mb-2" style="width: 32px; height: 32px;"></i>
                         <h4 class="mb-0 text-white">{{ $projectHealthSummary['good'] ?? 0 }}</h4>
                         <small class="text-muted">Good</small>
                     </div>
                 </div>
                 <div class="col-md-4 text-center mb-3 mb-md-0">
                     <div class="p-3 bg-warning bg-opacity-25 border border-warning rounded">
-                        <i data-feather="alert-triangle" class="text-warning mb-2" style="width: 32px; height: 32px;"></i>
                         <h4 class="mb-0 text-white">{{ $projectHealthSummary['warning'] ?? 0 }}</h4>
                         <small class="text-muted">Warning</small>
                     </div>
                 </div>
                 <div class="col-md-4 text-center">
                     <div class="p-3 bg-danger bg-opacity-25 border border-danger rounded">
-                        <i data-feather="x-circle" class="text-danger mb-2" style="width: 32px; height: 32px;"></i>
                         <h4 class="mb-0 text-white">{{ $projectHealthSummary['critical'] ?? 0 }}</h4>
                         <small class="text-muted">Critical</small>
                     </div>
@@ -75,8 +67,7 @@
             </div>
         @else
             <div class="text-center py-4">
-                <i data-feather="inbox" class="text-muted" style="width: 48px; height: 48px;"></i>
-                <p class="text-muted mt-3 mb-0">No project health data available</p>
+                <p class="text-muted mb-0">No project health data available</p>
             </div>
         @endif
     </div>

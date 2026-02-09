@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects\IES;
 
 use App\Http\Controllers\Controller;
+use App\Services\FormDataExtractor;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IES\ProjectIESPersonalInfo;
 use Illuminate\Support\Facades\Log;
@@ -21,9 +22,12 @@ class IESPersonalInfoController extends Controller
      */
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = array_diff(
+            (new ProjectIESPersonalInfo())->getFillable(),
+            ['project_id', 'IES_personal_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
         DB::beginTransaction();
 
         try {
@@ -34,18 +38,7 @@ class IESPersonalInfoController extends Controller
                 ?: new ProjectIESPersonalInfo();
 
             $personalInfo->project_id = $projectId;
-
-            // Use validated data
-            $fields = [
-                'bname', 'age', 'gender', 'dob', 'email', 'contact', 'aadhar',
-                'full_address', 'father_name', 'mother_name', 'mother_tongue',
-                'current_studies', 'bcaste', 'father_occupation', 'father_income',
-                'mother_occupation', 'mother_income'
-            ];
-
-            foreach ($fields as $field) {
-                $personalInfo->$field = $validated[$field] ?? null;
-            }
+            $personalInfo->fill($data);
 
             // Save the data
             $personalInfo->save();

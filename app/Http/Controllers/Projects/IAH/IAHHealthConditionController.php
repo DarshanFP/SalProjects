@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects\IAH;
 
 use App\Http\Controllers\Controller;
+use App\Services\FormDataExtractor;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IAH\ProjectIAHHealthCondition;
 use App\Models\OldProjects\Project;
@@ -18,9 +19,12 @@ class IAHHealthConditionController extends Controller
      */
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = array_diff(
+            (new ProjectIAHHealthCondition())->getFillable(),
+            ['project_id', 'IAH_health_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
         Log::info('IAHHealthConditionController@store - Start', [
             'project_id' => $projectId
         ]);
@@ -31,14 +35,8 @@ class IAHHealthConditionController extends Controller
             ProjectIAHHealthCondition::where('project_id', $projectId)->delete();
 
             $healthCondition = new ProjectIAHHealthCondition();
-            $healthCondition->project_id       = $projectId;
-            $healthCondition->illness          = $validated['illness'] ?? null;
-            $healthCondition->treatment        = $validated['treatment'] ?? null;
-            $healthCondition->doctor           = $validated['doctor'] ?? null;
-            $healthCondition->hospital         = $validated['hospital'] ?? null;
-            $healthCondition->doctor_address   = $validated['doctor_address'] ?? null;
-            $healthCondition->health_situation = $validated['health_situation'] ?? null;
-            $healthCondition->family_situation = $validated['family_situation'] ?? null;
+            $healthCondition->project_id = $projectId;
+            $healthCondition->fill($data);
             $healthCondition->save();
 
             DB::commit();
@@ -61,43 +59,7 @@ class IAHHealthConditionController extends Controller
      */
     public function update(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
-        Log::info('IAHHealthConditionController@update - Start', [
-            'project_id' => $projectId
-        ]);
-
-        DB::beginTransaction();
-        try {
-            $healthCondition = ProjectIAHHealthCondition::where('project_id', $projectId)->firstOrFail();
-            Log::info('IAHHealthConditionController@update - Found existing record', [
-                'health_condition_id' => $healthCondition->id
-            ]);
-
-            $healthCondition->illness          = $validated['illness'] ?? null;
-            $healthCondition->treatment        = $validated['treatment'] ?? null;
-            $healthCondition->doctor           = $validated['doctor'] ?? null;
-            $healthCondition->hospital         = $validated['hospital'] ?? null;
-            $healthCondition->doctor_address   = $validated['doctor_address'] ?? null;
-            $healthCondition->health_situation = $validated['health_situation'] ?? null;
-            $healthCondition->family_situation = $validated['family_situation'] ?? null;
-            $healthCondition->save();
-
-            DB::commit();
-            Log::info('IAHHealthConditionController@update - Success', [
-                'project_id' => $projectId
-            ]);
-
-            return response()->json($healthCondition, 200);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('IAHHealthConditionController@update - Error', [
-                'project_id' => $projectId,
-                'error'      => $e->getMessage()
-            ]);
-            return response()->json(['error' => 'Failed to update IAH health condition details.'], 500);
-        }
+        return $this->store($request, $projectId);
     }
 
     /**

@@ -1,12 +1,8 @@
 {{-- Provincial Overview Widget --}}
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i class="feather icon-users text-primary"></i> Provincial Overview
-        </h5>
-        <a href="{{ route('coordinator.provincials') }}" class="btn btn-sm btn-primary">
-            View All <i class="feather icon-arrow-right"></i>
-        </a>
+        <h5 class="mb-0">Provincial Overview</h5>
+        <a href="{{ route('coordinator.provincials') }}" class="btn btn-sm btn-primary">View All</a>
     </div>
     <div class="card-body">
         @if(isset($provincialOverviewData))
@@ -151,8 +147,7 @@
             </div>
         @else
             <div class="text-center py-4">
-                <i class="feather icon-users text-muted" style="font-size: 3rem;"></i>
-                <p class="text-muted mt-2">No provincial data available</p>
+                <p class="text-muted">No provincial data available</p>
             </div>
         @endif
     </div>

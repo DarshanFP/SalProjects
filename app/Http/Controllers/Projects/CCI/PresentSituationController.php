@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Projects\CCI;
 
 use App\Http\Controllers\Controller;
 use App\Models\OldProjects\CCI\ProjectCCIPresentSituation;
+use App\Services\FormDataExtractor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -15,20 +16,20 @@ class PresentSituationController extends Controller
     // Store new present situation entry
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = array_diff(
+            (new ProjectCCIPresentSituation())->getFillable(),
+            ['project_id', 'CCI_present_situation_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
         DB::beginTransaction();
         try {
             Log::info('Storing CCI Present Situation', ['project_id' => $projectId]);
 
-            // Create new present situation entry
-            $presentSituation = new ProjectCCIPresentSituation();
-            $presentSituation->project_id = $projectId;
-            $presentSituation->internal_challenges = $validated['internal_challenges'] ?? null;
-            $presentSituation->external_challenges = $validated['external_challenges'] ?? null;
-            $presentSituation->area_of_focus = $validated['area_of_focus'] ?? null;
-            $presentSituation->save();
+            $presentSituation = ProjectCCIPresentSituation::updateOrCreate(
+                ['project_id' => $projectId],
+                $data
+            );
 
             DB::commit();
             Log::info('CCI Present Situation saved successfully', ['project_id' => $projectId]);
@@ -79,33 +80,9 @@ class PresentSituationController extends Controller
 
     // Update present situation entry
     public function update(FormRequest $request, $projectId)
-{
-    // Use all() to get all form data including fields not in UpdateProjectRequest validation rules
-    $validated = $request->all();
-    
-    DB::beginTransaction();
-    try {
-        Log::info('Updating or Creating CCI Present Situation', ['project_id' => $projectId]);
-
-        // Use updateOrCreate to either update an existing present situation or create a new one
-        $presentSituation = ProjectCCIPresentSituation::updateOrCreate(
-            ['project_id' => $projectId], // Condition to find the record
-            [
-                'internal_challenges' => $validated['internal_challenges'] ?? null,
-                'external_challenges' => $validated['external_challenges'] ?? null,
-                'area_of_focus' => $validated['area_of_focus'] ?? null
-            ] // Data to update or create
-        );
-
-        DB::commit();
-        Log::info('CCI Present Situation updated or created successfully', ['project_id' => $projectId]);
-        return redirect()->route('projects.edit', $projectId)->with('success', 'Present Situation updated successfully.');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error updating or creating CCI Present Situation', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-        return redirect()->back()->with('error', 'Failed to update or create Present Situation.');
+    {
+        return $this->store($request, $projectId);
     }
-}
 
 
     // Delete present situation entry

@@ -19,9 +19,7 @@
 {{-- System Analytics Widget --}}
 <div class="card mb-4 widget-card" data-widget-id="system-analytics">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="trending-up" class="me-2"></i>System Analytics
-        </h5>
+        <h5 class="mb-0">System Analytics</h5>
         <div class="d-flex gap-2">
             <select class="form-select form-select-sm" id="analyticsTimeRangeSelector" onchange="updateAnalyticsTimeRange()">
                 <option value="7" {{ $timeRange == 7 ? 'selected' : '' }}>Last 7 Days</option>
@@ -35,16 +33,13 @@
                 <option value="coordinator_hierarchy" {{ $context === 'coordinator_hierarchy' ? 'selected' : '' }}>Coordinator Hierarchy</option>
                 <option value="direct_team" {{ $context === 'direct_team' ? 'selected' : '' }}>Direct Team</option>
             </select>
-            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="system-analytics" title="Minimize">
-                <i data-feather="chevron-up"></i>
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="system-analytics" title="Minimize">−</button>
         </div>
     </div>
     <div class="card-body widget-content">
         @if(empty($analyticsData))
             <div class="text-center py-4">
-                <i data-feather="trending-up" class="text-muted" style="width: 48px; height: 48px;"></i>
-                <p class="text-muted mt-3">No analytics data available</p>
+                <p class="text-muted">No analytics data available</p>
             </div>
         @else
             {{-- Status Distribution Charts --}}
@@ -59,8 +54,7 @@
                                 <div id="analyticsProjectsStatusChart" style="min-height: 300px;"></div>
                             @else
                                 <div class="text-center py-4 text-muted">
-                                    <i data-feather="pie-chart" style="width: 32px; height: 32px; opacity: 0.3;"></i>
-                                    <p class="mt-2 mb-0">No project status data available</p>
+                                    <p class="mb-0">No project status data available</p>
                                 </div>
                             @endif
                         </div>
@@ -76,8 +70,7 @@
                                 <div id="analyticsReportsStatusChart" style="min-height: 300px;"></div>
                             @else
                                 <div class="text-center py-4 text-muted">
-                                    <i data-feather="pie-chart" style="width: 32px; height: 32px; opacity: 0.3;"></i>
-                                    <p class="mt-2 mb-0">No report status data available</p>
+                                    <p class="mb-0">No report status data available</p>
                                 </div>
                             @endif
                         </div>
@@ -99,7 +92,6 @@
                                     $trendSign = $approvalTrend['change'] > 0 ? '+' : '';
                                 @endphp
                                 <small class="{{ $trendColor }}">
-                                    <i data-feather="{{ $trendIcon }}" style="width: 14px; height: 14px;"></i>
                                     {{ $trendSign }}{{ number_format($approvalTrend['change'], 2) }}%
                                     ({{ $trendSign }}{{ number_format($approvalTrend['change_percent'], 1) }}%)
                                 </small>
@@ -110,8 +102,7 @@
                                 <div id="approvalRateTrendsChart" style="min-height: 300px;"></div>
                             @else
                                 <div class="text-center py-4 text-muted">
-                                    <i data-feather="trending-up" style="width: 32px; height: 32px; opacity: 0.3;"></i>
-                                    <p class="mt-2 mb-0">No approval rate trend data available</p>
+                                    <p class="mb-0">No approval rate trend data available</p>
                                 </div>
                             @endif
                         </div>
@@ -129,7 +120,6 @@
                                     $trendSign = $submissionTrend['change'] > 0 ? '+' : '';
                                 @endphp
                                 <small class="{{ $trendColor }}">
-                                    <i data-feather="{{ $trendIcon }}" style="width: 14px; height: 14px;"></i>
                                     {{ $trendSign }}{{ number_format($submissionTrend['change']) }}
                                     ({{ $trendSign }}{{ number_format($submissionTrend['change_percent'], 1) }}%)
                                 </small>
@@ -140,8 +130,7 @@
                                 <div id="submissionRateTrendsChart" style="min-height: 300px;"></div>
                             @else
                                 <div class="text-center py-4 text-muted">
-                                    <i data-feather="trending-up" style="width: 32px; height: 32px; opacity: 0.3;"></i>
-                                    <p class="mt-2 mb-0">No submission rate trend data available</p>
+                                    <p class="mb-0">No submission rate trend data available</p>
                                 </div>
                             @endif
                         </div>

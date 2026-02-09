@@ -15,10 +15,13 @@ class IGEBeneficiariesSupportedController extends Controller
     // Store or update beneficiaries for a project
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including class[] and total_number[] arrays
-        // These fields are not in StoreProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = ['class', 'total_number'];
+        $data = $request->only($fillable);
+
+        // Scalar-to-array normalization; per-value scalar coercion
+        $classes = is_array($data['class'] ?? null) ? ($data['class'] ?? []) : (isset($data['class']) ? [$data['class']] : []);
+        $totalNumbers = is_array($data['total_number'] ?? null) ? ($data['total_number'] ?? []) : (isset($data['total_number']) ? [$data['total_number']] : []);
+
         DB::beginTransaction();
         try {
             Log::info('Storing IGE beneficiaries supported', ['project_id' => $projectId]);
@@ -26,17 +29,14 @@ class IGEBeneficiariesSupportedController extends Controller
             // First, delete all existing beneficiaries for the project
             ProjectIGEBeneficiariesSupported::where('project_id', $projectId)->delete();
 
-            //  Insert new beneficiaries
-            $classes = $validated['class'] ?? [];
-            $totalNumbers = $validated['total_number'] ?? [];
-
-            // Store each beneficiary record
-            foreach ($classes as $index => $class) {
-                if (!is_null($class) && !is_null($totalNumbers[$index] ?? null)) {
+            foreach ($classes as $index => $classVal) {
+                $classVal = is_array($classVal ?? null) ? (reset($classVal) ?? null) : ($classVal ?? null);
+                $totalNum = is_array($totalNumbers[$index] ?? null) ? (reset($totalNumbers[$index]) ?? null) : ($totalNumbers[$index] ?? null);
+                if ($classVal !== null && $totalNum !== null) {
                     ProjectIGEBeneficiariesSupported::create([
                         'project_id' => $projectId,
-                        'class' => $class,
-                        'total_number' => $totalNumbers[$index],
+                        'class' => $classVal,
+                        'total_number' => $totalNum,
                     ]);
                 }
             }

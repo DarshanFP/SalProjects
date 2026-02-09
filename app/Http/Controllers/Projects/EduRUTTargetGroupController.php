@@ -22,25 +22,40 @@ class EduRUTTargetGroupController extends Controller
     // Store target group information for a project
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including target_group[] arrays
-        // These fields are not in StoreProjectRequest validation rules
-        $validatedData = $request->all();
+        $fillable = ['target_group'];
+        $data = $request->only($fillable);
+
+        $groups = is_array($data['target_group'] ?? null)
+            ? ($data['target_group'] ?? [])
+            : (isset($data['target_group']) && $data['target_group'] !== '' ? [$data['target_group']] : []);
 
         DB::beginTransaction();
         try {
             Log::info('Storing target group data', ['project_id' => $projectId]);
 
-            foreach (($validatedData['target_group'] ?? []) as $group) {
+            foreach ($groups as $group) {
+                if (!is_array($group)) {
+                    continue;
+                }
+                $beneficiaryName = is_array($group['beneficiary_name'] ?? null) ? (reset($group['beneficiary_name']) ?? null) : ($group['beneficiary_name'] ?? null);
+                $caste = is_array($group['caste'] ?? null) ? (reset($group['caste']) ?? null) : ($group['caste'] ?? null);
+                $institutionName = is_array($group['institution_name'] ?? null) ? (reset($group['institution_name']) ?? null) : ($group['institution_name'] ?? null);
+                $classStandard = is_array($group['class_standard'] ?? null) ? (reset($group['class_standard']) ?? null) : ($group['class_standard'] ?? null);
+                $totalTuitionFee = is_array($group['total_tuition_fee'] ?? null) ? (reset($group['total_tuition_fee']) ?? null) : ($group['total_tuition_fee'] ?? null);
+                $eligibilityScholarship = is_array($group['eligibility_scholarship'] ?? null) ? (reset($group['eligibility_scholarship']) ?? null) : ($group['eligibility_scholarship'] ?? null);
+                $expectedAmount = is_array($group['expected_amount'] ?? null) ? (reset($group['expected_amount']) ?? null) : ($group['expected_amount'] ?? null);
+                $contributionFromFamily = is_array($group['contribution_from_family'] ?? null) ? (reset($group['contribution_from_family']) ?? null) : ($group['contribution_from_family'] ?? null);
+
                 ProjectEduRUTTargetGroup::create([
                     'project_id' => $projectId,
-                    'beneficiary_name' => $group['beneficiary_name'] ?? null,
-                    'caste' => $group['caste'] ?? null,
-                    'institution_name' => $group['institution_name'] ?? null,
-                    'class_standard' => $group['class_standard'] ?? null,
-                    'total_tuition_fee' => $group['total_tuition_fee'] ?? null,
-                    'eligibility_scholarship' => $group['eligibility_scholarship'] ?? null,
-                    'expected_amount' => $group['expected_amount'] ?? null,
-                    'contribution_from_family' => $group['contribution_from_family'] ?? null,
+                    'beneficiary_name' => $beneficiaryName,
+                    'caste' => $caste,
+                    'institution_name' => $institutionName,
+                    'class_standard' => $classStandard,
+                    'total_tuition_fee' => $totalTuitionFee,
+                    'eligibility_scholarship' => $eligibilityScholarship,
+                    'expected_amount' => $expectedAmount,
+                    'contribution_from_family' => $contributionFromFamily,
                 ]);
             }
 
@@ -91,27 +106,42 @@ class EduRUTTargetGroupController extends Controller
     // Update target group data for a project
     public function update(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including target_group[] arrays
-        // These fields are not in UpdateProjectRequest validation rules
-        $validatedData = $request->all();
+        $fillable = ['target_group'];
+        $data = $request->only($fillable);
+
+        $groups = is_array($data['target_group'] ?? null)
+            ? ($data['target_group'] ?? [])
+            : (isset($data['target_group']) && $data['target_group'] !== '' ? [$data['target_group']] : []);
 
         DB::beginTransaction();
         try {
             Log::info('Updating target group data', ['project_id' => $projectId]);
 
-            ProjectEduRUTTargetGroup::where('project_id', $projectId)->delete(); // Delete old data first
+            ProjectEduRUTTargetGroup::where('project_id', $projectId)->delete();
 
-            foreach (($validatedData['target_group'] ?? []) as $group) {
+            foreach ($groups as $group) {
+                if (!is_array($group)) {
+                    continue;
+                }
+                $beneficiaryName = is_array($group['beneficiary_name'] ?? null) ? (reset($group['beneficiary_name']) ?? null) : ($group['beneficiary_name'] ?? null);
+                $caste = is_array($group['caste'] ?? null) ? (reset($group['caste']) ?? null) : ($group['caste'] ?? null);
+                $institutionName = is_array($group['institution_name'] ?? null) ? (reset($group['institution_name']) ?? null) : ($group['institution_name'] ?? null);
+                $classStandard = is_array($group['class_standard'] ?? null) ? (reset($group['class_standard']) ?? null) : ($group['class_standard'] ?? null);
+                $totalTuitionFee = is_array($group['total_tuition_fee'] ?? null) ? (reset($group['total_tuition_fee']) ?? null) : ($group['total_tuition_fee'] ?? null);
+                $eligibilityScholarship = is_array($group['eligibility_scholarship'] ?? null) ? (reset($group['eligibility_scholarship']) ?? null) : ($group['eligibility_scholarship'] ?? null);
+                $expectedAmount = is_array($group['expected_amount'] ?? null) ? (reset($group['expected_amount']) ?? null) : ($group['expected_amount'] ?? null);
+                $contributionFromFamily = is_array($group['contribution_from_family'] ?? null) ? (reset($group['contribution_from_family']) ?? null) : ($group['contribution_from_family'] ?? null);
+
                 ProjectEduRUTTargetGroup::create([
                     'project_id' => $projectId,
-                    'beneficiary_name' => $group['beneficiary_name'] ?? null,
-                    'caste' => $group['caste'] ?? null,
-                    'institution_name' => $group['institution_name'] ?? null,
-                    'class_standard' => $group['class_standard'] ?? null,
-                    'total_tuition_fee' => $group['total_tuition_fee'] ?? null,
-                    'eligibility_scholarship' => $group['eligibility_scholarship'] ?? null,
-                    'expected_amount' => $group['expected_amount'] ?? null,
-                    'contribution_from_family' => $group['contribution_from_family'] ?? null,
+                    'beneficiary_name' => $beneficiaryName,
+                    'caste' => $caste,
+                    'institution_name' => $institutionName,
+                    'class_standard' => $classStandard,
+                    'total_tuition_fee' => $totalTuitionFee,
+                    'eligibility_scholarship' => $eligibilityScholarship,
+                    'expected_amount' => $expectedAmount,
+                    'contribution_from_family' => $contributionFromFamily,
                 ]);
             }
 

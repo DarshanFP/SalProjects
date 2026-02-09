@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Reports\Quarterly;
 
 use App\Http\Controllers\Controller;
 use App\Models\OldProjects\OldDevelopmentProject;
+use App\Services\Budget\DerivedCalculationService;
 use App\Models\OldProjects\OldDevelopmentProjectBudget;
 use App\Models\Reports\Quarterly\QRDLAnnexure;
 use App\Models\Reports\Quarterly\RQDPReport;
@@ -20,6 +21,11 @@ use App\Helpers\LogHelper;
 
 class DevelopmentProjectController extends Controller
 {
+    public function __construct(
+        private readonly DerivedCalculationService $calculationService
+    ) {
+    }
+
     public function create($id)
     {
         // Retrieve the project details
@@ -34,7 +40,7 @@ class DevelopmentProjectController extends Controller
                                               ->get();
 
         // Calculate total amounts for the current year and initialize previous year amounts
-        $amountSanctionedOverview = $budgets->sum('this_phase');
+        $amountSanctionedOverview = $this->calculationService->calculateProjectTotal($budgets->map(fn ($b) => (float) ($b->this_phase ?? 0)));
         $amountForwardedOverview = 0;
 
         // Fetch the previous report data to calculate the forwarded amount

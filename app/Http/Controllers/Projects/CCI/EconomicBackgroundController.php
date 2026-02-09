@@ -6,123 +6,93 @@ use App\Http\Controllers\Controller;
 use App\Models\OldProjects\CCI\ProjectCCIEconomicBackground;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 use App\Http\Requests\Projects\CCI\StoreCCIEconomicBackgroundRequest;
 use App\Http\Requests\Projects\CCI\UpdateCCIEconomicBackgroundRequest;
+use Illuminate\Support\Facades\Validator;
 
 class EconomicBackgroundController extends Controller
 {
-    // Store new economic background entry
     public function store(FormRequest $request, $projectId)
-{
-    // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-    $validated = $request->all();
-    
-    DB::beginTransaction();
-    try {
+    {
+        $formRequest = StoreCCIEconomicBackgroundRequest::createFrom($request);
+        $normalized = $formRequest->getNormalizedInput();
+        $validator = Validator::make($normalized, $formRequest->rules());
+        $validator->validate();
+        $validated = $validator->validated();
+
         Log::info('Storing CCI Economic Background', ['project_id' => $projectId]);
 
-        // Create the economic background entry
         $economicBackground = new ProjectCCIEconomicBackground();
         $economicBackground->project_id = $projectId;
-        // Use validated data instead of all()
         $economicBackground->fill($validated);
-
         $economicBackground->save();
 
-        DB::commit();
         Log::info('CCI Economic Background saved successfully', ['project_id' => $projectId]);
-        return redirect()->route('projects.edit', $projectId)->with('success', 'Economic Background saved successfully.');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error saving CCI Economic Background', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-        return redirect()->back()->with('error', 'Failed to save Economic Background.');
-    }
-}
 
-// Update existing economic background entry
-// Update or create economic background entry
-public function update(FormRequest $request, $projectId)
-{
-    // Use all() to get all form data including fields not in StoreProjectRequest/UpdateProjectRequest validation rules
-    $validated = $request->all();
-    
-    DB::beginTransaction();
-    try {
+        return redirect()->route('projects.edit', $projectId)->with('success', 'Economic Background saved successfully.');
+    }
+
+    public function update(FormRequest $request, $projectId)
+    {
+        $formRequest = UpdateCCIEconomicBackgroundRequest::createFrom($request);
+        $normalized = $formRequest->getNormalizedInput();
+        $validator = Validator::make($normalized, $formRequest->rules());
+        $validator->validate();
+        $validated = $validator->validated();
+
         Log::info('Updating or Creating CCI Economic Background', ['project_id' => $projectId]);
 
-        // Use updateOrCreate to either update an existing entry or create a new one
-        $economicBackground = ProjectCCIEconomicBackground::updateOrCreate(
-            ['project_id' => $projectId], // Condition to find the record
-            $validated // Values to update or create
+        ProjectCCIEconomicBackground::updateOrCreate(
+            ['project_id' => $projectId],
+            $validated
         );
 
-        DB::commit();
         Log::info('CCI Economic Background updated or created successfully', ['project_id' => $projectId]);
+
         return redirect()->route('projects.edit', $projectId)->with('success', 'Economic Background updated successfully.');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error updating or creating CCI Economic Background', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-        return redirect()->back()->with('error', 'Failed to update or create Economic Background.');
     }
-}
 
-
-
-    // Show existing economic background entry
     public function show($projectId)
-{
-    try {
-        Log::info('Fetching CCI Economic Background', ['project_id' => $projectId]);
+    {
+        try {
+            Log::info('Fetching CCI Economic Background', ['project_id' => $projectId]);
 
-        // Fetch the economic background entry
-        $economicBackground = ProjectCCIEconomicBackground::where('project_id', $projectId)->first();
-        
-        if (!$economicBackground) {
-            Log::warning('No Economic Background data found', ['project_id' => $projectId]);
-            return null; // Return null if no data is found
+            $economicBackground = ProjectCCIEconomicBackground::where('project_id', $projectId)->first();
+
+            if (! $economicBackground) {
+                Log::warning('No Economic Background data found', ['project_id' => $projectId]);
+                return null;
+            }
+
+            return $economicBackground;
+        } catch (\Exception $e) {
+            Log::error('Error fetching CCI Economic Background', ['error' => $e->getMessage()]);
+            throw $e;
         }
-
-        return $economicBackground; // Return the economic background model
-    } catch (\Exception $e) {
-        Log::error('Error fetching CCI Economic Background', ['error' => $e->getMessage()]);
-        return null;
     }
-}
 
-
-
-    // Edit economic background entry
     public function edit($projectId)
     {
         try {
             Log::info('Editing CCI Economic Background', ['project_id' => $projectId]);
 
             $economicBackground = ProjectCCIEconomicBackground::where('project_id', $projectId)->firstOrFail();
+
             return $economicBackground;
         } catch (\Exception $e) {
             Log::error('Error editing CCI Economic Background', ['error' => $e->getMessage()]);
-            return null;
+            throw $e;
         }
     }
 
-    // Delete economic background entry
     public function destroy($projectId)
     {
-        DB::beginTransaction();
-        try {
-            Log::info('Deleting CCI Economic Background', ['project_id' => $projectId]);
+        Log::info('Deleting CCI Economic Background', ['project_id' => $projectId]);
 
-            // Delete the economic background entry
-            ProjectCCIEconomicBackground::where('project_id', $projectId)->delete();
+        ProjectCCIEconomicBackground::where('project_id', $projectId)->delete();
 
-            DB::commit();
-            Log::info('CCI Economic Background deleted successfully', ['project_id' => $projectId]);
-            return redirect()->route('projects.edit', $projectId)->with('success', 'Economic Background deleted successfully.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error deleting CCI Economic Background', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'Failed to delete Economic Background.');
-        }
+        Log::info('CCI Economic Background deleted successfully', ['project_id' => $projectId]);
+
+        return redirect()->route('projects.edit', $projectId)->with('success', 'Economic Background deleted successfully.');
     }
 }

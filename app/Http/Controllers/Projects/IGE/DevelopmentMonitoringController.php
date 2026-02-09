@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects\IGE;
 
 use App\Http\Controllers\Controller;
+use App\Services\FormDataExtractor;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\OldProjects\IGE\ProjectIGEDevelopmentMonitoring;
 use Illuminate\Support\Facades\Log;
@@ -15,22 +16,19 @@ class DevelopmentMonitoringController extends Controller
     // Store or update Development Monitoring data for a project
     public function store(FormRequest $request, $projectId)
     {
-        // Use all() to get all form data including fields not in StoreProjectRequest validation rules
-        $validated = $request->all();
-        
+        $fillable = array_diff(
+            (new ProjectIGEDevelopmentMonitoring())->getFillable(),
+            ['project_id', 'IGE_dvlpmnt_mntrng_id']
+        );
+        $data = FormDataExtractor::forFillable($request, $fillable);
+
         DB::beginTransaction();
         try {
             Log::info('Storing IGE Development Monitoring', ['project_id' => $projectId]);
 
-            // Update or create the Development Monitoring entry
             $developmentMonitoring = ProjectIGEDevelopmentMonitoring::updateOrCreate(
                 ['project_id' => $projectId],
-                [
-                    'proposed_activities' => $validated['proposed_activities'] ?? null,
-                    'monitoring_methods' => $validated['monitoring_methods'] ?? null,
-                    'evaluation_process' => $validated['evaluation_process'] ?? null,
-                    'conclusion' => $validated['conclusion'] ?? null,
-                ]
+                $data
             );
 
             DB::commit();

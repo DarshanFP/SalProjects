@@ -258,6 +258,8 @@ class ProvincialController extends Controller
 
     private function calculateBudgetSummariesFromProjects($projects, $request)
     {
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $calc = app(\App\Services\Budget\DerivedCalculationService::class);
         $budgetSummaries = [
             'by_project_type' => [],
             'by_center' => [],
@@ -271,18 +273,8 @@ class ProvincialController extends Controller
         ];
 
         foreach ($projects as $project) {
-            // Phase 4: Use only canonical project fields (no recalculation from type tables)
-            $projectBudget = (float) ($project->amount_sanctioned ?? $project->overall_project_budget ?? 0);
-
-            // If no budget found, try to get from approved reports
-            if ($projectBudget == 0 && $project->reports && $project->reports->count() > 0) {
-                foreach ($project->reports as $report) {
-                    if ($report->isApproved() && $report->accountDetails && $report->accountDetails->count() > 0) {
-                        $projectBudget = $report->accountDetails->sum('total_amount');
-                        break;
-                    }
-                }
-            }
+            $financials = $resolver->resolve($project);
+            $projectBudget = (float) ($financials['opening_balance'] ?? 0);
 
             // Calculate approved and unapproved expenses separately
             // Exclude drafts and editable statuses where executor/applicant has edit access
@@ -334,7 +326,7 @@ class ProvincialController extends Controller
 
             $totalExpenses = $approvedExpenses + $unapprovedExpenses;
             // Only approved expenses reduce remaining budget (unapproved don't reduce available budget until approved)
-            $remainingBudget = $projectBudget - $approvedExpenses;
+            $remainingBudget = $calc->calculateRemainingBalance($projectBudget, $approvedExpenses);
 
             // Initialize project type if not exists
             if (!isset($budgetSummaries['by_project_type'][$project->project_type])) {
@@ -505,10 +497,12 @@ class ProvincialController extends Controller
 
         $projects = $projectsQuery->with(['user', 'reports.accountDetails'])->get();
 
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $calc = app(\App\Services\Budget\DerivedCalculationService::class);
         // Calculate project health and budget utilization for each project
-        $projects = $projects->map(function($project) {
-            // Calculate budget utilization
-            $projectBudget = $project->amount_sanctioned ?? 0;
+        $projects = $projects->map(function($project) use ($resolver, $calc) {
+            $financials = $resolver->resolve($project);
+            $projectBudget = (float) ($financials['opening_balance'] ?? 0);
             $totalExpenses = 0;
 
             if ($project->reports) {
@@ -519,7 +513,7 @@ class ProvincialController extends Controller
                 }
             }
 
-            $utilization = $projectBudget > 0 ? (($totalExpenses / $projectBudget) * 100) : 0;
+            $utilization = $calc->calculateUtilization($totalExpenses, $projectBudget);
 
             // Determine health status
             $health = 'good';
@@ -1966,6 +1960,9 @@ class ProvincialController extends Controller
      */
     private function calculateTeamPerformanceMetrics($provincial)
     {
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $calc = app(\App\Services\Budget\DerivedCalculationService::class);
+
         // Get all accessible user IDs
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
@@ -1989,7 +1986,16 @@ class ProvincialController extends Controller
 
         // Calculate budget metrics (from approved projects only)
         $approvedProjects = $teamProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
-        $totalBudget = $approvedProjects->sum('amount_sanctioned') ?? 0;
+
+        // Memoize resolved financials (resolve each project exactly once)
+        $resolvedFinancials = [];
+        foreach ($approvedProjects as $project) {
+            $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+        }
+
+        $totalBudget = $approvedProjects->sum(
+            fn($project) => (float) ($resolvedFinancials[$project->project_id]['opening_balance'] ?? 0)
+        );
         $totalExpenses = 0;
 
         foreach ($approvedProjects as $project) {
@@ -2002,7 +2008,7 @@ class ProvincialController extends Controller
             }
         }
 
-        $budgetUtilization = $totalBudget > 0 ? (($totalExpenses / $totalBudget) * 100) : 0;
+        $budgetUtilization = $calc->calculateUtilization($totalExpenses, $totalBudget);
 
         // Calculate approval rate
         $totalSubmittedReports = $teamReports->whereIn('status', [
@@ -2033,6 +2039,8 @@ class ProvincialController extends Controller
      */
     private function prepareChartDataForTeamPerformance($provincial)
     {
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+
         // Get all accessible user IDs
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
@@ -2054,25 +2062,30 @@ class ProvincialController extends Controller
 
         // Budget by project type (from approved projects)
         $approvedProjects = $teamProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
-        $budgetByProjectType = [];
 
+        // Memoize resolved financials (resolve each project exactly once)
+        $resolvedFinancials = [];
+        foreach ($approvedProjects as $project) {
+            $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+        }
+
+        $budgetByProjectType = [];
         foreach ($approvedProjects as $project) {
             $type = $project->project_type ?? 'Unknown';
             if (!isset($budgetByProjectType[$type])) {
                 $budgetByProjectType[$type] = 0;
             }
-            $budgetByProjectType[$type] += $project->amount_sanctioned ?? 0;
+            $budgetByProjectType[$type] += (float) ($resolvedFinancials[$project->project_id]['opening_balance'] ?? 0);
         }
 
         // Budget by center (from approved projects)
         $budgetByCenter = [];
-
         foreach ($approvedProjects as $project) {
             $center = $project->user->center ?? 'Unknown';
             if (!isset($budgetByCenter[$center])) {
                 $budgetByCenter[$center] = 0;
             }
-            $budgetByCenter[$center] += $project->amount_sanctioned ?? 0;
+            $budgetByCenter[$center] += (float) ($resolvedFinancials[$project->project_id]['opening_balance'] ?? 0);
         }
 
         return [
@@ -2144,6 +2157,9 @@ class ProvincialController extends Controller
      */
     private function calculateEnhancedBudgetData($provincial)
     {
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $calc = app(\App\Services\Budget\DerivedCalculationService::class);
+
         // Get all accessible user IDs
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
@@ -2153,8 +2169,16 @@ class ProvincialController extends Controller
         ->with(['user', 'reports.accountDetails'])
         ->get();
 
+        // Memoize resolved financials (resolve each project exactly once)
+        $resolvedFinancials = [];
+        foreach ($approvedProjects as $project) {
+            $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+        }
+
         // Calculate totals
-        $totalBudget = $approvedProjects->sum('amount_sanctioned') ?? 0;
+        $totalBudget = $approvedProjects->sum(
+            fn($project) => (float) ($resolvedFinancials[$project->project_id]['opening_balance'] ?? 0)
+        );
         $totalExpenses = 0;
 
         foreach ($approvedProjects as $project) {
@@ -2167,18 +2191,17 @@ class ProvincialController extends Controller
             }
         }
 
-        $totalRemaining = $totalBudget - $totalExpenses;
-        $utilization = $totalBudget > 0 ? (($totalExpenses / $totalBudget) * 100) : 0;
+        $totalRemaining = $calc->calculateRemainingBalance($totalBudget, $totalExpenses);
+        $utilization = $calc->calculateUtilization($totalExpenses, $totalBudget);
 
         // Budget by project type
         $byProjectType = [];
         foreach ($approvedProjects as $project) {
+            $projectBudget = (float) ($resolvedFinancials[$project->project_id]['opening_balance'] ?? 0);
             $type = $project->project_type ?? 'Unknown';
             if (!isset($byProjectType[$type])) {
                 $byProjectType[$type] = ['budget' => 0, 'expenses' => 0, 'remaining' => 0];
             }
-            $byProjectType[$type]['budget'] += $project->amount_sanctioned ?? 0;
-
             $projectExpenses = 0;
             if ($project->reports) {
                 foreach ($project->reports as $report) {
@@ -2187,19 +2210,19 @@ class ProvincialController extends Controller
                     }
                 }
             }
+            $byProjectType[$type]['budget'] += $projectBudget;
             $byProjectType[$type]['expenses'] += $projectExpenses;
-            $byProjectType[$type]['remaining'] += ($project->amount_sanctioned ?? 0) - $projectExpenses;
+            $byProjectType[$type]['remaining'] += $calc->calculateRemainingBalance($projectBudget, $projectExpenses);
         }
 
         // Budget by center
         $byCenter = [];
         foreach ($approvedProjects as $project) {
+            $projectBudget = (float) ($resolvedFinancials[$project->project_id]['opening_balance'] ?? 0);
             $center = $project->user->center ?? 'Unknown';
             if (!isset($byCenter[$center])) {
                 $byCenter[$center] = ['budget' => 0, 'expenses' => 0, 'remaining' => 0];
             }
-            $byCenter[$center]['budget'] += $project->amount_sanctioned ?? 0;
-
             $projectExpenses = 0;
             if ($project->reports) {
                 foreach ($project->reports as $report) {
@@ -2208,21 +2231,21 @@ class ProvincialController extends Controller
                     }
                 }
             }
+            $byCenter[$center]['budget'] += $projectBudget;
             $byCenter[$center]['expenses'] += $projectExpenses;
-            $byCenter[$center]['remaining'] += ($project->amount_sanctioned ?? 0) - $projectExpenses;
+            $byCenter[$center]['remaining'] += $calc->calculateRemainingBalance($projectBudget, $projectExpenses);
         }
 
         // Budget by team member
         $byTeamMember = [];
         foreach ($approvedProjects as $project) {
+            $projectBudget = (float) ($resolvedFinancials[$project->project_id]['opening_balance'] ?? 0);
             $memberId = $project->user_id;
             $memberName = $project->user->name ?? 'Unknown';
 
             if (!isset($byTeamMember[$memberId])) {
                 $byTeamMember[$memberId] = ['name' => $memberName, 'budget' => 0, 'expenses' => 0, 'remaining' => 0];
             }
-            $byTeamMember[$memberId]['budget'] += $project->amount_sanctioned ?? 0;
-
             $projectExpenses = 0;
             if ($project->reports) {
                 foreach ($project->reports as $report) {
@@ -2231,12 +2254,14 @@ class ProvincialController extends Controller
                     }
                 }
             }
+            $byTeamMember[$memberId]['budget'] += $projectBudget;
             $byTeamMember[$memberId]['expenses'] += $projectExpenses;
-            $byTeamMember[$memberId]['remaining'] += ($project->amount_sanctioned ?? 0) - $projectExpenses;
+            $byTeamMember[$memberId]['remaining'] += $calc->calculateRemainingBalance($projectBudget, $projectExpenses);
         }
 
         // Top projects by budget
-        $topProjects = $approvedProjects->map(function($project) {
+        $topProjects = $approvedProjects->map(function($project) use ($resolvedFinancials, $calc) {
+            $projectBudget = (float) ($resolvedFinancials[$project->project_id]['opening_balance'] ?? 0);
             $projectExpenses = 0;
             if ($project->reports) {
                 foreach ($project->reports as $report) {
@@ -2251,9 +2276,9 @@ class ProvincialController extends Controller
                 'title' => $project->project_title,
                 'team_member' => $project->user->name ?? 'Unknown',
                 'type' => $project->project_type ?? 'Unknown',
-                'budget' => $project->amount_sanctioned ?? 0,
+                'budget' => $projectBudget,
                 'expenses' => $projectExpenses,
-                'remaining' => ($project->amount_sanctioned ?? 0) - $projectExpenses,
+                'remaining' => $calc->calculateRemainingBalance($projectBudget, $projectExpenses),
             ];
         })->sortByDesc('budget')->take(10)->values();
 

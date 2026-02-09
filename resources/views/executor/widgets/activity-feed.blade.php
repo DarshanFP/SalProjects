@@ -1,17 +1,12 @@
 {{-- Recent Activity Feed Widget - Dark Theme Compatible --}}
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i data-feather="activity" class="me-2"></i>
-            Recent Activity
-        </h5>
+        <h5 class="mb-0">Recent Activity</h5>
         <div class="d-flex align-items-center gap-2">
             <a href="{{ route('activities.my-activities') }}" class="text-info small">
                 View All →
             </a>
-            <div class="widget-drag-handle ms-2">
-                <i data-feather="move" style="width: 16px; height: 16px;" class="text-muted"></i>
-            </div>
+            <div class="widget-drag-handle ms-2"></div>
         </div>
     </div>
     <div class="card-body">
@@ -66,9 +61,7 @@
                                         }
                                     }
                                 @endphp
-                                <div class="rounded-circle p-2 {{ $bgColor }}" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                                    <i data-feather="{{ $icon }}" class="{{ $iconColor }}" style="width: 20px; height: 20px;"></i>
-                                </div>
+                                <div class="rounded-circle p-2 {{ $bgColor }}" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">&nbsp;</div>
                             </div>
 
                             {{-- Activity Content --}}
@@ -96,7 +89,7 @@
                                                 <span class="badge {{ $activity->previous_status_badge_class ?? 'bg-secondary' }} me-1">
                                                     {{ ucfirst(str_replace('_', ' ', $activity->previous_status ?? 'N/A')) }}
                                                 </span>
-                                                <i data-feather="arrow-right" style="width: 12px; height: 12px;" class="mx-1"></i>
+                                                <span class="mx-1">→</span>
                                                 <span class="badge {{ $activity->new_status_badge_class ?? 'bg-primary' }}">
                                                     {{ ucfirst(str_replace('_', ' ', $activity->new_status ?? 'N/A')) }}
                                                 </span>
@@ -114,10 +107,7 @@
 
                                 {{-- Activity Details --}}
                                 <div class="d-flex align-items-center">
-                                    <small class="text-muted me-2">
-                                        <i data-feather="user" style="width: 12px; height: 12px;"></i>
-                                        {{ $activity->changed_by_user_name ?? 'System' }}
-                                    </small>
+                                    <small class="text-muted me-2">{{ $activity->changed_by_user_name ?? 'System' }}</small>
                                     @if($activity->type === 'project' && $activity->related_id)
                                         <a href="{{ route('projects.show', $activity->related_id) }}" class="text-info small ms-2">
                                             View Project
@@ -136,15 +126,11 @@
 
             {{-- View All Link --}}
             <div class="mt-3 pt-3 border-top border-secondary text-center">
-                <a href="{{ route('activities.my-activities') }}" class="btn btn-outline-primary btn-sm">
-                    <i data-feather="list" style="width: 14px; height: 14px;"></i>
-                    View All Activities
-                </a>
+                <a href="{{ route('activities.my-activities') }}" class="btn btn-outline-primary btn-sm">View All Activities</a>
             </div>
         @else
             <div class="text-center py-4">
-                <i data-feather="inbox" class="text-muted" style="width: 48px; height: 48px;"></i>
-                <p class="text-muted mt-3 mb-0">No recent activities</p>
+                <p class="text-muted mb-0">No recent activities</p>
                 <a href="{{ route('activities.my-activities') }}" class="btn btn-sm btn-outline-primary mt-2">
                     View Activity History
                 </a>

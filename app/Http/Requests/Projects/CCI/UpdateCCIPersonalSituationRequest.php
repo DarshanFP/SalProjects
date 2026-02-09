@@ -2,49 +2,75 @@
 
 namespace App\Http\Requests\Projects\CCI;
 
+use App\Http\Requests\Concerns\NormalizesInput;
+use App\Rules\OptionalIntegerRule;
+use App\Support\Normalization\PlaceholderNormalizer;
+use App\Helpers\ProjectPermissionHelper;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use App\Models\OldProjects\Project;
-use App\Helpers\ProjectPermissionHelper;
 
 class UpdateCCIPersonalSituationRequest extends FormRequest
 {
+    use NormalizesInput;
+
+    private const INTEGER_KEYS = [
+        'children_with_parents_last_year',
+        'children_with_parents_current_year',
+        'semi_orphans_last_year',
+        'semi_orphans_current_year',
+        'orphans_last_year',
+        'orphans_current_year',
+        'hiv_infected_last_year',
+        'hiv_infected_current_year',
+        'differently_abled_last_year',
+        'differently_abled_current_year',
+        'parents_in_conflict_last_year',
+        'parents_in_conflict_current_year',
+        'other_ailments_last_year',
+        'other_ailments_current_year',
+    ];
+
     public function authorize(): bool
     {
         $projectId = $this->route('projectId') ?? $this->input('project_id');
-        
-        if (!$projectId) {
+
+        if (! $projectId) {
             return false;
         }
-        
+
         $project = Project::where('project_id', $projectId)->first();
-        
-        if (!$project) {
+
+        if (! $project) {
             return false;
         }
 
         return ProjectPermissionHelper::canEdit($project, Auth::user());
     }
 
+    protected function normalizeInput(array $input): array
+    {
+        foreach (self::INTEGER_KEYS as $key) {
+            if (array_key_exists($key, $input)) {
+                $before = $input[$key];
+                $input[$key] = PlaceholderNormalizer::normalizeToNull($input[$key]);
+                if ($before !== $input[$key]) {
+                    Log::debug('CCI Personal Situation normalized', ['field' => $key, 'before' => $before, 'after' => $input[$key]]);
+                }
+            }
+        }
+        return $input;
+    }
+
     public function rules(): array
     {
-        return [
-            'children_with_parents_last_year' => 'nullable|integer|min:0',
-            'children_with_parents_current_year' => 'nullable|integer|min:0',
-            'semi_orphans_last_year' => 'nullable|integer|min:0',
-            'semi_orphans_current_year' => 'nullable|integer|min:0',
-            'orphans_last_year' => 'nullable|integer|min:0',
-            'orphans_current_year' => 'nullable|integer|min:0',
-            'hiv_infected_last_year' => 'nullable|integer|min:0',
-            'hiv_infected_current_year' => 'nullable|integer|min:0',
-            'differently_abled_last_year' => 'nullable|integer|min:0',
-            'differently_abled_current_year' => 'nullable|integer|min:0',
-            'parents_in_conflict_last_year' => 'nullable|integer|min:0',
-            'parents_in_conflict_current_year' => 'nullable|integer|min:0',
-            'other_ailments_last_year' => 'nullable|integer|min:0',
-            'other_ailments_current_year' => 'nullable|integer|min:0',
+        $rules = [
             'general_remarks' => 'nullable|string',
         ];
+        foreach (self::INTEGER_KEYS as $key) {
+            $rules[$key] = ['nullable', new OptionalIntegerRule];
+        }
+        return $rules;
     }
 }
-
