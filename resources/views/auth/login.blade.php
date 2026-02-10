@@ -63,40 +63,47 @@
 								<!-- Session Status -->
 								<x-auth-session-status class="mb-4" :status="session('status')" />
 
-								<form method="POST" action="{{ route('login') }}">
-									@csrf
+								<div class="auth-login-form">
+									<form method="POST" action="{{ route('login') }}">
+										@csrf
 
-									<!-- Login -->
-									<div class="mb-3">
-										<x-input-label for="login" :value="__('Login with Email / Name / Username / Phone')" />
-										<x-text-input id="login" class="form-control" type="text" name="login" :value="old('login')" required autofocus />
-									</div>
+										<!-- Login -->
+										<div class="mb-3">
+											<x-input-label for="login" :value="__('Login with Email / Name / Username / Phone')" />
+											<x-text-input id="login" class="form-control" type="text" name="login" :value="old('login')" required autofocus />
+										</div>
 
-									<!-- Password -->
-									<div class="mb-3">
-										<x-input-label for="password" :value="__('Password')" />
-										<x-text-input id="password" class="form-control" type="password" name="password" required autocomplete="current-password" />
-										<x-input-error :messages="$errors->get('password')" class="mt-2" />
-									</div>
+										<!-- Password -->
+										<div class="mb-3">
+											<x-input-label for="password" :value="__('Password')" />
+											<div class="password-wrapper position-relative">
+												<x-text-input id="password" class="form-control pe-5" type="password" name="password" required autocomplete="current-password" />
+												<button type="button" id="togglePassword" class="password-toggle" aria-label="Toggle password visibility">
+													<i data-feather="eye"></i>
+												</button>
+											</div>
+											<x-input-error :messages="$errors->get('password')" class="mt-2" />
+										</div>
 
-									<!-- Remember Me -->
-									<div class="mb-3 form-check">
-										<input type="checkbox" class="form-check-input" id="remember_me" name="remember">
-										<label class="form-check-label" for="remember_me">{{ __('Remember me') }}</label>
-									</div>
+										<!-- Remember Me -->
+										<div class="mb-3 form-check">
+											<input type="checkbox" class="form-check-input" id="remember_me" name="remember">
+											<label class="form-check-label" for="remember_me">{{ __('Remember me') }}</label>
+										</div>
 
-									<!-- Actions -->
-									<div class="d-flex align-items-center justify-content-between">
-										@if (Route::has('password.request'))
-											<a href="{{ route('password.request') }}" class="text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-												{{ __('Forgot your password?') }}
-											</a>
-										@endif
-										<x-primary-button class="text-white btn btn-primary">
-											{{ __('Log in') }}
-										</x-primary-button>
-									</div>
-								</form>
+										<!-- Actions -->
+										<div class="d-flex align-items-center justify-content-between">
+											@if (Route::has('password.request'))
+												<a href="{{ route('password.request') }}" class="text-sm text-muted text-decoration-underline">
+													{{ __('Forgot your password?') }}
+												</a>
+											@endif
+											<x-primary-button class="text-white btn btn-primary">
+												{{ __('Log in') }}
+											</x-primary-button>
+										</div>
+									</form>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -122,5 +129,62 @@
 	<!-- Custom js for this page -->
 	<script src="{{ asset('backend/assets/js/dashboard-dark.js')}}"></script>
 	<!-- End custom js for this page -->
+
+	<!-- Login page: password toggle + autofill fix -->
+	<script>
+	document.addEventListener('DOMContentLoaded', function () {
+		const toggle = document.getElementById('togglePassword');
+		const password = document.getElementById('password');
+
+		if (toggle && password) {
+			toggle.addEventListener('click', function () {
+				const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+				password.setAttribute('type', type);
+
+				this.innerHTML = type === 'password'
+					? feather.icons.eye.toSvg()
+					: feather.icons['eye-off'].toSvg();
+			});
+		}
+	});
+	</script>
+
+	<style>
+	/* Login-only: fix Chrome autofill dark text visibility */
+	.auth-login-form input:-webkit-autofill,
+	.auth-login-form input:-webkit-autofill:hover,
+	.auth-login-form input:-webkit-autofill:focus,
+	.auth-login-form input:-webkit-autofill:active {
+		-webkit-box-shadow: 0 0 0 1000px #0c1427 inset !important;
+		-webkit-text-fill-color: #d0d6e1 !important;
+		caret-color: #d0d6e1 !important;
+		transition: background-color 9999s ease-in-out 0s;
+	}
+
+	/* Login-only: password field with eye inside */
+	.password-wrapper {
+		position: relative;
+	}
+
+	.password-wrapper .password-toggle {
+		position: absolute;
+		top: 50%;
+		right: 15px;
+		transform: translateY(-50%);
+		background: transparent;
+		border: none;
+		color: #d0d6e1;
+		padding: 0;
+		cursor: pointer;
+	}
+
+	.password-wrapper .password-toggle:focus {
+		outline: none;
+	}
+
+	.password-wrapper:focus-within .password-toggle {
+		color: #6bbb59ff;
+	}
+	</style>
 </body>
 </html>

@@ -115,8 +115,9 @@
                             @include('projects.partials.Edit.attachment')
                         @endif
 
-                        <button type="submit" id="updateProjectBtn" class="btn btn-primary me-2">Update Project</button>
-                        <button type="button" id="saveDraftBtn" class="btn btn-secondary me-2">Save as Draft</button>
+                        <div class="text-center mt-4">
+                            <button type="button" id="saveDraftBtn" class="btn btn-primary btn-save-action">Save Changes</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -128,25 +129,10 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const updateBtn = document.getElementById('updateProjectBtn');
     const saveDraftBtn = document.getElementById('saveDraftBtn');
     const editForm = document.getElementById('editProjectForm');
 
-    if (updateBtn && editForm) {
-        // Ensure button is clickable and not disabled
-        updateBtn.style.pointerEvents = 'auto';
-        updateBtn.style.cursor = 'pointer';
-        updateBtn.style.position = 'relative';
-        updateBtn.style.zIndex = '1000';
-        updateBtn.disabled = false;
-        updateBtn.removeAttribute('disabled');
-
-        // Add click event listener for debugging
-        updateBtn.addEventListener('click', function(e) {
-            // Don't prevent default - let form submit naturally
-        }, true); // Use capture phase to catch early
-
-        // Ensure form can submit - don't prevent default unless validation fails
+    if (editForm) {
         editForm.addEventListener('submit', function(e) {
             try {
                 // Check if this is a draft save (bypass validation)
@@ -164,8 +150,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Show loading indicator
-                updateBtn.disabled = true;
-                updateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+                if (saveDraftBtn) {
+                    saveDraftBtn.disabled = true;
+                    saveDraftBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+                }
                 
                 // Allow form to submit normally
                 return true;
@@ -177,15 +165,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('An error occurred while submitting the form. Please try again or contact support if the problem persists.');
                 
                 // Re-enable button
-                updateBtn.disabled = false;
-                updateBtn.innerHTML = 'Update Project';
+                if (saveDraftBtn) {
+                    saveDraftBtn.disabled = false;
+                    saveDraftBtn.innerHTML = 'Save Changes';
+                }
                 
                 return false;
             }
         });
     }
 
-    // Handle "Save as Draft" button click
+    // Handle "Save Changes" button click
     if (saveDraftBtn && editForm) {
         saveDraftBtn.addEventListener('click', function(e) {
             try {
@@ -211,17 +201,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Show loading indicator
                 saveDraftBtn.disabled = true;
-                saveDraftBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving Draft...';
+                saveDraftBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
                 
                 // Submit form
                 editForm.submit();
             } catch (error) {
-                console.error('Draft save error:', error);
-                alert('An error occurred while saving the draft. Please try again.');
+                console.error('Save error:', error);
+                alert('An error occurred while saving. Please try again.');
                 
                 // Re-enable button
                 saveDraftBtn.disabled = false;
-                saveDraftBtn.innerHTML = 'Save as Draft';
+                saveDraftBtn.innerHTML = 'Save Changes';
             }
         });
     }
@@ -346,6 +336,20 @@ document.addEventListener('DOMContentLoaded', function() {
     word-wrap: break-word;
     overflow-wrap: break-word;
     max-width: 200px;
+}
+
+/* Save button styling */
+.btn-save-action {
+    min-width: 220px;
+    padding: 12px 24px;
+    font-size: 1.1rem;
+    transition: all 0.2s ease;
+}
+.btn-save-action:hover {
+    font-weight: bold;
+    background-color: #112f6b !important;
+    color: #f4f0f0 !important;
+    border-color: #112f6b;
 }
 </style>
 @endsection

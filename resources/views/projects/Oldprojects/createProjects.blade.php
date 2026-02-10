@@ -150,8 +150,9 @@
                 </div>
 
                 <div class="card-footer">
-                    <button type="submit" id="createProjectBtn" class="btn btn-primary me-2">Save Project Application</button>
-                    <button type="button" id="saveDraftBtn" class="btn btn-secondary me-2">Save as Draft</button>
+                    <div class="text-center mt-4">
+                        <button type="button" id="saveDraftBtn" class="btn btn-primary btn-save-action">Save Project</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -432,7 +433,6 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleSections();
     projectTypeDropdown.addEventListener('change', toggleSections);
 
-    const createBtn = document.getElementById('createProjectBtn');
     const saveDraftBtn = document.getElementById('saveDraftBtn');
     const createForm = document.getElementById('createProjectForm');
 
@@ -474,7 +474,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Show loading indicator
                 saveDraftBtn.disabled = true;
-                saveDraftBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving Draft...';
+                saveDraftBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
                 
                 // Submit form
                 createForm.submit();
@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Re-enable button
                 saveDraftBtn.disabled = false;
-                saveDraftBtn.innerHTML = 'Save as Draft';
+                saveDraftBtn.innerHTML = 'Save Project';
             }
         });
     }
@@ -520,9 +520,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 // Show loading indicator
-                if (createBtn) {
-                    createBtn.disabled = true;
-                    createBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
+                if (saveDraftBtn) {
+                    saveDraftBtn.disabled = true;
+                    saveDraftBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
                 }
                 
                 // Allow form to submit normally
@@ -535,9 +535,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('An error occurred while submitting the form. Please try again or contact support if the problem persists.');
                 
                 // Re-enable button
-                if (createBtn) {
-                    createBtn.disabled = false;
-                    createBtn.innerHTML = 'Save Project Application';
+                if (saveDraftBtn) {
+                    saveDraftBtn.disabled = false;
+                    saveDraftBtn.innerHTML = 'Save Project';
                 }
                 
                 return false;
@@ -555,5 +555,18 @@ document.addEventListener('DOMContentLoaded', function() {
     .table th { white-space: normal; }
     .table td input { width: 100%; box-sizing: border-box; padding: 0.375rem 0.75rem; }
     .table-container { overflow-x: auto; }
+
+    .btn-save-action {
+        min-width: 220px;
+        padding: 12px 24px;
+        font-size: 1.1rem;
+        transition: all 0.2s ease;
+    }
+    .btn-save-action:hover {
+        font-weight: bold;
+        background-color: #112f6b !important;
+        color: #f4f0f0 !important;
+        border-color: #112f6b;
+    }
 </style>
 @endsection
