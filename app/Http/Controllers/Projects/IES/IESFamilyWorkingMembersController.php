@@ -55,6 +55,25 @@ class IESFamilyWorkingMembersController extends Controller
     $fillable = ['member_name', 'work_nature', 'monthly_income'];
     $data = $request->only($fillable);
 
+    // Normalize arrays before guard (same logic as used in loop)
+    $memberNames    = is_array($data['member_name'] ?? null) ? ($data['member_name'] ?? []) : (isset($data['member_name']) && $data['member_name'] !== '' ? [$data['member_name']] : []);
+    $workNatures    = is_array($data['work_nature'] ?? null) ? ($data['work_nature'] ?? []) : (isset($data['work_nature']) && $data['work_nature'] !== '' ? [$data['work_nature']] : []);
+    $monthlyIncomes = is_array($data['monthly_income'] ?? null) ? ($data['monthly_income'] ?? []) : (isset($data['monthly_income']) && $data['monthly_income'] !== '' ? [$data['monthly_income']] : []);
+
+    if (! $this->isIESFamilyWorkingMembersMeaningfullyFilled(
+        $memberNames,
+        $workNatures,
+        $monthlyIncomes
+    )) {
+        Log::info('IESFamilyWorkingMembersController@store - Section absent or empty; skipping mutation', [
+            'project_id' => $projectId,
+        ]);
+
+        return response()->json([
+            'message' => 'Family working members saved successfully.'
+        ], 200);
+    }
+
     DB::beginTransaction();
 
     try {
@@ -69,18 +88,14 @@ class IESFamilyWorkingMembersController extends Controller
         // 3) Delete existing family working members to allow "fresh" save
         ProjectIESFamilyWorkingMembers::where('project_id', $projectId)->delete();
 
-        // 4) Retrieve arrays from scoped data (normalize scalar to single-element array for iteration)
-        $memberNames    = is_array($data['member_name'] ?? null) ? ($data['member_name'] ?? []) : (isset($data['member_name']) && $data['member_name'] !== '' ? [$data['member_name']] : []);
-        $workNatures    = is_array($data['work_nature'] ?? null) ? ($data['work_nature'] ?? []) : (isset($data['work_nature']) && $data['work_nature'] !== '' ? [$data['work_nature']] : []);
-        $monthlyIncomes = is_array($data['monthly_income'] ?? null) ? ($data['monthly_income'] ?? []) : (isset($data['monthly_income']) && $data['monthly_income'] !== '' ? [$data['monthly_income']] : []);
-
-        // 5) Loop and create new records (scalar coercion prevents "Array to string conversion")
+        // 4) Loop and create new records (scalar coercion prevents "Array to string conversion")
         for ($i = 0; $i < count($memberNames); $i++) {
             $memberName   = is_array($memberNames[$i] ?? null) ? (reset($memberNames[$i]) ?? '') : ($memberNames[$i] ?? '');
             $workNature   = is_array($workNatures[$i] ?? null) ? (reset($workNatures[$i]) ?? '') : ($workNatures[$i] ?? '');
             $monthlyIncome = is_array($monthlyIncomes[$i] ?? null) ? (reset($monthlyIncomes[$i]) ?? '') : ($monthlyIncomes[$i] ?? '');
 
-            if (!empty($memberName) && !empty($workNature) && !empty($monthlyIncome)) {
+            // M2.5: Allow 0 for monthly_income; skip only when null or '' (do not use empty() on numeric)
+            if (trim((string) $memberName) !== '' && trim((string) $workNature) !== '' && $monthlyIncome !== null && $monthlyIncome !== '') {
                 ProjectIESFamilyWorkingMembers::create([
                     'project_id'     => $projectId,
                     'member_name'    => $memberName,
@@ -162,5 +177,45 @@ class IESFamilyWorkingMembersController extends Controller
             Log::error('Error deleting IES family working members', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to delete IES family working members.'], 500);
         }
+    }
+
+    private function isIESFamilyWorkingMembersMeaningfullyFilled(
+        array $memberNames,
+        array $workNatures,
+        array $monthlyIncomes
+    ): bool {
+        if ($memberNames === []) {
+            return false;
+        }
+
+        $maxIndex = max(
+            count($memberNames) - 1,
+            count($workNatures) - 1,
+            count($monthlyIncomes) - 1
+        );
+
+        for ($i = 0; $i <= $maxIndex; $i++) {
+            $name = $memberNames[$i] ?? null;
+            $work = $workNatures[$i] ?? null;
+            $income = $monthlyIncomes[$i] ?? null;
+
+            if ($this->meaningfulString($name)
+                || $this->meaningfulString($work)
+                || $this->meaningfulNumeric($income)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function meaningfulString($value): bool
+    {
+        return is_string($value) && trim($value) !== '';
+    }
+
+    private function meaningfulNumeric($value): bool
+    {
+        return $value !== null && $value !== '' && is_numeric($value);
     }
 }

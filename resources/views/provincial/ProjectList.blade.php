@@ -176,15 +176,16 @@
                                         <td>
                                             <span class="badge bg-secondary">{{ $project->project_type }}</span>
                                         </td>
-                                        <td class="text-end">
-                                            <small>{{ format_indian_currency($project->overall_project_budget ?? 0, 2) }}</small>
-                                        </td>
                                         @php
-                                            $existingFunds = (float) ($project->amount_forwarded ?? 0);
-                                            $localContribution = (float) ($project->local_contribution ?? 0);
-                                            $overallBudget = (float) ($project->overall_project_budget ?? 0);
-                                            $amountRequested = max(0, $overallBudget - $existingFunds - $localContribution);
+                                            $fin = $resolvedFinancials[$project->project_id] ?? [];
+                                            $overallBudget = (float) ($fin['overall_project_budget'] ?? 0);
+                                            $existingFunds = (float) ($fin['amount_forwarded'] ?? 0);
+                                            $localContribution = (float) ($fin['local_contribution'] ?? 0);
+                                            $amountRequested = (float) ($fin['amount_sanctioned'] ?? 0);
                                         @endphp
+                                        <td class="text-end">
+                                            <small>{{ format_indian_currency($overallBudget, 2) }}</small>
+                                        </td>
                                         <td class="text-end">
                                             <small>{{ format_indian_currency($existingFunds, 2) }}</small>
                                         </td>

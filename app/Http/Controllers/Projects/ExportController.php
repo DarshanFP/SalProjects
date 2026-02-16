@@ -76,7 +76,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Constants\ProjectStatus;
+use App\Domain\Budget\ProjectFinancialResolver;
 use App\Helpers\ProjectPermissionHelper;
+use App\Services\ProjectDataHydrator;
 use Mpdf\Mpdf;
 // Controller imports
 use App\Http\Controllers\Projects\ProjectEduRUTBasicInfoController;
@@ -188,6 +190,10 @@ class ExportController extends Controller
 
     private DerivedCalculationService $calculationService;
 
+    protected ProjectDataHydrator $projectDataHydrator;
+
+    protected ProjectFinancialResolver $financialResolver;
+
     public function __construct(
         // Edu-RUT
         ProjectEduRUTBasicInfoController $eduRUTBasicInfoController,
@@ -250,7 +256,9 @@ class ExportController extends Controller
         IIESImmediateFamilyDetailsController $iiesImmediateFamilyDetailsController,
         IIESPersonalInfoController $iiesPersonalInfoController,
         IIESExpensesController $iiesExpensesController,
-        DerivedCalculationService $calculationService
+        DerivedCalculationService $calculationService,
+        ProjectDataHydrator $projectDataHydrator,
+        ProjectFinancialResolver $financialResolver
     ) {
         $this->eduRUTBasicInfoController = $eduRUTBasicInfoController;
         $this->eduRUTTargetGroupController = $eduRUTTargetGroupController;
@@ -304,6 +312,8 @@ class ExportController extends Controller
         $this->iiesAttachmentsController = $iiesAttachmentsController;
         $this->iiesExpensesController = $iiesExpensesController;
         $this->calculationService = $calculationService;
+        $this->projectDataHydrator = $projectDataHydrator;
+        $this->financialResolver = $financialResolver;
     }
 
     public function downloadPdf($project_id)
@@ -370,9 +380,10 @@ class ExportController extends Controller
                 'coordinator' => $project->coordinator_india_name
             ];
 
-            // Load all project data using the same approach as ProjectController show method
-            $data = $this->loadAllProjectData($project_id);
+            $data = $this->projectDataHydrator->hydrate($project_id);
             $data['projectRoles'] = $projectRoles;
+
+            $this->logUnexpectedPdfDataTypes($data, $project_id);
 
             $html = view('projects.Oldprojects.pdf', $data)->render();
             $mpdf = new Mpdf();
@@ -387,410 +398,43 @@ class ExportController extends Controller
     }
 
     /**
-     * Load all project data using the same approach as ProjectController show method
+     * Dev-only: Log warning if PDF data contains unexpected types (e.g. boolean where Collection expected).
+     * Does NOT run in production.
      */
-    private function loadAllProjectData($project_id)
+    private function logUnexpectedPdfDataTypes(array $data, string $project_id): void
     {
-        $project = Project::where('project_id', $project_id)
-            ->with(['budgets', 'attachments', 'objectives.risks', 'objectives.activities.timeframes', 'sustainabilities', 'user'])
-            ->firstOrFail();
+        if (!in_array(config('app.env'), ['local', 'development'], true)) {
+            return;
+        }
 
-        $user = Auth::user();
-
-        // Initialize data array with defaults (same as ProjectController show method)
-        $data = [
-            'project' => $project,
-            'user' => $user,
-            'basicInfo' => null,
-            'targetGroups' => null,
-            'annexedTargetGroups' => null,
-            'achievements' => null,
-            'ageProfile' => null,
-            'annexedTargetGroup' => null,
-            'economicBackground' => null,
-            'personalSituation' => null,
-            'presentSituation' => null,
-            'rationale' => null,
-            'statistics' => null,
-            'interventionLogic' => null,
-            'needAnalysis' => null,
-            'LDPtargetGroups' => null,
-            'IGEInstitutionInfo' => null,
-            'beneficiariesSupported' => null,
-            'newBeneficiaries' => null,
-            'ongoingBeneficiaries' => null,
-            'budget' => null,
-            'developmentMonitoring' => null,
-            'RSTBeneficiariesArea' => null,
-            'RSTGeographicalArea' => null,
-            'RSTInstitutionInfo' => null,
-            'RSTTargetGroupAnnexure' => null,
-            'RSTTargetGroup' => null,
-            'IESpersonalInfo' => null,
-            'IESfamilyWorkingMembers' => null,
-            'IESimmediateFamilyDetails' => null,
-            'IESEducationBackground' => null,
-            'IESExpenses' => null,
-            'IESAttachments' => null,
-            'ILPPersonalInfo' => null,
-            'ILPRevenueGoals' => null,
-            'ILPStrengthWeakness' => null,
-            'ILPRiskAnalysis' => null,
-            'ILPAttachedDocuments' => null,
-            'ILPBudgets' => null,
-            'IAHPersonalInfo' => null,
-            'IAHEarningMembers' => null,
-            'IAHHealthCondition' => null,
-            'IAHSupportDetails' => null,
-            'IAHBudgetDetails' => null,
-            'IAHDocuments' => null,
-            'IIESPersonalInfo' => null,
-            'IIESFamilyWorkingMembers' => null,
-            'IIESImmediateFamilyDetails' => null,
-            'IIESEducationBackground' => null,
-            'IIESFinancialSupport' => null,
-            'IIESAttachments' => null,
-            'IIESExpenses' => null,
+        $collectionKeys = [
+            'IAHBudgetDetails', 'IGEbudget', 'RSTBeneficiariesArea', 'RSTGeographicalArea',
+            'RSTTargetGroupAnnexure', 'RSTTargetGroup', 'annexedTargetGroups', 'RUTtargetGroups',
+            'annexedTargetGroup', 'beneficiariesSupported', 'newBeneficiaries', 'ongoingBeneficiaries',
+            'LDPtargetGroups',
         ];
 
-        // Handle project-specific data (same logic as ProjectController show method)
-        switch ($project->project_type) {
-            case 'Rural-Urban-Tribal':
-                $data['basicInfo'] = $this->eduRUTBasicInfoController->show($project_id);
-                $data['RUTtargetGroups'] = $this->eduRUTTargetGroupController->show($project_id);
-                $data['annexedTargetGroups'] = $this->eduRUTAnnexedTargetGroupController->show($project_id);
-                break;
-
-            case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
-                $data['basicInfo'] = $this->cicBasicInfoController->show($project->project_id);
-                break;
-
-            case 'CHILD CARE INSTITUTION':
-                $data['achievements'] = $this->cciAchievementsController->show($project->project_id);
-                $data['ageProfile'] = $this->cciAgeProfileController->show($project->project_id);
-                $data['annexedTargetGroup'] = $this->cciAnnexedTargetGroupController->show($project->project_id);
-                $data['economicBackground'] = $this->cciEconomicBackgroundController->show($project->project_id);
-                $data['personalSituation'] = $this->cciPersonalSituationController->show($project->project_id);
-                $data['presentSituation'] = $this->cciPresentSituationController->show($project->project_id);
-                $data['rationale'] = $this->cciRationaleController->show($project->project_id);
-                $data['statistics'] = $this->cciStatisticsController->show($project->project_id);
-                break;
-
-            case 'Institutional Ongoing Group Educational proposal':
-                $data['IGEInstitutionInfo'] = $this->igeInstitutionInfoController->show($project->project_id);
-                $data['beneficiariesSupported'] = $this->igeBeneficiariesSupportedController->show($project->project_id);
-                $data['newBeneficiaries'] = $this->igeNewBeneficiariesController->show($project->project_id);
-                $data['ongoingBeneficiaries'] = $this->igeOngoingBeneficiariesController->show($project->project_id);
-                $data['budget'] = $this->igeBudgetController->show($project->project_id);
-                $data['developmentMonitoring'] = $this->igeDevelopmentMonitoringController->show($project->project_id);
-                break;
-
-            case 'Livelihood Development Projects':
-                $data['interventionLogic'] = $this->ldpInterventionLogicController->show($project_id);
-                $data['needAnalysis'] = $this->ldpNeedAnalysisController->show($project_id);
-                $data['LDPtargetGroups'] = $this->ldpTargetGroupController->show($project_id);
-                break;
-
-            case 'Residential Skill Training Proposal 2':
-                $data['RSTBeneficiariesArea'] = $this->rstBeneficiariesAreaController->show($project->project_id);
-                $data['RSTGeographicalArea'] = $this->rstGeographicalAreaController->show($project->project_id);
-                $data['RSTInstitutionInfo'] = $this->rstInstitutionInfoController->show($project->project_id);
-                $data['RSTTargetGroupAnnexure'] = $this->rstTargetGroupAnnexureController->show($project->project_id);
-                $data['RSTTargetGroup'] = $this->rstTargetGroupController->show($project->project_id);
-                break;
-
-            case 'Development Projects':
-                $data['RSTBeneficiariesArea'] = $this->rstBeneficiariesAreaController->show($project->project_id);
-                break;
-
-            case 'NEXT PHASE - DEVELOPMENT PROPOSAL':
-                $data['RSTBeneficiariesArea'] = $this->rstBeneficiariesAreaController->show($project->project_id);
-                break;
-
-            case 'Individual - Ongoing Educational support':
-                $data['IESpersonalInfo'] = $this->loadIESPersonalInfo($project_id);
-                $data['IESfamilyWorkingMembers'] = $this->loadIESFamilyWorkingMembers($project_id);
-                $data['IESimmediateFamilyDetails'] = $this->loadIESImmediateFamilyDetails($project_id);
-                $data['IESEducationBackground'] = $this->loadIESEducationBackground($project_id);
-                $data['IESExpenses'] = $this->loadIESExpenses($project_id);
-                $data['IESAttachments'] = $this->loadIESAttachments($project_id);
-                break;
-
-            case 'Individual - Livelihood Application':
-                $data['ILPPersonalInfo'] = $this->loadILPPersonalInfo($project_id);
-                $data['ILPRevenueGoals'] = $this->loadILPRevenueGoals($project_id);
-                $data['ILPStrengthWeakness'] = $this->loadILPStrengthWeakness($project_id);
-                $data['ILPRiskAnalysis'] = $this->loadILPRiskAnalysis($project_id);
-                $data['ILPAttachedDocuments'] = $this->loadILPAttachedDocuments($project_id);
-                $data['ILPBudgets'] = $this->loadILPBudget($project_id);
-                break;
-
-            case 'Individual - Access to Health':
-                $data['IAHPersonalInfo'] = $this->loadIAHPersonalInfo($project_id);
-                $data['IAHEarningMembers'] = $this->loadIAHEarningMembers($project_id);
-                $data['IAHHealthCondition'] = $this->loadIAHHealthCondition($project_id);
-                $data['IAHSupportDetails'] = $this->loadIAHSupportDetails($project_id);
-                $data['IAHBudgetDetails'] = $this->loadIAHBudgetDetails($project_id);
-                $data['IAHDocuments'] = $this->loadIAHDocuments($project_id);
-                break;
-
-            case 'Individual - Initial - Educational support':
-                $data['IIESPersonalInfo'] = $this->loadIIESPersonalInfo($project_id);
-                $data['IIESFamilyWorkingMembers'] = $this->loadIIESFamilyWorkingMembers($project_id);
-                $data['IIESImmediateFamilyDetails'] = $this->loadIIESImmediateFamilyDetails($project_id);
-                $data['IIESEducationBackground'] = $this->loadIIESEducationBackground($project_id);
-                $data['IIESFinancialSupport'] = $this->loadIIESFinancialSupport($project_id);
-                $data['IIESAttachments'] = $this->loadIIESAttachments($project_id);
-                $data['IIESExpenses'] = $this->loadIIESExpenses($project_id);
-                break;
+        foreach ($collectionKeys as $key) {
+            if (!array_key_exists($key, $data)) {
+                continue;
+            }
+            $val = $data[$key];
+            if ($val === null) {
+                continue;
+            }
+            if (is_bool($val)) {
+                Log::warning('ExportController@downloadPdf - Unexpected boolean for collection key', [
+                    'key' => $key,
+                    'project_id' => $project_id,
+                ]);
+            } elseif (!($val instanceof \Illuminate\Support\Collection) && !is_array($val)) {
+                Log::warning('ExportController@downloadPdf - Unexpected type for collection key', [
+                    'key' => $key,
+                    'type' => gettype($val),
+                    'project_id' => $project_id,
+                ]);
+            }
         }
-
-        return $data;
-    }
-
-    // Helper methods to load specific data (these would need to be implemented or injected)
-    private function loadRSTBeneficiariesArea($project_id)
-    {
-        return ProjectDPRSTBeneficiariesArea::where('project_id', $project_id)->get();
-    }
-
-    private function loadRSTGeographicalArea($project_id)
-    {
-        return ProjectRSTGeographicalArea::where('project_id', $project_id)->get();
-    }
-
-    private function loadRSTInstitutionInfo($project_id)
-    {
-        return ProjectRSTInstitutionInfo::where('project_id', $project_id)->first();
-    }
-
-    private function loadRSTTargetGroupAnnexure($project_id)
-    {
-        // Implement based on your model structure
-        return collect();
-    }
-
-    private function loadRSTTargetGroup($project_id)
-    {
-        // Implement based on your model structure
-        return collect();
-    }
-
-    // Add other helper methods as needed...
-    private function loadEduRUTBasicInfo($project_id) {
-        return ProjectEduRUTBasicInfo::where('project_id', $project_id)->first();
-    }
-    private function loadEduRUTTargetGroup($project_id) {
-        return ProjectEduRUTTargetGroup::where('project_id', $project_id)->get();
-    }
-    private function loadEduRUTAnnexedTargetGroup($project_id) {
-        return ProjectEduRUTAnnexedTargetGroup::where('project_id', $project_id)->get();
-    }
-    private function loadCICBasicInfo($project_id) {
-        return ProjectCICBasicInfo::where('project_id', $project_id)->first();
-    }
-    private function loadCCIAchievements($project_id) {
-        return ProjectCCIAchievements::where('project_id', $project_id)->first();
-    }
-    private function loadCCIAgeProfile($project_id) {
-        return ProjectCCIAgeProfile::where('project_id', $project_id)->first();
-    }
-    private function loadCCIAnnexedTargetGroup($project_id) {
-        return ProjectCCIAnnexedTargetGroup::where('project_id', $project_id)->get();
-    }
-    private function loadCCIEconomicBackground($project_id) {
-        return ProjectCCIEconomicBackground::where('project_id', $project_id)->first();
-    }
-    private function loadCCIPersonalSituation($project_id) {
-        return ProjectCCIPersonalSituation::where('project_id', $project_id)->first();
-    }
-    private function loadCCIPresentSituation($project_id) {
-        return ProjectCCIPresentSituation::where('project_id', $project_id)->first();
-    }
-    private function loadCCIRationale($project_id) {
-        return ProjectCCIRationale::where('project_id', $project_id)->first();
-    }
-    private function loadCCIStatistics($project_id) {
-        return ProjectCCIStatistics::where('project_id', $project_id)->first();
-    }
-    private function loadIGEInstitutionInfo($project_id) {
-        return ProjectIGEInstitutionInfo::where('project_id', $project_id)->first();
-    }
-    private function loadIGEBeneficiariesSupported($project_id) {
-        return ProjectIGEBeneficiariesSupported::where('project_id', $project_id)->first();
-    }
-    private function loadIGENewBeneficiaries($project_id) {
-        return ProjectIGENewBeneficiaries::where('project_id', $project_id)->first();
-    }
-    private function loadIGEOngoingBeneficiaries($project_id) {
-        return ProjectIGEOngoingBeneficiaries::where('project_id', $project_id)->first();
-    }
-    private function loadIGEBudget($project_id) {
-        return ProjectIGEBudget::where('project_id', $project_id)->first();
-    }
-    private function loadIGEDevelopmentMonitoring($project_id) {
-        return ProjectIGEDevelopmentMonitoring::where('project_id', $project_id)->first();
-    }
-    private function loadLDPInterventionLogic($project_id) {
-        return ProjectLDPInterventionLogic::where('project_id', $project_id)->first();
-    }
-    private function loadLDPNeedAnalysis($project_id) {
-        return ProjectLDPNeedAnalysis::where('project_id', $project_id)->first();
-    }
-    private function loadLDPTargetGroup($project_id) {
-        return ProjectLDPTargetGroup::where('project_id', $project_id)->get();
-    }
-    private function loadIESPersonalInfo($project_id) {
-        return ProjectIESPersonalInfo::where('project_id', $project_id)->first();
-    }
-    private function loadIESFamilyWorkingMembers($project_id) {
-        return ProjectIESFamilyWorkingMembers::where('project_id', $project_id)->get();
-    }
-    private function loadIESImmediateFamilyDetails($project_id) {
-        return ProjectIESImmediateFamilyDetails::where('project_id', $project_id)->first();
-    }
-    private function loadIESEducationBackground($project_id) {
-        return ProjectIESEducationBackground::where('project_id', $project_id)->first();
-    }
-    private function loadIESExpenses($project_id) {
-        return ProjectIESExpenses::where('project_id', $project_id)->first();
-    }
-    private function loadIESAttachments($project_id) {
-        return ProjectIESAttachments::where('project_id', $project_id)->first();
-    }
-    private function loadILPPersonalInfo($project_id) {
-        return ProjectILPPersonalInfo::where('project_id', $project_id)->first();
-    }
-    private function loadILPRevenueGoals($project_id) {
-        try {
-            return [
-                'business_plan_items' => ProjectILPRevenuePlanItem::where('project_id', $project_id)->get()->toArray(),
-                'annual_income' => ProjectILPRevenueIncome::where('project_id', $project_id)->get()->toArray(),
-                'annual_expenses' => ProjectILPRevenueExpense::where('project_id', $project_id)->get()->toArray(),
-            ];
-        } catch (\Exception $e) {
-            Log::error('Error loading ILP Revenue Goals', ['project_id' => $project_id, 'error' => $e->getMessage()]);
-            return [
-                'business_plan_items' => [],
-                'annual_income' => [],
-                'annual_expenses' => [],
-            ];
-        }
-    }
-    private function loadILPStrengthWeakness($project_id) {
-        try {
-            $strengthWeakness = ProjectILPBusinessStrengthWeakness::where('project_id', $project_id)->first();
-
-            return [
-                'strengths' => $strengthWeakness ? json_decode($strengthWeakness->strengths, true) : [],
-                'weaknesses' => $strengthWeakness ? json_decode($strengthWeakness->weaknesses, true) : [],
-            ];
-        } catch (\Exception $e) {
-            Log::error('Error loading ILP Strength Weakness', ['project_id' => $project_id, 'error' => $e->getMessage()]);
-            return [
-                'strengths' => [],
-                'weaknesses' => [],
-            ];
-        }
-    }
-    private function loadILPRiskAnalysis($project_id) {
-        try {
-            $riskAnalysis = ProjectILPRiskAnalysis::where('project_id', $project_id)->first();
-
-            return [
-                'identified_risks' => $riskAnalysis ? $riskAnalysis->identified_risks : '',
-                'mitigation_measures' => $riskAnalysis ? $riskAnalysis->mitigation_measures : '',
-                'business_sustainability' => $riskAnalysis ? $riskAnalysis->business_sustainability : '',
-                'expected_profits' => $riskAnalysis ? $riskAnalysis->expected_profits : '',
-            ];
-        } catch (\Exception $e) {
-            Log::error('Error loading ILP Risk Analysis', ['project_id' => $project_id, 'error' => $e->getMessage()]);
-            return [
-                'identified_risks' => '',
-                'mitigation_measures' => '',
-                'business_sustainability' => '',
-                'expected_profits' => '',
-            ];
-        }
-    }
-    private function loadILPAttachedDocuments($project_id) {
-        try {
-            $documents = ProjectILPAttachedDocuments::where('project_id', $project_id)->first();
-
-            return [
-                'aadhar_doc' => $documents && $documents->aadhar_doc ? Storage::url($documents->aadhar_doc) : null,
-                'request_letter_doc' => $documents && $documents->request_letter_doc ? Storage::url($documents->request_letter_doc) : null,
-                'purchase_quotation_doc' => $documents && $documents->purchase_quotation_doc ? Storage::url($documents->purchase_quotation_doc) : null,
-                'other_doc' => $documents && $documents->other_doc ? Storage::url($documents->other_doc) : null,
-            ];
-        } catch (\Exception $e) {
-            Log::error('Error loading ILP Attached Documents', ['project_id' => $project_id, 'error' => $e->getMessage()]);
-            return [
-                'aadhar_doc' => null,
-                'request_letter_doc' => null,
-                'purchase_quotation_doc' => null,
-                'other_doc' => null,
-            ];
-        }
-    }
-    private function loadILPBudget($project_id) {
-        try {
-            $budgets = ProjectILPBudget::where('project_id', $project_id)->get();
-
-            return [
-                'budgets' => $budgets,
-                'total_amount' => $budgets->sum('cost'),
-                'beneficiary_contribution' => $budgets->first()->beneficiary_contribution ?? 0,
-                'amount_requested' => $budgets->first()->amount_requested ?? 0,
-            ];
-        } catch (\Exception $e) {
-            Log::error('Error loading ILP Budget', ['project_id' => $project_id, 'error' => $e->getMessage()]);
-            return [
-                'budgets' => collect([]),
-                'total_amount' => 0,
-                'beneficiary_contribution' => 0,
-                'amount_requested' => 0,
-            ];
-        }
-    }
-    private function loadIAHPersonalInfo($project_id) {
-        return ProjectIAHPersonalInfo::where('project_id', $project_id)->first();
-    }
-    private function loadIAHEarningMembers($project_id) {
-        return ProjectIAHEarningMembers::where('project_id', $project_id)->get();
-    }
-    private function loadIAHHealthCondition($project_id) {
-        return ProjectIAHHealthCondition::where('project_id', $project_id)->first();
-    }
-    private function loadIAHSupportDetails($project_id) {
-        return ProjectIAHSupportDetails::where('project_id', $project_id)->first();
-    }
-    private function loadIAHBudgetDetails($project_id) {
-        return ProjectIAHBudgetDetails::where('project_id', $project_id)->first();
-    }
-    private function loadIAHDocuments($project_id) {
-        return ProjectIAHDocuments::where('project_id', $project_id)->first();
-    }
-    private function loadIIESPersonalInfo($project_id) {
-        return ProjectIIESPersonalInfo::where('project_id', $project_id)->first();
-    }
-    private function loadIIESFamilyWorkingMembers($project_id) {
-        return ProjectIIESFamilyWorkingMembers::where('project_id', $project_id)->get();
-    }
-    private function loadIIESImmediateFamilyDetails($project_id) {
-        return ProjectIIESImmediateFamilyDetails::where('project_id', $project_id)->first();
-    }
-    private function loadIIESEducationBackground($project_id) {
-        return ProjectIIESEducationBackground::where('project_id', $project_id)->first();
-    }
-    private function loadIIESFinancialSupport($project_id) {
-        return ProjectIIESScopeFinancialSupport::where('project_id', $project_id)->first();
-    }
-    private function loadIIESAttachments($project_id) {
-        return ProjectIIESAttachments::where('project_id', $project_id)->first();
-    }
-    private function loadIIESExpenses($project_id) {
-        return ProjectIIESExpenses::where('project_id', $project_id)->first();
     }
 
     public function downloadDoc($project_id)
@@ -803,7 +447,8 @@ class ExportController extends Controller
                     'objectives.activities.timeframes',
                     'sustainabilities',
                     'budgets',
-                    'user'
+                    'user',
+                    'society'
                 ])->firstOrFail();
 
             $user = Auth::user();
@@ -865,9 +510,11 @@ class ExportController extends Controller
 
             $phpWord = new PhpWord();
 
+            $resolvedFundFields = $this->financialResolver->resolve($project);
+
             // Order as per show.blade.php
             // 1. General Information
-            $this->addGeneralInfoSection($phpWord, $project, $projectRoles);
+            $this->addGeneralInfoSection($phpWord, $project, $projectRoles, $resolvedFundFields);
 
             // 2. Key Information (excluded for Individual project types)
             if (!in_array($project->project_type, ProjectType::getIndividualTypes())) {
@@ -951,7 +598,7 @@ class ExportController extends Controller
 
 
 // General info
-private function addGeneralInfoSection(PhpWord $phpWord, $project, $projectRoles)
+private function addGeneralInfoSection(PhpWord $phpWord, $project, $projectRoles, array $resolvedFundFields = [])
 {
     // Add a new section to the document
     $section = $phpWord->addSection();
@@ -963,7 +610,7 @@ private function addGeneralInfoSection(PhpWord $phpWord, $project, $projectRoles
     $section->addText("Project ID: {$project->project_id}");
     $section->addText("Project Title: {$project->project_title}");
     $section->addText("Project Type: {$project->project_type}");
-    $section->addText("Society Name: {$project->society_name}");
+    $section->addText("Society Name: " . (optional($project->society)->name ?? $project->society_name));
     $section->addText("President Name: {$project->president_name}");
     $section->addText("In Charge Name: {$project->in_charge_name}");
     $section->addText("In Charge Phone: {$project->in_charge_mobile}");
@@ -978,16 +625,16 @@ private function addGeneralInfoSection(PhpWord $phpWord, $project, $projectRoles
         (\Carbon\Carbon::parse($project->commencement_month_year)->format('F Y') ?? 'N/A')
     );
     $section->addText(
-        "Overall Project Budget: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($project->overall_project_budget, 2)
+        "Overall Project Budget: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($resolvedFundFields['overall_project_budget'] ?? 0, 2)
     );
     $section->addText(
-        "Amount Forwarded: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($project->amount_forwarded, 2)
+        "Amount Forwarded: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($resolvedFundFields['amount_forwarded'] ?? 0, 2)
     );
     $section->addText(
-        "Amount Sanctioned: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($project->amount_sanctioned, 2)
+        "Amount Sanctioned: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($resolvedFundFields['amount_sanctioned'] ?? 0, 2)
     );
     $section->addText(
-        "Opening Balance: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($project->opening_balance, 2)
+        "Opening Balance: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($resolvedFundFields['opening_balance'] ?? 0, 2)
     );
     $section->addText("Coordinator India Name: {$project->coordinator_india_name}");
     $section->addText("Coordinator India Phone: {$project->coordinator_india_phone}");
@@ -1569,15 +1216,20 @@ private function addBeneficiariesAreaSection(PhpWord $phpWord, $project)
     $table->addCell(2000)->addText("Direct Beneficiaries", $firstRowStyle);
     $table->addCell(2000)->addText("Indirect Beneficiaries", $firstRowStyle);
 
+    $totalDirect = 0;
+    $totalIndirect = 0;
+
     // Check if data exists
-    if ($project->beneficiaries_area && $project->beneficiaries_area->isNotEmpty()) {
+    if ($project->DPRSTBeneficiariesAreas && $project->DPRSTBeneficiariesAreas->isNotEmpty()) {
         // Loop through the beneficiaries area
-        foreach ($project->beneficiaries_area as $area) {
+        foreach ($project->DPRSTBeneficiariesAreas as $area) {
             $table->addRow();
             $table->addCell(3000)->addText($area->project_area ?? 'N/A');
             $table->addCell(3000)->addText($area->category_beneficiary ?? 'N/A');
             $table->addCell(2000)->addText($area->direct_beneficiaries ?? 'N/A');
             $table->addCell(2000)->addText($area->indirect_beneficiaries ?? 'N/A');
+            $totalDirect += (int) ($area->direct_beneficiaries ?? 0);
+            $totalIndirect += (int) ($area->indirect_beneficiaries ?? 0);
         }
     } else {
         // Add a row indicating no data
@@ -1585,6 +1237,15 @@ private function addBeneficiariesAreaSection(PhpWord $phpWord, $project)
         $table->addCell(0, ['gridSpan' => 4])->addText("No project area data recorded.", ['italic' => true], ['alignment' => 'center']);
     }
 
+    // Add total row
+    $table->addRow();
+    $table->addCell(3000)->addText('Total', ['bold' => true]);
+    $table->addCell(3000)->addText('');
+    $table->addCell(2000)->addText((string) $totalDirect, ['bold' => true]);
+    $table->addCell(2000)->addText((string) $totalIndirect, ['bold' => true]);
+
+    $section->addTextBreak(0.5);
+    $section->addText('Total Beneficiaries: ' . ($totalDirect + $totalIndirect), ['bold' => true]);
     $section->addTextBreak(1); // Add spacing after the table
 }
 // Section - Target Group - Residential Skill Training

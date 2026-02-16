@@ -6,9 +6,10 @@
     <div class="card-body">
         @php
             $familyMembers = $project->iesFamilyWorkingMembers ?? collect([]);
+            $familyMembers = $familyMembers instanceof \Illuminate\Support\Collection ? $familyMembers : collect($familyMembers);
         @endphp
 
-        @if($familyMembers->count() > 0)
+        @if($familyMembers instanceof \Illuminate\Support\Collection && $familyMembers->count() > 0)
             <div class="table-responsive">
                 <table class="table table-bordered">
                     <thead>

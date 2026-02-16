@@ -23,6 +23,7 @@ use App\Services\ProjectPhaseService;
 use App\Traits\HandlesErrors;
 use App\Services\ProjectQueryService;
 use App\Services\Budget\BudgetSyncGuard;
+use App\Helpers\SocietyVisibilityHelper;
 // Aliases for CCI Controllers with prefix 'CCI' -
 use App\Http\Controllers\Projects\CCI\AchievementsController as CCIAchievementsController;
 use App\Http\Controllers\Projects\CCI\AgeProfileController as CCIAgeProfileController;
@@ -81,7 +82,7 @@ use App\Http\Controllers\Projects\IIES\IIESPersonalInfoController as IIESPersona
 use App\Http\Controllers\Projects\IIES\IIESExpensesController as IIESExpensesController;
 use App\Models\OldProjects\IIES\ProjectIIESExpenses;
 use App\Models\OldProjects\IIES\ProjectIIESEducationBackground;
-use App\Services\Budget\ProjectFundFieldsResolver;
+use App\Domain\Budget\ProjectFinancialResolver;
 
 class ProjectController extends Controller
 {
@@ -293,10 +294,10 @@ class ProjectController extends Controller
         $user = Auth::user();
 
         // Fetch projects where the user is either the owner or the in-charge
-        // Exclude projects with status APPROVED_BY_COORDINATOR for executors
+        // Exclude all approved projects (any approval status) for executors/applicants — M3 Phase 1
         // Eager load relationships to prevent N+1 queries
         $projects = \App\Services\ProjectQueryService::getProjectsForUserQuery($user)
-            ->where('status', '!=', ProjectStatus::APPROVED_BY_COORDINATOR)
+            ->notApproved()
             ->with(['user', 'objectives', 'budgets'])
             ->get();
 
@@ -429,11 +430,15 @@ public function create()
         }
     }
 
+    // Phase 5B1: Role-based society dropdown (executor/applicant see province + global)
+    $societies = SocietyVisibilityHelper::getSocietiesForProjectForm($user);
+
     Log::info('ProjectController@create - Preparing data for view');
     return view('projects.Oldprojects.createProjects', compact(
         'users',
         'user',
         'developmentProjects',
+        'societies',
         'predecessorBeneficiaries',
         'predecessorObjectives',
         'predecessorActivities',
@@ -455,7 +460,7 @@ public function getProjectDetails($project_id)
             'project_id' => $project_id
         ]);
         $project = Project::where('project_id', $project_id)
-            ->with(['user', 'DPRSTBeneficiariesAreas', 'objectives.results', 'objectives.risks', 'objectives.activities.timeframes'])
+            ->with(['user', 'society', 'DPRSTBeneficiariesAreas', 'objectives.results', 'objectives.risks', 'objectives.activities.timeframes'])
             ->firstOrFail();
 
         Log::info('ProjectController@getProjectDetails - Project retrieved', [
@@ -465,7 +470,8 @@ public function getProjectDetails($project_id)
 
         $responseData = [
             'project_title' => $project->project_title,
-            'society_name' => $project->society_name,
+            'society_id' => $project->society_id,
+            'society_name' => optional($project->society)->name ?? $project->society_name,
             'president_name' => $project->president_name,
             'applicant_name' => $project->user ? $project->user->name : null,
             'applicant_mobile' => $project->user ? $project->user->phone : null,
@@ -795,6 +801,7 @@ public function show($project_id)
                 'objectives.activities.timeframes',
                 'sustainabilities',
                 'user',
+                'society',
                 'statusHistory.changedBy',
                 'reports.accountDetails', // Load reports with account details for budget calculations
                 // IIES (Individual - Initial - Educational support) so Show partials can use $project->iiesXXX
@@ -1058,24 +1065,10 @@ public function show($project_id)
             ]);
         }
 
-        // Phase 1: Resolved fund fields for display. Always resolve for types that use type-specific
-        // budget (IIES, IES, ILP, IAH, IGE) so Basic Info shows correct Local Contribution etc.;
-        // when resolver_enabled, resolve for all types. Read-only, no writes.
-        $typesWithTypeSpecificBudget = [
-            'Individual - Initial - Educational support',
-            'Individual - Ongoing Educational support',
-            'Individual - Livelihood Application',
-            'Individual - Access to Health',
-            'Institutional Ongoing Group Educational proposal',
-        ];
-        $shouldResolveForShow = config('budget.resolver_enabled')
-            || in_array($project->project_type ?? '', $typesWithTypeSpecificBudget, true);
-        if ($shouldResolveForShow) {
-            $resolver = app(ProjectFundFieldsResolver::class);
-            $data['resolvedFundFields'] = $resolver->resolve($project, true);
-        } else {
-            $data['resolvedFundFields'] = null;
-        }
+        // Phase 1: Resolved fund fields for display. Always use ProjectFinancialResolver as single
+        // source of truth. Read-only, no writes.
+        $resolver = app(ProjectFinancialResolver::class);
+        $data['resolvedFundFields'] = $resolver->resolve($project);
 
         Log::info('ProjectController@show - Data prepared for view', [
             'project_id' => $project_id,
@@ -1333,8 +1326,11 @@ public function edit($project_id)
         // Phase 3: Budget locked when project is approved (restrict flag on)
         $budgetLockedByApproval = !BudgetSyncGuard::canEditBudget($project);
 
+        // Phase 5B1: Role-based society dropdown
+        $societies = SocietyVisibilityHelper::getSocietiesForProjectForm($user);
+
         return view('projects.Oldprojects.edit', compact(
-            'project', 'developmentProjects', 'user', 'users',
+            'project', 'developmentProjects', 'user', 'users', 'societies',
             'basicInfo', 'targetGroups', 'annexedTargetGroups', 'cicBasicInfo',
             'achievements', 'ageProfile', 'targetGroup', 'economicBackground',
             'personalSituation', 'presentSituation', 'rationale', 'statistics',
@@ -1377,7 +1373,7 @@ public function edit($project_id)
             'project_id' => $project_id,
             'project_type' => $request->project_type,
             'project_title' => $request->project_title,
-            'society_name' => $request->society_name,
+            'society_id' => $request->society_id,
         ]);
 
         // Force `phases` to be an array if it doesn't exist
@@ -1532,6 +1528,12 @@ public function edit($project_id)
 
             // Refresh project to get latest data
             $project->refresh();
+
+            // When saving as draft, explicitly keep status DRAFT
+            if ($request->boolean('save_as_draft')) {
+                $project->status = \App\Constants\ProjectStatus::DRAFT;
+                $project->save();
+            }
 
             // Log activity update
             $user = Auth::user();

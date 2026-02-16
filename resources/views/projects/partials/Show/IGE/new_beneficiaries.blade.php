@@ -17,7 +17,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if($newBeneficiaries->isNotEmpty())
+                    @if(isset($newBeneficiaries) && $newBeneficiaries instanceof \Illuminate\Support\Collection && $newBeneficiaries->isNotEmpty())
                         @foreach($newBeneficiaries as $index => $beneficiary)
                         <tr>
                             <td>{{ $index + 1 }}</td>

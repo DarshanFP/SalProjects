@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property int $province_id
  * @property string $name
+ * @property string|null $address
  * @property bool $is_active
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
@@ -31,6 +32,7 @@ class Society extends Model
     protected $fillable = [
         'province_id',
         'name',
+        'address',
         'is_active',
     ];
 

@@ -45,6 +45,23 @@ class IESExpensesController extends Controller
         $data = $request->only($allKeys);
         $headerData = ArrayToScalarNormalizer::forFillable($data, $fillableHeader);
 
+        $parentData = [
+            'total_expenses' => $headerData['total_expenses'] ?? null,
+            'expected_scholarship_govt' => $headerData['expected_scholarship_govt'] ?? null,
+            'support_other_sources' => $headerData['support_other_sources'] ?? null,
+            'beneficiary_contribution' => $headerData['beneficiary_contribution'] ?? null,
+            'balance_requested' => $headerData['balance_requested'] ?? null,
+        ];
+        $particulars = is_array($data['particulars'] ?? null) ? $data['particulars'] : [];
+        $amounts = is_array($data['amounts'] ?? null) ? $data['amounts'] : [];
+
+        if (! $this->isIESExpensesMeaningfullyFilled($parentData, $particulars, $amounts)) {
+            Log::info('IESExpensesController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+            return response()->json(['message' => 'IES estimated expenses saved successfully.'], 200);
+        }
+
         DB::beginTransaction();
         try {
             Log::info('Storing IES estimated expenses', ['project_id' => $projectId]);
@@ -69,7 +86,8 @@ class IESExpensesController extends Controller
             for ($i = 0; $i < count($particulars); $i++) {
                 $particular = is_array($particulars[$i] ?? null) ? (reset($particulars[$i]) ?? '') : ($particulars[$i] ?? '');
                 $amount = is_array($amounts[$i] ?? null) ? (reset($amounts[$i]) ?? '') : ($amounts[$i] ?? '');
-                if (!empty($particular) && !empty($amount)) {
+                // M2.5: Allow 0 for amount; skip only when null or '' (do not use empty() on numeric)
+                if (trim((string) $particular) !== '' && $amount !== null && $amount !== '') {
                     $projectExpenses->expenseDetails()->create([
                         'particular' => $particular,
                         'amount' => $amount,
@@ -161,5 +179,45 @@ class IESExpensesController extends Controller
             Log::error('Error deleting IES estimated expenses', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to delete IES estimated expenses.'], 500);
         }
+    }
+
+    /**
+     * M1 Guard: true when at least one parent field is meaningful or at least one child row has meaningful particular/amount.
+     */
+    private function isIESExpensesMeaningfullyFilled(array $parentData, array $particulars, array $amounts): bool
+    {
+        foreach ($parentData as $value) {
+            if ($this->meaningfulNumeric($value)) {
+                return true;
+            }
+        }
+
+        if ($particulars === [] && $amounts === []) {
+            return false;
+        }
+
+        $maxIndex = max(
+            is_array($particulars) ? count($particulars) - 1 : -1,
+            is_array($amounts) ? count($amounts) - 1 : -1
+        );
+        for ($i = 0; $i <= $maxIndex; $i++) {
+            $particular = $particulars[$i] ?? null;
+            $amount = $amounts[$i] ?? null;
+            if ($this->meaningfulString($particular) || $this->meaningfulNumeric($amount)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function meaningfulString($value): bool
+    {
+        return is_string($value) && trim($value) !== '';
+    }
+
+    private function meaningfulNumeric($value): bool
+    {
+        return $value !== null && $value !== '' && is_numeric($value);
     }
 }

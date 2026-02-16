@@ -34,6 +34,10 @@
                             <small class="form-text text-muted">Enter a unique society name for {{ $province->name }}.</small>
                         </div>
                         <div class="form-group mb-3">
+                            <label for="address">Address</label>
+                            <textarea name="address" id="address" class="form-control" rows="3">{{ old('address') }}</textarea>
+                        </div>
+                        <div class="form-group mb-3">
                             <button type="submit" class="btn btn-primary">
                                 <i data-feather="save"></i> Create Society
                             </button>

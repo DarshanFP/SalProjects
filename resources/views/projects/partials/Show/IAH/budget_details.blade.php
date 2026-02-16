@@ -4,7 +4,7 @@
         <h4 class="mb-0">Estimated Cost of Treatment – Budget Details</h4>
     </div>
     <div class="card-body">
-        @if($IAHBudgetDetails && $IAHBudgetDetails->count())
+        @if($IAHBudgetDetails instanceof \Illuminate\Support\Collection && $IAHBudgetDetails->count())
             <div class="table-responsive">
                 <table class="table table-bordered">
                     <thead>

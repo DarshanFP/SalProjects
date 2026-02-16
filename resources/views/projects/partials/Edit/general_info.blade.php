@@ -95,51 +95,21 @@
             <label for="project_title" class="form-label">Project Title</label>
             <input type="text" name="project_title" id="project_title"
                    class="form-control select-input"
-                   value="{{ old('project_title', $project->project_title) }}" required>
+                   value="{{ old('project_title', $project->project_title) }}">
         </div>
 
-        {{-- NAME OF SOCIETY / TRUST --}}
+        {{-- NAME OF SOCIETY / TRUST (Phase 5B1: society_id from $societies) --}}
         <div class="mb-3">
-            <label for="society_name" class="form-label">Name of the Society / Trust</label>
-            <select name="society_name" id="society_name" class="form-select" required>
+            <label for="society_id" class="form-label">Name of the Society / Trust</label>
+            <select name="society_id" id="society_id" class="form-select" required>
                 <option value="" disabled>Select Society / Trust</option>
-                <option value="ST. ANN'S EDUCATIONAL SOCIETY"
-                    {{ $project->society_name == "ST. ANN'S EDUCATIONAL SOCIETY" ? 'selected' : '' }}>
-                    ST. ANN'S EDUCATIONAL SOCIETY
-                </option>
-                <option value="SARVAJANA SNEHA CHARITABLE TRUST"
-                    {{ $project->society_name == "SARVAJANA SNEHA CHARITABLE TRUST" ? 'selected' : '' }}>
-                    SARVAJANA SNEHA CHARITABLE TRUST
-                </option>
-                <option value="WILHELM MEYERS DEVELOPMENTAL SOCIETY"
-                    {{ $project->society_name == "WILHELM MEYERS DEVELOPMENTAL SOCIETY" ? 'selected' : '' }}>
-                    WILHELM MEYERS DEVELOPMENTAL SOCIETY
-                </option>
-                <option value="ST. ANN'S SOCIETY, VISAKHAPATNAM"
-                    {{ $project->society_name == "ST. ANN'S SOCIETY, VISAKHAPATNAM" ? 'selected' : '' }}>
-                    ST. ANNS'S SOCIETY, VISAKHAPATNAM
-                </option>
-                <option value="ST.ANN'S SOCIETY, SOUTHERN REGION"
-                    {{ $project->society_name == "ST.ANN'S SOCIETY, SOUTHERN REGION" ? 'selected' : '' }}>
-                    ST.ANN'S SOCIETY, SOUTHERN REGION
-                </option>
-                <option value="ST. ANNE'S SOCIETY"
-                    {{ $project->society_name == "ST. ANNE'S SOCIETY" ? 'selected' : '' }}>
-                    ST. ANNE'S SOCIETY
-                </option>
-                <option value="BIARA SANTA ANNA, MAUSAMBI"
-                    {{ $project->society_name == "BIARA SANTA ANNA, MAUSAMBI" ? 'selected' : '' }}>
-                    BIARA SANTA ANNA, MAUSAMBI
-                </option>
-                <option value="ST. ANN'S CONVENT, LURO"
-                    {{ $project->society_name == "ST. ANN'S CONVENT, LURO" ? 'selected' : '' }}>
-                    ST. ANN'S CONVENT, LURO
-                </option>
-                <option value="MISSIONARY SISTERS OF ST. ANN"
-                    {{ $project->society_name == "MISSIONARY SISTERS OF ST. ANN" ? 'selected' : '' }}>
-                    MISSIONARY SISTERS OF ST. ANN
-                </option>
+                @foreach($societies ?? [] as $society)
+                    <option value="{{ $society->id }}" {{ old('society_id', $project->society_id ?? '') == $society->id ? 'selected' : '' }}>{{ $society->name }}</option>
+                @endforeach
             </select>
+            @error('society_id')
+                <span class="text-danger">{{ $message }}</span>
+            @enderror
         </div>
 
         {{-- PRESIDENT / CHAIR PERSON --}}
@@ -224,7 +194,7 @@
         <div class="mb-3">
             <label for="overall_project_period" class="form-label">Overall Project Period (Years)</label>
             <select name="overall_project_period" id="overall_project_period"
-                    class="form-control select-input" required>
+                    class="form-control select-input">
                 <option value="" disabled>Select Period</option>
                 @for($i=1; $i<=4; $i++)
                     <option value="{{ $i }}" {{ (int)old('overall_project_period', $project->overall_project_period) === $i ? 'selected' : '' }}>
@@ -290,8 +260,7 @@
             <input type="number" name="overall_project_budget" id="overall_project_budget"
                    class="form-control select-input {{ ($budgetLockedByApproval ?? false) ? 'readonly-input' : '' }}"
                    value="{{ old('overall_project_budget', $project->overall_project_budget) }}"
-                   @if($budgetLockedByApproval ?? false) readonly disabled @endif
-                   required>
+                   @if($budgetLockedByApproval ?? false) readonly disabled @endif>
             @if($budgetLockedByApproval ?? false)
                 <div class="form-text text-warning mt-1">
                     <i class="fas fa-lock"></i> Project is approved. Budget edits are locked until the project is reverted.
@@ -432,13 +401,13 @@
         </div>
         <div class="mb-3">
             <label for="project_title" class="form-label">Project Title:</label>
-            <input type="text" name="project_title" id="project_title" class="form-control select-input" value="{{ $project->project_title }}" required>
+            <input type="text" name="project_title" id="project_title" class="form-control select-input" value="{{ $project->project_title }}">
         </div>
 
         <!-- Project Type -->
         <div class="mb-3">
             <label for="project_type" class="form-label">Project Type:</label>
-            <select name="project_type" id="project_type" class="form-control select-input" required>
+            <select name="project_type" id="project_type" class="form-control select-input">
                 <option value="" disabled>Select Project Type</option>
                 @foreach(["CHILD CARE INSTITUTION", "Development Projects", "Rural-Urban-Tribal", "Institutional Ongoing Group Educational proposal", "Livelihood Development Projects", "PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER", "NEXT PHASE - DEVELOPMENT PROPOSAL", "Residential Skill Training Proposal 2", "Individual - Ongoing Educational support", "Individual - Livelihood Application", "Individual - Access to Health", "Individual - Initial - Educational support"] as $type)
                     <option value="{{ $type }}" {{ $project->project_type == $type ? 'selected' : '' }}>{{ $type }}</option>
@@ -446,21 +415,24 @@
             </select>
         </div>
 
-        <!-- Society / Trust -->
+        <!-- Society / Trust (Phase 5B1: society_id from $societies) -->
         <div class="mb-3">
-            <label for="society_name" class="form-label">Name of the Society / Trust</label>
-            <select name="society_name" id="society_name" class="form-select" required>
+            <label for="society_id" class="form-label">Name of the Society / Trust</label>
+            <select name="society_id" id="society_id" class="form-select" required>
                 <option value="" disabled>Select Society / Trust</option>
-                @foreach(["ST. ANN'S EDUCATIONAL SOCIETY", "SARVAJANA SNEHA CHARITABLE TRUST", "WILHELM MEYERS DEVELOPMENTAL SOCIETY", "ST. ANNS'S SOCIETY, VISAKHAPATNAM", "ST.ANN'S SOCIETY, SOUTHERN REGION", "ST. ANNE'S SOCIETY", "BIARA SANTA ANNA, MAUSAMBI", "ST. ANN'S CONVENT, LURO", "MISSIONARY SISTERS OF ST. ANN"] as $society)
-                    <option value="{{ $society }}" {{ $project->society_name == $society ? 'selected' : '' }}>{{ $society }}</option>
+                @foreach($societies ?? [] as $society)
+                    <option value="{{ $society->id }}" {{ old('society_id', $project->society_id ?? '') == $society->id ? 'selected' : '' }}>{{ $society->name }}</option>
                 @endforeach
             </select>
+            @error('society_id')
+                <span class="text-danger">{{ $message }}</span>
+            @enderror
         </div>
 
         <!-- In-Charge Selection -->
         <div class="mb-3">
             <label for="in_charge" class="form-label">Project In-Charge</label>
-            <select name="in_charge" id="in_charge" class="form-control select-input me-2" required>
+            <select name="in_charge" id="in_charge" class="form-control select-input me-2">
                 <option value="" disabled>Select In-Charge</option>
                 @foreach($users as $potential_in_charge)
                     @if($potential_in_charge->province == $user->province && ($potential_in_charge->role == 'applicant' || $potential_in_charge->role == 'executor'))
@@ -473,7 +445,7 @@
         <!-- Overall Project Period & Current Phase -->
         <div class="mb-3">
             <label for="overall_project_period" class="form-label">Overall Project Period</label>
-            <select name="overall_project_period" id="overall_project_period" class="form-control select-input" required>
+            <select name="overall_project_period" id="overall_project_period" class="form-control select-input">
                 <option value="" disabled>Select Period</option>
                 @for ($i = 1; $i <= 4; $i++)
                     <option value="{{ $i }}" {{ $project->overall_project_period == $i ? 'selected' : '' }}>{{ $i }} Year(s)</option>
@@ -482,7 +454,7 @@
         </div>
         <div class="mb-3">
             <label for="current_phase" class="form-label">Current Phase</label>
-            <select name="current_phase" id="current_phase" class="form-control select-input" required>
+            <select name="current_phase" id="current_phase" class="form-control select-input">
                 <option value="" disabled>Select Phase</option>
                 @for ($i = 1; $i <= $project->overall_project_period; $i++)
                     <option value="{{ $i }}" {{ $project->current_phase == $i ? 'selected' : '' }}>Phase {{ $i }}</option>
@@ -527,12 +499,12 @@
         </div>
         <div class="mb-3">
             <label for="project_title" class="form-label">Project Name:</label>
-            <input type="text" name="project_title" id="project_title" class="form-control" value="{{ $project->project_title }}" required>
+            <input type="text" name="project_title" id="project_title" class="form-control" value="{{ $project->project_title }}">
         </div>
         <!-- Project Type -->
         <div class="mb-3">
             <label for="project_type" class="form-label">Project Type:</label>
-            <select name="project_type" id="project_type" class="form-control select-input" required>
+            <select name="project_type" id="project_type" class="form-control select-input">
                 <option value="" disabled>Select Project Type</option>
                 <!-- Add available project types dynamically here -->
                 <option value="CHILD CARE INSTITUTION" {{ $project->project_type == 'CHILD CARE INSTITUTION' ? 'selected' : '' }}>CHILD CARE INSTITUTION - Welfare home for children - Ongoing</option>
@@ -549,28 +521,25 @@
                 <option value="Individual - Initial - Educational support" {{ $project->project_type == 'Individual - Initial - Educational support' ? 'selected' : '' }}>Individual - Initial - Educational support - Project Application</option>
             </select>
         </div>
-        <!-- Society / Trust -->
+        <!-- Society / Trust (Phase 5B1: society_id from $societies) -->
         <div class="mb-3">
-            <label for="society_name" class="form-label">Name of the Society / Trust</label>
-            <select name="society_name" id="society_name" class="form-select" required>
+            <label for="society_id" class="form-label">Name of the Society / Trust</label>
+            <select name="society_id" id="society_id" class="form-select" required>
                 <option value="" disabled selected>Select Society / Trust</option>
-                <option value="ST. ANN'S EDUCATIONAL SOCIETY" {{ $project->society_name == "ST. ANN'S EDUCATIONAL SOCIETY" ? 'selected' : '' }}>ST. ANN'S EDUCATIONAL SOCIETY</option>
-                <option value="SARVAJANA SNEHA CHARITABLE TRUST" {{ $project->society_name == "SARVAJANA SNEHA CHARITABLE TRUST" ? 'selected' : '' }}>SARVAJANA SNEHA CHARITABLE TRUST</option>
-                <option value="WILHELM MEYERS DEVELOPMENTAL SOCIETY" {{ $project->society_name == "WILHELM MEYERS DEVELOPMENTAL SOCIETY" ? 'selected' : '' }}>WILHELM MEYERS DEVELOPMENTAL SOCIETY</option>
-                <option value="ST. ANNS'S SOCIETY, VISAKHAPATNAM" {{ $project->society_name == "ST. ANNS'S SOCIETY, VISAKHAPATNAM" ? 'selected' : '' }}>ST. ANNS'S SOCIETY, VISAKHAPATNAM</option>
-                <option value="ST.ANN'S SOCIETY, SOUTHERN REGION" {{ $project->society_name == "ST.ANN'S SOCIETY, SOUTHERN REGION" ? 'selected' : '' }}>ST.ANN'S SOCIETY, SOUTHERN REGION</option>
-                <option value="ST. ANNE'S SOCIETY" {{ $project->society_name == "ST. ANNE'S SOCIETY" ? 'selected' : '' }}>ST. ANNE'S SOCIETY</option>
-                <option value="BIARA SANTA ANNA, MAUSAMBI" {{ $project->society_name == "BIARA SANTA ANNA, MAUSAMBI" ? 'selected' : '' }}>BIARA SANTA ANNA, MAUSAMBI</option>
-                <option value="ST. ANN'S CONVENT, LURO" {{ $project->society_name == "ST. ANN'S CONVENT, LURO" ? 'selected' : '' }}>ST. ANN'S CONVENT, LURO</option>
-                <option value="MISSIONARY SISTERS OF ST. ANN" {{ $project->society_name == "MISSIONARY SISTERS OF ST. ANN" ? 'selected' : '' }}>MISSIONARY SISTERS OF ST. ANN</option>
+                @foreach($societies ?? [] as $society)
+                    <option value="{{ $society->id }}" {{ old('society_id', $project->society_id ?? '') == $society->id ? 'selected' : '' }}>{{ $society->name }}</option>
+                @endforeach
             </select>
+            @error('society_id')
+                <span class="text-danger">{{ $message }}</span>
+            @enderror
         </div>
 
 
         <!-- In-charge -->
         <div class="mb-3">
             <label for="in_charge" class="form-label">In-charge:</label>
-            <select name="in_charge" id="in_charge" class="form-control me-2" required>
+            <select name="in_charge" id="in_charge" class="form-control me-2">
                 <option value="" disabled>Select In-Charge</option>
                 @foreach($users as $potential_in_charge)
                     @if($potential_in_charge->province == $user->province && ($potential_in_charge->role == 'applicant' || $potential_in_charge->role == 'executor'))
@@ -597,13 +566,13 @@
         <!-- Overall Project Period -->
         <div class="mb-3">
             <label for="overall_project_period" class="form-label">Overall Project Period (in years):</label>
-            <input type="number" name="overall_project_period" id="overall_project_period" class="form-control" value="{{ $project->overall_project_period }}" required>
+            <input type="number" name="overall_project_period" id="overall_project_period" class="form-control" value="{{ $project->overall_project_period }}">
         </div>
 
         <!-- Current Phase -->
         <div class="mb-3">
             <label for="current_phase" class="form-label">Current Phase:</label>
-            <select name="current_phase" id="current_phase" class="form-control" required>
+            <select name="current_phase" id="current_phase" class="form-control">
                 <option value="" disabled>Select Phase</option>
                 @for($i = 1; $i <= $project->overall_project_period; $i++)
                     <option value="{{ $i }}" {{ $project->current_phase == $i ? 'selected' : '' }}>
@@ -616,7 +585,7 @@
         <!-- Overall Project Budget -->
         <div class="mb-3">
             <label for="overall_project_budget" class="form-label">Overall Project Budget (Rs.):</label>
-            <input type="number" name="overall_project_budget" id="overall_project_budget" class="form-control" value="{{ $project->overall_project_budget }}" required readonly>
+            <input type="number" name="overall_project_budget" id="overall_project_budget" class="form-control" value="{{ $project->overall_project_budget }}" readonly>
         </div>
 
 
@@ -624,12 +593,13 @@
 </div>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-    const societyNameSelect = document.getElementById('society_name');
-
-    societyNameSelect.addEventListener('change', function () {
+    const societyIdSelect = document.getElementById('society_id');
+    if (societyIdSelect) {
+    societyIdSelect.addEventListener('change', function () {
         // Society selected
         // Additional logic can be added here if needed
     });
+    }
 });
 </script>
 --}}

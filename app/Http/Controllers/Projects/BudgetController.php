@@ -108,6 +108,15 @@ class BudgetController extends Controller
             $phases = [];
         }
 
+        // M1 Data Integrity Shield: skip delete+recreate when budget section is absent or empty.
+        if (! $this->isBudgetSectionMeaningfullyFilled($phases)) {
+            Log::info('BudgetController@update - Budget section absent or empty; skipping mutation', [
+                'project_id' => $project->project_id,
+            ]);
+
+            return $project;
+        }
+
         ProjectBudget::where('project_id', $project->project_id)
             ->where('phase', (int) ($project->current_phase ?? 1))
             ->delete();
@@ -141,5 +150,47 @@ class BudgetController extends Controller
         app(BudgetSyncService::class)->syncFromTypeSave($project);
 
         return $project;
+    }
+
+    /**
+     * M1 Guard: true only when phases[0]['budget'] exists and has at least one row with meaningful data.
+     * Meaningful row = at least one non-empty string (after trim) or at least one non-null numeric value.
+     */
+    private function isBudgetSectionMeaningfullyFilled(array $phases): bool
+    {
+        if ($phases === []) {
+            return false;
+        }
+
+        $phase = $phases[0] ?? null;
+        if ($phase === null || ! isset($phase['budget']) || ! is_array($phase['budget'])) {
+            return false;
+        }
+
+        $budget = $phase['budget'];
+        if ($budget === []) {
+            return false;
+        }
+
+        foreach ($budget as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            // Non-empty string (e.g. particular)
+            $particular = trim((string) ($row['particular'] ?? ''));
+            if ($particular !== '') {
+                return true;
+            }
+            // Non-null numeric (this_phase, rate_quantity, etc.)
+            $numericKeys = ['this_phase', 'rate_quantity', 'rate_multiplier', 'rate_duration', 'rate_increase'];
+            foreach ($numericKeys as $key) {
+                $val = $row[$key] ?? null;
+                if ($val !== null && $val !== '' && is_numeric($val)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

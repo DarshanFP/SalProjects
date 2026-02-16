@@ -4,7 +4,7 @@
         <h4 class="mb-0">List of Earning Members of the Family</h4>
     </div>
     <div class="card-body">
-        @if($IAHEarningMembers && $IAHEarningMembers->count())
+        @if(isset($IAHEarningMembers) && $IAHEarningMembers instanceof \Illuminate\Support\Collection && $IAHEarningMembers->count())
             <div class="table-responsive">
                 <table class="table table-bordered">
                     <thead>

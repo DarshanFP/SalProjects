@@ -15,7 +15,7 @@
             <div class="info-value">{{ $project->project_type }}</div>
 
             <div class="info-label"><strong>Society Name:</strong></div>
-            <div class="info-value">{{ $project->society_name }}</div>
+            <div class="info-value">{{ optional($project->society)->name ?? $project->society_name }}</div>
 
             <div class="info-label"><strong>President Name:</strong></div>
             <div class="info-value">{{ $project->president_name }}</div>

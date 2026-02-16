@@ -14,7 +14,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if($beneficiariesSupported && $beneficiariesSupported->count())
+                    @if(isset($beneficiariesSupported) && $beneficiariesSupported instanceof \Illuminate\Support\Collection && $beneficiariesSupported->count())
                         @foreach($beneficiariesSupported as $index => $beneficiary)
                             <tr>
                                 <td>{{ $index + 1 }}</td>

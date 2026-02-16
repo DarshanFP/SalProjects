@@ -4,8 +4,10 @@ namespace App\Http\Requests\Projects;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use App\Models\OldProjects\Project;
 use App\Helpers\ProjectPermissionHelper;
+use App\Helpers\SocietyVisibilityHelper;
 
 class UpdateGeneralInfoRequest extends FormRequest
 {
@@ -37,10 +39,11 @@ class UpdateGeneralInfoRequest extends FormRequest
      */
     public function rules(): array
     {
+        $allowedSocietyIds = SocietyVisibilityHelper::getAllowedSocietyIds();
         return [
             'project_type' => 'required|string|max:255',
             'project_title' => 'nullable|string|max:255',
-            'society_name' => 'nullable|string|max:255',
+            'society_id' => ['required', Rule::in($allowedSocietyIds)],
             'president_name' => 'nullable|string|max:255',
             'in_charge' => 'nullable|integer|exists:users,id',
             'in_charge_name' => 'nullable|string|max:255',

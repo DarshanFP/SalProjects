@@ -4,7 +4,7 @@
         <h4>Ongoing Beneficiaries</h4>
     </div>
     <div class="card-body">
-        @if($ongoingBeneficiaries->isNotEmpty())
+        @if(isset($ongoingBeneficiaries) && $ongoingBeneficiaries instanceof \Illuminate\Support\Collection && $ongoingBeneficiaries->isNotEmpty())
         <div class="table-responsive">
             <table class="table table-bordered">
                 <thead>

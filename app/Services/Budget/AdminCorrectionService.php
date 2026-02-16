@@ -129,7 +129,7 @@ class AdminCorrectionService
 
     protected function assertApproved(Project $project): void
     {
-        if (!ProjectStatus::isApproved($project->status ?? '')) {
+        if (!$project->isApproved()) {
             throw ValidationException::withMessages([
                 'project' => ['Only approved projects can be reconciled.'],
             ]);

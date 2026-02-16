@@ -22,6 +22,17 @@ class IGEBeneficiariesSupportedController extends Controller
         $classes = is_array($data['class'] ?? null) ? ($data['class'] ?? []) : (isset($data['class']) ? [$data['class']] : []);
         $totalNumbers = is_array($data['total_number'] ?? null) ? ($data['total_number'] ?? []) : (isset($data['total_number']) ? [$data['total_number']] : []);
 
+        // M1 Data Integrity Shield — Skip empty section
+        if (! $this->isIGEBeneficiariesSupportedMeaningfullyFilled($classes, $totalNumbers)) {
+            Log::info('IGEBeneficiariesSupportedController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            return redirect()
+                ->route('projects.edit', $projectId)
+                ->with('success', 'Beneficiaries supported saved successfully.');
+        }
+
         DB::beginTransaction();
         try {
             Log::info('Storing IGE beneficiaries supported', ['project_id' => $projectId]);
@@ -116,5 +127,44 @@ class IGEBeneficiariesSupportedController extends Controller
             Log::error('Error deleting IGE beneficiaries supported', ['error' => $e->getMessage()]);
             return redirect()->back()->with('error', 'Failed to delete IGE beneficiaries supported.');
         }
+    }
+
+    /**
+     * M1 Guard:
+     * True only if at least one row has meaningful data.
+     */
+    private function isIGEBeneficiariesSupportedMeaningfullyFilled(
+        array $classes,
+        array $totalNumbers
+    ): bool {
+        if ($classes === [] && $totalNumbers === []) {
+            return false;
+        }
+
+        $maxIndex = max(
+            is_array($classes) ? count($classes) - 1 : -1,
+            is_array($totalNumbers) ? count($totalNumbers) - 1 : -1
+        );
+
+        for ($i = 0; $i <= $maxIndex; $i++) {
+            $classVal = $classes[$i] ?? null;
+            $totalVal = $totalNumbers[$i] ?? null;
+
+            if ($this->meaningfulString($classVal) || $this->meaningfulNumeric($totalVal)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function meaningfulString($value): bool
+    {
+        return is_string($value) && trim($value) !== '';
+    }
+
+    private function meaningfulNumeric($value): bool
+    {
+        return $value !== null && $value !== '' && is_numeric($value);
     }
 }

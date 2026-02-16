@@ -22,6 +22,16 @@ class RiskAnalysisController extends Controller
         );
         $data = FormDataExtractor::forFillable($request, $fillable);
 
+        if (! $this->isILPRiskAnalysisMeaningfullyFilled($data)) {
+            Log::info('RiskAnalysisController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            return response()->json([
+                'message' => 'Risk analysis saved successfully.',
+            ], 200);
+        }
+
         DB::beginTransaction();
         try {
             Log::info('Storing ILP Risk Analysis', ['project_id' => $projectId]);
@@ -140,5 +150,24 @@ class RiskAnalysisController extends Controller
             Log::error('Error deleting ILP Risk Analysis', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to delete risk analysis.'], 500);
         }
+    }
+
+    private function isILPRiskAnalysisMeaningfullyFilled(array $data): bool
+    {
+        foreach ($data as $value) {
+            if (is_array($value)) {
+                foreach ($value as $v) {
+                    if (trim((string) $v) !== '') {
+                        return true;
+                    }
+                }
+            } else {
+                if (trim((string) $value) !== '') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

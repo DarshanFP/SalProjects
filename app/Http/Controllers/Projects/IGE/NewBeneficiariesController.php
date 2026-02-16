@@ -25,6 +25,23 @@ class NewBeneficiariesController extends Controller
         $groupYearOfStudies = is_array($data['group_year_of_study'] ?? null) ? ($data['group_year_of_study'] ?? []) : (isset($data['group_year_of_study']) ? [$data['group_year_of_study']] : []);
         $familyBackgroundNeeds = is_array($data['family_background_need'] ?? null) ? ($data['family_background_need'] ?? []) : (isset($data['family_background_need']) ? [$data['family_background_need']] : []);
 
+        if (! $this->isIGENewBeneficiariesMeaningfullyFilled(
+            $beneficiaryNames,
+            $castes,
+            $addresses,
+            $groupYearOfStudies,
+            $familyBackgroundNeeds
+        )) {
+            Log::info('IGENewBeneficiariesController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            if ($shouldRedirect) {
+                return redirect()->back()->with('success', 'New beneficiaries saved successfully.');
+            }
+            return true;
+        }
+
         // Check if we're already in a transaction (called from ProjectController@update)
         $inTransaction = DB::transactionLevel() > 0;
 
@@ -157,5 +174,44 @@ class NewBeneficiariesController extends Controller
             Log::error('Error deleting IGE New Beneficiaries', ['error' => $e->getMessage()]);
             return redirect()->back()->with('error', 'Failed to delete New Beneficiaries.');
         }
+    }
+
+    private function isIGENewBeneficiariesMeaningfullyFilled(
+        array $beneficiaryNames,
+        array $caste,
+        array $address,
+        array $groupYearOfStudy,
+        array $familyBackgroundNeed
+    ): bool {
+        if ($beneficiaryNames === []) {
+            return false;
+        }
+
+        $maxIndex = max(
+            count($beneficiaryNames),
+            count($caste),
+            count($address),
+            count($groupYearOfStudy),
+            count($familyBackgroundNeed)
+        );
+
+        for ($i = 0; $i < $maxIndex; $i++) {
+            if (
+                $this->meaningfulString($beneficiaryNames[$i] ?? null) ||
+                $this->meaningfulString($caste[$i] ?? null) ||
+                $this->meaningfulString($address[$i] ?? null) ||
+                $this->meaningfulString($groupYearOfStudy[$i] ?? null) ||
+                $this->meaningfulString($familyBackgroundNeed[$i] ?? null)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function meaningfulString($value): bool
+    {
+        return is_string($value) && trim($value) !== '';
     }
 }

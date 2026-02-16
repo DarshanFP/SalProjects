@@ -14,6 +14,8 @@ use App\Http\Controllers\Projects\BudgetController;
 use App\Http\Controllers\Projects\EduRUTAnnexedTargetGroupController;
 use App\Http\Controllers\Projects\EduRUTTargetGroupController;
 use App\Http\Controllers\Projects\ExportController;
+use App\Http\Controllers\Projects\IAH\IAHDocumentsController;
+use App\Http\Controllers\Projects\IES\IESAttachmentsController;
 use App\Http\Controllers\Projects\IIES\IIESAttachmentsController;
 use App\Http\Controllers\Projects\OldDevelopmentProjectController;
 use App\Http\Controllers\Projects\ProjectController;
@@ -46,14 +48,8 @@ Route::get('/', function () {
     return view('auth.login');
 });
 
-Route::get('/login', function () {
-    return view('auth.login');
-})->name('login');
-
-Route::get('/logout', function () {
-    Auth::logout();
-    return redirect('/login');
-})->name('logout');
+// Login route defined in routes/auth.php (single canonical definition)
+// Logout route defined in routes/auth.php (POST, single canonical definition)
 
 // Default redirect to dashboard based on role
 Route::get('/dashboard', function () {
@@ -195,8 +191,7 @@ Route::middleware(['auth', 'role:coordinator,general'])->group(function () {
     // Budget Overview
     Route::get('/coordinator/budget-overview', [CoordinatorController::class, 'budgetOverview'])->name('coordinator.budget-overview');
 
-    // Budget Reports
-    Route::get('/coordinator/budgets/report', [BudgetExportController::class, 'generateReport'])->name('budgets.report');
+    // Budget Reports — use shared /budgets/report (auth group); coordinator/general have access via role middleware
 
     Route::get('/coordinator/projects/{project_id}/download-pdf', [ExportController::class, 'downloadPdf'])->name('coordinator.projects.downloadPdf');
     Route::get('/coordinator/projects/{project_id}/download-doc', [ExportController::class, 'downloadDoc'])->name('coordinator.projects.downloadDoc');
@@ -479,7 +474,15 @@ Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,gener
     Route::get('/projects/{project_id}/download-doc', [ExportController::class, 'downloadDoc'])->name('projects.downloadDoc');
     Route::get('/projects/attachments/download/{id}', [AttachmentController::class, 'downloadAttachment'])->name('projects.attachments.download');
 
-    // IIES Attachment file download and view routes
+    // IES Attachment file download and view routes (Individual - Ongoing Educational Support)
+    Route::get('/projects/ies/attachments/download/{fileId}', [IESAttachmentsController::class, 'downloadFile'])->name('projects.ies.attachments.download');
+    Route::get('/projects/ies/attachments/view/{fileId}', [IESAttachmentsController::class, 'viewFile'])->name('projects.ies.attachments.view');
+
+    // IAH Document file download and view routes (Individual Assistance for Health)
+    Route::get('/projects/iah/documents/view/{fileId}', [IAHDocumentsController::class, 'viewFile'])->name('projects.iah.documents.view');
+    Route::get('/projects/iah/documents/download/{fileId}', [IAHDocumentsController::class, 'downloadFile'])->name('projects.iah.documents.download');
+
+    // IIES Attachment file download and view routes (Individual - Initial Educational Support)
     Route::get('/projects/iies/attachments/download/{fileId}', [IIESAttachmentsController::class, 'downloadFile'])->name('projects.iies.attachments.download');
     Route::get('/projects/iies/attachments/view/{fileId}', [IIESAttachmentsController::class, 'viewFile'])->name('projects.iies.attachments.view');
 
@@ -584,8 +587,8 @@ Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,gener
         Route::get('export-pdf/{report_id}', [AggregatedQuarterlyReportController::class, 'exportPdf'])->name('export-pdf');
         Route::get('export-word/{report_id}', [AggregatedQuarterlyReportController::class, 'exportWord'])->name('export-word');
         // Quarterly Report Comparison
-        Route::get('compare', [ReportComparisonController::class, 'compareQuarterly'])->name('reports.aggregated.quarterly.compare');
-        Route::post('compare', [ReportComparisonController::class, 'compareQuarterly'])->name('reports.aggregated.quarterly.compare');
+        Route::get('compare', [ReportComparisonController::class, 'compareQuarterly'])->name('compare');
+        Route::post('compare', [ReportComparisonController::class, 'compareQuarterly'])->name('compare.submit');
     });
 
     // Half-Yearly Reports
@@ -599,8 +602,8 @@ Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,gener
         Route::get('export-pdf/{report_id}', [AggregatedHalfYearlyReportController::class, 'exportPdf'])->name('export-pdf');
         Route::get('export-word/{report_id}', [AggregatedHalfYearlyReportController::class, 'exportWord'])->name('export-word');
         // Half-Yearly Report Comparison
-        Route::get('compare', [ReportComparisonController::class, 'compareHalfYearly'])->name('reports.aggregated.half-yearly.compare');
-        Route::post('compare', [ReportComparisonController::class, 'compareHalfYearly'])->name('reports.aggregated.half-yearly.compare');
+        Route::get('compare', [ReportComparisonController::class, 'compareHalfYearly'])->name('compare');
+        Route::post('compare', [ReportComparisonController::class, 'compareHalfYearly'])->name('compare.submit');
     });
 
     // Annual Reports
@@ -614,8 +617,8 @@ Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,gener
         Route::get('export-pdf/{report_id}', [AggregatedAnnualReportController::class, 'exportPdf'])->name('export-pdf');
         Route::get('export-word/{report_id}', [AggregatedAnnualReportController::class, 'exportWord'])->name('export-word');
         // Annual Report Comparison
-        Route::get('compare', [ReportComparisonController::class, 'compareAnnual'])->name('reports.aggregated.annual.compare');
-        Route::post('compare', [ReportComparisonController::class, 'compareAnnual'])->name('reports.aggregated.annual.compare');
+        Route::get('compare', [ReportComparisonController::class, 'compareAnnual'])->name('compare');
+        Route::post('compare', [ReportComparisonController::class, 'compareAnnual'])->name('compare.submit');
     });
 
     // Report Comparison Routes

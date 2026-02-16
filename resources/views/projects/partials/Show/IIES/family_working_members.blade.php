@@ -10,7 +10,7 @@
             $familyMembers = $project->iiesFamilyWorkingMembers ?? collect([]);
         @endphp
 
-        @if($familyMembers->count() > 0)
+        @if(isset($familyMembers) && $familyMembers instanceof \Illuminate\Support\Collection && $familyMembers->count() > 0)
             <div class="table-responsive">
                 <table class="table table-bordered">
                     <thead>

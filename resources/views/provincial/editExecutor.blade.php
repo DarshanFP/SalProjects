@@ -27,18 +27,12 @@
                     <input type="text" class="form-control" id="phone" name="phone" value="{{ $executor->phone }}">
                 </div>
                 <div class="form-group">
-                    <label for="society_name">Society Name</label>
-                    <select class="form-control" id="society_name" name="society_name" required>
+                    <label for="society_id">Society Name</label>
+                    <select class="form-control" id="society_id" name="society_id" required>
                         <option value="" disabled>Select Society / Trust</option>
-                        <option value="ST. ANN'S EDUCATIONAL SOCIETY" {{ $executor->society_name == "ST. ANN'S EDUCATIONAL SOCIETY" ? 'selected' : '' }}>ST. ANN'S EDUCATIONAL SOCIETY</option>
-                        <option value="SARVAJANA SNEHA CHARITABLE TRUST" {{ $executor->society_name == "SARVAJANA SNEHA CHARITABLE TRUST" ? 'selected' : '' }}>SARVAJANA SNEHA CHARITABLE TRUST</option>
-                        <option value="WILHELM MEYERS DEVELOPMENTAL SOCIETY" {{ $executor->society_name == "WILHELM MEYERS DEVELOPMENTAL SOCIETY" ? 'selected' : '' }}>WILHELM MEYERS DEVELOPMENTAL SOCIETY</option>
-                        <option value="ST. ANN'S SOCIETY, VISAKHAPATNAM" {{ $executor->society_name == "ST. ANN'S SOCIETY, VISAKHAPATNAM" ? 'selected' : '' }}>ST. ANN'S SOCIETY, VISAKHAPATNAM</option>
-                        <option value="ST.ANN'S SOCIETY, SOUTHERN REGION" {{ $executor->society_name == "ST.ANN'S SOCIETY, SOUTHERN REGION" ? 'selected' : '' }}>ST.ANN'S SOCIETY, SOUTHERN REGION</option>
-                        <option value="ST. ANNE'S SOCIETY" {{ $executor->society_name == "ST. ANNE'S SOCIETY" ? 'selected' : '' }}>ST. ANNE'S SOCIETY</option>
-                        <option value="BIARA SANTA ANNA, MAUSAMBI" {{ $executor->society_name == "BIARA SANTA ANNA, MAUSAMBI" ? 'selected' : '' }}>BIARA SANTA ANNA, MAUSAMBI</option>
-                        <option value="ST. ANN'S CONVENT, LURO" {{ $executor->society_name == "ST. ANN'S CONVENT, LURO" ? 'selected' : '' }}>ST. ANN'S CONVENT, LURO</option>
-                        <option value="MISSIONARY SISTERS OF ST. ANN" {{ $executor->society_name == "MISSIONARY SISTERS OF ST. ANN" ? 'selected' : '' }}>MISSIONARY SISTERS OF ST. ANN</option>
+                        @foreach($societies ?? [] as $society)
+                            <option value="{{ $society->id }}" {{ old('society_id', $executor->society_id ?? '') == $society->id ? 'selected' : '' }}>{{ $society->name }}</option>
+                        @endforeach
                     </select>
                 </div>
                 <div class="form-group">

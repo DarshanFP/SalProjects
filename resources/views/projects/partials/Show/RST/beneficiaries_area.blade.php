@@ -1,4 +1,12 @@
 {{-- resources/views/projects/partials/Show/RST/beneficiaries_area.blade.php --}}
+@php
+    $totalDirect = ($RSTBeneficiariesArea instanceof \Illuminate\Support\Collection && $RSTBeneficiariesArea->isNotEmpty())
+        ? $RSTBeneficiariesArea->sum('direct_beneficiaries')
+        : 0;
+    $totalIndirect = ($RSTBeneficiariesArea instanceof \Illuminate\Support\Collection && $RSTBeneficiariesArea->isNotEmpty())
+        ? $RSTBeneficiariesArea->sum('indirect_beneficiaries')
+        : 0;
+@endphp
 <div class="mb-3 card">
     <div class="card-header">
         <h4>Project Area</h4>
@@ -15,7 +23,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if($RSTBeneficiariesArea && $RSTBeneficiariesArea->isNotEmpty())
+                    @if($RSTBeneficiariesArea instanceof \Illuminate\Support\Collection && $RSTBeneficiariesArea->isNotEmpty())
                         @foreach($RSTBeneficiariesArea as $area)
                             <tr>
                                 <td>{{ $area->project_area ?? 'N/A' }}</td>
@@ -30,7 +38,17 @@
                         </tr>
                     @endif
                 </tbody>
+                <tfoot>
+                    <tr style="font-weight: bold;">
+                        <td colspan="2">Total</td>
+                        <td>{{ $totalDirect }}</td>
+                        <td>{{ $totalIndirect }}</td>
+                    </tr>
+                </tfoot>
             </table>
+        </div>
+        <div class="mt-2">
+            <strong>Total Beneficiaries:</strong> {{ $totalDirect + $totalIndirect }}
         </div>
     </div>
 </div>

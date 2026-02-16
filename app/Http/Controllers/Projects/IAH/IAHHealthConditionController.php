@@ -25,6 +25,16 @@ class IAHHealthConditionController extends Controller
         );
         $data = FormDataExtractor::forFillable($request, $fillable);
 
+        if (! $this->isIAHHealthConditionMeaningfullyFilled($data)) {
+            Log::info('IAHHealthConditionController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            $existing = ProjectIAHHealthCondition::where('project_id', $projectId)->first();
+
+            return response()->json($existing, 200);
+        }
+
         Log::info('IAHHealthConditionController@store - Start', [
             'project_id' => $projectId
         ]);
@@ -137,5 +147,24 @@ class IAHHealthConditionController extends Controller
             ]);
             return response()->json(['error' => 'Failed to delete IAH health condition details.'], 500);
         }
+    }
+
+    private function isIAHHealthConditionMeaningfullyFilled(array $data): bool
+    {
+        foreach ($data as $value) {
+            if (is_array($value)) {
+                foreach ($value as $v) {
+                    if (trim((string) $v) !== '') {
+                        return true;
+                    }
+                }
+            } else {
+                if (trim((string) $value) !== '') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

@@ -101,9 +101,15 @@ class BudgetValidationService
         $unapprovedPercentage = $calc->calculateUtilization($unapprovedExpenses, $openingBalance);
 
         // Budget items total (for validation mismatch check)
-        $budgetItemsTotal = $project->relationLoaded('budgets')
-            ? $project->budgets->sum('this_phase')
-            : 0;
+        // Must use same phase filter as PhaseBasedBudgetStrategy so we compare apples to apples.
+        // overall_budget comes from resolver (current phase only for phase-based types);
+        // budget_items_total must match that scope.
+        $budgetItemsTotal = 0;
+        if ($project->relationLoaded('budgets') && $project->budgets->isNotEmpty()) {
+            $currentPhase = (int) ($project->current_phase ?? 1);
+            $phaseBudgets = $project->budgets->where('phase', $currentPhase);
+            $budgetItemsTotal = $phaseBudgets->sum('this_phase');
+        }
 
         return [
             'overall_budget' => $overallBudget,

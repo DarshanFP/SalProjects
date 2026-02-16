@@ -20,6 +20,21 @@ class IAHEarningMembersController extends Controller
         $fillable = ['member_name', 'work_type', 'monthly_income'];
         $data = $request->only($fillable);
 
+        // Scalar-to-array normalization (same as create loop)
+        $memberNames    = is_array($data['member_name'] ?? null) ? ($data['member_name'] ?? []) : (isset($data['member_name']) && $data['member_name'] !== '' ? [$data['member_name']] : []);
+        $workTypes      = is_array($data['work_type'] ?? null) ? ($data['work_type'] ?? []) : (isset($data['work_type']) && $data['work_type'] !== '' ? [$data['work_type']] : []);
+        $monthlyIncomes = is_array($data['monthly_income'] ?? null) ? ($data['monthly_income'] ?? []) : (isset($data['monthly_income']) && $data['monthly_income'] !== '' ? [$data['monthly_income']] : []);
+
+        if (! $this->isIAHEarningMembersMeaningfullyFilled($memberNames, $workTypes, $monthlyIncomes)) {
+            Log::info('IAHEarningMembersController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            return response()->json([
+                'message' => 'IAH earning members details saved successfully.',
+            ], 200);
+        }
+
         Log::info('IAHEarningMembersController@store - Start', [
             'project_id' => $projectId
         ]);
@@ -32,11 +47,7 @@ class IAHEarningMembersController extends Controller
                 'project_id' => $projectId
             ]);
 
-            // 2️⃣ Insert new data (scalar-to-array normalization; per-value scalar coercion)
-            $memberNames    = is_array($data['member_name'] ?? null) ? ($data['member_name'] ?? []) : (isset($data['member_name']) && $data['member_name'] !== '' ? [$data['member_name']] : []);
-            $workTypes      = is_array($data['work_type'] ?? null) ? ($data['work_type'] ?? []) : (isset($data['work_type']) && $data['work_type'] !== '' ? [$data['work_type']] : []);
-            $monthlyIncomes = is_array($data['monthly_income'] ?? null) ? ($data['monthly_income'] ?? []) : (isset($data['monthly_income']) && $data['monthly_income'] !== '' ? [$data['monthly_income']] : []);
-            $rowCount       = count($memberNames);
+            $rowCount = count($memberNames);
 
             Log::info('IAHEarningMembersController@store - Inserting new rows', [
                 'total_rows' => $rowCount
@@ -46,7 +57,8 @@ class IAHEarningMembersController extends Controller
                 $memberName   = is_array($memberNames[$i] ?? null) ? (reset($memberNames[$i]) ?? '') : ($memberNames[$i] ?? '');
                 $workType     = is_array($workTypes[$i] ?? null) ? (reset($workTypes[$i]) ?? '') : ($workTypes[$i] ?? '');
                 $monthlyIncome = is_array($monthlyIncomes[$i] ?? null) ? (reset($monthlyIncomes[$i]) ?? '') : ($monthlyIncomes[$i] ?? '');
-                if (!empty($memberName) && !empty($workType) && !empty($monthlyIncome)) {
+                // M2.5: Allow 0 for monthly_income; skip only when null or '' (do not use empty() on numeric)
+                if (!empty($memberName) && !empty($workType) && $monthlyIncome !== null && $monthlyIncome !== '') {
                     ProjectIAHEarningMembers::create([
                         'project_id'     => $projectId,
                         'member_name'    => $memberName,
@@ -147,5 +159,30 @@ class IAHEarningMembersController extends Controller
             ]);
             return response()->json(['error' => 'Failed to delete IAH earning members details.'], 500);
         }
+    }
+
+    private function isIAHEarningMembersMeaningfullyFilled(
+        array $memberNames,
+        array $workTypes,
+        array $monthlyIncomes
+    ): bool {
+        $rowCount = count($memberNames);
+
+        for ($i = 0; $i < $rowCount; $i++) {
+            $memberName = $memberNames[$i] ?? null;
+            $workType = $workTypes[$i] ?? null;
+            $monthlyIncome = $monthlyIncomes[$i] ?? null;
+
+            if (
+                ! empty($memberName) &&
+                ! empty($workType) &&
+                $monthlyIncome !== null &&
+                $monthlyIncome !== ''
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

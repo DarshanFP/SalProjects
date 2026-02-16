@@ -40,6 +40,20 @@ class IAHBudgetDetailsController extends Controller
         $fillable = ['particular', 'amount', 'family_contribution'];
         $data = $request->only($fillable);
 
+        // Scalar-to-array normalization (same as create loop)
+        $particulars = is_array($data['particular'] ?? null) ? ($data['particular'] ?? []) : (isset($data['particular']) && $data['particular'] !== '' ? [$data['particular']] : []);
+        $amounts     = is_array($data['amount'] ?? null) ? ($data['amount'] ?? []) : (isset($data['amount']) && $data['amount'] !== '' ? [$data['amount']] : []);
+
+        if (! $this->isIAHBudgetDetailsMeaningfullyFilled($particulars, $amounts)) {
+            Log::info('IAHBudgetDetailsController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            return response()->json([
+                'message' => 'IAH budget details saved successfully.',
+            ], 200);
+        }
+
         Log::info('IAHBudgetDetailsController@store - Start', [
             'project_id' => $projectId
         ]);
@@ -52,16 +66,14 @@ class IAHBudgetDetailsController extends Controller
                 'project_id' => $projectId
             ]);
 
-            // 2️⃣ Insert new budget details (scalar-to-array normalization; per-value scalar coercion)
-            $particulars = is_array($data['particular'] ?? null) ? ($data['particular'] ?? []) : (isset($data['particular']) && $data['particular'] !== '' ? [$data['particular']] : []);
-            $amounts     = is_array($data['amount'] ?? null) ? ($data['amount'] ?? []) : (isset($data['amount']) && $data['amount'] !== '' ? [$data['amount']] : []);
             $familyContribution = is_array($data['family_contribution'] ?? null) ? (reset($data['family_contribution']) ?? 0) : ($data['family_contribution'] ?? 0);
             $totalExpenses      = array_sum($amounts);
 
             for ($i = 0; $i < count($particulars); $i++) {
                 $particular = is_array($particulars[$i] ?? null) ? (reset($particulars[$i]) ?? '') : ($particulars[$i] ?? '');
                 $amount     = is_array($amounts[$i] ?? null) ? (reset($amounts[$i]) ?? '') : ($amounts[$i] ?? '');
-                if (!empty($particular) && !empty($amount)) {
+                // M2.5: Allow 0 for amount; skip only when null or '' (do not use empty() on numeric)
+                if (trim((string) $particular) !== '' && $amount !== null && $amount !== '') {
                     ProjectIAHBudgetDetails::create([
                         'project_id'        => $projectId,
                         'particular'        => $particular,
@@ -205,5 +217,27 @@ class IAHBudgetDetailsController extends Controller
             ]);
             return response()->json(['error' => 'Failed to delete IAH budget details.'], 500);
         }
+    }
+
+    private function isIAHBudgetDetailsMeaningfullyFilled(
+        array $particulars,
+        array $amounts
+    ): bool {
+        $rowCount = count($particulars);
+
+        for ($i = 0; $i < $rowCount; $i++) {
+            $particular = $particulars[$i] ?? null;
+            $amount = $amounts[$i] ?? null;
+
+            if (
+                trim((string) $particular) !== '' &&
+                $amount !== null &&
+                $amount !== ''
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

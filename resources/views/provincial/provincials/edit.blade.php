@@ -45,11 +45,11 @@
                             <input type="text" name="phone" id="phone" class="form-control" value="{{ old('phone', $targetProvincial->phone) }}">
                         </div>
                         <div class="form-group mb-3">
-                            <label for="society_name">Society</label>
-                            <select name="society_name" id="society_name" class="form-control">
+                            <label for="society_id">Society</label>
+                            <select name="society_id" id="society_id" class="form-control">
                                 <option value="">Select Society</option>
                                 @foreach($societies as $society)
-                                    <option value="{{ $society->name }}" {{ old('society_name', $targetProvincial->society_name) == $society->name ? 'selected' : '' }}>
+                                    <option value="{{ $society->id }}" {{ old('society_id', $targetProvincial->society_id ?? '') == $society->id ? 'selected' : '' }}>
                                         {{ $society->name }}
                                     </option>
                                 @endforeach

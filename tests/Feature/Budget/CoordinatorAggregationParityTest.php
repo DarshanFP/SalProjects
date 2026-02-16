@@ -175,7 +175,7 @@ class CoordinatorAggregationParityTest extends TestCase
             $totalBudget += (float) ($financials['opening_balance'] ?? 0);
         }
 
-        $approvedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+        $approvedReportIds = DPReport::approved()
             ->whereIn('project_id', $approvedProjects->pluck('project_id'))
             ->pluck('report_id');
         $totalExpenses = (float) DPAccountDetail::whereIn('report_id', $approvedReportIds)

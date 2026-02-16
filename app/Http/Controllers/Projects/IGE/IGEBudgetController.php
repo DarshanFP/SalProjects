@@ -48,6 +48,16 @@ class IGEBudgetController extends Controller
         $familyContributions = is_array($data['family_contribution'] ?? null) ? ($data['family_contribution'] ?? []) : (isset($data['family_contribution']) ? [$data['family_contribution']] : []);
         $amountRequested = is_array($data['amount_requested'] ?? null) ? ($data['amount_requested'] ?? []) : (isset($data['amount_requested']) ? [$data['amount_requested']] : []);
 
+        // M1 Data Integrity Shield — Skip empty section
+        if (! $this->isIGEBudgetMeaningfullyFilled($names, $collegeFees, $hostelFees, $totalAmounts, $scholarshipEligibility, $familyContributions, $amountRequested)) {
+            Log::info('IGEBudgetController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            return redirect()->back()
+                ->with('success', 'IGE budget saved successfully.');
+        }
+
         DB::beginTransaction();
         try {
             Log::info('Storing IGE budget', ['project_id' => $projectId]);
@@ -160,5 +170,47 @@ class IGEBudgetController extends Controller
             Log::error('Error deleting IGE budget', ['error' => $e->getMessage()]);
             return redirect()->back()->with('error', 'Failed to delete IGE budget.');
         }
+    }
+
+    /**
+     * M1 Guard — true only when at least one row is meaningful.
+     * Meaningful row = non-empty trimmed string OR non-null numeric.
+     */
+    private function isIGEBudgetMeaningfullyFilled(
+        array $names,
+        array ...$numericArrays
+    ): bool {
+        if ($names === []) {
+            return false;
+        }
+
+        $maxIndex = count($names) - 1;
+
+        for ($i = 0; $i <= $maxIndex; $i++) {
+            $name = $names[$i] ?? null;
+
+            if ($this->meaningfulString($name)) {
+                return true;
+            }
+
+            foreach ($numericArrays as $numericArray) {
+                $val = $numericArray[$i] ?? null;
+                if ($this->meaningfulNumeric($val)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function meaningfulString($value): bool
+    {
+        return is_string($value) && trim($value) !== '';
+    }
+
+    private function meaningfulNumeric($value): bool
+    {
+        return $value !== null && $value !== '' && is_numeric($value);
     }
 }

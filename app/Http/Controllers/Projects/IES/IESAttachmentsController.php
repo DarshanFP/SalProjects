@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Projects\IES;
 
 use App\Http\Controllers\Controller;
 use App\Helpers\LogHelper;
+use App\Models\OldProjects\IES\ProjectIESAttachmentFile;
 use App\Services\Attachment\AttachmentContext;
 use App\Services\ProjectAttachmentHandler;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class IESAttachmentsController extends Controller
 {
@@ -26,6 +28,14 @@ class IESAttachmentsController extends Controller
     // 🟢 STORE ATTACHMENTS
     public function store(FormRequest $request, $projectId)
     {
+        $hasAnyFile = collect(self::IES_FIELDS)->contains(fn ($field) => $request->hasFile($field));
+        if (! $hasAnyFile) {
+            Log::info('IESAttachmentsController@store - No files present; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+            return response()->json(['message' => 'IES attachments saved successfully.'], 200);
+        }
+
         DB::beginTransaction();
 
         try {
@@ -102,6 +112,14 @@ class IESAttachmentsController extends Controller
 
     public function update(FormRequest $request, $projectId)
     {
+        $hasAnyFile = collect(self::IES_FIELDS)->contains(fn ($field) => $request->hasFile($field));
+        if (! $hasAnyFile) {
+            Log::info('IESAttachmentsController@update - No files present; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+            return response()->json(['message' => 'IES Attachments updated successfully.'], 200);
+        }
+
         DB::beginTransaction();
 
         try {
@@ -162,6 +180,98 @@ class IESAttachmentsController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Failed to delete attachments.'], 500);
+        }
+    }
+
+    /**
+     * DOWNLOAD: download a specific IES attachment file
+     * Streams file through controller - works without storage symlink on production.
+     */
+    public function downloadFile($fileId)
+    {
+        try {
+            Log::info('IESAttachmentsController@downloadFile - Start', ['file_id' => $fileId]);
+
+            $file = ProjectIESAttachmentFile::findOrFail($fileId);
+
+            Log::info('IESAttachmentsController@downloadFile - File found', [
+                'file_id' => $fileId,
+                'file_path' => $file->file_path,
+                'file_name' => $file->file_name,
+            ]);
+
+            if (!Storage::disk('public')->exists($file->file_path)) {
+                Log::error('IESAttachmentsController@downloadFile - File not found on disk', [
+                    'file_id' => $fileId,
+                    'file_path' => $file->file_path,
+                ]);
+                return response()->json(['error' => 'File not found'], 404);
+            }
+
+            Log::info('IESAttachmentsController@downloadFile - File downloaded', [
+                'file_id' => $fileId,
+                'file_name' => $file->file_name,
+            ]);
+
+            return Storage::disk('public')->download($file->file_path, $file->file_name);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('IESAttachmentsController@downloadFile - File record not found', ['file_id' => $fileId]);
+            return response()->json(['error' => 'File record not found'], 404);
+        } catch (\Exception $e) {
+            Log::error('IESAttachmentsController@downloadFile - Error', [
+                'file_id' => $fileId,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['error' => 'Failed to download file'], 500);
+        }
+    }
+
+    /**
+     * VIEW: view a specific IES attachment file (stream response)
+     * Streams file through controller - works without storage symlink on production.
+     */
+    public function viewFile($fileId)
+    {
+        try {
+            Log::info('IESAttachmentsController@viewFile - Start', ['file_id' => $fileId]);
+
+            $file = ProjectIESAttachmentFile::findOrFail($fileId);
+
+            Log::info('IESAttachmentsController@viewFile - File found', [
+                'file_id' => $fileId,
+                'file_path' => $file->file_path,
+                'file_name' => $file->file_name,
+            ]);
+
+            if (!Storage::disk('public')->exists($file->file_path)) {
+                Log::error('IESAttachmentsController@viewFile - File not found on disk', [
+                    'file_id' => $fileId,
+                    'file_path' => $file->file_path,
+                ]);
+                return response()->json(['error' => 'File not found'], 404);
+            }
+
+            $fileContent = Storage::disk('public')->get($file->file_path);
+            $mimeType = Storage::disk('public')->mimeType($file->file_path);
+
+            Log::info('IESAttachmentsController@viewFile - File viewed', [
+                'file_id' => $fileId,
+                'file_name' => $file->file_name,
+                'mime_type' => $mimeType,
+            ]);
+
+            return response($fileContent, 200)
+                ->header('Content-Type', $mimeType)
+                ->header('Content-Disposition', 'inline; filename="' . $file->file_name . '"');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('IESAttachmentsController@viewFile - File record not found', ['file_id' => $fileId]);
+            return response()->json(['error' => 'File record not found'], 404);
+        } catch (\Exception $e) {
+            Log::error('IESAttachmentsController@viewFile - Error', [
+                'file_id' => $fileId,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['error' => 'Failed to view file'], 500);
         }
     }
 }

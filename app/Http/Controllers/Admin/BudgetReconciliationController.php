@@ -116,7 +116,7 @@ class BudgetReconciliationController extends Controller
         $this->authorizeReconciliation();
 
         $project = Project::findOrFail($id);
-        if (!ProjectStatus::isApproved($project->status ?? '')) {
+        if (!$project->isApproved()) {
             abort(403, 'Only approved projects can be reconciled.');
         }
 

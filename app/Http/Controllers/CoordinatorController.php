@@ -49,7 +49,7 @@ class CoordinatorController extends Controller
         ]);
 
         // First, get approved projects with comprehensive filtering
-        $projectsQuery = Project::where('status', ProjectStatus::APPROVED_BY_COORDINATOR)->with('user');
+        $projectsQuery = Project::approved()->with('user');
 
         // Apply comprehensive filters based on user attributes
         if ($request->filled('province')) {
@@ -100,7 +100,7 @@ class CoordinatorController extends Controller
                       ->select('id', 'name', 'province')
                       ->get();
 
-        $projectTypes = Project::where('status', ProjectStatus::APPROVED_BY_COORDINATOR)->distinct()->pluck('project_type');
+        $projectTypes = Project::approved()->distinct()->pluck('project_type');
 
         // Get all projects for statistics (not just approved)
         $allProjectsQuery = Project::with('user');
@@ -570,7 +570,7 @@ class CoordinatorController extends Controller
                 $projectBudget = (float) ($financials['opening_balance'] ?? 0);
 
                 // Calculate expenses from approved reports (optimized - use direct query instead of loading all)
-                $projectApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                $projectApprovedReportIds = DPReport::approved()
                     ->where('project_id', $project->project_id)
                     ->pluck('report_id');
 
@@ -1190,16 +1190,15 @@ public function rejectProject(Request $request, $project_id)
     $project = Project::where('project_id', $project_id)->firstOrFail();
     $coordinator = auth()->user();
 
-    if($coordinator->role !== 'coordinator' || !ProjectStatus::isForwardedToCoordinator($project->status)) {
+    if ($coordinator->role !== 'coordinator' || !ProjectStatus::isForwardedToCoordinator($project->status)) {
         abort(403, 'Unauthorized action.');
     }
 
-    $previousStatus = $project->status;
-    $project->status = ProjectStatus::REJECTED_BY_COORDINATOR;
-    $project->save();
-
-    // Log status change
-    \App\Services\ProjectStatusService::logStatusChange($project, $previousStatus, ProjectStatus::REJECTED_BY_COORDINATOR, $coordinator);
+    try {
+        ProjectStatusService::reject($project, $coordinator);
+    } catch (Exception $e) {
+        return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+    }
 
     // Notify executor about rejection
     $executor = $project->user;
@@ -1225,7 +1224,7 @@ public function projectBudgets(Request $request)
     $coordinator = Auth::user();
 
     // First, get approved projects (coordinators can see all approved projects)
-    $projectsQuery = Project::where('status', ProjectStatus::APPROVED_BY_COORDINATOR)->with('user');
+    $projectsQuery = Project::approved()->with('user');
 
     // Apply filters
     if ($request->filled('province')) {
@@ -1267,7 +1266,7 @@ public function projectBudgets(Request $request)
     }
     $users = $usersQuery->get();
 
-    $projectTypes = Project::where('status', ProjectStatus::APPROVED_BY_COORDINATOR)->distinct()->pluck('project_type');
+    $projectTypes = Project::approved()->distinct()->pluck('project_type');
 
     return view('coordinator.index', compact('budgetSummaries', 'provinces', 'places', 'users', 'projectTypes'));
 }
@@ -1571,7 +1570,7 @@ public function budgetOverview()
                         $query->whereIn('role', ['executor', 'applicant']);
                     },
                     'projects' => function($query) {
-                        $query->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+                        $query->approved();
                     }
                 ])
                 ->get()
@@ -1587,7 +1586,7 @@ public function budgetOverview()
                         ->count();
 
                     $provincial->team_reports_approved = DPReport::whereIn('user_id', $teamUserIds)
-                        ->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                        ->whereIn('status', DPReport::APPROVED_STATUSES)
                         ->count();
 
                     // Get last activity (latest report submission or project update)
@@ -1661,17 +1660,17 @@ public function budgetOverview()
             }
 
         // Calculate system-wide metrics
-        $approvedProjects = $systemProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+        $approvedProjects = $systemProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
         $totalBudget = $approvedProjects->sum(fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0));
 
         // Calculate total expenses from approved reports
-        $approvedReportIds = $systemReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->pluck('report_id');
+        $approvedReportIds = $systemReports->whereIn('status', DPReport::APPROVED_STATUSES)->pluck('report_id');
         $totalExpenses = (float) (DPAccountDetail::whereIn('report_id', $approvedReportIds)->sum('total_expenses') ?? 0);
 
         $budgetUtilization = $calc->calculateUtilization($totalExpenses, $totalBudget);
 
         $approvalRate = $systemReports->count() > 0 ?
-            ($systemReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count() / $systemReports->count()) * 100 : 0;
+            ($systemReports->whereIn('status', DPReport::APPROVED_STATUSES)->count() / $systemReports->count()) * 100 : 0;
 
         // Projects by status
         $projectsByStatus = $systemProjects->groupBy('status')->map->count();
@@ -1692,11 +1691,11 @@ public function budgetOverview()
             $provinceProjects = $projectsByProvince->get($province, collect());
             $provinceReports = $reportsByProvince->get($province, collect());
 
-            $provinceApprovedProjects = $provinceProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+            $provinceApprovedProjects = $provinceProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
             $provinceBudget = $provinceApprovedProjects->sum(fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0));
 
             // Calculate province expenses from account details directly
-            $provinceApprovedReportIds = $provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->pluck('report_id');
+            $provinceApprovedReportIds = $provinceReports->whereIn('status', DPReport::APPROVED_STATUSES)->pluck('report_id');
             $provinceExpenses = (float) (DPAccountDetail::whereIn('report_id', $provinceApprovedReportIds)->sum('total_expenses') ?? 0);
 
             $provinceMetrics[$province] = [
@@ -1706,7 +1705,7 @@ public function budgetOverview()
                 'expenses' => $provinceExpenses,
                 'utilization' => round($calc->calculateUtilization($provinceExpenses, $provinceBudget), 2),
                 'approval_rate' => $provinceReports->count() > 0 ?
-                    ($provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count() / $provinceReports->count()) * 100 : 0,
+                    ($provinceReports->whereIn('status', DPReport::APPROVED_STATUSES)->count() / $provinceReports->count()) * 100 : 0,
             ];
         }
 
@@ -1742,7 +1741,7 @@ public function budgetOverview()
 
             // Load all projects and reports once
             $allProjects = Project::with(['user', 'user.parent', 'budgets'])->get();
-            $allApprovedProjects = $allProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+            $allApprovedProjects = $allProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
             $allReports = DPReport::with(['user'])->get();
 
             $resolvedFinancials = [];
@@ -1766,7 +1765,7 @@ public function budgetOverview()
                 $projectsByMonth = $allApprovedProjects->filter(fn($p) => $p->created_at <= $monthEnd);
                 $budgetByMonth = $projectsByMonth->sum(fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0));
 
-                $reportsByMonth = $allReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                $reportsByMonth = $allReports->whereIn('status', DPReport::APPROVED_STATUSES)
                     ->filter(fn($r) => $r->created_at <= $monthEnd)
                     ->pluck('report_id');
                 $expensesByMonth = (float) (DPAccountDetail::whereIn('report_id', $reportsByMonth)->sum('total_expenses') ?? 0);
@@ -1799,7 +1798,7 @@ public function budgetOverview()
             $monthStart = $current->copy()->startOfMonth();
             $monthEnd = $current->copy()->endOfMonth();
 
-            $reportsInMonth = $allReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+            $reportsInMonth = $allReports->whereIn('status', DPReport::APPROVED_STATUSES)
                 ->filter(fn($r) => $r->created_at >= $monthStart && $r->created_at <= $monthEnd)
                 ->pluck('report_id');
             $expensesInMonth = DPAccountDetail::whereIn('report_id', $reportsInMonth)->sum('total_expenses') ?? 0;
@@ -1820,7 +1819,7 @@ public function budgetOverview()
             $monthEnd = $current->copy()->endOfMonth();
 
             $reportsInMonth = $allReports->filter(fn($r) => $r->created_at >= $monthStart && $r->created_at <= $monthEnd);
-            $approvedInMonth = $reportsInMonth->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count();
+            $approvedInMonth = $reportsInMonth->whereIn('status', DPReport::APPROVED_STATUSES)->count();
             $totalInMonth = $reportsInMonth->count();
 
             $rate = $totalInMonth > 0 ? ($approvedInMonth / $totalInMonth) * 100 : 0;
@@ -1844,7 +1843,7 @@ public function budgetOverview()
 
             $reportSubmissionTimeline[] = [
                 'month' => $current->format('M Y'),
-                'approved' => $reportsInMonth->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count(),
+                'approved' => $reportsInMonth->whereIn('status', DPReport::APPROVED_STATUSES)->count(),
                 'pending' => $reportsInMonth->where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)->count(),
                 'reverted' => $reportsInMonth->where('status', DPReport::STATUS_REVERTED_BY_COORDINATOR)->count(),
             ];
@@ -1861,7 +1860,7 @@ public function budgetOverview()
 
             $provinceBudget = $provinceApprovedProjects->sum(fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0));
 
-            $provinceApprovedReportIds = $provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->pluck('report_id');
+            $provinceApprovedReportIds = $provinceReports->whereIn('status', DPReport::APPROVED_STATUSES)->pluck('report_id');
             $provinceExpenses = (float) (DPAccountDetail::whereIn('report_id', $provinceApprovedReportIds)->sum('total_expenses') ?? 0);
 
             $provinceComparison[$province] = [
@@ -1869,7 +1868,7 @@ public function budgetOverview()
                 'budget' => $provinceBudget,
                 'expenses' => $provinceExpenses,
                 'approval_rate' => $provinceReports->count() > 0 ?
-                    ($provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count() / $provinceReports->count()) * 100 : 0,
+                    ($provinceReports->whereIn('status', DPReport::APPROVED_STATUSES)->count() / $provinceReports->count()) * 100 : 0,
             ];
         }
 
@@ -1985,8 +1984,8 @@ public function budgetOverview()
         $cacheKey = "coordinator_system_budget_overview_data_{$filterHash}";
 
         return Cache::remember($cacheKey, now()->addMinutes(15), function () use ($request) {
-            // Get approved projects with relationships and apply filters
-            $approvedProjectsQuery = Project::where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+            // Get approved projects with relationships and apply filters (M3.3.2: use centralized scope)
+            $approvedProjectsQuery = Project::approved()
                 ->with(['user.parent', 'user', 'reports.accountDetails', 'budgets']);
 
             // Apply filters if provided
@@ -2021,13 +2020,38 @@ public function budgetOverview()
 
             $approvedProjects = $approvedProjectsQuery->get();
 
-        // Calculate total budget, expenses, remaining
-        $totalBudget = $approvedProjects->sum(function($p) {
-            return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
+        // M3.3.1: Pending projects (non-approved) for stage-separated aggregation (M3.3.2: use centralized scope)
+        $pendingProjectsQuery = Project::notApproved()->with(['user']);
+
+        if ($request && $request->filled('province')) {
+            $pendingProjectsQuery->whereHas('user', fn ($q) => $q->where('province', $request->province));
+        }
+        if ($request && $request->filled('center')) {
+            $pendingProjectsQuery->whereHas('user', fn ($q) => $q->where('center', $request->center));
+        }
+        if ($request && $request->filled('project_type')) {
+            $pendingProjectsQuery->where('project_type', $request->project_type);
+        }
+        if ($request && $request->filled('parent_id')) {
+            $pendingProjectsQuery->whereHas('user', fn ($q) => $q->where('parent_id', $request->parent_id));
+        }
+        if ($request && $request->filled('role')) {
+            $pendingProjectsQuery->whereHas('user', fn ($q) => $q->where('role', $request->role));
+        }
+
+        $pendingProjects = $pendingProjectsQuery->get();
+        $pendingTotal = (float) $pendingProjects->sum(function ($p) {
+            $overall = (float) ($p->overall_project_budget ?? 0);
+            $forwarded = (float) ($p->amount_forwarded ?? 0);
+            $local = (float) ($p->local_contribution ?? 0);
+            return max(0, $overall - ($forwarded + $local));
         });
 
+        // Calculate total budget, expenses, remaining (M3.3: use opening_balance for total-fund aggregation)
+        $totalBudget = $approvedProjects->sum(fn ($p) => (float) ($p->opening_balance ?? 0));
+
         // Calculate approved expenses (from approved reports)
-        $approvedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+        $approvedReportIds = DPReport::approved()
             ->whereIn('project_id', $approvedProjects->pluck('project_id'))
             ->pluck('report_id');
 
@@ -2052,14 +2076,12 @@ public function budgetOverview()
         // Budget by Project Type
         $budgetByProjectType = [];
         foreach ($approvedProjects->groupBy('project_type') as $type => $projects) {
-            $typeBudget = $projects->sum(function($p) {
-                return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
-            });
+            $typeBudget = $projects->sum(fn ($p) => (float) ($p->opening_balance ?? 0));
 
             $typeProjectIds = $projects->pluck('project_id');
 
             // Approved expenses
-            $typeApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+            $typeApprovedReportIds = DPReport::approved()
                 ->whereIn('project_id', $typeProjectIds)
                 ->pluck('report_id');
 
@@ -2091,14 +2113,12 @@ public function budgetOverview()
         // Budget by Province (with approved/unapproved expenses)
         $budgetByProvince = [];
         foreach ($approvedProjects->groupBy(function($p) { return $p->user->province ?? 'Unknown'; }) as $province => $projects) {
-            $provinceBudget = $projects->sum(function($p) {
-                return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
-            });
+            $provinceBudget = $projects->sum(fn ($p) => (float) ($p->opening_balance ?? 0));
 
             $provinceProjectIds = $projects->pluck('project_id');
 
             // Approved expenses
-            $provinceApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+            $provinceApprovedReportIds = DPReport::approved()
                 ->whereIn('project_id', $provinceProjectIds)
                 ->pluck('report_id');
 
@@ -2132,14 +2152,12 @@ public function budgetOverview()
         foreach ($approvedProjects->groupBy(function($p) { return $p->user->center ?? 'Unknown'; }) as $center => $projects) {
             if (empty($center) || $center === 'Unknown') continue;
 
-            $centerBudget = $projects->sum(function($p) {
-                return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
-            });
+            $centerBudget = $projects->sum(fn ($p) => (float) ($p->opening_balance ?? 0));
 
             $centerProjectIds = $projects->pluck('project_id');
 
             // Approved expenses
-            $centerApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+            $centerApprovedReportIds = DPReport::approved()
                 ->whereIn('project_id', $centerProjectIds)
                 ->pluck('report_id');
 
@@ -2178,12 +2196,10 @@ public function budgetOverview()
             $provincial = $projects->first()->user->parent;
             $provincialName = $provincial ? $provincial->name : 'Unknown';
 
-            $provincialBudget = $projects->sum(function($p) {
-                return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
-            });
+            $provincialBudget = $projects->sum(fn ($p) => (float) ($p->opening_balance ?? 0));
 
             $provincialProjectIds = $projects->pluck('project_id');
-            $provincialApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+            $provincialApprovedReportIds = DPReport::approved()
                 ->whereIn('project_id', $provincialProjectIds)
                 ->pluck('report_id');
 
@@ -2208,7 +2224,7 @@ public function budgetOverview()
         while ($current <= now()) {
             $monthEnd = $current->copy()->endOfMonth();
 
-            $monthReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+            $monthReportIds = DPReport::approved()
                 ->whereBetween('created_at', [$current->copy()->startOfMonth(), $monthEnd])
                 ->pluck('report_id');
 
@@ -2224,13 +2240,11 @@ public function budgetOverview()
             $current->addMonth();
         }
 
-        // Top Projects by Budget
-        $topProjectsByBudget = $approvedProjects->sortByDesc(function($p) {
-            return $p->amount_sanctioned ?? $p->overall_project_budget ?? 0;
-        })->take(10)->map(function($p) {
-            $projectBudget = (float) ($p->amount_sanctioned ?? $p->overall_project_budget ?? 0);
+        // Top Projects by Budget (M3.3: use opening_balance for total-fund aggregation)
+        $topProjectsByBudget = $approvedProjects->sortByDesc(fn ($p) => (float) ($p->opening_balance ?? 0))->take(10)->map(function ($p) {
+            $projectBudget = (float) ($p->opening_balance ?? 0);
 
-            $projectApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+            $projectApprovedReportIds = DPReport::approved()
                 ->where('project_id', $p->project_id)
                 ->pluck('report_id');
 
@@ -2252,6 +2266,8 @@ public function budgetOverview()
         return [
             'total' => [
                 'budget' => $totalBudget,
+                'approved_total' => $totalBudget,
+                'pending_total' => $pendingTotal,
                 'approved_expenses' => $approvedExpenses,
                 'unapproved_expenses' => $unapprovedExpenses,
                 'expenses' => $totalExpenses,
@@ -2308,16 +2324,16 @@ public function budgetOverview()
             $provinceProjects = $projectsByProvince->get($province, collect());
             $provinceReports = $reportsByProvince->get($province, collect());
 
-            $provinceApprovedProjects = $provinceProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+            $provinceApprovedProjects = $provinceProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
             $provinceBudget = $provinceApprovedProjects->sum(fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0));
 
-            $provinceApprovedReportIds = $provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->pluck('report_id');
+            $provinceApprovedReportIds = $provinceReports->whereIn('status', DPReport::APPROVED_STATUSES)->pluck('report_id');
             $provinceExpenses = (float) (DPAccountDetail::whereIn('report_id', $provinceApprovedReportIds)->sum('total_expenses') ?? 0);
 
             $approvalRate = $provinceReports->count() > 0 ?
-                ($provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count() / $provinceReports->count()) * 100 : 0;
+                ($provinceReports->whereIn('status', DPReport::APPROVED_STATUSES)->count() / $provinceReports->count()) * 100 : 0;
 
-            $approvedReports = $provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR);
+            $approvedReports = $provinceReports->whereIn('status', DPReport::APPROVED_STATUSES);
             $avgProcessingTime = 0;
             if ($approvedReports->count() > 0) {
                 $totalDays = $approvedReports->sum(fn($report) => $report->created_at->diffInDays(now()));
@@ -2326,9 +2342,9 @@ public function budgetOverview()
 
             $provincePerformance[$province] = [
                 'projects' => $provinceProjects->count(),
-                'approved_projects' => $provinceProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)->count(),
+                'approved_projects' => $provinceProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES)->count(),
                 'reports' => $provinceReports->count(),
-                'approved_reports' => $provinceReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count(),
+                'approved_reports' => $provinceReports->whereIn('status', DPReport::APPROVED_STATUSES)->count(),
                 'budget' => $provinceBudget,
                 'expenses' => $provinceExpenses,
                 'remaining' => $calc->calculateRemainingBalance($provinceBudget, $provinceExpenses),
@@ -2407,12 +2423,12 @@ public function budgetOverview()
 
                 // Team projects - filter in memory
                 $teamProjects = $allProjects->whereIn('user_id', $teamUserIdsArray);
-                $approvedTeamProjects = $teamProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+                $approvedTeamProjects = $teamProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
 
                 // Team reports - filter in memory
                 $teamReports = $allReports->whereIn('user_id', $teamUserIdsArray);
                 $pendingTeamReports = $teamReports->where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR);
-                $approvedTeamReports = $teamReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR);
+                $approvedTeamReports = $teamReports->whereIn('status', DPReport::APPROVED_STATUSES);
 
                 // Calculate budget via resolver
                 $teamBudget = $approvedTeamProjects->sum(fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0));
@@ -2515,20 +2531,20 @@ public function budgetOverview()
                 $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
             }
 
-        $approvedProjects = $systemProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+        $approvedProjects = $systemProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
         $totalBudget = $approvedProjects->sum(fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0));
 
-        $approvedReportIds = $systemReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->pluck('report_id');
+        $approvedReportIds = $systemReports->whereIn('status', DPReport::APPROVED_STATUSES)->pluck('report_id');
         $totalExpenses = (float) (DPAccountDetail::whereIn('report_id', $approvedReportIds)->sum('total_expenses') ?? 0);
 
         // Calculate key indicators
         $budgetUtilization = $calc->calculateUtilization($totalExpenses, $totalBudget);
 
         $approvalRate = $systemReports->count() > 0 ?
-            ($systemReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count() / $systemReports->count()) * 100 : 0;
+            ($systemReports->whereIn('status', DPReport::APPROVED_STATUSES)->count() / $systemReports->count()) * 100 : 0;
 
         // Calculate average processing time
-        $approvedReports = $systemReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR);
+        $approvedReports = $systemReports->whereIn('status', DPReport::APPROVED_STATUSES);
         $avgProcessingTime = 0;
         if ($approvedReports->count() > 0) {
             $totalDays = $approvedReports->sum(function($report) {
@@ -2543,7 +2559,7 @@ public function budgetOverview()
         $submissionRate = $reportsLastMonth > 0 ? (($reportsThisMonth - $reportsLastMonth) / $reportsLastMonth) * 100 : 0;
 
         // Project completion rate
-        $completedProjects = $systemProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)->count();
+        $completedProjects = $systemProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES)->count();
         $completionRate = $systemProjects->count() > 0 ? ($completedProjects / $systemProjects->count()) * 100 : 0;
 
         // User activity rate (active users in last 30 days)
@@ -2607,7 +2623,7 @@ public function budgetOverview()
 
             $monthReports = $systemReports->whereBetween('created_at', [$current->copy()->startOfMonth(), $monthEnd]);
             $monthApprovalRate = $monthReports->count() > 0 ?
-                ($monthReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count() / $monthReports->count()) * 100 : 0;
+                ($monthReports->whereIn('status', DPReport::APPROVED_STATUSES)->count() / $monthReports->count()) * 100 : 0;
 
             $healthTrends[] = [
                 'month' => $current->format('M Y'),
@@ -2649,7 +2665,7 @@ public function budgetOverview()
 
         // Base query for approved projects - coordinators can see all project types
         // Use a subquery to get unique project IDs first, then fetch the full records
-        $projectIds = Project::where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+        $projectIds = Project::approved()
             ->distinct()
             ->pluck('project_id');
 
@@ -2948,7 +2964,7 @@ public function budgetOverview()
 
         // Fetch approved reports
         // Eager load relationships to prevent N+1 queries
-        $reportsQuery = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+        $reportsQuery = DPReport::approved()
                                ->with(['user', 'project', 'accountDetails']);
 
         // Apply filters
@@ -2974,7 +2990,7 @@ public function budgetOverview()
         $users = User::all();
 
         // Fetch distinct project types
-        $projectTypes = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->distinct()->pluck('project_type');
+        $projectTypes = DPReport::approved()->distinct()->pluck('project_type');
 
         return view('coordinator.approvedReports', compact('reports', 'coordinator', 'provinces', 'users', 'projectTypes'));
     }

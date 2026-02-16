@@ -153,7 +153,8 @@ class ProjectQueryService
     }
 
     /**
-     * Apply search filter to project query
+     * Apply search filter to project query.
+     * Phase 5B2: Society text search via join on societies.name; fallback search on projects.society_name for legacy rows.
      *
      * @param Builder $query
      * @param string $searchTerm
@@ -161,11 +162,15 @@ class ProjectQueryService
      */
     public static function applySearchFilter(Builder $query, string $searchTerm): Builder
     {
-        return $query->where(function($q) use ($searchTerm) {
-            $q->where('project_id', 'like', "%{$searchTerm}%")
-              ->orWhere('project_title', 'like', "%{$searchTerm}%")
-              ->orWhere('society_name', 'like', "%{$searchTerm}%")
-              ->orWhere('place', 'like', "%{$searchTerm}%");
+        $query->leftJoin('societies', 'projects.society_id', '=', 'societies.id')
+              ->select('projects.*');
+
+        return $query->where(function ($q) use ($searchTerm) {
+            $q->where('projects.project_id', 'like', "%{$searchTerm}%")
+              ->orWhere('projects.project_title', 'like', "%{$searchTerm}%")
+              ->orWhere('societies.name', 'like', "%{$searchTerm}%")
+              ->orWhere('projects.society_name', 'like', "%{$searchTerm}%")
+              ->orWhere('projects.place', 'like', "%{$searchTerm}%");
         });
     }
 }

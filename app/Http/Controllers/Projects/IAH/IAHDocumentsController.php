@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Projects\IAH;
 
 use App\Http\Controllers\Controller;
 use App\Models\OldProjects\IAH\ProjectIAHDocuments;
+use App\Models\OldProjects\IAH\ProjectIAHDocumentFile;
 use App\Models\OldProjects\Project;
 use App\Services\Attachment\AttachmentContext;
 use App\Services\ProjectAttachmentHandler;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -40,6 +42,20 @@ class IAHDocumentsController extends Controller
         try {
             if (!Project::where('project_id', $projectId)->exists()) {
                 return response()->json(['error' => 'Project not found.'], 404);
+            }
+
+            // M1 Data Integrity Shield: skip when no files uploaded.
+            if (! $this->hasAnyIAHFile($request)) {
+                Log::info('IAHDocumentsController@store - No files uploaded; skipping mutation', [
+                    'project_id' => $projectId,
+                ]);
+
+                DB::commit();
+
+                return response()->json([
+                    'message' => 'IAH documents stored successfully.',
+                    'documents' => null,
+                ], 200);
             }
 
             $result = ProjectAttachmentHandler::handle(
@@ -159,6 +175,20 @@ class IAHDocumentsController extends Controller
 
         DB::beginTransaction();
         try {
+            // M1 Data Integrity Shield: skip when no files uploaded.
+            if (! $this->hasAnyIAHFile($request)) {
+                Log::info('IAHDocumentsController@update - No files uploaded; skipping mutation', [
+                    'project_id' => $projectId,
+                ]);
+
+                DB::commit();
+
+                return response()->json([
+                    'message' => 'IAH documents updated successfully.',
+                    'documents' => null,
+                ], 200);
+            }
+
             $result = ProjectAttachmentHandler::handle(
                 $request,
                 (string) $projectId,
@@ -228,6 +258,111 @@ class IAHDocumentsController extends Controller
                 'error' => $e->getMessage()
             ]);
             return response()->json(['error' => 'Failed to delete IAH documents.'], 500);
+        }
+    }
+
+    private function hasAnyIAHFile(Request $request): bool
+    {
+        $fileFields = array_keys(self::iahFieldConfig());
+
+        foreach ($fileFields as $field) {
+            if ($request->hasFile($field)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * DOWNLOAD: download a specific IAH document file
+     * Streams file through controller - works without storage symlink on production.
+     */
+    public function downloadFile($fileId)
+    {
+        try {
+            Log::info('IAHDocumentsController@downloadFile - Start', ['file_id' => $fileId]);
+
+            $file = ProjectIAHDocumentFile::findOrFail($fileId);
+
+            Log::info('IAHDocumentsController@downloadFile - File found', [
+                'file_id' => $fileId,
+                'file_path' => $file->file_path,
+                'file_name' => $file->file_name,
+            ]);
+
+            if (!Storage::disk('public')->exists($file->file_path)) {
+                Log::error('IAHDocumentsController@downloadFile - File not found on disk', [
+                    'file_id' => $fileId,
+                    'file_path' => $file->file_path,
+                ]);
+                return response()->json(['error' => 'File not found'], 404);
+            }
+
+            Log::info('IAHDocumentsController@downloadFile - File downloaded', [
+                'file_id' => $fileId,
+                'file_name' => $file->file_name,
+            ]);
+
+            return Storage::disk('public')->download($file->file_path, $file->file_name);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('IAHDocumentsController@downloadFile - File record not found', ['file_id' => $fileId]);
+            return response()->json(['error' => 'File record not found'], 404);
+        } catch (\Exception $e) {
+            Log::error('IAHDocumentsController@downloadFile - Error', [
+                'file_id' => $fileId,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['error' => 'Failed to download file'], 500);
+        }
+    }
+
+    /**
+     * VIEW: view a specific IAH document file (stream response)
+     * Streams file through controller - works without storage symlink on production.
+     */
+    public function viewFile($fileId)
+    {
+        try {
+            Log::info('IAHDocumentsController@viewFile - Start', ['file_id' => $fileId]);
+
+            $file = ProjectIAHDocumentFile::findOrFail($fileId);
+
+            Log::info('IAHDocumentsController@viewFile - File found', [
+                'file_id' => $fileId,
+                'file_path' => $file->file_path,
+                'file_name' => $file->file_name,
+            ]);
+
+            if (!Storage::disk('public')->exists($file->file_path)) {
+                Log::error('IAHDocumentsController@viewFile - File not found on disk', [
+                    'file_id' => $fileId,
+                    'file_path' => $file->file_path,
+                ]);
+                return response()->json(['error' => 'File not found'], 404);
+            }
+
+            $fileContent = Storage::disk('public')->get($file->file_path);
+            $mimeType = Storage::disk('public')->mimeType($file->file_path);
+
+            Log::info('IAHDocumentsController@viewFile - File viewed', [
+                'file_id' => $fileId,
+                'file_name' => $file->file_name,
+                'mime_type' => $mimeType,
+            ]);
+
+            return response($fileContent, 200)
+                ->header('Content-Type', $mimeType)
+                ->header('Content-Disposition', 'inline; filename="' . $file->file_name . '"');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('IAHDocumentsController@viewFile - File record not found', ['file_id' => $fileId]);
+            return response()->json(['error' => 'File record not found'], 404);
+        } catch (\Exception $e) {
+            Log::error('IAHDocumentsController@viewFile - Error', [
+                'file_id' => $fileId,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['error' => 'Failed to view file'], 500);
         }
     }
 

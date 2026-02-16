@@ -53,7 +53,20 @@
                         </tr>
                     @endif
                 </tbody>
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td colspan="2"><input type="text" class="form-control form-control-plaintext border-0 bg-transparent" value="Total" readonly tabindex="-1" style="font-weight: bold;"></td>
+                        <td><input type="text" class="form-control form-control-plaintext border-0 bg-transparent" id="RST-total-direct" value="{{ (isset($beneficiaries) && !empty($beneficiaries)) ? collect($beneficiaries)->sum('direct') : 0 }}" readonly tabindex="-1" style="font-weight: bold;"></td>
+                        <td><input type="text" class="form-control form-control-plaintext border-0 bg-transparent" id="RST-total-indirect" value="{{ (isset($beneficiaries) && !empty($beneficiaries)) ? collect($beneficiaries)->sum('indirect') : 0 }}" readonly tabindex="-1" style="font-weight: bold;"></td>
+                        @if(!isset($readonly) || !$readonly)
+                            <td></td>
+                        @endif
+                    </tr>
+                </tfoot>
             </table>
+        </div>
+        <div class="mt-2">
+            <strong>Total Beneficiaries:</strong> <span id="RST-total-beneficiaries">{{ (isset($beneficiaries) && !empty($beneficiaries)) ? collect($beneficiaries)->sum('direct') + collect($beneficiaries)->sum('indirect') : 0 }}</span>
         </div>
         @if(!isset($readonly) || !$readonly)
             <button type="button" class="mt-3 btn btn-primary" onclick="addRSTProjectAreaRow()">Add More</button>
@@ -64,6 +77,27 @@
 <script>
 // Define RSTprojectAreaRowIndex globally, initializing based on existing rows
 window.RSTprojectAreaRowIndex = window.RSTprojectAreaRowIndex || {{ isset($beneficiaries) && !empty($beneficiaries) ? count($beneficiaries) : 1 }};
+
+function updateRSTBeneficiariesTotals() {
+    const tbody = document.getElementById('RST-project-area-rows');
+    if (!tbody) return;
+
+    let totalDirect = 0;
+    let totalIndirect = 0;
+
+    tbody.querySelectorAll('tr').forEach(function(row) {
+        const inputs = row.querySelectorAll('input[type="number"]');
+        if (inputs[0]) totalDirect += parseInt(inputs[0].value) || 0;
+        if (inputs[1]) totalIndirect += parseInt(inputs[1].value) || 0;
+    });
+
+    const totalDirectEl = document.getElementById('RST-total-direct');
+    const totalIndirectEl = document.getElementById('RST-total-indirect');
+    const totalBeneficiariesEl = document.getElementById('RST-total-beneficiaries');
+    if (totalDirectEl) totalDirectEl.value = totalDirect;
+    if (totalIndirectEl) totalIndirectEl.value = totalIndirect;
+    if (totalBeneficiariesEl) totalBeneficiariesEl.textContent = totalDirect + totalIndirect;
+}
 
 @if(!isset($readonly) || !$readonly)
     function addRSTProjectAreaRow() {
@@ -78,6 +112,7 @@ window.RSTprojectAreaRowIndex = window.RSTprojectAreaRowIndex || {{ isset($benef
             </tr>
         `;
         document.getElementById('RST-project-area-rows').insertAdjacentHTML('beforeend', newRow);
+        updateRSTBeneficiariesTotals();
     }
 
     function removeRSTProjectAreaRow(button) {
@@ -86,7 +121,17 @@ window.RSTprojectAreaRowIndex = window.RSTprojectAreaRowIndex || {{ isset($benef
         if (tbody.children.length > 1) { // Prevent removing the last row
             row.remove();
             window.RSTprojectAreaRowIndex--;
+            updateRSTBeneficiariesTotals();
         }
     }
 @endif
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateRSTBeneficiariesTotals();
+    document.getElementById('RST-project-area-rows')?.addEventListener('input', function(e) {
+        if (e.target.matches('input[name="direct_beneficiaries[]"], input[name="indirect_beneficiaries[]"], input[type="number"]')) {
+            updateRSTBeneficiariesTotals();
+        }
+    });
+});
 </script>

@@ -4,7 +4,7 @@
         <h4>Budget for Current Year</h4>
     </div>
     <div class="card-body">
-        @if($IGEbudget && $IGEbudget->isNotEmpty())
+        @if($IGEbudget instanceof \Illuminate\Support\Collection && $IGEbudget->isNotEmpty())
         <div class="table-responsive">
             <table class="table table-bordered">
                 <thead>

@@ -59,8 +59,8 @@
                             </select>
                         </div>
                         <div class="form-group mb-3">
-                            <label for="society_name">Society</label>
-                            <select name="society_name" class="form-control" id="society_name">
+                            <label for="society_id">Society</label>
+                            <select name="society_id" class="form-control" id="society_id">
                                 <option value="">Select Society</option>
                             </select>
                             <small class="form-text text-muted">Select a society from the selected province</small>
@@ -102,13 +102,15 @@
 document.addEventListener('DOMContentLoaded', function() {
     const provinceSelect = document.getElementById('province');
     const centerSelect = document.getElementById('center');
-    const societySelect = document.getElementById('society_name');
+    const societySelect = document.getElementById('society_id');
 
     // Centers mapping (from controller)
     const centersMap = @json($centersMap);
 
-    // Provinces with societies (from controller)
-    const provinces = @json($provinces);
+    // Phase 5B3: Societies by province (id + name)
+    const societiesByProvince = @json(collect($societiesByProvince ?? [])->map(function($societies) {
+        return $societies->map(fn($s) => ['id' => $s->id, 'name' => $s->name])->values()->all();
+    })->all());
 
     // Set initial values if editing
     @if(old('center') && old('province'))
@@ -127,16 +129,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     @endif
 
-    @if(old('society_name') && old('province'))
+    @if(old('society_id') && old('province'))
         const oldProvinceForSociety = '{{ old("province") }}';
-        const oldSociety = '{{ old("society_name") }}';
-        const selectedProvinceData = provinces.find(p => p.name === oldProvinceForSociety);
-        if (selectedProvinceData && selectedProvinceData.active_societies) {
-            selectedProvinceData.active_societies.forEach(function(society) {
+        const oldSocietyId = '{{ old("society_id") }}';
+        if (societiesByProvince[oldProvinceForSociety]) {
+            societiesByProvince[oldProvinceForSociety].forEach(function(society) {
                 const option = document.createElement('option');
-                option.value = society.name;
+                option.value = society.id;
                 option.textContent = society.name;
-                if (society.name === oldSociety) {
+                if (String(society.id) === oldSocietyId) {
                     option.selected = true;
                 }
                 societySelect.appendChild(option);
@@ -158,13 +159,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Clear and populate societies
+        // Clear and populate societies (Phase 5B3: society_id)
         societySelect.innerHTML = '<option value="">Select Society</option>';
-        const selectedProvinceData = provinces.find(p => p.name === selectedProvince);
-        if (selectedProvinceData && selectedProvinceData.active_societies) {
-            selectedProvinceData.active_societies.forEach(function(society) {
+        if (selectedProvince && societiesByProvince[selectedProvince]) {
+            societiesByProvince[selectedProvince].forEach(function(society) {
                 const option = document.createElement('option');
-                option.value = society.name;
+                option.value = society.id;
                 option.textContent = society.name;
                 societySelect.appendChild(option);
             });

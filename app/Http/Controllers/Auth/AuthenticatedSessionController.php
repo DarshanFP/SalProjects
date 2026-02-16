@@ -40,7 +40,7 @@ class AuthenticatedSessionController extends Controller
     //         $url = 'executor/dashboard';
     //     }
 
-    //     return redirect()->intended($url);
+    //     return redirect()->intended(∫$url);
     // }
 
     public function store(LoginRequest $request): RedirectResponse
@@ -93,6 +93,6 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect('/login');
     }
 }

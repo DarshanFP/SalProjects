@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use App\Constants\ProjectStatus;
 use App\Services\ActivityHistoryService;
 use App\Models\ActivityHistory;
@@ -33,6 +34,22 @@ class GeneralController extends Controller
     public function __construct(
         private readonly DerivedCalculationService $calculationService
     ) {
+    }
+
+    /**
+     * Phase 5B3: Get societies allowed for a province (province + global). Province-scoped dropdown.
+     *
+     * @param int|null $provinceId
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    private function getSocietiesForProvince(?int $provinceId): \Illuminate\Database\Eloquent\Collection
+    {
+        return Society::active()
+            ->where(function ($q) use ($provinceId) {
+                $q->where('province_id', $provinceId)->orWhereNull('province_id');
+            })
+            ->orderBy('name')
+            ->get();
     }
 
     /**
@@ -418,15 +435,17 @@ class GeneralController extends Controller
             abort(403, 'Access denied. Only General users can create provincial users.');
         }
 
-        // Get provinces with their societies
-        $provinces = Province::active()->with(['activeSocieties' => function($query) {
-            $query->orderBy('name');
-        }])->orderBy('name')->get();
+        // Get provinces; Phase 5B3: societies per province (province + global)
+        $provinces = Province::active()->orderBy('name')->get();
+        $societiesByProvince = [];
+        foreach ($provinces as $p) {
+            $societiesByProvince[$p->name] = $this->getSocietiesForProvince($p->id);
+        }
 
         // Get centers map from database
         $centersMap = $this->getCentersMap();
 
-        return view('general.provincials.create', compact('provinces', 'centersMap'));
+        return view('general.provincials.create', compact('provinces', 'centersMap', 'societiesByProvince'));
     }
 
     /**
@@ -440,29 +459,42 @@ class GeneralController extends Controller
             abort(403, 'Access denied. Only General users can create provincial users.');
         }
 
+        $province = Province::where('name', $request->province)->firstOrFail();
+        $provinceId = $province->id;
+
         $request->validate([
             'name' => 'required|string|max:255',
             'username' => 'nullable|string|max:255|unique:users',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20',
-            'society_name' => 'nullable|string|max:255',
+            'society_id' => [
+                'nullable',
+                Rule::exists('societies', 'id')->where(function ($q) use ($provinceId) {
+                    $q->where('province_id', $provinceId)->orWhereNull('province_id');
+                }),
+            ],
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'province' => 'required|exists:provinces,name',
             'status' => 'required|in:active,inactive',
         ]);
 
-        // Get province and center IDs from database
-        $province = Province::where('name', $request->province)->first();
-        $provinceId = $province ? $province->id : null;
-
+        // Get center ID from database
         $centerId = null;
         if ($request->filled('center') && $provinceId) {
             $center = Center::where('province_id', $provinceId)
                 ->whereRaw('UPPER(name) = ?', [strtoupper($request->center)])
                 ->first();
             $centerId = $center ? $center->id : null;
+        }
+
+        // Phase 5B3: Dual-write society_id and society_name
+        $societyId = $request->filled('society_id') ? (int) $request->society_id : null;
+        $societyName = null;
+        if ($societyId) {
+            $society = Society::findOrFail($societyId);
+            $societyName = $society->name;
         }
 
         $provincial = User::create([
@@ -472,7 +504,8 @@ class GeneralController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
-            'society_name' => $request->society_name,
+            'society_id' => $societyId,
+            'society_name' => $societyName,
             'center' => $request->center,
             'center_id' => $centerId,
             'address' => $request->address,
@@ -562,15 +595,21 @@ class GeneralController extends Controller
             abort(403, 'Unauthorized. This user is not a provincial user.');
         }
 
-        // Get provinces with their societies
-        $provinces = Province::active()->with(['activeSocieties' => function($query) {
-            $query->orderBy('name');
-        }])->orderBy('name')->get();
+        // Phase 5B3: Societies for this provincial's province (province + global)
+        $provinceId = $provincial->province_id ?? Province::where('name', $provincial->province)->first()?->id;
+        $societies = $this->getSocietiesForProvince($provinceId);
+        $societiesByProvince = [];
+        foreach (Province::active()->orderBy('name')->get() as $p) {
+            $societiesByProvince[$p->name] = $this->getSocietiesForProvince($p->id);
+        }
+
+        // Get provinces
+        $provinces = Province::active()->orderBy('name')->get();
 
         // Get centers map from database
         $centersMap = $this->getCentersMap();
 
-        return view('general.provincials.edit', compact('provincial', 'provinces', 'centersMap'));
+        return view('general.provincials.edit', compact('provincial', 'provinces', 'centersMap', 'societies', 'societiesByProvince'));
     }
 
     /**
@@ -592,22 +631,27 @@ class GeneralController extends Controller
             abort(403, 'Unauthorized. This user is not a provincial user.');
         }
 
+        $province = Province::where('name', $request->province)->first();
+        $provinceId = $province ? $province->id : null;
+
         $request->validate([
             'name' => 'required|string|max:255',
             'username' => 'nullable|string|max:255|unique:users,username,' . $id,
             'email' => 'required|string|email|max:255|unique:users,email,' . $id,
             'phone' => 'nullable|string|max:20',
-            'society_name' => 'nullable|string|max:255',
+            'society_id' => [
+                'nullable',
+                Rule::exists('societies', 'id')->where(function ($q) use ($provinceId) {
+                    $q->where('province_id', $provinceId)->orWhereNull('province_id');
+                }),
+            ],
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'province' => 'required|exists:provinces,name',
             'status' => 'required|in:active,inactive',
         ]);
 
-        // Get province and center IDs from database
-        $province = Province::where('name', $request->province)->first();
-        $provinceId = $province ? $province->id : null;
-
+        // Get center ID from database
         $centerId = null;
         if ($request->filled('center') && $provinceId) {
             $center = Center::where('province_id', $provinceId)
@@ -616,12 +660,21 @@ class GeneralController extends Controller
             $centerId = $center ? $center->id : null;
         }
 
+        // Phase 5B3: Dual-write society_id and society_name
+        $societyId = $request->filled('society_id') ? (int) $request->society_id : null;
+        $societyName = null;
+        if ($societyId) {
+            $society = Society::findOrFail($societyId);
+            $societyName = $society->name;
+        }
+
         $provincial->update([
             'name' => $request->name,
             'username' => $request->username,
             'email' => $request->email,
             'phone' => $request->phone,
-            'society_name' => $request->society_name,
+            'society_id' => $societyId,
+            'society_name' => $societyName,
             'center' => $request->center,
             'center_id' => $centerId,
             'address' => $request->address,
@@ -796,15 +849,17 @@ class GeneralController extends Controller
             abort(403, 'Access denied. Only General users can create executors/applicants.');
         }
 
-        // Get provinces with their societies
-        $provinces = Province::active()->with(['activeSocieties' => function($query) {
-            $query->orderBy('name');
-        }])->orderBy('name')->get();
+        // Phase 5B3: Provinces and societies per province (province + global)
+        $provinces = Province::active()->orderBy('name')->get();
+        $societiesByProvince = [];
+        foreach ($provinces as $p) {
+            $societiesByProvince[$p->name] = $this->getSocietiesForProvince($p->id);
+        }
 
         // Get centers map from database (centers belong to provinces)
         $centersMap = $this->getCentersMap();
 
-        return view('general.executors.create', compact('provinces', 'centersMap'));
+        return view('general.executors.create', compact('provinces', 'centersMap', 'societiesByProvince'));
     }
 
     /**
@@ -819,6 +874,9 @@ class GeneralController extends Controller
             abort(403, 'Access denied. Only General users can create executors/applicants.');
         }
 
+        $province = Province::where('name', $request->province)->firstOrFail();
+        $provinceId = $province->id;
+
         try {
             $validatedData = $request->validate([
                 'name' => 'required|string|max:255',
@@ -826,7 +884,12 @@ class GeneralController extends Controller
                 'email' => 'required|string|email|max:255|unique:users',
                 'password' => 'required|string|min:8|confirmed',
                 'phone' => 'nullable|string|max:255',
-                'society_name' => 'required|string|max:255',
+                'society_id' => [
+                    'required',
+                    Rule::exists('societies', 'id')->where(function ($q) use ($provinceId) {
+                        $q->where('province_id', $provinceId)->orWhereNull('province_id');
+                    }),
+                ],
                 'role' => 'required|in:executor,applicant',
                 'province' => 'required|exists:provinces,name',
                 'center' => 'nullable|string|max:255',
@@ -841,14 +904,18 @@ class GeneralController extends Controller
                 'province' => $validatedData['province'],
             ]);
 
+            $society = Society::findOrFail($validatedData['society_id']);
+
             $executor = User::create([
                 'name' => $validatedData['name'],
                 'username' => $validatedData['username'],
                 'email' => $validatedData['email'],
                 'password' => Hash::make($validatedData['password']),
                 'phone' => $validatedData['phone'],
-                'society_name' => $validatedData['society_name'],
+                'society_id' => $society->id,
+                'society_name' => $society->name,
                 'province' => $validatedData['province'], // General can specify province
+                'province_id' => $provinceId,
                 'center' => $validatedData['center'],
                 'address' => $validatedData['address'],
                 'role' => $validatedData['role'],
@@ -950,6 +1017,14 @@ class GeneralController extends Controller
             abort(403, 'Unauthorized. You can only edit executors/applicants under your direct management.');
         }
 
+        // Phase 5B3: Societies for executor's province (province + global)
+        $provinceId = $executor->province_id ?? Province::where('name', $executor->province)->first()?->id;
+        $societies = $this->getSocietiesForProvince($provinceId);
+        $societiesByProvince = [];
+        foreach (Province::active()->orderBy('name')->get() as $p) {
+            $societiesByProvince[$p->name] = $this->getSocietiesForProvince($p->id);
+        }
+
         // Get provinces from database
         $provinces = Province::active()->orderBy('name')->get();
 
@@ -960,7 +1035,7 @@ class GeneralController extends Controller
         $province = strtoupper($executor->province ?? '');
         $centers = $centersMap[$province] ?? [];
 
-        return view('general.executors.edit', compact('executor', 'provinces', 'centersMap', 'centers'));
+        return view('general.executors.edit', compact('executor', 'provinces', 'centersMap', 'centers', 'societies', 'societiesByProvince'));
     }
 
     /**
@@ -981,12 +1056,20 @@ class GeneralController extends Controller
             abort(403, 'Unauthorized. You can only update executors/applicants under your direct management.');
         }
 
+        $province = Province::where('name', $request->province)->first();
+        $provinceId = $province ? $province->id : null;
+
         $request->validate([
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users,username,' . $id,
             'email' => 'required|string|email|max:255|unique:users,email,' . $id,
             'phone' => 'nullable|string|max:255',
-            'society_name' => 'required|string|max:255',
+            'society_id' => [
+                'required',
+                Rule::exists('societies', 'id')->where(function ($q) use ($provinceId) {
+                    $q->where('province_id', $provinceId)->orWhereNull('province_id');
+                }),
+            ],
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'role' => 'required|in:executor,applicant',
@@ -994,10 +1077,7 @@ class GeneralController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        // Get province and center IDs from database
-        $province = Province::where('name', $request->province)->first();
-        $provinceId = $province ? $province->id : null;
-
+        // Get center ID from database
         $centerId = null;
         if ($request->filled('center') && $provinceId) {
             $center = Center::where('province_id', $provinceId)
@@ -1006,12 +1086,16 @@ class GeneralController extends Controller
             $centerId = $center ? $center->id : null;
         }
 
+        // Phase 5B3: Dual-write society_id and society_name
+        $society = Society::findOrFail($request->society_id);
+
         $executor->update([
             'name' => $request->name,
             'username' => $request->username,
             'email' => $request->email,
             'phone' => $request->phone,
-            'society_name' => $request->society_name,
+            'society_id' => $society->id,
+            'society_name' => $society->name,
             'center' => $request->center,
             'center_id' => $centerId,
             'address' => $request->address,
@@ -2073,13 +2157,13 @@ class GeneralController extends Controller
         $projectsFromCoordinatorsQuery = Project::where(function($query) use ($allUserIdsUnderCoordinators) {
             $query->whereIn('user_id', $allUserIdsUnderCoordinators)
                   ->orWhereIn('in_charge', $allUserIdsUnderCoordinators);
-        })->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+        })->approved();
 
         // Base query for projects from direct team (only approved projects)
         $projectsFromDirectTeamQuery = Project::where(function($query) use ($directTeamIds) {
             $query->whereIn('user_id', $directTeamIds)
                   ->orWhereIn('in_charge', $directTeamIds);
-        })->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+        })->approved();
 
         // Apply context filter
         $context = $request->get('budget_context', 'combined');
@@ -2160,7 +2244,7 @@ class GeneralController extends Controller
 
         // Get report IDs for approved reports (batch query to avoid N+1)
         $approvedReportIds = DPReport::whereIn('project_id', $allProjectIds)
-            ->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+            ->whereIn('status', DPReport::APPROVED_STATUSES)
             ->pluck('report_id');
 
         // Batch fetch approved expenses for all projects at once (optimize N+1 queries)
@@ -2328,7 +2412,7 @@ class GeneralController extends Controller
                     ->filter()
                     ->sort()
                     ->values(),
-                'projectTypes' => Project::where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+                'projectTypes' => Project::approved()
                     ->distinct()
                     ->whereNotNull('project_type')
                     ->pluck('project_type')
@@ -3282,7 +3366,7 @@ class GeneralController extends Controller
                         $query->whereIn('user_id', $allUserIdsUnderCoordinator)
                               ->orWhereIn('in_charge', $allUserIdsUnderCoordinator);
                     })
-                    ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+                    ->approved()
                     ->count();
 
                     // Pending projects count
@@ -3300,7 +3384,7 @@ class GeneralController extends Controller
 
                     // Approved reports count
                     $coordinator->approved_reports_count = DPReport::whereIn('project_id', $coordinatorProjectIds)
-                        ->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                        ->whereIn('status', DPReport::APPROVED_STATUSES)
                         ->count();
 
                     // Get last activity (latest report submission or project update from coordinator hierarchy)
@@ -3378,10 +3462,10 @@ class GeneralController extends Controller
                 ->whereIn('role', ['executor', 'applicant'])
                 ->withCount([
                     'projects' => function($query) {
-                        $query->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+                        $query->approved();
                     },
                     'reports' => function($query) {
-                        $query->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR);
+                        $query->whereIn('status', DPReport::APPROVED_STATUSES);
                     }
                 ])
                 ->get()
@@ -3584,7 +3668,7 @@ class GeneralController extends Controller
                 $query->whereIn('user_id', $allUserIdsUnderCoordinators)
                       ->orWhereIn('in_charge', $allUserIdsUnderCoordinators);
             })
-            ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+            ->approved()
             ->with(['user.parent', 'user', 'reports.accountDetails', 'budgets']);
 
             // Apply filters for coordinator hierarchy
@@ -3613,7 +3697,7 @@ class GeneralController extends Controller
                 $query->whereIn('user_id', $directTeamIds)
                       ->orWhereIn('in_charge', $directTeamIds);
             })
-            ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR) // Direct team projects approved by coordinator (General acting as Provincial)
+            ->approved() // Direct team projects approved by coordinator (General acting as Provincial)
             ->with(['user', 'reports.accountDetails', 'budgets']);
 
             // Apply filters for direct team
@@ -3783,7 +3867,7 @@ class GeneralController extends Controller
                 $monthEnd = $current->copy()->endOfMonth();
 
                 // Coordinator hierarchy expenses
-                $coordMonthReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                $coordMonthReportIds = DPReport::approved()
                     ->whereIn('project_id', $coordinatorHierarchyProjects->pluck('project_id'))
                     ->whereBetween('created_at', [$current->copy()->startOfMonth(), $monthEnd])
                     ->pluck('report_id');
@@ -3792,7 +3876,7 @@ class GeneralController extends Controller
                     ->sum('total_expenses') ?? 0;
 
                 // Direct team expenses
-                $directMonthReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                $directMonthReportIds = DPReport::approved()
                     ->whereIn('project_id', $directTeamProjects->pluck('project_id'))
                     ->whereBetween('created_at', [$current->copy()->startOfMonth(), $monthEnd])
                     ->pluck('report_id');
@@ -3953,12 +4037,12 @@ class GeneralController extends Controller
                 $totalReports = $reports->count();
 
                 // Approved projects count
-                $approvedProjects = $projects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+                $approvedProjects = $projects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
                 $approvedProjectsCount = $approvedProjects->count();
                 $projectCompletionRate = $totalProjects > 0 ? ($approvedProjectsCount / $totalProjects) * 100 : 0;
 
                 // Approved reports count
-                $approvedReports = $reports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR);
+                $approvedReports = $reports->whereIn('status', DPReport::APPROVED_STATUSES);
                 $approvedReportsCount = $approvedReports->count();
                 $approvalRate = $totalReports > 0 ? ($approvedReportsCount / $totalReports) * 100 : 0;
 
@@ -4149,14 +4233,14 @@ class GeneralController extends Controller
                     $coordinatorReports = DPReport::whereIn('project_id', $coordinatorProjectIds)
                         ->whereBetween('created_at', [$currentTemp->copy()->startOfMonth(), $monthEnd])
                         ->get();
-                    $coordinatorApproved = $coordinatorReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count();
+                    $coordinatorApproved = $coordinatorReports->whereIn('status', DPReport::APPROVED_STATUSES)->count();
                     $coordinatorRate = $coordinatorReports->count() > 0 ? ($coordinatorApproved / $coordinatorReports->count()) * 100 : 0;
 
                     // Direct team data
                     $directTeamReports = DPReport::whereIn('project_id', $directTeamProjectIds)
                         ->whereBetween('created_at', [$currentTemp->copy()->startOfMonth(), $monthEnd])
                         ->get();
-                    $directTeamApproved = $directTeamReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count();
+                    $directTeamApproved = $directTeamReports->whereIn('status', DPReport::APPROVED_STATUSES)->count();
                     $directTeamRate = $directTeamReports->count() > 0 ? ($directTeamApproved / $directTeamReports->count()) * 100 : 0;
 
                     // Combined rate
@@ -4182,7 +4266,7 @@ class GeneralController extends Controller
                         ->whereBetween('created_at', [$current->copy()->startOfMonth(), $monthEnd])
                         ->get();
 
-                    $monthApproved = $monthReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count();
+                    $monthApproved = $monthReports->whereIn('status', DPReport::APPROVED_STATUSES)->count();
                     $monthApprovalRate = $monthReports->count() > 0 ? ($monthApproved / $monthReports->count()) * 100 : 0;
 
                     $approvalRateTrends[] = [
@@ -4364,8 +4448,8 @@ class GeneralController extends Controller
                 $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
             }
 
-            $coordinatorApprovedProjects = $coordinatorHierarchyProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
-            $directApprovedProjects = $directTeamProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+            $coordinatorApprovedProjects = $coordinatorHierarchyProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
+            $directApprovedProjects = $directTeamProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
 
             $coordinatorHierarchyBudget = $coordinatorApprovedProjects->sum(
                 fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0)
@@ -4375,22 +4459,22 @@ class GeneralController extends Controller
                 fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0)
             );
 
-            $coordinatorHierarchyApprovedReportIds = $coordinatorHierarchyReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->pluck('report_id');
+            $coordinatorHierarchyApprovedReportIds = $coordinatorHierarchyReports->whereIn('status', DPReport::APPROVED_STATUSES)->pluck('report_id');
             $coordinatorHierarchyExpenses = DPAccountDetail::whereIn('report_id', $coordinatorHierarchyApprovedReportIds)
                 ->sum('total_expenses') ?? 0;
 
-            $directTeamApprovedReportIds = $directTeamReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->pluck('report_id');
+            $directTeamApprovedReportIds = $directTeamReports->whereIn('status', DPReport::APPROVED_STATUSES)->pluck('report_id');
             $directTeamExpenses = DPAccountDetail::whereIn('report_id', $directTeamApprovedReportIds)
                 ->sum('total_expenses') ?? 0;
 
             $coordinatorHierarchyApprovalRate = $coordinatorHierarchyReports->count() > 0 ?
-                ($coordinatorHierarchyReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count() / $coordinatorHierarchyReports->count()) * 100 : 0;
+                ($coordinatorHierarchyReports->whereIn('status', DPReport::APPROVED_STATUSES)->count() / $coordinatorHierarchyReports->count()) * 100 : 0;
 
             $directTeamApprovalRate = $directTeamReports->count() > 0 ?
-                ($directTeamReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count() / $directTeamReports->count()) * 100 : 0;
+                ($directTeamReports->whereIn('status', DPReport::APPROVED_STATUSES)->count() / $directTeamReports->count()) * 100 : 0;
 
             // Calculate average processing time for approved reports
-            $coordinatorApprovedReports = $coordinatorHierarchyReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR);
+            $coordinatorApprovedReports = $coordinatorHierarchyReports->whereIn('status', DPReport::APPROVED_STATUSES);
             $coordinatorAvgProcessingTime = 0;
             if ($coordinatorApprovedReports->count() > 0) {
                 $totalDays = $coordinatorApprovedReports->sum(function($report) {
@@ -4399,7 +4483,7 @@ class GeneralController extends Controller
                 $coordinatorAvgProcessingTime = round($totalDays / $coordinatorApprovedReports->count(), 1);
             }
 
-            $directTeamApprovedReports = $directTeamReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR);
+            $directTeamApprovedReports = $directTeamReports->whereIn('status', DPReport::APPROVED_STATUSES);
             $directTeamAvgProcessingTime = 0;
             if ($directTeamApprovedReports->count() > 0) {
                 $totalDays = $directTeamApprovedReports->sum(function($report) {
@@ -4409,11 +4493,11 @@ class GeneralController extends Controller
             }
 
             // Calculate project completion rate
-            $coordinatorApprovedProjects = $coordinatorHierarchyProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+            $coordinatorApprovedProjects = $coordinatorHierarchyProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
             $coordinatorProjectCompletionRate = $coordinatorHierarchyProjects->count() > 0 ?
                 ($coordinatorApprovedProjects->count() / $coordinatorHierarchyProjects->count()) * 100 : 0;
 
-            $directTeamApprovedProjects = $directTeamProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+            $directTeamApprovedProjects = $directTeamProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
             $directTeamProjectCompletionRate = $directTeamProjects->count() > 0 ?
                 ($directTeamApprovedProjects->count() / $directTeamProjects->count()) * 100 : 0;
 
@@ -4635,11 +4719,11 @@ class GeneralController extends Controller
                 $totalReports = $reports->count();
 
                 // Approved projects
-                $approvedProjects = $projects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+                $approvedProjects = $projects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
                 $completionRate = $totalProjects > 0 ? ($approvedProjects->count() / $totalProjects) * 100 : 0;
 
                 // Approved reports
-                $approvedReports = $reports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR);
+                $approvedReports = $reports->whereIn('status', DPReport::APPROVED_STATUSES);
                 $approvalRate = $totalReports > 0 ? ($approvedReports->count() / $totalReports) * 100 : 0;
 
                 // Average processing time
@@ -5604,12 +5688,14 @@ class GeneralController extends Controller
                     }
                 },
             ],
+            'address' => 'nullable|string|max:2000',
         ]);
 
         try {
             $society = Society::create([
                 'province_id' => $request->province_id,
                 'name' => $request->name,
+                'address' => $request->address,
                 'is_active' => true,
             ]);
 
@@ -5679,6 +5765,7 @@ class GeneralController extends Controller
                     }
                 },
             ],
+            'address' => 'nullable|string|max:2000',
             'is_active' => 'required|boolean',
         ]);
 
@@ -5686,6 +5773,7 @@ class GeneralController extends Controller
             $society->update([
                 'province_id' => $request->province_id,
                 'name' => $request->name,
+                'address' => $request->address,
                 'is_active' => $request->is_active,
             ]);
 

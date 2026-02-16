@@ -12,44 +12,14 @@ use Illuminate\Support\Facades\Auth;
 use App\Constants\ProjectStatus;
 use App\Services\Budget\BudgetSyncGuard;
 use App\Services\Budget\BudgetAuditLogger;
+use App\Models\Society;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 class GeneralInfoController extends Controller
 {
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'project_type' => 'required|string|max:255',
-            'project_title' => 'nullable|string|max:255',
-            'society_name' => 'nullable|string|max:255',
-            'president_name' => 'nullable|string|max:255',
-            'in_charge' => 'nullable|integer|exists:users,id',
-            'in_charge_name' => 'nullable|string|max:255',
-            'in_charge_mobile' => 'nullable|string|max:255',
-            'in_charge_email' => 'nullable|string|max:255',
-            'executor_name' => 'nullable|string|max:255',
-            'executor_mobile' => 'nullable|string|max:255',
-            'executor_email' => 'nullable|string|max:255',
-            'gi_full_address' => 'nullable|string|max:255',
-            'overall_project_period' => 'nullable|integer',
-            'current_phase' => 'nullable|integer',
-            'commencement_month' => 'nullable|integer',
-            'commencement_year' => 'nullable|integer',
-            'overall_project_budget' => 'nullable|numeric',
-            'coordinator_india' => 'nullable|integer|exists:users,id',
-            'coordinator_india_name' => 'nullable|string|max:255',
-            'coordinator_india_phone' => 'nullable|string|max:255',
-            'coordinator_india_email' => 'nullable|string|max:255',
-            'coordinator_luzern' => 'nullable|integer|exists:users,id',
-            'coordinator_luzern_name' => 'nullable|string|max:255',
-            'coordinator_luzern_phone' => 'nullable|string|max:255',
-            'coordinator_luzern_email' => 'nullable|string|max:255',
-            'goal' => 'nullable|string',
-            'total_amount_sanctioned' => 'nullable|numeric',
-            'amount_forwarded' => 'nullable|numeric',
-            'local_contribution' => 'nullable|numeric',
-            'predecessor_project' => 'nullable|string|exists:projects,project_id',
-        ]);
+        $validated = $request->validated();
 
         $commencement_date = null;
         if (!empty($validated['commencement_year']) && !empty($validated['commencement_month'])) {
@@ -80,6 +50,14 @@ class GeneralInfoController extends Controller
         if (array_key_exists('gi_full_address', $validated)) {
             $validated['full_address'] = $validated['gi_full_address'];
             unset($validated['gi_full_address']);
+        }
+
+        // Phase 5B1: Dual-write society_id and society_name
+        if (!empty($validated['society_id'])) {
+            $society = Society::find($validated['society_id']);
+            if ($society) {
+                $validated['society_name'] = $society->name;
+            }
         }
 
         // Log only non-sensitive data
@@ -204,6 +182,22 @@ class GeneralInfoController extends Controller
     if (array_key_exists('gi_full_address', $validated)) {
         $validated['full_address'] = $validated['gi_full_address'];
         unset($validated['gi_full_address']);
+    }
+
+    // Phase 5B1: Dual-write society_id and society_name
+    if (array_key_exists('society_id', $validated) && !empty($validated['society_id'])) {
+        $society = Society::find($validated['society_id']);
+        if ($society) {
+            $validated['society_name'] = $society->name;
+        }
+    }
+
+    // M2.3: Never pass null for NOT NULL columns — guard before update()
+    if (array_key_exists('in_charge', $validated) && $validated['in_charge'] === null) {
+        $validated['in_charge'] = $project->in_charge;
+    }
+    if (array_key_exists('overall_project_budget', $validated) && $validated['overall_project_budget'] === null) {
+        $validated['overall_project_budget'] = $project->overall_project_budget ?? 0.00;
     }
 
     $project->update($validated);

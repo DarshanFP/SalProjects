@@ -158,6 +158,18 @@ class IIESAttachmentsController extends Controller
      */
     public function update(FormRequest $request, $projectId)
     {
+        $hasAnyFile = collect(self::IIES_FIELDS)
+            ->contains(fn ($field) => $request->hasFile($field));
+
+        if (! $hasAnyFile) {
+            Log::info('IIESAttachmentsController@update - No files present; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+            return response()->json([
+                'message' => 'IIES attachments updated successfully.'
+            ], 200);
+        }
+
         Log::info('IIESAttachmentsController@update - Start', [
             'project_id' => $projectId
         ]);

@@ -170,6 +170,16 @@ class RevenueGoalsController extends Controller
         $annualIncome      = is_array($data['annual_income'] ?? null) ? ($data['annual_income'] ?? []) : (isset($data['annual_income']) ? [$data['annual_income']] : []);
         $annualExpenses    = is_array($data['annual_expenses'] ?? null) ? ($data['annual_expenses'] ?? []) : (isset($data['annual_expenses']) ? [$data['annual_expenses']] : []);
 
+        if (! $this->isILPRevenueGoalsMeaningfullyFilled($businessPlanItems, $annualIncome, $annualExpenses)) {
+            Log::info('RevenueGoalsController@update - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            return response()->json([
+                'message' => 'Revenue Goals updated successfully.',
+            ], 200);
+        }
+
         DB::beginTransaction();
         try {
             Log::info('Updating Revenue Goals for Project', ['project_id' => $projectId]);
@@ -257,5 +267,46 @@ class RevenueGoalsController extends Controller
             Log::error('Error deleting Revenue Goals', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to delete Revenue Goals.'], 500);
         }
+    }
+
+    private function isILPRevenueGoalsMeaningfullyFilled(
+        array $businessPlanItems,
+        array $annualIncome,
+        array $annualExpenses
+    ): bool {
+        // Check business plan items
+        foreach ($businessPlanItems as $item) {
+            if (is_array($item)) {
+                foreach ($item as $value) {
+                    if (trim((string) $value) !== '') {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // Check annual income
+        foreach ($annualIncome as $income) {
+            if (is_array($income)) {
+                foreach ($income as $value) {
+                    if (trim((string) $value) !== '') {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // Check annual expenses
+        foreach ($annualExpenses as $expense) {
+            if (is_array($expense)) {
+                foreach ($expense as $value) {
+                    if (trim((string) $value) !== '') {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }

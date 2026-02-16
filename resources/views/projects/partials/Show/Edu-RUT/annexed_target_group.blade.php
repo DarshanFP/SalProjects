@@ -14,7 +14,7 @@
                 </tr>
             </thead>
             <tbody>
-                @if($annexedTargetGroups && $annexedTargetGroups->count() > 0)
+                @if(isset($annexedTargetGroups) && $annexedTargetGroups instanceof \Illuminate\Support\Collection && $annexedTargetGroups->count() > 0)
                     @foreach($annexedTargetGroups as $index => $group)
                         <tr>
                             <td>{{ $index + 1 }}</td>

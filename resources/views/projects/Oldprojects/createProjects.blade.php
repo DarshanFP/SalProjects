@@ -441,13 +441,7 @@ document.addEventListener('DOMContentLoaded', function() {
         saveDraftBtn.addEventListener('click', function(e) {
             try {
                 e.preventDefault();
-                
-                // Remove required attributes temporarily to allow submission
-                const requiredFields = createForm.querySelectorAll('[required]');
-                requiredFields.forEach(field => {
-                    field.removeAttribute('required');
-                });
-                
+
                 // Add hidden input to indicate draft save
                 let draftInput = createForm.querySelector('input[name="save_as_draft"]');
                 if (!draftInput) {
@@ -493,14 +487,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (createForm) {
         createForm.addEventListener('submit', function(e) {
             try {
-                // Check if this is a draft save (bypass validation)
-                const isDraftSave = this.querySelector('input[name="save_as_draft"]');
-                if (isDraftSave && isDraftSave.value === '1') {
-                    // Allow draft save without validation
-                    return true;
-                }
-                
-                // For regular submission, check HTML5 validation
                 if (!this.checkValidity()) {
                     this.reportValidity();
                     e.preventDefault();

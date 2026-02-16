@@ -25,6 +25,32 @@ class TargetGroupAnnexureController extends Controller
         $rstFamilySituations = is_array($data['rst_family_situation'] ?? null) ? ($data['rst_family_situation'] ?? []) : (isset($data['rst_family_situation']) && $data['rst_family_situation'] !== '' ? [$data['rst_family_situation']] : []);
         $rstParagraphs = is_array($data['rst_paragraph'] ?? null) ? ($data['rst_paragraph'] ?? []) : (isset($data['rst_paragraph']) && $data['rst_paragraph'] !== '' ? [$data['rst_paragraph']] : []);
 
+        $normalizedRows = [];
+        $maxLen = max(
+            count($rstNames),
+            count($rstReligions),
+            count($rstCastes),
+            count($rstEducationBackgrounds),
+            count($rstFamilySituations),
+            count($rstParagraphs)
+        );
+        for ($i = 0; $i < $maxLen; $i++) {
+            $nameVal = is_array($rstNames[$i] ?? null) ? (reset($rstNames[$i]) ?? null) : ($rstNames[$i] ?? null);
+            $religionVal = is_array($rstReligions[$i] ?? null) ? (reset($rstReligions[$i]) ?? null) : ($rstReligions[$i] ?? null);
+            $casteVal = is_array($rstCastes[$i] ?? null) ? (reset($rstCastes[$i]) ?? null) : ($rstCastes[$i] ?? null);
+            $educationVal = is_array($rstEducationBackgrounds[$i] ?? null) ? (reset($rstEducationBackgrounds[$i]) ?? null) : ($rstEducationBackgrounds[$i] ?? null);
+            $familyVal = is_array($rstFamilySituations[$i] ?? null) ? (reset($rstFamilySituations[$i]) ?? null) : ($rstFamilySituations[$i] ?? null);
+            $paragraphVal = is_array($rstParagraphs[$i] ?? null) ? (reset($rstParagraphs[$i]) ?? null) : ($rstParagraphs[$i] ?? null);
+            $normalizedRows[] = [$nameVal, $religionVal, $casteVal, $educationVal, $familyVal, $paragraphVal];
+        }
+
+        if (! $this->isTargetGroupAnnexureMeaningfullyFilled($normalizedRows)) {
+            Log::info('TargetGroupAnnexureController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+            return response()->json(['message' => 'Target Group Annexure saved successfully.'], 200);
+        }
+
         DB::beginTransaction();
         try {
             Log::info('Storing Target Group Annexure for RST', ['project_id' => $projectId]);
@@ -118,5 +144,32 @@ class TargetGroupAnnexureController extends Controller
             Log::error('Error deleting Target Group Annexure for RST', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to delete Target Group Annexure.'], 500);
         }
+    }
+
+    /**
+     * M1 Guard: true when at least one row has at least one meaningful value (non-empty string or numeric).
+     */
+    private function isTargetGroupAnnexureMeaningfullyFilled(array $rows): bool
+    {
+        if ($rows === []) {
+            return false;
+        }
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            foreach ($row as $value) {
+                if (is_string($value) && trim($value) !== '') {
+                    return true;
+                }
+                if ($value !== null && $value !== '' && is_numeric($value)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

@@ -23,6 +23,15 @@ class BeneficiariesAreaController extends Controller
         $directBeneficiaries = is_array($data['direct_beneficiaries'] ?? null) ? ($data['direct_beneficiaries'] ?? []) : (isset($data['direct_beneficiaries']) && $data['direct_beneficiaries'] !== '' ? [$data['direct_beneficiaries']] : []);
         $indirectBeneficiaries = is_array($data['indirect_beneficiaries'] ?? null) ? ($data['indirect_beneficiaries'] ?? []) : (isset($data['indirect_beneficiaries']) && $data['indirect_beneficiaries'] !== '' ? [$data['indirect_beneficiaries']] : []);
 
+        // M1 Data Integrity Shield: skip delete+recreate when section is absent or empty.
+        if (! $this->isBeneficiariesAreaMeaningfullyFilled($projectAreas, $categoryBeneficiaries, $directBeneficiaries, $indirectBeneficiaries)) {
+            Log::info('BeneficiariesAreaController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            return response()->json(['message' => 'Beneficiaries Area saved successfully.'], 200);
+        }
+
         DB::beginTransaction();
         try {
             Log::info('Storing Beneficiaries Area for DPRST', ['project_id' => $projectId]);
@@ -152,5 +161,50 @@ class BeneficiariesAreaController extends Controller
             Log::error('Error deleting Beneficiaries Area for DPRST', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to delete Beneficiaries Area.'], 500);
         }
+    }
+
+    /**
+     * M1 Guard: true only when project_area (section key) has at least one row with meaningful data.
+     * Meaningful row = at least one non-empty trimmed string OR at least one non-null numeric.
+     */
+    private function isBeneficiariesAreaMeaningfullyFilled(
+        array $projectAreas,
+        array $categoryBeneficiaries,
+        array $directBeneficiaries,
+        array $indirectBeneficiaries
+    ): bool {
+        if ($projectAreas === []) {
+            return false;
+        }
+
+        foreach ($projectAreas as $index => $projectArea) {
+            $projectAreaVal = is_array($projectArea ?? null) ? (reset($projectArea) ?? null) : ($projectArea ?? null);
+            $categoryVal = is_array($categoryBeneficiaries[$index] ?? null) ? (reset($categoryBeneficiaries[$index]) ?? null) : ($categoryBeneficiaries[$index] ?? null);
+            $directVal = is_array($directBeneficiaries[$index] ?? null) ? (reset($directBeneficiaries[$index]) ?? null) : ($directBeneficiaries[$index] ?? null);
+            $indirectVal = is_array($indirectBeneficiaries[$index] ?? null) ? (reset($indirectBeneficiaries[$index]) ?? null) : ($indirectBeneficiaries[$index] ?? null);
+
+            if ($this->rowHasMeaningfulValue($projectAreaVal) || $this->rowHasMeaningfulValue($categoryVal)
+                || $this->rowHasMeaningfulValue($directVal) || $this->rowHasMeaningfulValue($indirectVal)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** Check if a single cell is meaningful: non-empty string (trim) or non-null numeric. */
+    private function rowHasMeaningfulValue(mixed $val): bool
+    {
+        if ($val === null || $val === '') {
+            return false;
+        }
+        if (is_string($val) && trim($val) !== '') {
+            return true;
+        }
+        if (is_numeric($val)) {
+            return true;
+        }
+
+        return false;
     }
 }

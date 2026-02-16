@@ -24,6 +24,16 @@ class IAHSupportDetailsController extends Controller
         );
         $data = FormDataExtractor::forFillable($request, $fillable);
 
+        if (! $this->isIAHSupportDetailsMeaningfullyFilled($data)) {
+            Log::info('IAHSupportDetailsController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            $existing = ProjectIAHSupportDetails::where('project_id', $projectId)->first();
+
+            return response()->json($existing, 200);
+        }
+
         Log::info('IAHSupportDetailsController@store - Start', [
             'project_id' => $projectId
         ]);
@@ -131,5 +141,24 @@ class IAHSupportDetailsController extends Controller
             ]);
             return response()->json(['error' => 'Failed to delete IAH support details.'], 500);
         }
+    }
+
+    private function isIAHSupportDetailsMeaningfullyFilled(array $data): bool
+    {
+        foreach ($data as $value) {
+            if (is_array($value)) {
+                foreach ($value as $v) {
+                    if (trim((string) $v) !== '') {
+                        return true;
+                    }
+                }
+            } else {
+                if (trim((string) $value) !== '') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

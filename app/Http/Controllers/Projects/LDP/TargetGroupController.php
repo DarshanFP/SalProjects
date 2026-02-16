@@ -23,6 +23,15 @@ class TargetGroupController extends Controller
         $natureOfLivelihoods = is_array($data['L_nature_of_livelihood'] ?? null) ? ($data['L_nature_of_livelihood'] ?? []) : (isset($data['L_nature_of_livelihood']) && $data['L_nature_of_livelihood'] !== '' ? [$data['L_nature_of_livelihood']] : []);
         $amountRequested = is_array($data['L_amount_requested'] ?? null) ? ($data['L_amount_requested'] ?? []) : (isset($data['L_amount_requested']) && $data['L_amount_requested'] !== '' ? [$data['L_amount_requested']] : []);
 
+        if (! $this->isLDPTargetGroupMeaningfullyFilled($beneficiaryNames, $familySituations, $natureOfLivelihoods, $amountRequested)) {
+            Log::info('LDPTargetGroupController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+            return redirect()
+                ->route('projects.edit', $projectId)
+                ->with('success', 'Target Group saved successfully.');
+        }
+
         DB::beginTransaction();
         try {
             Log::info('Storing LDP Target Group', ['project_id' => $projectId]);
@@ -128,5 +137,46 @@ class TargetGroupController extends Controller
             Log::error('Error deleting LDP Target Group', ['error' => $e->getMessage()]);
             return redirect()->back()->with('error', 'Failed to delete Target Group.');
         }
+    }
+
+    private function isLDPTargetGroupMeaningfullyFilled(
+        array $beneficiaryNames,
+        array $familySituations,
+        array $natureOfLivelihoods,
+        array $amountRequested
+    ): bool {
+        if ($beneficiaryNames === [] && $familySituations === [] && $natureOfLivelihoods === [] && $amountRequested === []) {
+            return false;
+        }
+
+        $maxLen = max(
+            count($beneficiaryNames),
+            count($familySituations),
+            count($natureOfLivelihoods),
+            count($amountRequested)
+        );
+        for ($i = 0; $i < $maxLen; $i++) {
+            $nameVal = is_array($beneficiaryNames[$i] ?? null) ? (reset($beneficiaryNames[$i]) ?? null) : ($beneficiaryNames[$i] ?? null);
+            $familyVal = is_array($familySituations[$i] ?? null) ? (reset($familySituations[$i]) ?? null) : ($familySituations[$i] ?? null);
+            $natureVal = is_array($natureOfLivelihoods[$i] ?? null) ? (reset($natureOfLivelihoods[$i]) ?? null) : ($natureOfLivelihoods[$i] ?? null);
+            $amountVal = is_array($amountRequested[$i] ?? null) ? (reset($amountRequested[$i]) ?? null) : ($amountRequested[$i] ?? null);
+
+            if ($this->meaningfulString($nameVal) || $this->meaningfulString($familyVal)
+                || $this->meaningfulString($natureVal) || $this->meaningfulNumeric($amountVal)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function meaningfulString($value): bool
+    {
+        return is_string($value) && trim($value) !== '';
+    }
+
+    private function meaningfulNumeric($value): bool
+    {
+        return $value !== null && $value !== '' && is_numeric($value);
     }
 }

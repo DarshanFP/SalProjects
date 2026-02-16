@@ -248,7 +248,7 @@ class TestApplicantAccess extends Command
             $query->where('user_id', $this->applicant->id)
                   ->orWhere('in_charge', $this->applicant->id);
         })
-        ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+        ->approved()
         ->count();
 
         $this->testResult('3.1', 'Approved projects (dashboard) ⭐', $approvedProjects >= 0,
@@ -256,13 +256,13 @@ class TestApplicantAccess extends Command
 
         // Test owned approved projects
         $ownedApproved = Project::where('user_id', $this->applicant->id)
-            ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+            ->approved()
             ->count();
 
         // Test in-charge approved projects
         $inChargeApproved = Project::where('in_charge', $this->applicant->id)
             ->where('user_id', '!=', $this->applicant->id)
-            ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+            ->approved()
             ->count();
 
         $this->testResult('3.2', 'In-charge approved projects ⭐', $inChargeApproved >= 0,
@@ -316,7 +316,7 @@ class TestApplicantAccess extends Command
 
         // Test approved reports
         $approvedReports = DPReport::whereIn('project_id', $projectIds)
-            ->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+            ->whereIn('status', DPReport::APPROVED_STATUSES)
             ->count();
 
         $this->testResult('4.4', 'Approved reports', $approvedReports >= 0,

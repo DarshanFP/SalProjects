@@ -793,11 +793,11 @@
             <tbody>
                 <tr>
                     <td>Amount approved (Sanctioned)</td>
-                    <td>{{ format_indian_currency($project->amount_sanctioned ?? max(0, ($project->overall_project_budget ?? 0) - (($project->amount_forwarded ?? 0) + ($project->local_contribution ?? 0))), 2) }}</td>
+                    <td>{{ format_indian_currency($resolvedFundFields['amount_sanctioned'] ?? 0, 2) }}</td>
                 </tr>
                 <tr>
                     <td>Contributions considered</td>
-                    <td>Forwarded: {{ format_indian_currency($project->amount_forwarded ?? 0, 2) }} | Local: {{ format_indian_currency($project->local_contribution ?? 0, 2) }}</td>
+                    <td>Forwarded: {{ format_indian_currency($resolvedFundFields['amount_forwarded'] ?? 0, 2) }} | Local: {{ format_indian_currency($resolvedFundFields['local_contribution'] ?? 0, 2) }}</td>
                 </tr>
                 <tr>
                     <td>Remarks if any</td>

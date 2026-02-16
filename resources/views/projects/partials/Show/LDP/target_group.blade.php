@@ -16,7 +16,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if(!empty($LDPtargetGroups) && $LDPtargetGroups->isNotEmpty())
+                    @if(isset($LDPtargetGroups) && $LDPtargetGroups instanceof \Illuminate\Support\Collection && $LDPtargetGroups->isNotEmpty())
                         @foreach($LDPtargetGroups as $index => $targetGroup)
                             <tr>
                                 <td style="text-align: center;">{{ $loop->iteration }}</td>

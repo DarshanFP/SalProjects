@@ -30,6 +30,15 @@ class ProjectStatus
     const REVERTED_TO_COORDINATOR = 'reverted_to_coordinator';
 
     /**
+     * Approved statuses (M3.3.2: centralized for financial aggregation)
+     */
+    public const APPROVED_STATUSES = [
+        self::APPROVED_BY_COORDINATOR,
+        self::APPROVED_BY_GENERAL_AS_COORDINATOR,
+        self::APPROVED_BY_GENERAL_AS_PROVINCIAL,
+    ];
+
+    /**
      * Get all editable statuses
      */
     public static function getEditableStatuses(): array
@@ -94,11 +103,7 @@ class ProjectStatus
      */
     public static function isApproved(string $status): bool
     {
-        return in_array($status, [
-            self::APPROVED_BY_COORDINATOR,
-            self::APPROVED_BY_GENERAL_AS_COORDINATOR,
-            self::APPROVED_BY_GENERAL_AS_PROVINCIAL,
-        ]);
+        return in_array($status, self::APPROVED_STATUSES, true);
     }
 
     /**

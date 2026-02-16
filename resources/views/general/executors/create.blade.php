@@ -76,8 +76,8 @@
                             </select>
                         </div>
                         <div class="form-group mb-3">
-                            <label for="society_name">Society Name <span class="text-danger">*</span></label>
-                            <select class="form-control" id="society_name" name="society_name" required disabled>
+                            <label for="society_id">Society Name <span class="text-danger">*</span></label>
+                            <select class="form-control" id="society_id" name="society_id" required disabled>
                                 <option value="" disabled selected>Select Province first</option>
                             </select>
                             <small class="form-text text-muted">Select the society. All centers from the province will be available.</small>
@@ -112,18 +112,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const confirmPasswordHelp = document.getElementById('confirmPasswordHelp');
     const togglePasswords = document.querySelectorAll('.toggle-password');
     const provinceSelect = document.getElementById('province');
-    const societySelect = document.getElementById('society_name');
+    const societySelect = document.getElementById('society_id');
     const centerSelect = document.getElementById('center');
 
     // Centers mapping (from controller) - centers belong to provinces
     const centersMap = @json($centersMap);
 
-    // Societies mapping - societies belong to provinces
-    const societiesMap = @json($provinces->mapWithKeys(function($province) {
-        return [$province->name => $province->activeSocieties->map(function($society) {
-            return ['id' => $society->id, 'name' => $society->name];
-        })];
-    }));
+    // Phase 5B3: Societies by province (id + name)
+    const societiesMap = @json(collect($societiesByProvince ?? [])->map(function($societies) {
+        return $societies->map(fn($s) => ['id' => $s->id, 'name' => $s->name])->values()->all();
+    })->all());
 
     // Toggle password visibility
     togglePasswords.forEach(toggle => {
@@ -162,16 +160,16 @@ document.addEventListener('DOMContentLoaded', function () {
     // Set initial values if editing
     @if(old('province'))
         const oldProvince = '{{ old("province") }}';
-        const oldSociety = '{{ old("society_name") }}';
+        const oldSocietyId = '{{ old("society_id") }}';
         const oldCenter = '{{ old("center") }}';
 
-        // Populate societies
+        // Populate societies (Phase 5B3: society_id)
         if (societiesMap[oldProvince]) {
             societiesMap[oldProvince].forEach(function(society) {
                 const option = document.createElement('option');
-                option.value = society.name;
+                option.value = society.id;
                 option.textContent = society.name;
-                if (society.name === oldSociety) {
+                if (String(society.id) === oldSocietyId) {
                     option.selected = true;
                 }
                 societySelect.appendChild(option);
@@ -197,14 +195,14 @@ document.addEventListener('DOMContentLoaded', function () {
     provinceSelect.addEventListener('change', function() {
         const selectedProvince = this.value;
 
-        // Reset and populate societies
+        // Reset and populate societies (Phase 5B3: society_id)
         societySelect.innerHTML = '<option value="" disabled selected>Select Society</option>';
         societySelect.disabled = !selectedProvince;
 
         if (selectedProvince && societiesMap[selectedProvince]) {
             societiesMap[selectedProvince].forEach(function(society) {
                 const option = document.createElement('option');
-                option.value = society.name;
+                option.value = society.id;
                 option.textContent = society.name;
                 societySelect.appendChild(option);
             });

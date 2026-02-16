@@ -18,7 +18,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if($RSTTargetGroupAnnexure && $RSTTargetGroupAnnexure->isNotEmpty())
+                    @if(isset($RSTTargetGroupAnnexure) && $RSTTargetGroupAnnexure instanceof \Illuminate\Support\Collection && $RSTTargetGroupAnnexure->isNotEmpty())
                         @foreach($RSTTargetGroupAnnexure as $index => $annexure)
                             <tr>
                                 <td style="text-align: center; vertical-align: middle;">{{ $index + 1 }}</td>

@@ -40,6 +40,31 @@ class IIESExpensesController extends Controller
         $validator->validate();
         $validated = $validator->validated();
 
+        $parentData = [
+            'iies_total_expenses' => $validated['iies_total_expenses'] ?? null,
+            'iies_expected_scholarship_govt' => $validated['iies_expected_scholarship_govt'] ?? null,
+            'iies_support_other_sources' => $validated['iies_support_other_sources'] ?? null,
+            'iies_beneficiary_contribution' => $validated['iies_beneficiary_contribution'] ?? null,
+            'iies_balance_requested' => $validated['iies_balance_requested'] ?? null,
+        ];
+        $particulars = $validated['iies_particulars'] ?? [];
+        $amounts = $validated['iies_amounts'] ?? [];
+        if (! is_array($particulars)) {
+            $particulars = [];
+        }
+        if (! is_array($amounts)) {
+            $amounts = [];
+        }
+
+        // M1 Data Integrity Shield: skip delete+recreate when section is absent or empty.
+        if (! $this->isIIESExpensesMeaningfullyFilled($parentData, $particulars, $amounts)) {
+            Log::info('IIESExpensesController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            return response()->json(['message' => 'IIES estimated expenses saved successfully.'], 200);
+        }
+
         Log::info('Storing IIES estimated expenses', ['project_id' => $projectId]);
 
         $existingExpenses = ProjectIIESExpenses::where('project_id', $projectId)->first();
@@ -56,9 +81,6 @@ class IIESExpensesController extends Controller
         $projectExpenses->iies_beneficiary_contribution = $validated['iies_beneficiary_contribution'] ?? 0;
         $projectExpenses->iies_balance_requested = $validated['iies_balance_requested'] ?? 0;
         $projectExpenses->save();
-
-        $particulars = $validated['iies_particulars'] ?? [];
-        $amounts = $validated['iies_amounts'] ?? [];
 
         foreach ($particulars as $index => $particular) {
             if (! empty($particular) && isset($amounts[$index]) && $amounts[$index] !== null && $amounts[$index] !== '') {
@@ -166,5 +188,45 @@ class IIESExpensesController extends Controller
         Log::info('IIESExpensesController@destroy - Success', ['project_id' => $projectId]);
 
         return response()->json(['message' => 'IIES estimated expenses deleted successfully.'], 200);
+    }
+
+    /**
+     * M1 Guard: true when at least one parent field is meaningful or at least one child row has meaningful particular/amount.
+     */
+    private function isIIESExpensesMeaningfullyFilled(array $parentData, array $particulars, array $amounts): bool
+    {
+        foreach ($parentData as $value) {
+            if ($this->meaningfulNumeric($value)) {
+                return true;
+            }
+        }
+
+        if ($particulars === [] && $amounts === []) {
+            return false;
+        }
+
+        $maxIndex = max(
+            is_array($particulars) ? count($particulars) - 1 : -1,
+            is_array($amounts) ? count($amounts) - 1 : -1
+        );
+        for ($i = 0; $i <= $maxIndex; $i++) {
+            $particular = $particulars[$i] ?? null;
+            $amount = $amounts[$i] ?? null;
+            if ($this->meaningfulString($particular) || $this->meaningfulNumeric($amount)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function meaningfulString($value): bool
+    {
+        return is_string($value) && trim($value) !== '';
+    }
+
+    private function meaningfulNumeric($value): bool
+    {
+        return $value !== null && $value !== '' && is_numeric($value);
     }
 }

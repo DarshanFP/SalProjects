@@ -39,6 +39,10 @@
                             <input type="text" name="name" id="name" class="form-control" value="{{ old('name', $society->name) }}" required>
                         </div>
                         <div class="form-group mb-3">
+                            <label for="address">Address</label>
+                            <textarea name="address" id="address" class="form-control" rows="3">{{ old('address', $society->address ?? '') }}</textarea>
+                        </div>
+                        <div class="form-group mb-3">
                             <label for="is_active">Status <span class="text-danger">*</span></label>
                             <select name="is_active" id="is_active" class="form-control" required>
                                 <option value="1" {{ old('is_active', $society->is_active) == 1 ? 'selected' : '' }}>Active</option>

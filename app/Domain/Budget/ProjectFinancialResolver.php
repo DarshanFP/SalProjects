@@ -7,6 +7,7 @@ use App\Domain\Budget\Strategies\PhaseBasedBudgetStrategy;
 use App\Domain\Budget\Strategies\ProjectFinancialStrategyInterface;
 use App\Models\OldProjects\Project;
 use App\Services\Budget\DerivedCalculationService;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Project Financial Resolver (Scaffold)
@@ -64,8 +65,49 @@ class ProjectFinancialResolver
     {
         $strategy = $this->getStrategyForProject($project);
         $result = $strategy->resolve($project);
+        $normalized = $this->normalize($result);
 
-        return $this->normalize($result);
+        $this->assertFinancialInvariants($project, $normalized);
+
+        return $normalized;
+    }
+
+    /**
+     * M3.5.3: Log warnings if financial invariants are violated. Non-breaking.
+     */
+    private function assertFinancialInvariants(Project $project, array $data): void
+    {
+        $projectId = $project->project_id ?? 'unknown';
+        $sanctioned = (float) ($data['amount_sanctioned'] ?? 0);
+        $opening = (float) ($data['opening_balance'] ?? 0);
+        $overall = (float) ($data['overall_project_budget'] ?? 0);
+        $tolerance = 0.01;
+
+        if ($project->isApproved()) {
+            if ($sanctioned <= 0) {
+                Log::warning('Financial invariant violation: approved project must have amount_sanctioned > 0', [
+                    'project_id' => $projectId,
+                    'amount_sanctioned' => $sanctioned,
+                    'invariant' => 'amount_sanctioned > 0',
+                ]);
+            }
+            if (abs($opening - $overall) > $tolerance) {
+                Log::warning('Financial invariant violation: approved project must have opening_balance == overall_project_budget', [
+                    'project_id' => $projectId,
+                    'opening_balance' => $opening,
+                    'overall_project_budget' => $overall,
+                    'invariant' => 'opening_balance == overall_project_budget',
+                ]);
+            }
+        } else {
+            if (abs($sanctioned) > $tolerance) {
+                Log::warning('Financial invariant violation: non-approved project must have amount_sanctioned == 0', [
+                    'project_id' => $projectId,
+                    'amount_sanctioned' => $sanctioned,
+                    'invariant' => 'amount_sanctioned == 0',
+                ]);
+            }
+        }
     }
 
     private function getStrategyForProject(Project $project): ProjectFinancialStrategyInterface

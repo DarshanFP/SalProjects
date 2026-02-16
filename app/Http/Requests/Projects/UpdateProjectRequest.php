@@ -4,9 +4,11 @@ namespace App\Http\Requests\Projects;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use App\Models\OldProjects\Project;
 use App\Constants\ProjectStatus;
 use App\Helpers\ProjectPermissionHelper;
+use App\Helpers\SocietyVisibilityHelper;
 
 class UpdateProjectRequest extends FormRequest
 {
@@ -29,14 +31,66 @@ class UpdateProjectRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     * When saving as draft, preserve existing NOT NULL fields so validated() contains them and DB does not receive NULL.
+     * M2.3: When key is missing from request (draft or full submit), merge in_charge and overall_project_budget from existing project.
+     */
+    protected function prepareForValidation(): void
+    {
+        $project = null;
+        if ($this->route('project_id')) {
+            $project = Project::where('project_id', $this->route('project_id'))->first();
+            if ($project) {
+                // M2.3: Missing key → merge from existing project (UPDATE only; prevents null reaching DB when key absent)
+                if (!$this->exists('in_charge')) {
+                    $this->merge(['in_charge' => $project->in_charge]);
+                }
+                if (!$this->exists('overall_project_budget')) {
+                    $this->merge(['overall_project_budget' => $project->overall_project_budget]);
+                }
+                if (!$this->exists('society_id') && $project->society_id !== null) {
+                    $this->merge(['society_id' => $project->society_id]);
+                }
+            }
+        }
+
+        if (!$this->boolean('save_as_draft')) {
+            return;
+        }
+
+        if (!$project) {
+            return;
+        }
+
+        if (!$this->filled('project_type') && $project->project_type !== null) {
+            $this->merge(['project_type' => $project->project_type]);
+        }
+
+        if (!$this->filled('in_charge') && $project->in_charge !== null) {
+            $this->merge(['in_charge' => $project->in_charge]);
+        }
+
+        if (!$this->filled('overall_project_budget') && $project->overall_project_budget !== null) {
+            $this->merge(['overall_project_budget' => $project->overall_project_budget]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
+     * When save_as_draft is true, business required rules are relaxed (draft allows partial data).
      */
     public function rules(): array
     {
+        $isDraft = $this->boolean('save_as_draft');
+        $allowedSocietyIds = SocietyVisibilityHelper::getAllowedSocietyIds();
+        $societyRule = $isDraft
+            ? ['nullable', Rule::in($allowedSocietyIds)]
+            : ['required', Rule::in($allowedSocietyIds)];
+
         return [
-            'project_type' => 'required|string|max:255',
+            'project_type' => $isDraft ? 'nullable|string|max:255' : 'required|string|max:255',
             'project_title' => 'nullable|string|max:255',
-            'society_name' => 'nullable|string|max:255',
+            'society_id' => $societyRule,
             'president_name' => 'nullable|string|max:255',
             'in_charge' => 'nullable|integer|exists:users,id',
             'in_charge_name' => 'nullable|string|max:255',
@@ -134,7 +188,7 @@ class UpdateProjectRequest extends FormRequest
         return [
             'project_type' => 'project type',
             'project_title' => 'project title',
-            'society_name' => 'society name',
+            'society_id' => 'society',
             'in_charge' => 'project in-charge',
             'overall_project_period' => 'overall project period',
             'current_phase' => 'current phase',

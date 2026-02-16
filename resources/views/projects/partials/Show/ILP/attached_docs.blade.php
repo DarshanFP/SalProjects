@@ -35,7 +35,7 @@
             @php
                             $files = $ILPDocuments->getFilesForField($field);
             @endphp
-                        @if($files && $files->count() > 0)
+                        @if($files && $files instanceof \Illuminate\Support\Collection && $files->count() > 0)
                             <div class="file-list">
                                 @foreach($files as $file)
             @php

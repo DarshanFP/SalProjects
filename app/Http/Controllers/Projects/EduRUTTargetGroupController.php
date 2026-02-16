@@ -113,6 +113,16 @@ class EduRUTTargetGroupController extends Controller
             ? ($data['target_group'] ?? [])
             : (isset($data['target_group']) && $data['target_group'] !== '' ? [$data['target_group']] : []);
 
+        if (! $this->isEduRUTTargetGroupMeaningfullyFilled($groups)) {
+            Log::info('EduRUTTargetGroupController@update - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            return response()->json([
+                'message' => 'EduRUT target group updated successfully.'
+            ], 200);
+        }
+
         DB::beginTransaction();
         try {
             Log::info('Updating target group data', ['project_id' => $projectId]);
@@ -169,5 +179,52 @@ class EduRUTTargetGroupController extends Controller
             Log::error('Error deleting target group data', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to delete target group data.'], 500);
         }
+    }
+
+    /**
+     * M1 Guard:
+     * Returns true if at least one row contains meaningful data.
+     */
+    private function isEduRUTTargetGroupMeaningfullyFilled($groups): bool
+    {
+        if (! is_array($groups) || $groups === []) {
+            return false;
+        }
+
+        foreach ($groups as $row) {
+            if (is_array($row) && $this->rowHasMeaningfulValue($row)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * True if any field in the row is meaningful.
+     */
+    private function rowHasMeaningfulValue(array $row): bool
+    {
+        foreach ($row as $value) {
+            if ($this->meaningfulString($value)) {
+                return true;
+            }
+
+            if ($this->meaningfulNumeric($value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function meaningfulString($value): bool
+    {
+        return is_string($value) && trim($value) !== '';
+    }
+
+    private function meaningfulNumeric($value): bool
+    {
+        return $value !== null && $value !== '' && is_numeric($value);
     }
 }

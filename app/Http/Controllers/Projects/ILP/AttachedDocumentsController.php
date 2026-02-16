@@ -8,6 +8,7 @@ use App\Models\OldProjects\Project;
 use App\Services\Attachment\AttachmentContext;
 use App\Services\ProjectAttachmentHandler;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -34,6 +35,18 @@ class AttachedDocumentsController extends Controller
         try {
             if (!Project::where('project_id', $projectId)->exists()) {
                 return response()->json(['error' => 'Project not found.'], 404);
+            }
+
+            if (! $this->hasAnyILPFile($request)) {
+                Log::info('ILPAttachedDocumentsController@store - No files present; skipping mutation', [
+                    'project_id' => $projectId,
+                ]);
+
+                DB::commit();
+
+                return response()->json([
+                    'message' => 'ILP attached documents saved successfully.'
+                ], 200);
             }
 
             $result = ProjectAttachmentHandler::handle(
@@ -160,6 +173,18 @@ class AttachedDocumentsController extends Controller
         try {
             Log::info('Updating ILP Attached Documents', ['project_id' => $projectId]);
 
+            if (! $this->hasAnyILPFile($request)) {
+                Log::info('ILPAttachedDocumentsController@update - No files present; skipping mutation', [
+                    'project_id' => $projectId,
+                ]);
+
+                DB::commit();
+
+                return response()->json([
+                    'message' => 'ILP attached documents updated successfully.'
+                ], 200);
+            }
+
             $result = ProjectAttachmentHandler::handle(
                 $request,
                 (string) $projectId,
@@ -225,5 +250,15 @@ class AttachedDocumentsController extends Controller
 
             return response()->json(['error' => 'Failed to delete Attached Documents.'], 500);
         }
+    }
+
+    private function hasAnyILPFile(Request $request): bool
+    {
+        foreach (self::ILP_FIELDS as $field) {
+            if ($request->hasFile($field)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

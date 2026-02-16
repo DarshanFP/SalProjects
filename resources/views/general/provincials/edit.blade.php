@@ -50,9 +50,12 @@
                             </select>
                         </div>
                         <div class="form-group mb-3">
-                            <label for="society_name">Society</label>
-                            <select name="society_name" class="form-control" id="society_name">
+                            <label for="society_id">Society</label>
+                            <select name="society_id" class="form-control" id="society_id">
                                 <option value="">Select Society</option>
+                                @foreach($societies ?? [] as $society)
+                                    <option value="{{ $society->id }}" {{ old('society_id', $provincial->society_id ?? '') == $society->id ? 'selected' : '' }}>{{ $society->name }}</option>
+                                @endforeach
                             </select>
                             <small class="form-text text-muted">Select a society from the selected province</small>
                         </div>
@@ -136,15 +139,17 @@ document.addEventListener('DOMContentLoaded', function () {
 document.addEventListener('DOMContentLoaded', function() {
     const provinceSelect = document.getElementById('province');
     const centerSelect = document.getElementById('center');
-    const societySelect = document.getElementById('society_name');
+    const societySelect = document.getElementById('society_id');
     const currentCenter = '{{ $provincial->center }}';
-    const currentSociety = '{{ $provincial->society_name }}';
+    const currentSocietyId = '{{ $provincial->society_id ?? '' }}';
 
     // Centers mapping
     const centersMap = @json($centersMap);
 
-    // Provinces with societies
-    const provinces = @json($provinces);
+    // Phase 5B3: Societies by province (id + name)
+    const societiesByProvince = @json(collect($societiesByProvince ?? [])->map(function($societies) {
+        return $societies->map(fn($s) => ['id' => $s->id, 'name' => $s->name])->values()->all();
+    })->all());
 
     // Function to populate centers
     function populateCenters(province) {
@@ -163,17 +168,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Function to populate societies
+    // Function to populate societies (Phase 5B3: society_id)
     function populateSocieties(province) {
         societySelect.innerHTML = '<option value="">Select Society</option>';
 
-        const selectedProvinceData = provinces.find(p => p.name === province);
-        if (selectedProvinceData && selectedProvinceData.active_societies) {
-            selectedProvinceData.active_societies.forEach(function(society) {
+        if (province && societiesByProvince[province]) {
+            societiesByProvince[province].forEach(function(society) {
                 const option = document.createElement('option');
-                option.value = society.name;
+                option.value = society.id;
                 option.textContent = society.name;
-                if (society.name === currentSociety) {
+                if (String(society.id) === currentSocietyId) {
                     option.selected = true;
                 }
                 societySelect.appendChild(option);

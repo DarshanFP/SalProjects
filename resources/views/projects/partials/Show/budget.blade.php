@@ -35,6 +35,10 @@
             $approvedPercentage = $budgetData['approved_percentage'] ?? 0;
             $unapprovedPercentage = $budgetData['unapproved_percentage'] ?? 0;
             $percentageRemaining = $budgetData['percentage_remaining'];
+
+            // Filter budgets by current phase to match Edit page logic
+            $currentPhase = (int) ($project->current_phase ?? 1);
+            $budgetsForShow = ($project->budgets ?? collect())->where('phase', $currentPhase)->values();
         @endphp
 
         <!-- Budget Validation Warnings and Errors -->
@@ -240,7 +244,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($project->budgets as $index => $budget)
+                        @forelse($budgetsForShow as $index => $budget)
                             <tr>
                                 <td style="text-align: center; vertical-align: middle; font-weight: 500;">{{ $index + 1 }}</td>
                                 <td class="particular-cell" style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.6;">{{ $budget->particular ?? 'N/A' }}</td>
@@ -261,10 +265,10 @@
                         <tr>
                             <th style="text-align: center;"></th>
                             <th style="text-align: center; font-weight: 700;">Total</th>
-                            <th style="text-align: right; font-weight: 700;">{{ format_indian($project->budgets->sum('rate_quantity'), 2) }}</th>
-                            <th style="text-align: right; font-weight: 700;">{{ format_indian($project->budgets->sum('rate_multiplier'), 2) }}</th>
-                            <th style="text-align: right; font-weight: 700;">{{ format_indian($project->budgets->sum('rate_duration'), 2) }}</th>
-                            <th style="text-align: right; font-weight: 700;">{{ format_indian($project->budgets->sum('this_phase'), 2) }}</th>
+                            <th style="text-align: right; font-weight: 700;">{{ format_indian($budgetsForShow->sum('rate_quantity'), 2) }}</th>
+                            <th style="text-align: right; font-weight: 700;">{{ format_indian($budgetsForShow->sum('rate_multiplier'), 2) }}</th>
+                            <th style="text-align: right; font-weight: 700;">{{ format_indian($budgetsForShow->sum('rate_duration'), 2) }}</th>
+                            <th style="text-align: right; font-weight: 700;">{{ format_indian($budgetsForShow->sum('this_phase'), 2) }}</th>
                         </tr>
                     </tfoot>
                 </table>

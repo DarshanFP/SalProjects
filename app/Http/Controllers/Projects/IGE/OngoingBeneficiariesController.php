@@ -25,6 +25,14 @@ class OngoingBeneficiariesController extends Controller
         $ocurrentGroupYearOfStudies = is_array($data['ocurrent_group_year_of_study'] ?? null) ? ($data['ocurrent_group_year_of_study'] ?? []) : (isset($data['ocurrent_group_year_of_study']) ? [$data['ocurrent_group_year_of_study']] : []);
         $operformanceDetails = is_array($data['operformance_details'] ?? null) ? ($data['operformance_details'] ?? []) : (isset($data['operformance_details']) ? [$data['operformance_details']] : []);
 
+        if (! $this->isIGEOngoingBeneficiariesMeaningfullyFilled($obeneficiaryNames)) {
+            Log::info('IGEOngoingBeneficiariesController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            return redirect()->route('projects.edit', $projectId)->with('success', 'Ongoing Beneficiaries saved successfully.');
+        }
+
         DB::beginTransaction();
         try {
             Log::info('Storing IGE Ongoing Beneficiaries Information', ['project_id' => $projectId]);
@@ -128,5 +136,24 @@ class OngoingBeneficiariesController extends Controller
             Log::error('Error deleting IGE Ongoing Beneficiaries', ['error' => $e->getMessage()]);
             return redirect()->back()->with('error', 'Failed to delete Ongoing Beneficiaries.');
         }
+    }
+
+    private function isIGEOngoingBeneficiariesMeaningfullyFilled(array $names): bool
+    {
+        if ($names === []) {
+            return false;
+        }
+        foreach ($names as $name) {
+            $val = is_array($name ?? null) ? (reset($name) ?? '') : ($name ?? '');
+            if ($this->meaningfulString($val)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function meaningfulString($value): bool
+    {
+        return is_string($value) && trim($value) !== '';
     }
 }

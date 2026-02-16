@@ -12,7 +12,7 @@
                     </a>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ route('reports.aggregated.half-yearly.compare') }}">
+                    <form method="POST" action="{{ route('aggregated.half-yearly.compare.submit') }}">
                         @csrf
 
                         <div class="row mb-4">

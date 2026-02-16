@@ -45,6 +45,12 @@
 		.text-white {
 			color: #ffffff !important;
 		}
+		/* Login error messages: ensure red */
+		.auth-login-form .text-danger,
+		.auth-form-wrapper .alert-danger,
+		.auth-login-form ul.text-danger li {
+			color: #dc3545 !important;
+		}
 	</style>
 
 	<link rel="shortcut icon" href="{{ asset('backend/assets/images/favicon.png') }}" />
@@ -57,6 +63,19 @@
 					<div class="mx-auto col-md-6 col-xl-4">
 						<div class="card">
 							<div class="px-4 py-5 auth-form-wrapper">
+								@php
+									$loginErrors = $errors->get('login');
+									$throttleMessages = collect($loginErrors)->filter(fn($m) => str_contains($m, 'Too many'))->all();
+									$credentialMessages = collect($loginErrors)->filter(fn($m) => !str_contains($m, 'Too many'))->values()->all();
+								@endphp
+								@if(count($throttleMessages) > 0)
+									<div class="alert alert-danger text-danger mb-3 py-2" role="alert">
+										@foreach($throttleMessages as $msg)
+											<div class="small">{{ $msg }}</div>
+										@endforeach
+									</div>
+								@endif
+
 								<a href="#" class="mb-2 noble-ui-logo logo-light d-block">SAL <span>Projects</span></a>
 								<h5 class="mb-4 text-muted fw-normal">Project Management System</h5>
 
@@ -69,12 +88,26 @@
 
 										<!-- Login -->
 										<div class="mb-3">
+											@if(count($credentialMessages) > 0)
+												<ul class="list-unstyled text-danger small mb-2">
+													@foreach($credentialMessages as $msg)
+														<li>{{ $msg }}</li>
+													@endforeach
+												</ul>
+											@endif
 											<x-input-label for="login" :value="__('Login with Email / Name / Username / Phone')" />
 											<x-text-input id="login" class="form-control" type="text" name="login" :value="old('login')" required autofocus />
 										</div>
 
 										<!-- Password -->
 										<div class="mb-3">
+											@if(count($credentialMessages) > 0)
+												<ul class="list-unstyled text-danger small mb-2">
+													@foreach($credentialMessages as $msg)
+														<li>{{ $msg }}</li>
+													@endforeach
+												</ul>
+											@endif
 											<x-input-label for="password" :value="__('Password')" />
 											<div class="password-wrapper position-relative">
 												<x-text-input id="password" class="form-control pe-5" type="password" name="password" required autocomplete="current-password" />
@@ -82,7 +115,7 @@
 													<i data-feather="eye"></i>
 												</button>
 											</div>
-											<x-input-error :messages="$errors->get('password')" class="mt-2" />
+											<x-input-error :messages="$errors->get('password')" class="mt-2 text-danger" />
 										</div>
 
 										<!-- Remember Me -->

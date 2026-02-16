@@ -18,7 +18,7 @@
                 </thead>
 
                 <tbody>
-                    @if (isset($annexedTargetGroup) && $annexedTargetGroup->isNotEmpty())
+                    @if (isset($annexedTargetGroup) && $annexedTargetGroup instanceof \Illuminate\Support\Collection && $annexedTargetGroup->isNotEmpty())
                         @foreach ($annexedTargetGroup as $index => $group)
                             <tr>
                                 <td style="text-align: center;">{{ $index + 1 }}</td>

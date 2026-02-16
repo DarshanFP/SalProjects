@@ -2,7 +2,7 @@
 <div class="card-body">
     <div class="mb-3">
         <label for="project_type" class="form-label">Project Type</label>
-        <select name="project_type" id="project_type" class="form-control select-input" required>
+        <select name="project_type" id="project_type" class="form-control select-input">
             <option value="" disabled selected>Select Project Type</option>
             <option value="{{ \App\Constants\ProjectType::CHILD_CARE_INSTITUTION }}" {{ old('project_type') == \App\Constants\ProjectType::CHILD_CARE_INSTITUTION ? 'selected' : '' }}>CHILD CARE INSTITUTION - Welfare home for children - Ongoing</option>
             <option value="{{ \App\Constants\ProjectType::DEVELOPMENT_PROJECTS }}" {{ old('project_type') == \App\Constants\ProjectType::DEVELOPMENT_PROJECTS ? 'selected' : '' }}>Development Projects - Application</option>
@@ -42,22 +42,19 @@
 
     <div class="mb-3">
         <label for="project_title" class="form-label">Project Title</label>
-        <input type="text" name="project_title" id="project_title" class="form-control select-input" value="{{ old('project_title') }}" required>
+        <input type="text" name="project_title" id="project_title" class="form-control select-input" value="{{ old('project_title') }}">
     </div>
     <div class="mb-3">
-        <label for="society_name" class="form-label">Name of the Society / Trust</label>
-        <select name="society_name" id="society_name" class="form-select" required>
+        <label for="society_id" class="form-label">Name of the Society / Trust</label>
+        <select name="society_id" id="society_id" class="form-select" required>
             <option value="" disabled selected>Select Society / Trust</option>
-            <option value="ST. ANN'S EDUCATIONAL SOCIETY" {{ $user->society_name == "ST. ANN'S EDUCATIONAL SOCIETY" ? 'selected' : '' }}>ST. ANN'S EDUCATIONAL SOCIETY</option>
-            <option value="SARVAJANA SNEHA CHARITABLE TRUST" {{ $user->society_name == "SARVAJANA SNEHA CHARITABLE TRUST" ? 'selected' : '' }}>SARVAJANA SNEHA CHARITABLE TRUST</option>
-            <option value="WILHELM MEYERS DEVELOPMENTAL SOCIETY" {{ $user->society_name == "WILHELM MEYERS DEVELOPMENTAL SOCIETY" ? 'selected' : '' }}>WILHELM MEYERS DEVELOPMENTAL SOCIETY</option>
-            <option value="ST. ANNS'S SOCIETY, VISAKHAPATNAM" {{ $user->society_name == "ST. ANN'S SOCIETY, VISAKHAPATNAM" ? 'selected' : '' }}>ST. ANN'S SOCIETY, VISAKHAPATNAM</option>
-            <option value="ST.ANN'S SOCIETY, SOUTHERN REGION" {{ $user->society_name == "ST.ANN'S SOCIETY, SOUTHERN REGION" ? 'selected' : '' }}>ST.ANN'S SOCIETY, SOUTHERN REGION</option>
-            <option value="ST. ANNE'S SOCIETY" {{ $user->society_name == "ST. ANNE'S SOCIETY" ? 'selected' : '' }}>ST. ANNE'S SOCIETY</option>
-            <option value="BIARA SANTA ANNA, MAUSAMBI" {{ $user->society_name == "BIARA SANTA ANNA, MAUSAMBI" ? 'selected' : '' }}>BIARA SANTA ANNA, MAUSAMBI</option>
-            <option value="ST. ANN'S CONVENT, LURO" {{ $user->society_name == "ST. ANN'S CONVENT, LURO" ? 'selected' : '' }}>ST. ANN'S CONVENT, LURO</option>
-            <option value="MISSIONARY SISTERS OF ST. ANN" {{ $user->society_name == "MISSIONARY SISTERS OF ST. ANN" ? 'selected' : '' }}>MISSIONARY SISTERS OF ST. ANN</option>
+            @foreach($societies ?? [] as $society)
+                <option value="{{ $society->id }}" {{ old('society_id', $user->society_id ?? '') == $society->id ? 'selected' : '' }}>{{ $society->name }}</option>
+            @endforeach
         </select>
+        @error('society_id')
+            <span class="text-danger">{{ $message }}</span>
+        @enderror
     </div>
     <div class="mb-3">
         <label for="president_name" class="form-label">President / Chair Person</label>
@@ -202,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Populate form fields with predecessor project data
                 const fields = {
                     'project_title': data.project_title,
-                    'society_name': data.society_name,
+                    'society_id': data.society_id,
                     'president_name': data.president_name,
                     'applicant_name': data.applicant_name,
                     'applicant_mobile': data.applicant_mobile,

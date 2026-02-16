@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Projects;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use App\Helpers\SocietyVisibilityHelper;
 
 class StoreProjectRequest extends FormRequest
 {
@@ -20,12 +22,12 @@ class StoreProjectRequest extends FormRequest
      */
     public function rules(): array
     {
-        $isDraft = $this->has('save_as_draft') && $this->input('save_as_draft') == '1';
+        $allowedSocietyIds = SocietyVisibilityHelper::getAllowedSocietyIds();
 
         return [
-            'project_type' => $isDraft ? 'nullable|string|max:255' : 'required|string|max:255',
+            'project_type' => 'required|string|max:255',
             'project_title' => 'nullable|string|max:255',
-            'society_name' => 'nullable|string|max:255',
+            'society_id' => ['required', Rule::in($allowedSocietyIds)],
             'president_name' => 'nullable|string|max:255',
             'in_charge' => 'nullable|integer|exists:users,id',
             'in_charge_name' => 'nullable|string|max:255',
@@ -88,6 +90,8 @@ class StoreProjectRequest extends FormRequest
         return [
             'project_type.required' => 'Project type is required.',
             'project_type.string' => 'Project type must be a valid string.',
+            'society_id.required' => 'Please select a Society / Trust.',
+            'society_id.in' => 'The selected Society / Trust is not valid for your province.',
             'in_charge.exists' => 'Selected in-charge user does not exist.',
             'overall_project_period.integer' => 'Overall project period must be a number.',
             'overall_project_period.min' => 'Overall project period must be at least 1 year.',

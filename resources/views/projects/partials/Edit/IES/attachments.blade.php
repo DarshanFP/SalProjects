@@ -58,12 +58,21 @@
                                                     @endif
                                                 </div>
                                                 <div>
-                                                    <a href="{{ Storage::url($file->file_path) }}" target="_blank" class="btn btn-sm btn-primary">
-                                                        <i class="fas fa-eye"></i> View
-                                                    </a>
-                                                    <a href="{{ Storage::url($file->file_path) }}" download class="btn btn-sm btn-secondary">
-                                                        <i class="fas fa-download"></i> Download
-                                                    </a>
+                                                    @if(isset($file->id))
+                                                        <a href="{{ route('projects.ies.attachments.view', $file->id) }}" target="_blank" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-eye"></i> View
+                                                        </a>
+                                                        <a href="{{ route('projects.ies.attachments.download', $file->id) }}" class="btn btn-sm btn-secondary">
+                                                            <i class="fas fa-download"></i> Download
+                                                        </a>
+                                                    @else
+                                                        <a href="{{ Storage::url($file->file_path) }}" target="_blank" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-eye"></i> View
+                                                        </a>
+                                                        <a href="{{ Storage::url($file->file_path) }}" download class="btn btn-sm btn-secondary">
+                                                            <i class="fas fa-download"></i> Download
+                                                        </a>
+                                                    @endif
                                                 </div>
                                             </div>
                                         @else

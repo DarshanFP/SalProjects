@@ -13,6 +13,7 @@ use App\Models\Center;
 use App\Models\Society;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -93,7 +94,7 @@ class ProvincialController extends Controller
 
         // Get approved projects for all accessible users
         $projectsQuery = Project::whereIn('user_id', $accessibleUserIds)
-            ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+            ->approved();
 
         // Apply comprehensive filters
         if ($request->filled('center')) {
@@ -128,7 +129,7 @@ class ProvincialController extends Controller
         $roles = ['executor', 'applicant'];
 
         $projectTypes = Project::whereIn('user_id', $accessibleUserIds)
-            ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+            ->approved()
             ->distinct()
             ->pluck('project_type');
 
@@ -499,9 +500,11 @@ class ProvincialController extends Controller
 
         $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
         $calc = app(\App\Services\Budget\DerivedCalculationService::class);
+        $resolvedFinancials = [];
         // Calculate project health and budget utilization for each project
-        $projects = $projects->map(function($project) use ($resolver, $calc) {
+        $projects = $projects->map(function($project) use ($resolver, $calc, &$resolvedFinancials) {
             $financials = $resolver->resolve($project);
+            $resolvedFinancials[$project->project_id] = $financials;
             $projectBudget = (float) ($financials['opening_balance'] ?? 0);
             $totalExpenses = 0;
 
@@ -558,6 +561,7 @@ class ProvincialController extends Controller
 
         return view('provincial.ProjectList', compact(
             'projects',
+            'resolvedFinancials',
             'users',
             'projectTypes',
             'centers',
@@ -647,6 +651,17 @@ class ProvincialController extends Controller
     {
         $provincial = auth()->user();
         $province = strtoupper($provincial->province);
+        $provinceModel = Province::where('name', $provincial->province)->first();
+
+        // Phase 5B3: Societies for provincial's province (province + global)
+        $societies = $provinceModel
+            ? Society::active()
+                ->where(function ($q) use ($provinceModel) {
+                    $q->where('province_id', $provinceModel->id)->orWhereNull('province_id');
+                })
+                ->orderBy('name')
+                ->get()
+            : collect();
 
         // Get centers map from database
         $centersMap = $this->getCentersMap();
@@ -655,7 +670,7 @@ class ProvincialController extends Controller
         $centers = $centersMap[$province] ?? [];
         sort($centers); // Sort centers alphabetically in ascending order
 
-        return view('provincial.createExecutor', compact('centers'));
+        return view('provincial.createExecutor', compact('centers', 'societies'));
     }
 
     // Store Executor
@@ -670,13 +685,22 @@ class ProvincialController extends Controller
                 'province' => $request->province,
             ]);
 
+            $provincial = auth()->user();
+            $province = Province::where('name', $provincial->province)->first();
+            $provinceId = $province ? $province->id : null;
+
             $validatedData = $request->validate([
                 'name' => 'required|string|max:255',
                 'username' => 'required|string|max:255|unique:users',
                 'email' => 'required|string|email|max:255|unique:users',
                 'password' => 'required|string|min:8|confirmed',
                 'phone' => 'nullable|string|max:255',
-                'society_name' => 'required|string|max:255',
+                'society_id' => [
+                    'required',
+                    Rule::exists('societies', 'id')->where(function ($q) use ($provinceId) {
+                        $q->where('province_id', $provinceId)->orWhereNull('province_id');
+                    }),
+                ],
                 'role' => 'required|in:executor,applicant',
                 'center' => 'nullable|string|max:255',
                 'address' => 'nullable|string',
@@ -685,13 +709,7 @@ class ProvincialController extends Controller
             // Log post-validation data
             Log::info('Validation successful', ['validated_data' => $validatedData]);
 
-            $provincial = auth()->user();
-            // Log the details of the authenticated user
-            Log::info('Authenticated provincial details', ['provincial' => $provincial]);
-
-            // Get province and center IDs from database
-            $province = Province::where('name', $provincial->province)->first();
-            $provinceId = $province ? $province->id : null;
+            $society = Society::findOrFail($validatedData['society_id']);
 
             $centerId = null;
             if (!empty($validatedData['center']) && $provinceId) {
@@ -707,7 +725,8 @@ class ProvincialController extends Controller
                 'email' => $validatedData['email'],
                 'password' => Hash::make($validatedData['password']),
                 'phone' => $validatedData['phone'],
-                'society_name' => $validatedData['society_name'],
+                'society_id' => $society->id,
+                'society_name' => $society->name,
                 'province' => $provincial->province,
                 'province_id' => $provinceId,
                 'center' => $validatedData['center'],
@@ -757,6 +776,17 @@ class ProvincialController extends Controller
         $executor = User::findOrFail($id);
         $provincial = auth()->user();
         $province = strtoupper($provincial->province);
+        $provinceModel = Province::where('name', $provincial->province)->first();
+
+        // Phase 5B3: Societies for provincial's province (province + global)
+        $societies = $provinceModel
+            ? Society::active()
+                ->where(function ($q) use ($provinceModel) {
+                    $q->where('province_id', $provinceModel->id)->orWhereNull('province_id');
+                })
+                ->orderBy('name')
+                ->get()
+            : collect();
 
         // Get centers map from database
         $centersMap = $this->getCentersMap();
@@ -765,31 +795,35 @@ class ProvincialController extends Controller
         $centers = $centersMap[$province] ?? [];
         sort($centers); // Sort centers alphabetically in ascending order
 
-        return view('provincial.editExecutor', compact('executor', 'centers'));
+        return view('provincial.editExecutor', compact('executor', 'centers', 'societies'));
     }
 
     // Update Executor
     public function updateExecutor(Request $request, $id)
     {
         $executor = User::findOrFail($id);
+        $provincial = auth()->user();
+        $province = Province::where('name', $provincial->province)->first();
+        $provinceId = $province ? $province->id : null;
 
         $request->validate([
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users,username,' . $executor->id,
             'email' => 'required|string|email|max:255|unique:users,email,' . $executor->id,
             'phone' => 'nullable|string|max:255',
-            'society_name' => 'required|string|max:255',
+            'society_id' => [
+                'required',
+                Rule::exists('societies', 'id')->where(function ($q) use ($provinceId) {
+                    $q->where('province_id', $provinceId)->orWhereNull('province_id');
+                }),
+            ],
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'role' => 'required|in:executor,applicant',
             'status' => 'required|in:active,inactive',
         ]);
 
-        // Get province and center IDs from database
-        // Provincial users belong to their provincial's province
-        $provincial = auth()->user();
-        $province = Province::where('name', $provincial->province)->first();
-        $provinceId = $province ? $province->id : null;
+        $society = Society::findOrFail($request->society_id);
 
         $centerId = null;
         if ($request->filled('center') && $provinceId) {
@@ -804,7 +838,8 @@ class ProvincialController extends Controller
             'username' => $request->username,
             'email' => $request->email,
             'phone' => $request->phone,
-            'society_name' => $request->society_name,
+            'society_id' => $society->id,
+            'society_name' => $society->name,
             'center' => $request->center,
             'center_id' => $centerId,
             'address' => $request->address,
@@ -1108,9 +1143,11 @@ class ProvincialController extends Controller
             ->orderBy('name')
             ->get();
 
-        // Get societies for the province
-        $societies = Society::where('province_id', $province->id)
-            ->where('is_active', true)
+        // Phase 5B3: Societies for province (province + global)
+        $societies = Society::active()
+            ->where(function ($q) use ($province) {
+                $q->where('province_id', $province->id)->orWhereNull('province_id');
+            })
             ->orderBy('name')
             ->get();
 
@@ -1134,11 +1171,23 @@ class ProvincialController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:255',
-            'society_name' => 'nullable|string|max:255',
+            'society_id' => [
+                'nullable',
+                Rule::exists('societies', 'id')->where(function ($q) use ($province) {
+                    $q->where('province_id', $province->id)->orWhereNull('province_id');
+                }),
+            ],
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'status' => 'required|in:active,inactive',
         ]);
+
+        $societyId = $validatedData['society_id'] ?? null;
+        $societyName = null;
+        if ($societyId) {
+            $society = Society::findOrFail($societyId);
+            $societyName = $society->name;
+        }
 
         $centerId = null;
         if (!empty($validatedData['center'])) {
@@ -1155,7 +1204,8 @@ class ProvincialController extends Controller
                 'email' => $validatedData['email'],
                 'password' => Hash::make($validatedData['password']),
                 'phone' => $validatedData['phone'],
-                'society_name' => $validatedData['society_name'] ?? null,
+                'society_id' => $societyId,
+                'society_name' => $societyName,
                 'province' => $province->name,
                 'province_id' => $province->id,
                 'center' => $validatedData['center'] ?? null,
@@ -1207,8 +1257,11 @@ class ProvincialController extends Controller
             ->orderBy('name')
             ->get();
 
-        $societies = Society::where('province_id', $province->id)
-            ->where('is_active', true)
+        // Phase 5B3: Societies for province (province + global)
+        $societies = Society::active()
+            ->where(function ($q) use ($province) {
+                $q->where('province_id', $province->id)->orWhereNull('province_id');
+            })
             ->orderBy('name')
             ->get();
 
@@ -1236,11 +1289,23 @@ class ProvincialController extends Controller
             'username' => 'required|string|max:255|unique:users,username,' . $id,
             'email' => 'required|string|email|max:255|unique:users,email,' . $id,
             'phone' => 'nullable|string|max:255',
-            'society_name' => 'nullable|string|max:255',
+            'society_id' => [
+                'nullable',
+                Rule::exists('societies', 'id')->where(function ($q) use ($province) {
+                    $q->where('province_id', $province->id)->orWhereNull('province_id');
+                }),
+            ],
             'center' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'status' => 'required|in:active,inactive',
         ]);
+
+        $societyId = $validatedData['society_id'] ?? null;
+        $societyName = null;
+        if ($societyId) {
+            $society = Society::findOrFail($societyId);
+            $societyName = $society->name;
+        }
 
         $centerId = null;
         if (!empty($validatedData['center'])) {
@@ -1256,7 +1321,8 @@ class ProvincialController extends Controller
                 'username' => $validatedData['username'],
                 'email' => $validatedData['email'],
                 'phone' => $validatedData['phone'],
-                'society_name' => $validatedData['society_name'] ?? null,
+                'society_id' => $societyId,
+                'society_name' => $societyName,
                 'center' => $validatedData['center'] ?? null,
                 'center_id' => $centerId,
                 'address' => $validatedData['address'] ?? null,
@@ -1342,12 +1408,14 @@ class ProvincialController extends Controller
                     }
                 },
             ],
+            'address' => 'nullable|string|max:2000',
         ]);
 
         try {
             $society = Society::create([
                 'province_id' => $province->id,
                 'name' => $request->name,
+                'address' => $request->address,
                 'is_active' => true,
             ]);
 
@@ -1418,12 +1486,14 @@ class ProvincialController extends Controller
                     }
                 },
             ],
+            'address' => 'nullable|string|max:2000',
             'is_active' => 'required|boolean',
         ]);
 
         try {
             $society->update([
                 'name' => $request->name,
+                'address' => $request->address,
                 'is_active' => $request->is_active,
             ]);
 
@@ -1540,7 +1610,7 @@ class ProvincialController extends Controller
 
         // Get approved projects for all accessible users
         $projectsQuery = Project::whereIn('user_id', $accessibleUserIds)
-            ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+            ->approved();
 
         // Apply filtering if provided in the request
         if ($request->filled('place')) {
@@ -1560,7 +1630,7 @@ class ProvincialController extends Controller
         // Fetch unique centers from users of approved projects
         $places = User::whereIn('id', $accessibleUserIds)
             ->whereHas('projects', function ($query) {
-                $query->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+                $query->approved();
             })
             ->whereNotNull('center')
             ->distinct()
@@ -1570,7 +1640,7 @@ class ProvincialController extends Controller
 
         // Fetch distinct project types for filters
         $projectTypes = Project::whereIn('user_id', $accessibleUserIds)
-            ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+            ->approved()
             ->distinct()
             ->pluck('project_type');
 
@@ -1695,7 +1765,7 @@ class ProvincialController extends Controller
 
         // Fetch approved reports for all accessible users
         $reportsQuery = DPReport::whereIn('user_id', $accessibleUserIds)
-            ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+            ->whereIn('status', ProjectStatus::APPROVED_STATUSES);
 
         // Apply filtering if provided in the request
         if ($request->filled('place')) {
@@ -1725,7 +1795,7 @@ class ProvincialController extends Controller
 
         // Fetch distinct project types for filters
         $projectTypes = DPReport::whereIn('user_id', $accessibleUserIds)
-            ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
+            ->whereIn('status', ProjectStatus::APPROVED_STATUSES)
             ->distinct()
             ->pluck('project_type');
 
@@ -1802,10 +1872,10 @@ class ProvincialController extends Controller
             ->whereIn('role', ['executor', 'applicant'])
             ->withCount([
                 'projects' => function($query) {
-                    $query->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+                    $query->approved();
                 },
                 'reports' => function($query) {
-                    $query->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR);
+                    $query->whereIn('status', DPReport::APPROVED_STATUSES);
                 }
             ])
             ->orderBy('name', 'asc')
@@ -1985,7 +2055,7 @@ class ProvincialController extends Controller
         })->toArray();
 
         // Calculate budget metrics (from approved projects only)
-        $approvedProjects = $teamProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+        $approvedProjects = $teamProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
 
         // Memoize resolved financials (resolve each project exactly once)
         $resolvedFinancials = [];
@@ -2017,7 +2087,7 @@ class ProvincialController extends Controller
             DPReport::STATUS_APPROVED_BY_COORDINATOR
         ])->count();
 
-        $approvedReports = $teamReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count();
+        $approvedReports = $teamReports->whereIn('status', DPReport::APPROVED_STATUSES)->count();
         $approvalRate = $totalSubmittedReports > 0 ? (($approvedReports / $totalSubmittedReports) * 100) : 0;
 
         return [
@@ -2061,7 +2131,7 @@ class ProvincialController extends Controller
         })->toArray();
 
         // Budget by project type (from approved projects)
-        $approvedProjects = $teamProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+        $approvedProjects = $teamProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
 
         // Memoize resolved financials (resolve each project exactly once)
         $resolvedFinancials = [];
@@ -2119,9 +2189,17 @@ class ProvincialController extends Controller
                 ->pluck('id');
 
             $centerProjects = Project::whereIn('user_id', $centerUsers)->get();
-            $approvedProjects = $centerProjects->where('status', ProjectStatus::APPROVED_BY_COORDINATOR);
+            $approvedProjects = $centerProjects->filter(fn ($p) => $p->isApproved());
+            $pendingProjects = $centerProjects->filter(fn ($p) => ! $p->isApproved());
 
-            $centerBudget = $approvedProjects->sum('amount_sanctioned') ?? 0;
+            // M3.3.1: Stage-separated aggregation — Approved Portfolio vs Pending Requests
+            $centerBudget = (float) ($approvedProjects->sum(fn ($p) => (float) ($p->opening_balance ?? 0)) ?? 0);
+            $centerPendingBudget = (float) $pendingProjects->sum(function ($p) {
+                $overall = (float) ($p->overall_project_budget ?? 0);
+                $forwarded = (float) ($p->amount_forwarded ?? 0);
+                $local = (float) ($p->local_contribution ?? 0);
+                return max(0, $overall - ($forwarded + $local));
+            });
             $centerExpenses = 0;
 
             foreach ($approvedProjects as $project) {
@@ -2136,12 +2214,13 @@ class ProvincialController extends Controller
 
             $centerReports = DPReport::whereIn('user_id', $centerUsers)->get();
             $totalCenterReports = $centerReports->count();
-            $approvedCenterReports = $centerReports->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)->count();
+            $approvedCenterReports = $centerReports->whereIn('status', DPReport::APPROVED_STATUSES)->count();
             $approvalRate = $totalCenterReports > 0 ? (($approvedCenterReports / $totalCenterReports) * 100) : 0;
 
             $centerPerformance[$center] = [
                 'projects' => $centerProjects->count(),
                 'budget' => $centerBudget,
+                'pending_budget' => $centerPendingBudget,
                 'expenses' => $centerExpenses,
                 'reports' => $totalCenterReports,
                 'approved_reports' => $approvedCenterReports,
@@ -2163,11 +2242,22 @@ class ProvincialController extends Controller
         // Get all accessible user IDs
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
-        // Get all approved projects
+        // Get all approved projects (M3.3.2: use centralized scope)
         $approvedProjects = Project::whereIn('user_id', $accessibleUserIds)
-            ->where('status', ProjectStatus::APPROVED_BY_COORDINATOR)
-        ->with(['user', 'reports.accountDetails'])
-        ->get();
+            ->approved()
+            ->with(['user', 'reports.accountDetails'])
+            ->get();
+
+        // M3.3.1: Pending projects (non-approved) for stage-separated aggregation (M3.3.2: use centralized scope)
+        $pendingProjects = Project::whereIn('user_id', $accessibleUserIds)
+            ->notApproved()
+            ->get();
+        $pendingTotal = (float) $pendingProjects->sum(function ($p) {
+            $overall = (float) ($p->overall_project_budget ?? 0);
+            $forwarded = (float) ($p->amount_forwarded ?? 0);
+            $local = (float) ($p->local_contribution ?? 0);
+            return max(0, $overall - ($forwarded + $local));
+        });
 
         // Memoize resolved financials (resolve each project exactly once)
         $resolvedFinancials = [];
@@ -2293,7 +2383,7 @@ class ProvincialController extends Controller
             $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
             $monthReports = DPReport::whereIn('user_id', $accessibleUserIds)
-                ->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                ->whereIn('status', DPReport::APPROVED_STATUSES)
             ->whereBetween('created_at', [$monthStart, $monthEnd])
             ->with('accountDetails')
             ->get();
@@ -2314,6 +2404,8 @@ class ProvincialController extends Controller
         return [
             'total' => [
                 'budget' => $totalBudget,
+                'approved_total' => $totalBudget,
+                'pending_total' => $pendingTotal,
                 'expenses' => $totalExpenses,
                 'remaining' => $totalRemaining,
                 'utilization' => $utilization,

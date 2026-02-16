@@ -25,6 +25,16 @@ class IAHPersonalInfoController extends Controller
         );
         $data = FormDataExtractor::forFillable($request, $fillable);
 
+        if (! $this->isIAHPersonalInfoMeaningfullyFilled($data)) {
+            Log::info('IAHPersonalInfoController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            $existing = ProjectIAHPersonalInfo::where('project_id', $projectId)->first();
+
+            return response()->json($existing, 200);
+        }
+
         Log::info('IAHPersonalInfoController@store - Start', [
             'project_id' => $projectId
         ]);
@@ -141,5 +151,24 @@ class IAHPersonalInfoController extends Controller
             ]);
             return response()->json(['error' => 'Failed to delete IAH personal info.'], 500);
         }
+    }
+
+    private function isIAHPersonalInfoMeaningfullyFilled(array $data): bool
+    {
+        foreach ($data as $value) {
+            if (is_array($value)) {
+                foreach ($value as $v) {
+                    if (trim((string) $v) !== '') {
+                        return true;
+                    }
+                }
+            } else {
+                if (trim((string) $value) !== '') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

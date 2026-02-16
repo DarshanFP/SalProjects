@@ -101,6 +101,16 @@ class EduRUTAnnexedTargetGroupController extends Controller
             ? ($data['annexed_target_group'] ?? [])
             : (isset($data['annexed_target_group']) && $data['annexed_target_group'] !== '' ? [$data['annexed_target_group']] : []);
 
+        if (! $this->isEduRUTAnnexedTargetGroupMeaningfullyFilled($groups)) {
+            Log::info('EduRUTAnnexedTargetGroupController@update - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            return response()->json([
+                'message' => 'Annexed target group data updated successfully.',
+            ], 200);
+        }
+
         DB::beginTransaction();
         try {
             Log::info('Updating annexed target group data', ['project_id' => $projectId]);
@@ -148,5 +158,34 @@ class EduRUTAnnexedTargetGroupController extends Controller
             Log::error('Error deleting annexed target group', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to delete annexed target group.'], 500);
         }
+    }
+
+    private function isEduRUTAnnexedTargetGroupMeaningfullyFilled(array $groups): bool
+    {
+        foreach ($groups as $group) {
+            if (! is_array($group)) {
+                continue;
+            }
+
+            $beneficiaryName = is_array($group['beneficiary_name'] ?? null)
+                ? trim((string) (reset($group['beneficiary_name']) ?? ''))
+                : trim((string) ($group['beneficiary_name'] ?? ''));
+
+            $familyBackground = is_array($group['family_background'] ?? null)
+                ? trim((string) (reset($group['family_background']) ?? ''))
+                : trim((string) ($group['family_background'] ?? ''));
+
+            $needOfSupport = is_array($group['need_of_support'] ?? null)
+                ? trim((string) (reset($group['need_of_support']) ?? ''))
+                : trim((string) ($group['need_of_support'] ?? ''));
+
+            if ($beneficiaryName !== '' ||
+                $familyBackground !== '' ||
+                $needOfSupport !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

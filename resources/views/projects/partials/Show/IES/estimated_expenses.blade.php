@@ -19,7 +19,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if ($expenseDetails->count() > 0)
+                    @if (isset($expenseDetails) && $expenseDetails instanceof \Illuminate\Support\Collection && $expenseDetails->count() > 0)
                         @foreach ($expenseDetails as $index => $detail)
                             <tr>
                                 <td style="text-align: center; vertical-align: middle;">{{ $index + 1 }}</td>

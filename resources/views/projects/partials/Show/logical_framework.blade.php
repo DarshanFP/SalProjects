@@ -4,13 +4,13 @@
         <h4>Logical Framework</h4>
     </div>
     <div class="card-body">
-        @foreach($project->objectives as $objIndex => $objective)
+        @foreach(($project->objectives ?? collect()) as $objIndex => $objective)
         <div class="p-3 mb-4 rounded border objective-card">
             <h5 class="mb-3">Objective {{ $objIndex + 1 }}: <span style="white-space: pre-wrap; line-height: 1.6; font-weight: normal;">{{ $objective->objective }}</span></h5>
 
             <div class="mb-4 results-container">
                 <h6 class="mb-3">Results / Outcomes</h6>
-                @foreach($objective->results as $resIndex => $result)
+                @foreach(($objective->results ?? collect()) as $resIndex => $result)
                 <div class="p-2 mb-3 rounded border result-section">
                     <strong>Objective {{ $objIndex + 1 }} - Result {{ $resIndex + 1 }}:</strong>
                     <p style="white-space: pre-wrap; line-height: 1.6; margin-top: 8px;">{{ $result->result }}</p>
@@ -21,7 +21,7 @@
             <!-- Risks Section -->
             <div class="mb-4 risks-container">
                 <h6 class="mb-3">Risks</h6>
-                @if($objective->risks->isNotEmpty())
+                @if(isset($objective->risks) && $objective->risks instanceof \Illuminate\Support\Collection && $objective->risks->isNotEmpty())
                     <div class="p-2 mb-3 rounded border">
                         @foreach($objective->risks as $riskIndex => $risk)
                             <div class="mb-2">
@@ -47,7 +47,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($objective->activities as $actIndex => $activity)
+                            @foreach(($objective->activities ?? collect()) as $actIndex => $activity)
                             <tr>
                                 <td style="text-align: center; vertical-align: middle;">{{ $actIndex + 1 }}</td>
                                 <td class="table-cell-wrap" style="width: 47.5%; text-align: left; vertical-align: top; word-wrap: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.6; padding: 12px;">{{ $activity->activity }}</td>
@@ -74,16 +74,16 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($objective->activities as $actIndex => $activity)
+                            @foreach(($objective->activities ?? collect()) as $actIndex => $activity)
                             <tr class="activity-timeframe-row">
                                 <td style="text-align: center; vertical-align: middle;">{{ $actIndex + 1 }}</td>
                                 <td class="table-cell-wrap activity-description-text" style="width: 55%; vertical-align: top; word-wrap: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.6;">{{ $activity->activity }}</td>
                                 @foreach(range(1, 12) as $month)
                                 <td class="text-center month-checkbox-cell" style="width: calc(40% / 12);">
                                     @php
-                                    $isChecked = $activity->timeframes->contains(function($timeframe) use ($month) {
+                                    $isChecked = (isset($activity->timeframes) && $activity->timeframes instanceof \Illuminate\Support\Collection) ? $activity->timeframes->contains(function($timeframe) use ($month) {
                                         return $timeframe->month == $month && $timeframe->is_active == 1;
-                                    });
+                                    }) : false;
                                     @endphp
                                     @if($isChecked)
                                         <span class="checkmark-icon" style="font-size: 14px; font-weight: bold; color: #6571ff;">✓</span>

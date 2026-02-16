@@ -61,6 +61,7 @@
                                     <tr>
                                         <th>#</th>
                                         <th>Society Name</th>
+                                        <th>Address</th>
                                         <th>Province</th>
                                         <th>Centers Count</th>
                                         <th>Status</th>
@@ -72,6 +73,7 @@
                                         <tr>
                                             <td>{{ $societies->firstItem() + $index }}</td>
                                             <td><strong>{{ $society->name }}</strong></td>
+                                            <td>{{ \Illuminate\Support\Str::limit($society->address ?? '', 40) }}</td>
                                             <td>{{ $society->province->name }}</td>
                                             <td>
                                                 <span class="badge bg-info">{{ $society->centers()->count() }}</span>

@@ -39,6 +39,10 @@
                             <input type="text" name="name" id="name" class="form-control" value="{{ old('name') }}" required placeholder="e.g., ST. ANN'S EDUCATIONAL SOCIETY">
                             <small class="form-text text-muted">Enter a unique society name for the selected province.</small>
                         </div>
+                        <div class="form-group mb-3">
+                            <label for="address">Address</label>
+                            <textarea name="address" id="address" class="form-control" rows="3">{{ old('address') }}</textarea>
+                        </div>
                         <div class="alert alert-info">
                             <i data-feather="info"></i> <strong>Note:</strong> After creating the society, you can create centers that belong to this society.
                         </div>

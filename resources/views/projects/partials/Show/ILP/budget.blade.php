@@ -8,7 +8,7 @@
         <h4 class="mb-0">Budget Details</h4>
     </div>
     <div class="card-body">
-        @if ($budgets->count() > 0)
+        @if ($budgets instanceof \Illuminate\Support\Collection && $budgets->count() > 0)
             <div class="table-responsive">
                 <table class="table table-bordered">
                     <thead>

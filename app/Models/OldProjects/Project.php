@@ -57,6 +57,7 @@ use App\Models\OldProjects\ILP\ProjectILPRevenueIncome;
 use App\Models\OldProjects\ILP\ProjectILPRevenuePlanItem;
 use App\Models\OldProjects\ILP\ProjectILPRiskAnalysis;
 use App\Models\OldProjects\RST\ProjectDPRSTBeneficiariesArea;
+use App\Constants\ProjectStatus;
 use App\Models\ActivityHistory;
 use App\Models\ProjectComment;
 use App\Models\ProjectStatusHistory;
@@ -261,6 +262,7 @@ class Project extends Model
         'project_id',
         'project_type',
         'project_title',
+        'society_id',
         'society_name',
         'president_name',
         'in_charge',
@@ -326,6 +328,30 @@ class Project extends Model
     public function scopeNotCompleted($query)
     {
         return $query->whereNull('completed_at');
+    }
+
+    /**
+     * Check if project is approved (M3.5.1: approval semantics on model).
+     */
+    public function isApproved(): bool
+    {
+        return ProjectStatus::isApproved($this->status ?? '');
+    }
+
+    /**
+     * Scope a query to only include approved projects (M3.3.2: centralized status).
+     */
+    public function scopeApproved($query)
+    {
+        return $query->whereIn('status', ProjectStatus::APPROVED_STATUSES);
+    }
+
+    /**
+     * Scope a query to only include non-approved projects (M3.3.2: centralized status).
+     */
+    public function scopeNotApproved($query)
+    {
+        return $query->whereNotIn('status', ProjectStatus::APPROVED_STATUSES);
     }
 
     /**
@@ -422,6 +448,14 @@ public static $statusLabels = [
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Get the society that owns the project.
+     */
+    public function society(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Society::class, 'society_id');
     }
 
     public function budgets()

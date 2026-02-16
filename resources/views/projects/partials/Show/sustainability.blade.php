@@ -4,7 +4,7 @@
         <h4 class="mb-0">Project Sustainability, Monitoring, and Methodologies</h4>
     </div>
     <div class="card-body sustainability-section">
-        @forelse($project->sustainabilities as $sustainability)
+        @forelse(($project->sustainabilities ?? collect()) as $sustainability)
             <div class="info-grid">
                 <!-- Resilience Section -->
                 <div class="info-label"><strong>Sustainability of the Project:</strong></div>

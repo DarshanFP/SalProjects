@@ -27,11 +27,11 @@
     </div>
     <div class="card-body">
         @php
-            $budget_overall = (isset($resolvedFundFields) && $resolvedFundFields) ? (float) ($resolvedFundFields['overall_project_budget'] ?? 0) : (float) ($project->overall_project_budget ?? 0);
-            $budget_forwarded = (isset($resolvedFundFields) && $resolvedFundFields) ? (float) ($resolvedFundFields['amount_forwarded'] ?? 0) : (float) ($project->amount_forwarded ?? 0);
-            $budget_local = (isset($resolvedFundFields) && $resolvedFundFields) ? (float) ($resolvedFundFields['local_contribution'] ?? 0) : (float) ($project->local_contribution ?? 0);
-            $budget_use_resolved = isset($resolvedFundFields) && $resolvedFundFields;
-            $amount_requested = max(0, $budget_overall - ($budget_forwarded + $budget_local));
+            $rf = $resolvedFundFields ?? [];
+            $budget_overall = (float) ($rf['overall_project_budget'] ?? 0);
+            $budget_forwarded = (float) ($rf['amount_forwarded'] ?? 0);
+            $budget_local = (float) ($rf['local_contribution'] ?? 0);
+            $amount_requested = (float) ($rf['amount_sanctioned'] ?? 0);
         @endphp
         <table id="general-info-table" class="general-info-table">
             <tbody>
@@ -59,7 +59,7 @@
                 @endif
                 <tr>
                     <td class="label">Society Name:</td>
-                    <td class="value">{{ $project->society_name }}</td>
+                    <td class="value">{{ optional($project->society)->name ?? $project->society_name }}</td>
                 </tr>
                 <tr>
                     <td class="label">President Name:</td>
@@ -108,65 +108,37 @@
                 <tr>
                     <td class="label">Overall Project Budget:</td>
                     <td class="value">
-                        @if(isset($resolvedFundFields) && $resolvedFundFields)
-                            {{ format_indian_currency($resolvedFundFields['overall_project_budget'] ?? 0, 2) }}
-                            <small class="text-muted d-block">(Computed – Not Yet Approved)</small>
-                        @else
-                            {{ format_indian_currency($project->overall_project_budget, 2) }}
-                        @endif
+                        {{ format_indian_currency($budget_overall, 2) }}
                     </td>
                 </tr>
                 <tr>
                     <td class="label">Amount Forwarded  (Existing Funds):</td>
                     <td class="value">
-                        @if(isset($resolvedFundFields) && $resolvedFundFields)
-                            {{ format_indian_currency($resolvedFundFields['amount_forwarded'] ?? 0, 2) }}
-                            <small class="text-muted d-block">(Computed – Not Yet Approved)</small>
-                        @else
-                            {{ format_indian_currency($project->amount_forwarded, 2) }}
-                        @endif
+                        {{ format_indian_currency($budget_forwarded, 2) }}
                     </td>
                 </tr>
                 <tr>
                     <td class="label">Local Contribution:</td>
                     <td class="value">
-                        @if(isset($resolvedFundFields) && $resolvedFundFields)
-                            {{ format_indian_currency($resolvedFundFields['local_contribution'] ?? 0, 2) }}
-                            <small class="text-muted d-block">(Computed – Not Yet Approved)</small>
-                        @else
-                            {{ format_indian_currency($project->local_contribution ?? 0, 2) }}
-                        @endif
+                        {{ format_indian_currency($budget_local, 2) }}
                     </td>
                 </tr>
                 <tr>
                     <td class="label">Amount Requested:</td>
                     <td class="value">
                         {{ format_indian_currency($amount_requested, 2) }}
-                        @if($budget_use_resolved)
-                            <small class="text-muted d-block">(Computed – Not Yet Approved)</small>
-                        @endif
                     </td>
                 </tr>
                 <tr>
                     <td class="label">Amount Sanctioned:</td>
                     <td class="value">
-                        @if(isset($resolvedFundFields) && $resolvedFundFields)
-                            {{ format_indian_currency($resolvedFundFields['amount_sanctioned'] ?? 0, 2) }}
-                            <small class="text-muted d-block">(Computed – Not Yet Approved)</small>
-                        @else
-                            {{ format_indian_currency($project->amount_sanctioned, 2) }}
-                        @endif
+                        {{ format_indian_currency((float) ($rf['amount_sanctioned'] ?? 0), 2) }}
                     </td>
                 </tr>
                 <tr>
                     <td class="label">Opening Balance:</td>
                     <td class="value">
-                        @if(isset($resolvedFundFields) && $resolvedFundFields)
-                            {{ format_indian_currency($resolvedFundFields['opening_balance'] ?? 0, 2) }}
-                            <small class="text-muted d-block">(Computed – Not Yet Approved)</small>
-                        @else
-                            {{ format_indian_currency($project->opening_balance, 2) }}
-                        @endif
+                        {{ format_indian_currency((float) ($rf['opening_balance'] ?? 0), 2) }}
                     </td>
                 </tr>
                 <tr>

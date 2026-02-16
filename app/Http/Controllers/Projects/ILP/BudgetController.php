@@ -38,6 +38,20 @@ class BudgetController extends Controller
         $fillable = ['budget_desc', 'cost', 'beneficiary_contribution', 'amount_requested'];
         $data = $request->only($fillable);
 
+        // Scalar-to-array normalization (same as create loop)
+        $budgetDescs = is_array($data['budget_desc'] ?? null) ? ($data['budget_desc'] ?? []) : (isset($data['budget_desc']) && $data['budget_desc'] !== '' ? [$data['budget_desc']] : []);
+        $costs       = is_array($data['cost'] ?? null) ? ($data['cost'] ?? []) : (isset($data['cost']) && $data['cost'] !== '' ? [$data['cost']] : []);
+
+        if (! $this->isILPBudgetMeaningfullyFilled($budgetDescs, $costs)) {
+            Log::info('ILP BudgetController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            return response()->json([
+                'message' => 'Budget saved successfully.',
+            ], 200);
+        }
+
         DB::beginTransaction();
         try {
             Log::info('Storing ILP Budget', ['project_id' => $projectId]);
@@ -45,9 +59,6 @@ class BudgetController extends Controller
             // Delete existing budget rows and insert updated data
             ProjectILPBudget::where('project_id', $projectId)->delete();
 
-            // Scalar-to-array normalization; per-value scalar coercion
-            $budgetDescs = is_array($data['budget_desc'] ?? null) ? ($data['budget_desc'] ?? []) : (isset($data['budget_desc']) && $data['budget_desc'] !== '' ? [$data['budget_desc']] : []);
-            $costs       = is_array($data['cost'] ?? null) ? ($data['cost'] ?? []) : (isset($data['cost']) && $data['cost'] !== '' ? [$data['cost']] : []);
             $beneficiaryContribution = is_array($data['beneficiary_contribution'] ?? null) ? (reset($data['beneficiary_contribution']) ?? null) : ($data['beneficiary_contribution'] ?? null);
             $amountRequested         = is_array($data['amount_requested'] ?? null) ? (reset($data['amount_requested']) ?? null) : ($data['amount_requested'] ?? null);
 
@@ -176,5 +187,27 @@ class BudgetController extends Controller
             Log::error('Error deleting ILP Budget', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to delete budget.'], 500);
         }
+    }
+
+    private function isILPBudgetMeaningfullyFilled(
+        array $budgetDescs,
+        array $costs
+    ): bool {
+        $rowCount = count($budgetDescs);
+
+        for ($i = 0; $i < $rowCount; $i++) {
+            $desc = $budgetDescs[$i] ?? null;
+            $cost = $costs[$i] ?? null;
+
+            if (
+                trim((string) $desc) !== '' &&
+                $cost !== null &&
+                $cost !== ''
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -81,7 +81,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if($RUTtargetGroups && $RUTtargetGroups->count() > 0)
+                    @if(isset($RUTtargetGroups) && $RUTtargetGroups instanceof \Illuminate\Support\Collection && $RUTtargetGroups->count() > 0)
                         @foreach($RUTtargetGroups as $index => $group)
                             <tr>
                                 <td>{{ $index + 1 }}</td>

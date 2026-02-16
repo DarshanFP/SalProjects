@@ -154,9 +154,9 @@ class ProjectPermissionHelper
         // Filter by editable statuses
         $query->whereIn('status', ProjectStatus::getEditableStatuses());
 
-        // For executors and applicants, exclude approved projects
+        // For executors and applicants, exclude all approved projects (M3 Phase 1)
         if (in_array($user->role, ['executor', 'applicant'])) {
-            $query->where('status', '!=', ProjectStatus::APPROVED_BY_COORDINATOR);
+            $query->notApproved();
         }
 
         return $query;

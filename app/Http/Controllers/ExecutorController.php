@@ -290,7 +290,7 @@ class ExecutorController extends Controller
 
         // Fetch approved reports for projects where user is owner or in-charge
         $reportsQuery = DPReport::whereIn('project_id', $projectIds)
-                               ->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR);
+                               ->whereIn('status', DPReport::APPROVED_STATUSES);
 
         // Apply filtering if provided in the request
         if ($request->filled('project_type')) {
@@ -305,7 +305,7 @@ class ExecutorController extends Controller
 
         // Fetch distinct project types for filters
         $projectTypes = DPReport::whereIn('project_id', $projectIds)
-                               ->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                               ->whereIn('status', DPReport::APPROVED_STATUSES)
                                ->distinct()
                                ->pluck('project_type');
 
@@ -848,7 +848,7 @@ class ExecutorController extends Controller
         // Monthly Expense Trends Data (for line/area chart)
         $monthlyExpenses = [];
         $reports = DPReport::whereIn('project_id', $projectIds)
-            ->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+            ->whereIn('status', DPReport::APPROVED_STATUSES)
             ->with('accountDetails')
             ->orderBy('report_month_year', 'asc')
             ->get();
@@ -958,7 +958,7 @@ class ExecutorController extends Controller
         // Report Completion Rate (Approved vs Total)
         $totalReports = DPReport::whereIn('project_id', $projectIds)->count();
         $approvedReports = DPReport::whereIn('project_id', $projectIds)
-            ->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+            ->whereIn('status', DPReport::APPROVED_STATUSES)
             ->count();
         $completionRate = $totalReports > 0 ? ($approvedReports / $totalReports) * 100 : 0;
 
@@ -1005,7 +1005,7 @@ class ExecutorController extends Controller
 
         // Approved reports
         $approvedReports = DPReport::whereIn('project_id', $projectIds)
-            ->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+            ->whereIn('status', DPReport::APPROVED_STATUSES)
             ->count();
 
         // Approval rate

@@ -4,7 +4,7 @@
         <h4>Attachments</h4>
     </div>
     <div class="card-body attachments-section ATT-attachments-container">
-        @if($project->attachments->count() > 0)
+        @if(isset($project->attachments) && $project->attachments instanceof \Illuminate\Support\Collection && $project->attachments->count() > 0)
             <div class="ATT-attachments-list">
                 @foreach($project->attachments as $index => $attachment)
                     @php

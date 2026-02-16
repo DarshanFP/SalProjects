@@ -31,13 +31,25 @@ class ProjectStatusService
             throw new Exception('Project cannot be submitted in current status: ' . $project->status);
         }
 
+        $from = $project->status;
+        $to = ProjectStatus::SUBMITTED_TO_PROVINCIAL;
+        if (!self::canTransition($from, $to, $user->role)) {
+            Log::warning('Invalid transition detected (soft)', [
+                'project_id' => $project->project_id,
+                'from' => $from,
+                'to' => $to,
+                'user_id' => $user->id,
+                'method' => __METHOD__,
+            ]);
+        }
+
         $previousStatus = $project->status;
-        $project->status = ProjectStatus::SUBMITTED_TO_PROVINCIAL;
+        $project->status = $to;
         $saved = $project->save();
 
         if ($saved) {
             // Log status change
-            self::logStatusChange($project, $previousStatus, ProjectStatus::SUBMITTED_TO_PROVINCIAL, $user);
+            self::logStatusChange($project, $previousStatus, $to, $user);
 
             Log::info('Project submitted to provincial', [
                 'project_id' => $project->project_id,
@@ -74,14 +86,26 @@ class ProjectStatusService
             throw new Exception('Project cannot be forwarded in current status: ' . $project->status);
         }
 
+        $from = $project->status;
+        $to = ProjectStatus::FORWARDED_TO_COORDINATOR;
+        if (!self::canTransition($from, $to, $user->role)) {
+            Log::warning('Invalid transition detected (soft)', [
+                'project_id' => $project->project_id,
+                'from' => $from,
+                'to' => $to,
+                'user_id' => $user->id,
+                'method' => __METHOD__,
+            ]);
+        }
+
         $previousStatus = $project->status;
-        $project->status = ProjectStatus::FORWARDED_TO_COORDINATOR;
+        $project->status = $to;
         $saved = $project->save();
 
         if ($saved) {
             // Log status change with approval context for General user
             $approvalContext = ($user->role === 'general') ? 'provincial' : null;
-            self::logStatusChange($project, $previousStatus, ProjectStatus::FORWARDED_TO_COORDINATOR, $user, null, $approvalContext);
+            self::logStatusChange($project, $previousStatus, $to, $user, null, $approvalContext);
 
             Log::info('Project forwarded to coordinator', [
                 'project_id' => $project->project_id,
@@ -124,14 +148,26 @@ class ProjectStatusService
             ? ProjectStatus::APPROVED_BY_GENERAL_AS_COORDINATOR
             : ProjectStatus::APPROVED_BY_COORDINATOR;
 
+        $from = $project->status;
+        $to = $newStatus;
+        if (!self::canTransition($from, $to, $user->role)) {
+            Log::warning('Invalid transition detected (soft)', [
+                'project_id' => $project->project_id,
+                'from' => $from,
+                'to' => $to,
+                'user_id' => $user->id,
+                'method' => __METHOD__,
+            ]);
+        }
+
         $previousStatus = $project->status;
-        $project->status = $newStatus;
+        $project->status = $to;
         $saved = $project->save();
 
         if ($saved) {
             // Log status change with approval context for General user
             $approvalContext = ($user->role === 'general') ? 'coordinator' : null;
-            self::logStatusChange($project, $previousStatus, $newStatus, $user, null, $approvalContext);
+            self::logStatusChange($project, $previousStatus, $to, $user, null, $approvalContext);
 
             Log::info('Project approved', [
                 'project_id' => $project->project_id,
@@ -143,6 +179,70 @@ class ProjectStatusService
         }
 
         return $saved;
+    }
+
+    /**
+     * Reject project (coordinator only). M4.3: centralizes reject transition.
+     * Does NOT modify financial fields.
+     *
+     * @param Project $project
+     * @param User $user
+     * @return bool
+     * @throws Exception
+     */
+    public static function reject(Project $project, User $user): bool
+    {
+        if ($user->role !== 'coordinator') {
+            throw new Exception('Only coordinator can reject projects.');
+        }
+
+        if (!ProjectStatus::isForwardedToCoordinator($project->status)) {
+            throw new Exception('Project can only be rejected when forwarded to coordinator. Current status: ' . $project->status);
+        }
+
+        $from = $project->status;
+        $to = ProjectStatus::REJECTED_BY_COORDINATOR;
+        if (!self::canTransition($from, $to, $user->role)) {
+            Log::warning('Invalid transition detected (soft)', [
+                'project_id' => $project->project_id,
+                'from' => $from,
+                'to' => $to,
+                'user_id' => $user->id,
+                'method' => __METHOD__,
+            ]);
+        }
+
+        $previousStatus = $project->status;
+        $project->status = $to;
+        $saved = $project->save();
+
+        if ($saved) {
+            self::logStatusChange($project, $previousStatus, $to, $user);
+
+            Log::info('Project rejected by coordinator', [
+                'project_id' => $project->project_id,
+                'user_id' => $user->id,
+            ]);
+        }
+
+        return $saved;
+    }
+
+    /**
+     * Enforce canonical financial state when reverting from approved to non-approved.
+     * Only resets if current status is approved (idempotent for already reverted).
+     * M4.2: amount_sanctioned = 0, opening_balance = amount_forwarded + local_contribution.
+     *
+     * @param Project $project
+     * @return void
+     */
+    private static function applyFinancialResetOnRevert(Project $project): void
+    {
+        if (!ProjectStatus::isApproved($project->status)) {
+            return;
+        }
+        $project->amount_sanctioned = 0;
+        $project->opening_balance = (float) ($project->amount_forwarded ?? 0) + (float) ($project->local_contribution ?? 0);
     }
 
     /**
@@ -187,14 +287,27 @@ class ProjectStatusService
             $newStatus = ProjectStatus::REVERTED_BY_PROVINCIAL;
         }
 
+        $from = $project->status;
+        $to = $newStatus;
+        if (!self::canTransition($from, $to, $user->role)) {
+            Log::warning('Invalid transition detected (soft)', [
+                'project_id' => $project->project_id,
+                'from' => $from,
+                'to' => $to,
+                'user_id' => $user->id,
+                'method' => __METHOD__,
+            ]);
+        }
+
         $previousStatus = $project->status;
-        $project->status = $newStatus;
+        self::applyFinancialResetOnRevert($project);
+        $project->status = $to;
         $saved = $project->save();
 
         if ($saved) {
             // Log status change with approval context and revert level
             $approvalContext = ($user->role === 'general') ? 'provincial' : null;
-            self::logStatusChange($project, $previousStatus, $newStatus, $user, $reason, $approvalContext, $revertLevel, $revertedToUserId);
+            self::logStatusChange($project, $previousStatus, $to, $user, $reason, $approvalContext, $revertLevel, $revertedToUserId);
 
             Log::info('Project reverted by provincial', [
                 'project_id' => $project->project_id,
@@ -251,14 +364,27 @@ class ProjectStatusService
             $newStatus = ProjectStatus::REVERTED_BY_COORDINATOR;
         }
 
+        $from = $project->status;
+        $to = $newStatus;
+        if (!self::canTransition($from, $to, $user->role)) {
+            Log::warning('Invalid transition detected (soft)', [
+                'project_id' => $project->project_id,
+                'from' => $from,
+                'to' => $to,
+                'user_id' => $user->id,
+                'method' => __METHOD__,
+            ]);
+        }
+
         $previousStatus = $project->status;
-        $project->status = $newStatus;
+        self::applyFinancialResetOnRevert($project);
+        $project->status = $to;
         $saved = $project->save();
 
         if ($saved) {
             // Log status change with approval context and revert level
             $approvalContext = ($user->role === 'general') ? 'coordinator' : null;
-            self::logStatusChange($project, $previousStatus, $newStatus, $user, $reason, $approvalContext, $revertLevel, $revertedToUserId);
+            self::logStatusChange($project, $previousStatus, $to, $user, $reason, $approvalContext, $revertLevel, $revertedToUserId);
 
             Log::info('Project reverted by coordinator', [
                 'project_id' => $project->project_id,
@@ -299,12 +425,24 @@ class ProjectStatusService
             throw new Exception('Project cannot be approved as coordinator in current status: ' . $project->status);
         }
 
+        $from = $project->status;
+        $to = ProjectStatus::APPROVED_BY_GENERAL_AS_COORDINATOR;
+        if (!self::canTransition($from, $to, $user->role)) {
+            Log::warning('Invalid transition detected (soft)', [
+                'project_id' => $project->project_id,
+                'from' => $from,
+                'to' => $to,
+                'user_id' => $user->id,
+                'method' => __METHOD__,
+            ]);
+        }
+
         $previousStatus = $project->status;
-        $project->status = ProjectStatus::APPROVED_BY_GENERAL_AS_COORDINATOR;
+        $project->status = $to;
         $saved = $project->save();
 
         if ($saved) {
-            self::logStatusChange($project, $previousStatus, ProjectStatus::APPROVED_BY_GENERAL_AS_COORDINATOR, $user, null, 'coordinator');
+            self::logStatusChange($project, $previousStatus, $to, $user, null, 'coordinator');
 
             Log::info('Project approved by General as Coordinator', [
                 'project_id' => $project->project_id,
@@ -343,13 +481,25 @@ class ProjectStatusService
             throw new Exception('Project cannot be approved as provincial in current status: ' . $project->status);
         }
 
+        $from = $project->status;
+        $to = ProjectStatus::FORWARDED_TO_COORDINATOR;
+        if (!self::canTransition($from, $to, $user->role)) {
+            Log::warning('Invalid transition detected (soft)', [
+                'project_id' => $project->project_id,
+                'from' => $from,
+                'to' => $to,
+                'user_id' => $user->id,
+                'method' => __METHOD__,
+            ]);
+        }
+
         $previousStatus = $project->status;
         // When General acts as Provincial, they forward to coordinator
-        $project->status = ProjectStatus::FORWARDED_TO_COORDINATOR;
+        $project->status = $to;
         $saved = $project->save();
 
         if ($saved) {
-            self::logStatusChange($project, $previousStatus, ProjectStatus::FORWARDED_TO_COORDINATOR, $user, null, 'provincial');
+            self::logStatusChange($project, $previousStatus, $to, $user, null, 'provincial');
 
             Log::info('Project approved/forwarded by General as Provincial', [
                 'project_id' => $project->project_id,
@@ -394,12 +544,25 @@ class ProjectStatusService
             default => ProjectStatus::REVERTED_BY_GENERAL_AS_COORDINATOR,
         };
 
+        $from = $project->status;
+        $to = $newStatus;
+        if (!self::canTransition($from, $to, $user->role)) {
+            Log::warning('Invalid transition detected (soft)', [
+                'project_id' => $project->project_id,
+                'from' => $from,
+                'to' => $to,
+                'user_id' => $user->id,
+                'method' => __METHOD__,
+            ]);
+        }
+
         $previousStatus = $project->status;
-        $project->status = $newStatus;
+        self::applyFinancialResetOnRevert($project);
+        $project->status = $to;
         $saved = $project->save();
 
         if ($saved) {
-            self::logStatusChange($project, $previousStatus, $newStatus, $user, $reason, 'coordinator', $revertLevel, $revertedToUserId);
+            self::logStatusChange($project, $previousStatus, $to, $user, $reason, 'coordinator', $revertLevel, $revertedToUserId);
 
             Log::info('Project reverted by General as Coordinator', [
                 'project_id' => $project->project_id,
@@ -448,12 +611,25 @@ class ProjectStatusService
             default => ProjectStatus::REVERTED_BY_GENERAL_AS_PROVINCIAL,
         };
 
+        $from = $project->status;
+        $to = $newStatus;
+        if (!self::canTransition($from, $to, $user->role)) {
+            Log::warning('Invalid transition detected (soft)', [
+                'project_id' => $project->project_id,
+                'from' => $from,
+                'to' => $to,
+                'user_id' => $user->id,
+                'method' => __METHOD__,
+            ]);
+        }
+
         $previousStatus = $project->status;
-        $project->status = $newStatus;
+        self::applyFinancialResetOnRevert($project);
+        $project->status = $to;
         $saved = $project->save();
 
         if ($saved) {
-            self::logStatusChange($project, $previousStatus, $newStatus, $user, $reason, 'provincial', $revertLevel, $revertedToUserId);
+            self::logStatusChange($project, $previousStatus, $to, $user, $reason, 'provincial', $revertLevel, $revertedToUserId);
 
             Log::info('Project reverted by General as Provincial', [
                 'project_id' => $project->project_id,
@@ -543,15 +719,28 @@ class ProjectStatusService
             default => throw new Exception('Invalid revert level'),
         };
 
+        $from = $project->status;
+        $to = $newStatus;
+        if (!self::canTransition($from, $to, $user->role)) {
+            Log::warning('Invalid transition detected (soft)', [
+                'project_id' => $project->project_id,
+                'from' => $from,
+                'to' => $to,
+                'user_id' => $user->id,
+                'method' => __METHOD__,
+            ]);
+        }
+
         $previousStatus = $project->status;
-        $project->status = $newStatus;
+        self::applyFinancialResetOnRevert($project);
+        $project->status = $to;
         $saved = $project->save();
 
         if ($saved) {
             // Determine approval context based on revert level
             $approvalContext = in_array($revertLevel, ['executor', 'applicant', 'provincial']) ? 'provincial' : 'coordinator';
 
-            self::logStatusChange($project, $previousStatus, $newStatus, $user, $reason, $approvalContext, $revertLevel, $revertedToUserId);
+            self::logStatusChange($project, $previousStatus, $to, $user, $reason, $approvalContext, $revertLevel, $revertedToUserId);
 
             Log::info('Project reverted to specific level by General', [
                 'project_id' => $project->project_id,
@@ -642,33 +831,52 @@ class ProjectStatusService
      */
     public static function canTransition(string $currentStatus, string $newStatus, string $userRole): bool
     {
+        // M4.5: Map aligned with all actual runtime transitions (audit M4.4). Enforcement still OFF.
         $transitions = [
             ProjectStatus::DRAFT => [
                 ProjectStatus::SUBMITTED_TO_PROVINCIAL => ['executor', 'applicant'],
             ],
             ProjectStatus::REVERTED_BY_PROVINCIAL => [
                 ProjectStatus::SUBMITTED_TO_PROVINCIAL => ['executor', 'applicant'],
+                ProjectStatus::FORWARDED_TO_COORDINATOR => ['general'], // approveAsProvincial
+                ProjectStatus::REVERTED_TO_EXECUTOR => ['general'],    // revertToLevel
+                ProjectStatus::REVERTED_TO_APPLICANT => ['general'],
             ],
             ProjectStatus::REVERTED_BY_COORDINATOR => [
                 ProjectStatus::SUBMITTED_TO_PROVINCIAL => ['executor', 'applicant'],
+                ProjectStatus::FORWARDED_TO_COORDINATOR => ['provincial', 'general'], // forwardToCoordinator
+                ProjectStatus::REVERTED_BY_PROVINCIAL => ['provincial', 'general'],   // revertByProvincial
+                ProjectStatus::REVERTED_BY_GENERAL_AS_PROVINCIAL => ['general'],
+                ProjectStatus::REVERTED_TO_EXECUTOR => ['general'],   // revertAsProvincial / revertToLevel
+                ProjectStatus::REVERTED_TO_APPLICANT => ['general'],
+                ProjectStatus::REVERTED_TO_PROVINCIAL => ['general'], // revertToLevel
             ],
             ProjectStatus::REVERTED_BY_GENERAL_AS_PROVINCIAL => [
                 ProjectStatus::SUBMITTED_TO_PROVINCIAL => ['executor', 'applicant'],
+                ProjectStatus::FORWARDED_TO_COORDINATOR => ['general'], // approveAsProvincial
+                ProjectStatus::REVERTED_TO_EXECUTOR => ['general'],    // revertToLevel
+                ProjectStatus::REVERTED_TO_APPLICANT => ['general'],
             ],
             ProjectStatus::REVERTED_BY_GENERAL_AS_COORDINATOR => [
                 ProjectStatus::SUBMITTED_TO_PROVINCIAL => ['executor', 'applicant'],
+                ProjectStatus::FORWARDED_TO_COORDINATOR => ['provincial', 'general'], // forwardToCoordinator
+                ProjectStatus::REVERTED_TO_PROVINCIAL => ['general'],                  // revertToLevel
             ],
             ProjectStatus::REVERTED_TO_EXECUTOR => [
                 ProjectStatus::SUBMITTED_TO_PROVINCIAL => ['executor', 'applicant'],
+                ProjectStatus::FORWARDED_TO_COORDINATOR => ['general'], // approveAsProvincial
             ],
             ProjectStatus::REVERTED_TO_APPLICANT => [
                 ProjectStatus::SUBMITTED_TO_PROVINCIAL => ['executor', 'applicant'],
+                ProjectStatus::FORWARDED_TO_COORDINATOR => ['general'], // approveAsProvincial
             ],
             ProjectStatus::REVERTED_TO_PROVINCIAL => [
                 ProjectStatus::SUBMITTED_TO_PROVINCIAL => ['executor', 'applicant'],
+                ProjectStatus::FORWARDED_TO_COORDINATOR => ['general'], // approveAsProvincial
             ],
             ProjectStatus::REVERTED_TO_COORDINATOR => [
                 ProjectStatus::SUBMITTED_TO_PROVINCIAL => ['executor', 'applicant'],
+                ProjectStatus::FORWARDED_TO_COORDINATOR => ['provincial', 'general'], // forwardToCoordinator
             ],
             ProjectStatus::SUBMITTED_TO_PROVINCIAL => [
                 ProjectStatus::FORWARDED_TO_COORDINATOR => ['provincial', 'general'],
@@ -676,6 +884,7 @@ class ProjectStatusService
                 ProjectStatus::REVERTED_BY_GENERAL_AS_PROVINCIAL => ['general'],
                 ProjectStatus::REVERTED_TO_EXECUTOR => ['general'],
                 ProjectStatus::REVERTED_TO_APPLICANT => ['general'],
+                ProjectStatus::REVERTED_TO_PROVINCIAL => ['general'], // revertAsProvincial level=provincial
             ],
             ProjectStatus::FORWARDED_TO_COORDINATOR => [
                 ProjectStatus::APPROVED_BY_COORDINATOR => ['coordinator', 'general'],
@@ -684,6 +893,11 @@ class ProjectStatusService
                 ProjectStatus::REVERTED_BY_GENERAL_AS_COORDINATOR => ['general'],
                 ProjectStatus::REVERTED_TO_PROVINCIAL => ['general'],
                 ProjectStatus::REVERTED_TO_COORDINATOR => ['general'],
+                ProjectStatus::REJECTED_BY_COORDINATOR => ['coordinator'],
+                ProjectStatus::REVERTED_BY_PROVINCIAL => ['provincial', 'general'],   // revertByProvincial
+                ProjectStatus::REVERTED_BY_GENERAL_AS_PROVINCIAL => ['general'],
+                ProjectStatus::REVERTED_TO_EXECUTOR => ['general'],   // revertAsProvincial / revertToLevel
+                ProjectStatus::REVERTED_TO_APPLICANT => ['general'],
             ],
             ProjectStatus::APPROVED_BY_COORDINATOR => [
                 ProjectStatus::REVERTED_BY_COORDINATOR => ['coordinator', 'general'],
@@ -695,6 +909,7 @@ class ProjectStatusService
                 ProjectStatus::REVERTED_BY_GENERAL_AS_COORDINATOR => ['general'],
                 ProjectStatus::REVERTED_TO_PROVINCIAL => ['general'],
                 ProjectStatus::REVERTED_TO_COORDINATOR => ['general'],
+                ProjectStatus::FORWARDED_TO_COORDINATOR => ['general'], // rollback on budget validation failure
             ],
         ];
 

@@ -12,7 +12,7 @@ use App\Models\OldProjects\Project;
  * and when budget edits are allowed (Phase 3).
  *
  * LOCKED RULES (from PHASE_WISE_BUDGET_ALIGNMENT_IMPLEMENTATION_PLAN.md):
- * - On type budget save: do NOT sync when ProjectStatus::isApproved($project->status)
+ * - On type budget save: do NOT sync when $project->isApproved()
  * - Pre-approval sync: run only when status is forwarded_to_coordinator
  * - Backfill: MUST NOT modify sanctioned/opening for approved projects
  *
@@ -47,7 +47,7 @@ class BudgetSyncGuard
         }
 
         // Do NOT sync approved projects on type save
-        if (ProjectStatus::isApproved($project->status ?? '')) {
+        if ($project->isApproved()) {
             return false;
         }
 
@@ -90,7 +90,7 @@ class BudgetSyncGuard
      */
     public static function isApproved(Project $project): bool
     {
-        return ProjectStatus::isApproved($project->status ?? '');
+        return $project->isApproved();
     }
 
     /**
@@ -118,6 +118,6 @@ class BudgetSyncGuard
         if (!config('budget.restrict_general_info_after_approval', false)) {
             return true;
         }
-        return !ProjectStatus::isApproved($project->status ?? '');
+        return !$project->isApproved();
     }
 }

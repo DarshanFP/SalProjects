@@ -15,7 +15,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if($RSTGeographicalArea && $RSTGeographicalArea->count() > 0)
+                    @if(isset($RSTGeographicalArea) && $RSTGeographicalArea instanceof \Illuminate\Support\Collection && $RSTGeographicalArea->count() > 0)
                         @foreach($RSTGeographicalArea as $area)
                             <tr>
                                 <td>{{ $area->mandal ?? 'N/A' }}</td>

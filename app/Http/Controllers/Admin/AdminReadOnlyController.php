@@ -59,7 +59,7 @@ class AdminReadOnlyController extends Controller
             ->map(function ($project) use ($resolver, $calc) {
                 $financials = $resolver->resolve($project);
                 $projectBudget = (float) ($financials['opening_balance'] ?? 0);
-                $projectApprovedReportIds = DPReport::where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+                $projectApprovedReportIds = DPReport::approved()
                     ->where('project_id', $project->project_id)
                     ->pluck('report_id');
                 $totalExpenses = DPAccountDetail::whereIn('report_id', $projectApprovedReportIds)->sum('total_expenses') ?? 0;

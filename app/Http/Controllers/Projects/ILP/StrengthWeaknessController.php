@@ -22,6 +22,16 @@ class StrengthWeaknessController extends Controller
         $strengths  = is_array($data['strengths'] ?? null) ? ($data['strengths'] ?? []) : (isset($data['strengths']) && $data['strengths'] !== '' ? [$data['strengths']] : []);
         $weaknesses = is_array($data['weaknesses'] ?? null) ? ($data['weaknesses'] ?? []) : (isset($data['weaknesses']) && $data['weaknesses'] !== '' ? [$data['weaknesses']] : []);
 
+        if (! $this->isILPStrengthWeaknessMeaningfullyFilled($strengths, $weaknesses)) {
+            Log::info('StrengthWeaknessController@store - Section absent or empty; skipping mutation', [
+                'project_id' => $projectId,
+            ]);
+
+            return response()->json([
+                'message' => 'Strengths and weaknesses saved successfully.',
+            ], 200);
+        }
+
         DB::beginTransaction();
         try {
             Log::info('Storing ILP Strengths and Weaknesses', ['project_id' => $projectId]);
@@ -136,5 +146,24 @@ class StrengthWeaknessController extends Controller
             Log::error('Error deleting ILP Strengths and Weaknesses', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to delete strengths and weaknesses.'], 500);
         }
+    }
+
+    private function isILPStrengthWeaknessMeaningfullyFilled(
+        array $strengths,
+        array $weaknesses
+    ): bool {
+        foreach ($strengths as $strength) {
+            if (trim((string) $strength) !== '') {
+                return true;
+            }
+        }
+
+        foreach ($weaknesses as $weakness) {
+            if (trim((string) $weakness) !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

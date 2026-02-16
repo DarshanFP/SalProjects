@@ -79,7 +79,7 @@ class HalfYearlyReportService
                 'project_title' => $project->project_title,
                 'project_type' => $project->project_type,
                 'place' => $project->place,
-                'society_name' => $project->society_name,
+                'society_name' => optional($project->society)->name ?? $project->society_name,
                 'commencement_month_year' => $project->commencement_month_year,
                 'in_charge' => $project->in_charge,
                 'total_beneficiaries' => $aggregatedData['total_beneficiaries'],
@@ -183,7 +183,7 @@ class HalfYearlyReportService
         $period = self::calculateHalfYearPeriod($halfYear, $year);
 
         return DPReport::where('project_id', $project->project_id)
-            ->where('status', DPReport::STATUS_APPROVED_BY_COORDINATOR)
+            ->whereIn('status', DPReport::APPROVED_STATUSES)
             ->whereBetween('report_month_year', [$period['from'], $period['to']])
             ->with(['accountDetails', 'objectives.activities', 'photos', 'attachments'])
             ->orderBy('report_month_year', 'asc')

@@ -122,6 +122,15 @@ class DPReport extends Model
     public const STATUS_REVERTED_TO_PROVINCIAL = 'reverted_to_provincial';
     public const STATUS_REVERTED_TO_COORDINATOR = 'reverted_to_coordinator';
 
+    /**
+     * Approved statuses (M3 Phase 2: canonical grouping for aggregation alignment).
+     */
+    public const APPROVED_STATUSES = [
+        self::STATUS_APPROVED_BY_COORDINATOR,
+        self::STATUS_APPROVED_BY_GENERAL_AS_COORDINATOR,
+        self::STATUS_APPROVED_BY_GENERAL_AS_PROVINCIAL,
+    ];
+
     // Status labels for display
     public static $statusLabels = [
         'draft' => 'Draft (Executor still working)',
@@ -278,11 +287,15 @@ class DPReport extends Model
      */
     public function isApproved(): bool
     {
-        return in_array($this->status, [
-            self::STATUS_APPROVED_BY_COORDINATOR,
-            self::STATUS_APPROVED_BY_GENERAL_AS_COORDINATOR,
-            self::STATUS_APPROVED_BY_GENERAL_AS_PROVINCIAL,
-        ]);
+        return in_array($this->status, self::APPROVED_STATUSES, true);
+    }
+
+    /**
+     * Scope: only approved reports (M3 Phase 2).
+     */
+    public function scopeApproved($query)
+    {
+        return $query->whereIn('status', self::APPROVED_STATUSES);
     }
 
     /**
