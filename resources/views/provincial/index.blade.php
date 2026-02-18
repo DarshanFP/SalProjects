@@ -312,6 +312,37 @@
                         </div>
                     </div>
 
+                    @if(!empty($enableSocietyBreakdown) && !empty($societyStats))
+                    {{-- Wave 6C: Society Financial Breakdown (only when province has more than one active society) --}}
+                    <div class="mb-4">
+                        <h6 class="mb-3">Society Financial Breakdown</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Society</th>
+                                        <th>Approved</th>
+                                        <th>Pending</th>
+                                        <th>Reported</th>
+                                        <th>Remaining</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($societyStats as $stat)
+                                    <tr>
+                                        <td><strong>{{ $stat['society_name'] }}</strong></td>
+                                        <td>{{ format_indian_currency($stat['approved_total'] ?? 0, 2) }}</td>
+                                        <td>{{ format_indian_currency($stat['pending_total'] ?? 0, 2) }}</td>
+                                        <td>{{ format_indian_currency($stat['reported_total'] ?? 0, 2) }}</td>
+                                        <td>{{ format_indian_currency($stat['remaining'] ?? 0, 2) }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    @endif
+
                     <!-- Debug Information -->
                     {{-- @if(config('app.debug'))
                     <div class="alert alert-info">

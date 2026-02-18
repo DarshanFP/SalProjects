@@ -23,6 +23,9 @@ class ProjectStatus
     const APPROVED_BY_GENERAL_AS_PROVINCIAL = 'approved_by_general_as_provincial';
     const REVERTED_BY_GENERAL_AS_PROVINCIAL = 'reverted_by_general_as_provincial';
 
+    // Final/rejection (never editable by any role)
+    const REJECTED_BY_GENERAL = 'rejected_by_general';
+
     // Granular revert statuses (revert to specific levels)
     const REVERTED_TO_EXECUTOR = 'reverted_to_executor';
     const REVERTED_TO_APPLICANT = 'reverted_to_applicant';
@@ -36,6 +39,18 @@ class ProjectStatus
         self::APPROVED_BY_COORDINATOR,
         self::APPROVED_BY_GENERAL_AS_COORDINATOR,
         self::APPROVED_BY_GENERAL_AS_PROVINCIAL,
+    ];
+
+    /**
+     * Final statuses (Wave 5F): never editable by any role.
+     * Protects approval integrity and financial immutability.
+     */
+    public const FINAL_STATUSES = [
+        self::APPROVED_BY_COORDINATOR,
+        self::APPROVED_BY_GENERAL_AS_COORDINATOR,
+        self::APPROVED_BY_GENERAL_AS_PROVINCIAL,
+        self::REJECTED_BY_COORDINATOR,
+        self::REJECTED_BY_GENERAL,
     ];
 
     /**
@@ -79,6 +94,39 @@ class ProjectStatus
      */
     public static function isEditable(string $status): bool
     {
+        return in_array($status, self::getEditableStatuses());
+    }
+
+    /**
+     * Check if status is final (Wave 6D: immutable; no updates allowed).
+     */
+    public static function isFinal(string $status): bool
+    {
+        return in_array($status, self::FINAL_STATUSES);
+    }
+
+    /**
+     * Role-aware edit gate (Wave 5F).
+     * Final statuses are never editable. Provincial/Coordinator/Admin/General get broader access; Executor/Applicant restricted to legacy editable statuses.
+     */
+    public static function canEditForRole(string $status, string $role): bool
+    {
+        if (in_array($status, self::FINAL_STATUSES)) {
+            return false;
+        }
+
+        if ($role === 'provincial') {
+            return true;
+        }
+
+        if ($role === 'coordinator') {
+            return true;
+        }
+
+        if (in_array($role, ['admin', 'general'])) {
+            return true;
+        }
+
         return in_array($status, self::getEditableStatuses());
     }
 

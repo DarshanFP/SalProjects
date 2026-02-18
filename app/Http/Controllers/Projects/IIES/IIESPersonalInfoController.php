@@ -77,26 +77,18 @@ class IIESPersonalInfoController extends Controller
         }
     }
 
-    // public function show($projectId)
-    // {
-    //     return ProjectIIESPersonalInfo::where('project_id', $projectId)->firstOrFail();
-    // }
+    /**
+     * Return IIES personal info data for aggregate show (ProjectController / ProjectDataHydrator).
+     * Does not render the full show view; only ProjectController@show may render projects.Oldprojects.show.
+     */
     public function show($projectId)
     {
-        try {
-            Log::info('Fetching IIES Personal Info test for project', ['project_id' => $projectId]);
+        $project = Project::with('iiesPersonalInfo')
+            ->where('project_id', $projectId)
+            ->firstOrFail();
 
-            $project = Project::where('project_id', $projectId)
-                ->with('iiesPersonalInfo')
-                ->firstOrFail();
-//resources/views/projects/Oldprojects/show.blade.php
-            return view('projects.Oldprojects.show', compact('project'));
-        } catch (\Exception $e) {
-            Log::error('Error fetching IIES Personal Info for show', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to load IIES Personal Info.'], 500);
-        }
+        return $project->iiesPersonalInfo;
     }
-//
 
     /**
      * Edit the IIES Personal Info for a project.

@@ -47,7 +47,7 @@
                                     @php
                                         $fileExists = Storage::disk('public')->exists($file->file_path);
                                     @endphp
-                                    <div class="file-item mb-2 p-2 border rounded">
+                                    <div class="file-item mb-2 p-2 border rounded" @if(isset($file->id)) id="ies-file-{{ $file->id }}" @endif>
                                         @if($fileExists)
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
@@ -65,6 +65,11 @@
                                                         <a href="{{ route('projects.ies.attachments.download', $file->id) }}" class="btn btn-sm btn-secondary">
                                                             <i class="fas fa-download"></i> Download
                                                         </a>
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-outline-danger"
+                                                                onclick="confirmRemoveIESFile({{ $file->id }}, {{ json_encode($file->file_name) }})">
+                                                            <i class="fas fa-trash"></i> Delete
+                                                        </button>
                                                     @else
                                                         <a href="{{ Storage::url($file->file_path) }}" target="_blank" class="btn btn-sm btn-primary">
                                                             <i class="fas fa-eye"></i> View
@@ -210,6 +215,49 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
+
+<script>
+function confirmRemoveIESFile(fileId, fileName) {
+    if (!confirm('Are you sure you want to delete "' + fileName + '"? This action cannot be undone.')) {
+        return;
+    }
+    removeIESFile(fileId);
+}
+
+function removeIESFile(fileId) {
+    let deleteUrlTemplate = "{{ route('projects.ies.attachments.files.destroy', ':id') }}";
+    let deleteUrl = deleteUrlTemplate.replace(':id', fileId);
+    fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        return response.json().then(data => {
+            if (!response.ok) {
+                throw new Error(data.message || 'Delete failed.');
+            }
+            return data;
+        });
+    })
+    .then(data => {
+        if (data.success) {
+            const fileRow = document.getElementById('ies-file-' + fileId);
+            if (fileRow) {
+                fileRow.remove();
+            }
+        } else {
+            alert(data.message || 'Delete failed.');
+        }
+    })
+    .catch(function(error) {
+        alert(error.message);
+        console.error(error);
+    });
+}
 </script>
 
 <script src="{{ asset('js/attachments-validation.js') }}"></script>

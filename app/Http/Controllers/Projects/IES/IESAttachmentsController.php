@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Projects\IES;
 
+use App\Constants\ProjectStatus;
 use App\Http\Controllers\Controller;
 use App\Helpers\LogHelper;
+use App\Helpers\ProjectPermissionHelper;
 use App\Models\OldProjects\IES\ProjectIESAttachmentFile;
 use App\Services\Attachment\AttachmentContext;
 use App\Services\ProjectAttachmentHandler;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -184,8 +187,95 @@ class IESAttachmentsController extends Controller
     }
 
     /**
+     * PER-FILE DELETE: remove one IES attachment file.
+     * Mutation: enforces province, editable status, canEdit. Model deleting event removes storage.
+     * TEMPORARY: Debug logging added; remove after issue fixed.
+     */
+    public function destroyFile($fileId)
+    {
+        try {
+            Log::info('IES Delete Attempt', [
+                'file_id' => $fileId,
+                'user_id' => Auth::id(),
+            ]);
+
+            $file = ProjectIESAttachmentFile::findOrFail($fileId);
+
+            $project = $file->project ?? $file->iesAttachment?->project;
+            if (! $project) {
+                return response()->json(['error' => 'File record not found'], 404);
+            }
+
+            $user = Auth::user();
+            if (! ProjectPermissionHelper::passesProvinceCheck($project, $user)) {
+                Log::warning('IES Delete Blocked - province_mismatch', [
+                    'file_id' => $fileId,
+                    'user_id' => Auth::id(),
+                    'project_id' => $project->project_id ?? $project->id ?? null,
+                    'reason' => 'province_mismatch',
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden.',
+                ], 403);
+            }
+            if (! ProjectStatus::isEditable($project->status)) {
+                Log::warning('IES Delete Blocked - not_editable', [
+                    'file_id' => $fileId,
+                    'user_id' => Auth::id(),
+                    'project_id' => $project->project_id ?? $project->id ?? null,
+                    'reason' => 'not_editable',
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden.',
+                ], 403);
+            }
+            if (! ProjectPermissionHelper::canEdit($project, $user)) {
+                Log::warning('IES Delete Blocked - cannot_edit', [
+                    'file_id' => $fileId,
+                    'user_id' => Auth::id(),
+                    'project_id' => $project->project_id ?? $project->id ?? null,
+                    'reason' => 'cannot_edit',
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden.',
+                ], 403);
+            }
+
+            $file->delete();
+
+            Log::info('IES Delete Success', [
+                'file_id' => $fileId,
+                'project_id' => $project->project_id ?? $project->id,
+                'user_id' => Auth::id(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Attachment deleted successfully.',
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['error' => 'File record not found'], 404);
+        } catch (\Exception $e) {
+            Log::error('IES Delete Exception', [
+                'file_id' => $fileId ?? null,
+                'user_id' => Auth::id(),
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error during delete.',
+            ], 500);
+        }
+    }
+
+    /**
      * DOWNLOAD: download a specific IES attachment file
      * Streams file through controller - works without storage symlink on production.
+     * Guard: province isolation, canView — read allowed even when project is approved (403 on failure).
      */
     public function downloadFile($fileId)
     {
@@ -193,6 +283,20 @@ class IESAttachmentsController extends Controller
             Log::info('IESAttachmentsController@downloadFile - Start', ['file_id' => $fileId]);
 
             $file = ProjectIESAttachmentFile::findOrFail($fileId);
+
+            $project = $file->project ?? $file->iesAttachment?->project;
+            if (! $project) {
+                Log::warning('IESAttachmentsController@downloadFile - No project for file', ['file_id' => $fileId]);
+                return response()->json(['error' => 'File record not found'], 404);
+            }
+
+            $user = Auth::user();
+            if (! ProjectPermissionHelper::passesProvinceCheck($project, $user)) {
+                abort(403);
+            }
+            if (! ProjectPermissionHelper::canView($project, $user)) {
+                abort(403);
+            }
 
             Log::info('IESAttachmentsController@downloadFile - File found', [
                 'file_id' => $fileId,
@@ -229,6 +333,7 @@ class IESAttachmentsController extends Controller
     /**
      * VIEW: view a specific IES attachment file (stream response)
      * Streams file through controller - works without storage symlink on production.
+     * Guard: province isolation, canView — read allowed even when project is approved (403 on failure).
      */
     public function viewFile($fileId)
     {
@@ -236,6 +341,20 @@ class IESAttachmentsController extends Controller
             Log::info('IESAttachmentsController@viewFile - Start', ['file_id' => $fileId]);
 
             $file = ProjectIESAttachmentFile::findOrFail($fileId);
+
+            $project = $file->project ?? $file->iesAttachment?->project;
+            if (! $project) {
+                Log::warning('IESAttachmentsController@viewFile - No project for file', ['file_id' => $fileId]);
+                return response()->json(['error' => 'File record not found'], 404);
+            }
+
+            $user = Auth::user();
+            if (! ProjectPermissionHelper::passesProvinceCheck($project, $user)) {
+                abort(403);
+            }
+            if (! ProjectPermissionHelper::canView($project, $user)) {
+                abort(403);
+            }
 
             Log::info('IESAttachmentsController@viewFile - File found', [
                 'file_id' => $fileId,

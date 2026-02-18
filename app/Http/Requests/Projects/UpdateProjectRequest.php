@@ -4,11 +4,9 @@ namespace App\Http\Requests\Projects;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 use App\Models\OldProjects\Project;
 use App\Constants\ProjectStatus;
 use App\Helpers\ProjectPermissionHelper;
-use App\Helpers\SocietyVisibilityHelper;
 
 class UpdateProjectRequest extends FormRequest
 {
@@ -82,10 +80,9 @@ class UpdateProjectRequest extends FormRequest
     public function rules(): array
     {
         $isDraft = $this->boolean('save_as_draft');
-        $allowedSocietyIds = SocietyVisibilityHelper::getAllowedSocietyIds();
         $societyRule = $isDraft
-            ? ['nullable', Rule::in($allowedSocietyIds)]
-            : ['required', Rule::in($allowedSocietyIds)];
+            ? ['nullable', 'exists:societies,id']
+            : ['required', 'exists:societies,id'];
 
         return [
             'project_type' => $isDraft ? 'nullable|string|max:255' : 'required|string|max:255',
@@ -177,6 +174,8 @@ class UpdateProjectRequest extends FormRequest
             'amount_forwarded.numeric' => 'Amount forwarded must be a number.',
             'amount_forwarded.min' => 'Amount forwarded cannot be negative.',
             'predecessor_project.exists' => 'Selected predecessor project does not exist.',
+            'society_id.required' => 'Society is required.',
+            'society_id.exists' => 'Selected society does not exist.',
         ];
     }
 

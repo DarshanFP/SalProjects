@@ -74,8 +74,8 @@
                             @include('projects.partials.Edit.ILP.revenue_goals', ['revenueGoals' => $ILPRevenueGoals])
                             @include('projects.partials.Edit.ILP.strength_weakness', ['strengths' => $ILPStrengthWeakness['strengths'] ?? [], 'weaknesses' => $ILPStrengthWeakness['weaknesses'] ?? []])
                             @include('projects.partials.Edit.ILP.risk_analysis', ['riskAnalysis' => $ILPRiskAnalysis])
-                            @include('projects.partials.Edit.ILP.attached_docs', ['attachedDocs' => $ILPAttachedDocuments])
                             @include('projects.partials.Edit.ILP.budget', ['budgets' => $ILPBudget['budgets'], 'total_amount' => $ILPBudget['total_amount'], 'beneficiary_contribution' => $ILPBudget['beneficiary_contribution'], 'amount_requested' => $ILPBudget['amount_requested']])
+                            @include('projects.partials.Edit.ILP.attached_docs', ['attachedDocs' => $ILPAttachedDocuments])
 
                         @elseif ($project->project_type === 'Individual - Access to Health')
                             @include('projects.partials.Edit.IAH.personal_info')

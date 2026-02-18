@@ -87,17 +87,17 @@ class GeneralController extends Controller
         // Get all descendant user IDs under coordinators (recursive)
         $allUserIdsUnderCoordinators = $this->getAllDescendantUserIds($coordinatorIds);
 
-        // Get projects from coordinator hierarchy
-        $projectsFromCoordinatorsQuery = ProjectQueryService::getProjectsForUsersQuery($allUserIdsUnderCoordinators);
+        // Get projects from coordinator hierarchy (Phase 2: pass current user for province-aware query)
+        $projectsFromCoordinatorsQuery = ProjectQueryService::getProjectsForUsersQuery($allUserIdsUnderCoordinators, auth()->user());
 
         // Get projects from direct team
-        $projectsFromDirectTeamQuery = ProjectQueryService::getProjectsForUsersQuery($directTeamIds);
+        $projectsFromDirectTeamQuery = ProjectQueryService::getProjectsForUsersQuery($directTeamIds, auth()->user());
 
         // Apply filters for coordinator hierarchy projects
         if ($request->filled('coordinator_id')) {
             $coordinatorId = $request->get('coordinator_id');
             $descendantIds = $this->getAllDescendantUserIds(collect([$coordinatorId]));
-            $projectsFromCoordinatorsQuery = ProjectQueryService::getProjectsForUsersQuery($descendantIds);
+            $projectsFromCoordinatorsQuery = ProjectQueryService::getProjectsForUsersQuery($descendantIds, auth()->user());
         }
 
         // Apply filters for direct team projects
@@ -1149,11 +1149,11 @@ class GeneralController extends Controller
         // Get all descendant user IDs under coordinators (recursive)
         $allUserIdsUnderCoordinators = $this->getAllDescendantUserIds($coordinatorIds);
 
-        // Base query for projects from coordinator hierarchy
-        $projectsFromCoordinatorsQuery = ProjectQueryService::getProjectsForUsersQuery($allUserIdsUnderCoordinators);
+        // Base query for projects from coordinator hierarchy (Phase 2: pass current user for province-aware query)
+        $projectsFromCoordinatorsQuery = ProjectQueryService::getProjectsForUsersQuery($allUserIdsUnderCoordinators, auth()->user());
 
         // Base query for projects from direct team
-        $projectsFromDirectTeamQuery = ProjectQueryService::getProjectsForUsersQuery($directTeamIds);
+        $projectsFromDirectTeamQuery = ProjectQueryService::getProjectsForUsersQuery($directTeamIds, auth()->user());
 
         // Search functionality
         if ($request->filled('search')) {
@@ -1176,7 +1176,7 @@ class GeneralController extends Controller
         if ($request->filled('coordinator_id')) {
             $coordinatorId = $request->get('coordinator_id');
             $descendantIds = $this->getAllDescendantUserIds(collect([$coordinatorId]));
-            $projectsFromCoordinatorsQuery = ProjectQueryService::getProjectsForUsersQuery($descendantIds);
+            $projectsFromCoordinatorsQuery = ProjectQueryService::getProjectsForUsersQuery($descendantIds, auth()->user());
         }
 
         if ($request->filled('province')) {
@@ -2193,8 +2193,8 @@ class GeneralController extends Controller
             $coordinatorId = $request->get('coordinator_id');
             $descendantIds = $this->getAllDescendantUserIds(collect([$coordinatorId]));
             $projectsFromCoordinatorsQuery->where(function($q) use ($descendantIds) {
-                // Use ProjectQueryService for consistent query pattern
-                $descendantProjectIds = ProjectQueryService::getProjectIdsForUsers($descendantIds);
+                // Use ProjectQueryService for consistent query pattern (Phase 2: pass current user for province-aware query)
+                $descendantProjectIds = ProjectQueryService::getProjectIdsForUsers($descendantIds, auth()->user());
                 $q->whereIn('project_id', $descendantProjectIds);
             });
         }
@@ -3681,9 +3681,9 @@ class GeneralController extends Controller
                 $coordinatorId = $request->get('coordinator_id');
                 $descendantIds = $this->getAllDescendantUserIds(collect([$coordinatorId]));
                 $coordinatorHierarchyProjectsQuery->where(function($q) use ($descendantIds) {
-                    // Use ProjectQueryService for consistent query pattern
-                $descendantProjectIds = ProjectQueryService::getProjectIdsForUsers($descendantIds);
-                $q->whereIn('project_id', $descendantProjectIds);
+                    // Use ProjectQueryService for consistent query pattern (Phase 2: pass current user for province-aware query)
+                    $descendantProjectIds = ProjectQueryService::getProjectIdsForUsers($descendantIds, auth()->user());
+                    $q->whereIn('project_id', $descendantProjectIds);
                 });
             }
             if ($request && $request->filled('project_type') && ($context === 'coordinator_hierarchy' || $context === 'combined')) {

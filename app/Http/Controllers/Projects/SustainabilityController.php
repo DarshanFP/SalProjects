@@ -44,19 +44,6 @@ class SustainabilityController extends Controller
         }
     }
 
-    // Show sustainability information for a project
-    public function show($project_id)
-{
-    // Ensure that 'sustainabilities' is included in the with() method
-    $project = Project::where('project_id', $project_id)
-                      ->with('budgets', 'attachments', 'objectives', 'sustainabilities')
-                      ->firstOrFail();
-    $user = Auth::user();
-
-    return view('projects.Oldprojects.show', compact('project', 'user'));
-}
-
-
     // Edit sustainability information for a project
     public function edit($projectId)
     {

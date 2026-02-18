@@ -126,7 +126,7 @@ class FinancialResolverTest extends TestCase
     }
 
     /**
-     * 4) Pending request calculation: pending = budget - (forwarded + local)
+     * 4) Pending request (M3.7): amount_requested = budget - (forwarded + local); amount_sanctioned = 0; opening = forwarded + local
      */
     public function test_pending_request_calculation(): void
     {
@@ -134,7 +134,7 @@ class FinancialResolverTest extends TestCase
         $budget = 10000.00;
         $forwarded = 1000.00;
         $local = 500.00;
-        $expectedPending = $budget - ($forwarded + $local);
+        $expectedRequested = $budget - ($forwarded + $local);
 
         $project = Project::factory()->create([
             'user_id' => $user->id,
@@ -152,17 +152,18 @@ class FinancialResolverTest extends TestCase
 
         $resolved = $this->resolver->resolve($project);
 
+        $this->assertEqualsWithDelta(0, $resolved['amount_sanctioned'], 0.01, 'Draft: amount_sanctioned == 0');
         $this->assertEqualsWithDelta(
-            $expectedPending,
-            $resolved['amount_sanctioned'],
+            $expectedRequested,
+            $resolved['amount_requested'] ?? 0,
             0.01,
-            'Pending request = budget - (forwarded + local)'
+            'Amount requested = budget - (forwarded + local)'
         );
         $this->assertEqualsWithDelta(
-            $budget,
+            $forwarded + $local,
             $resolved['opening_balance'],
             0.01,
-            'Opening balance = sanctioned + forwarded + local = budget'
+            'Draft: opening_balance = forwarded + local'
         );
     }
 

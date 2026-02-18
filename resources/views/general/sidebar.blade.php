@@ -166,6 +166,12 @@
                     <span class="link-title">Approved Projects</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('projects.trash.index') }}" class="nav-link {{ request()->routeIs('projects.trash.index') ? 'active' : '' }}">
+                    <i class="link-icon" data-feather="trash-2"></i>
+                    <span class="link-title">Trash</span>
+                </a>
+            </li>
 
             <!-- Reports Section (Combined: Coordinators + Direct Team) -->
             <li class="nav-item nav-category">Reports</li>

@@ -106,6 +106,37 @@ class ActivityHistoryService
     }
 
     /**
+     * Log project force delete (permanent deletion) activity.
+     * Must be called BEFORE forceDelete() as project will be removed.
+     *
+     * @param Project $project
+     * @param User $user
+     * @return void
+     */
+    public static function logProjectForceDelete(Project $project, User $user): void
+    {
+        try {
+            ActivityHistory::create([
+                'type' => 'project',
+                'related_id' => $project->project_id,
+                'previous_status' => $project->status,
+                'new_status' => 'permanently_deleted',
+                'action_type' => 'force_delete',
+                'changed_by_user_id' => $user->id,
+                'changed_by_user_role' => $user->role,
+                'changed_by_user_name' => $user->name,
+                'notes' => 'Project permanently deleted from trash',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to log project force delete activity', [
+                'project_id' => $project->project_id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Log project comment activity (without status change)
      *
      * @param Project $project
@@ -131,6 +162,42 @@ class ActivityHistoryService
             Log::error('Failed to log project comment activity', [
                 'project_id' => $project->project_id,
                 'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Log project society changed (Wave 5C: provincial society update).
+     *
+     * @param Project $project Project after update
+     * @param int|null $oldSocietyId Previous society id
+     * @param int $newSocietyId New society id
+     * @return void
+     */
+    public static function logProjectSocietyChanged(Project $project, ?int $oldSocietyId, int $newSocietyId): void
+    {
+        try {
+            $user = auth()->user();
+            ActivityHistory::create([
+                'type' => 'project',
+                'related_id' => $project->project_id,
+                'previous_status' => $project->status,
+                'new_status' => $project->status,
+                'action_type' => 'project_society_changed',
+                'changed_by_user_id' => $user->id,
+                'changed_by_user_role' => $user->role,
+                'changed_by_user_name' => $user->name,
+                'notes' => json_encode([
+                    'project_id' => $project->project_id,
+                    'old_society_id' => $oldSocietyId,
+                    'new_society_id' => $newSocietyId,
+                    'changed_by' => $user->id,
+                ]),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to log project society changed activity', [
+                'project_id' => $project->project_id,
                 'error' => $e->getMessage(),
             ]);
         }

@@ -9,68 +9,96 @@ use App\Constants\ProjectStatus;
 /**
  * Helper class for project permission checks
  *
- * Provides static methods to check various permissions related to projects.
- * Handles ownership, in-charge relationships, and role-based access control.
+ * Province-based access: project.province_id must equal user.province_id (no cross-province access).
+ * Executor/Applicant: edit only own or in-charge projects. Provincial/Coordinator: edit all in their province.
  */
 class ProjectPermissionHelper
 {
     /**
+     * Enforce province isolation: user can only access projects in their province.
+     * If user has no province_id (e.g. admin/general), allow (backward compatibility).
+     */
+    public static function passesProvinceCheck(Project $project, User $user): bool
+    {
+        if ($user->province_id === null) {
+            return true;
+        }
+        return $project->province_id === $user->province_id;
+    }
+
+    /**
      * Check if user can edit a project
-     *
-     * @param Project $project The project to check
-     * @param User $user The user to check permissions for
-     * @return bool True if user can edit the project, false otherwise
+     * 1) Province must match. 2) Status must be editable for role (Wave 5F: canEditForRole). 3) Role-based: executor/applicant = owner or in_charge; provincial/coordinator = true.
      */
     public static function canEdit(Project $project, User $user): bool
     {
-        // Check if project is in editable status
-        if (!ProjectStatus::isEditable($project->status)) {
+        if (!self::passesProvinceCheck($project, $user)) {
             return false;
         }
+        if (!ProjectStatus::canEditForRole($project->status, $user->role)) {
+            return false;
+        }
+        if (in_array($user->role, ['provincial', 'coordinator'])) {
+            return true;
+        }
+        if (in_array($user->role, ['executor', 'applicant'])) {
+            return $project->user_id === $user->id || $project->in_charge === $user->id;
+        }
+        if (in_array($user->role, ['admin', 'general'])) {
+            return true;
+        }
+        return false;
+    }
 
-        // Check ownership
-        return self::isOwnerOrInCharge($project, $user);
+    /**
+     * Alias for canEdit (update uses same rules as edit).
+     */
+    public static function canUpdate(Project $project, User $user): bool
+    {
+        return self::canEdit($project, $user);
+    }
+
+    /**
+     * Check if user can delete a project (same rules as canEdit).
+     */
+    public static function canDelete(Project $project, User $user): bool
+    {
+        return self::canEdit($project, $user);
     }
 
     /**
      * Check if user can submit a project
-     *
-     * @param Project $project The project to check
-     * @param User $user The user to check permissions for
-     * @return bool True if user can submit the project, false otherwise
      */
     public static function canSubmit(Project $project, User $user): bool
     {
-        // Check if project is in submittable status
+        if (!self::passesProvinceCheck($project, $user)) {
+            return false;
+        }
         if (!ProjectStatus::isSubmittable($project->status)) {
             return false;
         }
-
-        // Check user role
         if (!in_array($user->role, ['executor', 'applicant'])) {
             return false;
         }
-
-        // Check ownership
-        return self::isOwnerOrInCharge($project, $user);
+        return $project->user_id === $user->id || $project->in_charge === $user->id;
     }
 
     /**
      * Check if user can view a project
-     *
-     * @param Project $project The project to check
-     * @param User $user The user to check permissions for
-     * @return bool True if user can view the project, false otherwise
+     * Province must match; then provincial/coordinator/admin/general can view; executor/applicant only if owner or in_charge.
      */
     public static function canView(Project $project, User $user): bool
     {
-        // Admin and coordinators can view all projects
-        if (in_array($user->role, ['admin', 'coordinator', 'provincial'])) {
+        if (!self::passesProvinceCheck($project, $user)) {
+            return false;
+        }
+        if (in_array($user->role, ['admin', 'coordinator', 'provincial', 'general'])) {
             return true;
         }
-
-        // Check ownership
-        return self::isOwnerOrInCharge($project, $user);
+        if (in_array($user->role, ['executor', 'applicant'])) {
+            return $project->user_id === $user->id || $project->in_charge === $user->id;
+        }
+        return false;
     }
 
     /**
@@ -139,25 +167,24 @@ class ProjectPermissionHelper
     }
 
     /**
-     * Get query builder for projects that user can edit
-     *
-     * @param User $user The user to get editable projects for
-     * @return \Illuminate\Database\Eloquent\Builder Query builder for editable projects
+     * Get query builder for projects that user can edit (province-scoped).
      */
     public static function getEditableProjects(User $user): \Illuminate\Database\Eloquent\Builder
     {
-        $query = Project::where(function ($q) use ($user) {
-            $q->where('user_id', $user->id)
-              ->orWhere('in_charge', $user->id);
-        });
+        $query = Project::query();
 
-        // Filter by editable statuses
-        $query->whereIn('status', ProjectStatus::getEditableStatuses());
+        if ($user->province_id !== null) {
+            $query->where('province_id', $user->province_id);
+        }
 
-        // For executors and applicants, exclude all approved projects (M3 Phase 1)
         if (in_array($user->role, ['executor', 'applicant'])) {
+            $query->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)->orWhere('in_charge', $user->id);
+            });
             $query->notApproved();
         }
+
+        $query->whereIn('status', ProjectStatus::getEditableStatuses());
 
         return $query;
     }

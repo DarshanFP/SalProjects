@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Projects;
 
+use App\Constants\ProjectStatus;
 use App\Http\Controllers\Controller;
+use App\Helpers\ProjectPermissionHelper;
 use Illuminate\Http\Request;
 use App\Models\OldProjects\Project;
 use App\Models\OldProjects\ProjectAttachment;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -138,6 +141,38 @@ class AttachmentController extends Controller
         }
     }
 
+    /**
+     * VIEW: stream file inline (route-based, guarded).
+     * Guard: province isolation, canView.
+     */
+    public function viewAttachment($id)
+    {
+        $attachment = ProjectAttachment::findOrFail($id);
+
+        $project = $attachment->project;
+        if (! $project) {
+            abort(404);
+        }
+
+        $user = Auth::user();
+        if (! ProjectPermissionHelper::passesProvinceCheck($project, $user)) {
+            abort(403);
+        }
+        if (! ProjectPermissionHelper::canView($project, $user)) {
+            abort(403);
+        }
+
+        if (! $attachment->file_path) {
+            abort(404);
+        }
+        $path = storage_path('app/public/' . $attachment->file_path);
+        if (! file_exists($path)) {
+            abort(404);
+        }
+
+        return response()->file($path);
+    }
+
     public function downloadAttachment($id)
     {
         Log::info('AttachmentController@downloadAttachment - Starting download process', [
@@ -147,6 +182,19 @@ class AttachmentController extends Controller
         try {
             Log::info('AttachmentController@downloadAttachment - Fetching attachment from database');
             $attachment = ProjectAttachment::findOrFail($id);
+
+            $project = $attachment->project;
+            if (! $project) {
+                return redirect()->back()->withErrors(['file' => 'Attachment not found']);
+            }
+
+            $user = Auth::user();
+            if (! ProjectPermissionHelper::passesProvinceCheck($project, $user)) {
+                abort(403);
+            }
+            if (! ProjectPermissionHelper::canView($project, $user)) {
+                abort(403);
+            }
 
             Log::info('AttachmentController@downloadAttachment - Checking file existence', [
                 'path' => $attachment->file_path
@@ -178,6 +226,38 @@ class AttachmentController extends Controller
             ]);
             return redirect()->back()->withErrors(['file' => 'Failed to download the file']);
         }
+    }
+
+    /**
+     * PER-FILE DELETE: remove one common project attachment.
+     * Guard: province, isEditable, canEdit. Model deleting event removes storage.
+     */
+    public function destroyAttachment($id)
+    {
+        $attachment = ProjectAttachment::findOrFail($id);
+
+        $project = $attachment->project;
+        if (! $project) {
+            return response()->json(['success' => false, 'message' => 'Attachment not found.'], 404);
+        }
+
+        $user = Auth::user();
+        if (! ProjectPermissionHelper::passesProvinceCheck($project, $user)) {
+            abort(403);
+        }
+        if (! ProjectStatus::isEditable($project->status)) {
+            abort(403);
+        }
+        if (! ProjectPermissionHelper::canEdit($project, $user)) {
+            abort(403);
+        }
+
+        $attachment->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Attachment deleted successfully.',
+        ]);
     }
 
     public function update(Request $request, $project_id)

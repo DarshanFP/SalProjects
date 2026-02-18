@@ -19,6 +19,8 @@ class FinancialSupportController extends Controller
         $validator = Validator::make($normalized, $formRequest->rules());
         $validator->validate();
         $validated = $validator->validated();
+        $validated['govt_eligible_scholarship'] = $validated['govt_eligible_scholarship'] ?? 0;
+        $validated['other_eligible_scholarship'] = $validated['other_eligible_scholarship'] ?? 0;
 
         Log::info('Storing IIES Financial Support', ['project_id' => $projectId]);
 
@@ -79,6 +81,8 @@ class FinancialSupportController extends Controller
         $validator = Validator::make($normalized, $formRequest->rules());
         $validator->validate();
         $validated = $validator->validated();
+        $validated['govt_eligible_scholarship'] = $validated['govt_eligible_scholarship'] ?? 0;
+        $validated['other_eligible_scholarship'] = $validated['other_eligible_scholarship'] ?? 0;
 
         Log::info('Updating IIES Financial Support', ['project_id' => $projectId]);
 

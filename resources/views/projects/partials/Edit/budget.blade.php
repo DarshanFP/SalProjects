@@ -142,7 +142,7 @@
                            name="amount_sanctioned_preview"
                            class="form-control readonly-input budget-number-input budget-summary-input"
                            readonly
-                           value="{{ old('amount_sanctioned', $project->amount_sanctioned ?? 0) }}"
+                           value="{{ old('amount_sanctioned', $project->isApproved() ? (($resolvedFundFields ?? [])['amount_sanctioned'] ?? 0) : (($resolvedFundFields ?? [])['amount_requested'] ?? 0)) }}"
                            >
                     <div class="form-text">
                         <i class="fas fa-calculator"></i> This is the amount you are requesting.

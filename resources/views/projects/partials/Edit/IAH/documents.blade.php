@@ -43,7 +43,7 @@
                                     @php
                                         $fileExists = Storage::disk('public')->exists($file->file_path);
                                     @endphp
-                                    <div class="file-item mb-2 p-2 border rounded">
+                                    <div class="file-item mb-2 p-2 border rounded" @if(isset($file->id)) id="iah-file-{{ $file->id }}" @endif>
                                         @if($fileExists)
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
@@ -54,12 +54,26 @@
                                                     @endif
                                                 </div>
                                                 <div>
-                                                    <a href="{{ route('projects.iah.documents.view', $file->id) }}" target="_blank" class="btn btn-sm btn-primary">
-                                                        <i class="fas fa-eye"></i> View
-                                                    </a>
-                                                    <a href="{{ route('projects.iah.documents.download', $file->id) }}" class="btn btn-sm btn-secondary">
-                                                        <i class="fas fa-download"></i> Download
-                                                    </a>
+                                                    @if(isset($file->id))
+                                                        <a href="{{ route('projects.iah.documents.view', $file->id) }}" target="_blank" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-eye"></i> View
+                                                        </a>
+                                                        <a href="{{ route('projects.iah.documents.download', $file->id) }}" class="btn btn-sm btn-secondary">
+                                                            <i class="fas fa-download"></i> Download
+                                                        </a>
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-outline-danger"
+                                                                onclick="confirmRemoveIAHFile({{ $file->id }}, {{ json_encode($file->file_name) }})">
+                                                            <i class="fas fa-trash"></i> Delete
+                                                        </button>
+                                                    @else
+                                                        <a href="{{ Storage::url($file->file_path) }}" target="_blank" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-eye"></i> View
+                                                        </a>
+                                                        <a href="{{ Storage::url($file->file_path) }}" download class="btn btn-sm btn-secondary">
+                                                            <i class="fas fa-download"></i> Download
+                                                        </a>
+                                                    @endif
                                                 </div>
                                             </div>
                                         @else
@@ -197,6 +211,47 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
+
+<script>
+function confirmRemoveIAHFile(fileId, fileName) {
+    if (!confirm('Are you sure you want to delete "' + fileName + '"? This action cannot be undone.')) {
+        return;
+    }
+    removeIAHFile(fileId);
+}
+
+function removeIAHFile(fileId) {
+
+    let deleteUrlTemplate = "{{ route('projects.iah.documents.files.destroy', ':id') }}";
+    let deleteUrl = deleteUrlTemplate.replace(':id', fileId);
+
+    fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        return response.json().then(data => {
+            if (!response.ok) {
+                throw new Error(data.message || 'Delete failed.');
+            }
+            return data;
+        });
+    })
+    .then(data => {
+        if (data.success) {
+            const row = document.getElementById('iah-file-' + fileId);
+            if (row) row.remove();
+        }
+    })
+    .catch(error => {
+        alert(error.message);
+        console.error(error);
+    });
+}
 </script>
 
 <script src="{{ asset('js/attachments-validation.js') }}"></script>

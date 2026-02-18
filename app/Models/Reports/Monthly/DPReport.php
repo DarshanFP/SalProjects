@@ -16,7 +16,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $project_title
  * @property string|null $project_type
  * @property string|null $place
+ * @property int|null $society_id   Wave 6A: snapshot from project at creation; immutable
  * @property string|null $society_name
+ * @property int|null $province_id  Wave 6A: snapshot from project at creation; immutable
  * @property string|null $commencement_month_year
  * @property string|null $in_charge
  * @property int|null $total_beneficiaries
@@ -153,6 +155,26 @@ class DPReport extends Model
         'reverted_to_coordinator' => 'Reverted to Coordinator',
     ];
 
+    /**
+     * Wave 6D: Block updates that change report society snapshot fields once set.
+     * Allow initial set on first save after create (original is null).
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (DPReport $report): void {
+            $changingSocietyId = $report->isDirty('society_id') && $report->getOriginal('society_id') !== null;
+            $changingSocietyName = $report->isDirty('society_name') && $report->getOriginal('society_name') !== null;
+            $changingProvinceId = $report->isDirty('province_id') && $report->getOriginal('province_id') !== null;
+            if ($changingSocietyId || $changingSocietyName || $changingProvinceId) {
+                abort(403, 'Report society snapshot fields are immutable.');
+            }
+        });
+    }
+
+    /**
+     * society_id, society_name, province_id are snapshot-from-project only (Wave 6A).
+     * Not in fillable so they are never mass-assigned on update (Wave 6D).
+     */
     protected $fillable = [
         'report_id',
         'user_id',
@@ -160,7 +182,6 @@ class DPReport extends Model
         'project_title',
         'project_type',
         'place',
-        'society_name',
         'commencement_month_year',
         'in_charge',
         'total_beneficiaries',

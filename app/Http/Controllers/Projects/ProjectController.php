@@ -83,6 +83,7 @@ use App\Http\Controllers\Projects\IIES\IIESExpensesController as IIESExpensesCon
 use App\Models\OldProjects\IIES\ProjectIIESExpenses;
 use App\Models\OldProjects\IIES\ProjectIIESEducationBackground;
 use App\Domain\Budget\ProjectFinancialResolver;
+use App\Services\ProjectLifecycleService;
 
 class ProjectController extends Controller
 {
@@ -823,48 +824,8 @@ public function show($project_id)
             'project_status' => $project->status
         ]);
 
-        // Use ProjectPermissionHelper for consistent permission checking
-        // For admin, coordinator, and provincial roles, check separately as they have different rules
-        $hasAccess = false;
-
-        if (in_array($user->role, ['admin', 'coordinator', 'provincial'])) {
-            // Admin, coordinators, and provincials have special access rules
-            switch ($user->role) {
-                case 'provincial':
-                    // Provincials can view projects from executors under them with specific statuses
-                    if ($project->user->parent_id === $user->id) {
-                        if (in_array($project->status, [
-                            ProjectStatus::SUBMITTED_TO_PROVINCIAL,
-                            ProjectStatus::REVERTED_BY_COORDINATOR,
-                            ProjectStatus::APPROVED_BY_COORDINATOR
-                        ])) {
-                            $hasAccess = true;
-                        }
-                    }
-                    break;
-
-                case 'coordinator':
-                    // Coordinators can view projects with various statuses
-                    if (in_array($project->status, [
-                        ProjectStatus::FORWARDED_TO_COORDINATOR,
-                        ProjectStatus::APPROVED_BY_COORDINATOR,
-                        ProjectStatus::REVERTED_BY_COORDINATOR
-                    ])) {
-                        $hasAccess = true;
-                    }
-                    break;
-
-                case 'admin':
-                    // Admins can view all projects
-                    $hasAccess = true;
-                    break;
-            }
-        } else {
-            // For executor and applicant, use ProjectPermissionHelper
-            $hasAccess = ProjectPermissionHelper::canView($project, $user);
-        }
-
-        if (!$hasAccess) {
+        // Province isolation + role-based view (ProjectPermissionHelper::canView)
+        if (!ProjectPermissionHelper::canView($project, $user)) {
             Log::warning('ProjectController@show - Access denied', [
                 'user_id' => $user->id,
                 'user_role' => $user->role,
@@ -1067,8 +1028,14 @@ public function show($project_id)
 
         // Phase 1: Resolved fund fields for display. Always use ProjectFinancialResolver as single
         // source of truth. Read-only, no writes.
+        \Log::info('Controller Debug Before Resolve', [
+            'project_id' => $project->project_id,
+            'relation_loaded' => $project->relationLoaded('iiesExpenses'),
+            'relation_value_is_null' => is_null($project->iiesExpenses),
+        ]);
         $resolver = app(ProjectFinancialResolver::class);
         $data['resolvedFundFields'] = $resolver->resolve($project);
+        \Log::info('Resolved Fund Fields Output', $data['resolvedFundFields']);
 
         Log::info('ProjectController@show - Data prepared for view', [
             'project_id' => $project_id,
@@ -1326,11 +1293,15 @@ public function edit($project_id)
         // Phase 3: Budget locked when project is approved (restrict flag on)
         $budgetLockedByApproval = !BudgetSyncGuard::canEditBudget($project);
 
+        // Financial semantics UI: resolved fund fields for display (no raw amount_sanctioned)
+        $resolver = app(ProjectFinancialResolver::class);
+        $resolvedFundFields = $resolver->resolve($project);
+
         // Phase 5B1: Role-based society dropdown
         $societies = SocietyVisibilityHelper::getSocietiesForProjectForm($user);
 
         return view('projects.Oldprojects.edit', compact(
-            'project', 'developmentProjects', 'user', 'users', 'societies',
+            'project', 'developmentProjects', 'user', 'users', 'societies', 'resolvedFundFields',
             'basicInfo', 'targetGroups', 'annexedTargetGroups', 'cicBasicInfo',
             'achievements', 'ageProfile', 'targetGroup', 'economicBackground',
             'personalSituation', 'presentSituation', 'rationale', 'statistics',
@@ -1560,166 +1531,64 @@ public function edit($project_id)
 
 
 
+    /**
+     * Soft delete (move to trash). No child data or files are removed.
+     * Child cleanup runs only on forceDelete() via Project::forceDeleting.
+     */
     public function destroy($project_id)
-{
-    Log::info('ProjectController@destroy - Starting destroy process', ['project_id' => $project_id]);
-
-    DB::beginTransaction();
-    try {
-        Log::info('ProjectController@destroy - Fetching project from database');
+    {
         $project = Project::where('project_id', $project_id)->firstOrFail();
-        Log::info('ProjectController@destroy - Project fetched', [
-            'project_type' => $project->project_type
-        ]);
+        $result = app(ProjectLifecycleService::class)->trash($project, Auth::user());
 
-        // Delete common sections for non-individual types
-        $nonIndividualTypes = [
-            'Rural-Urban-Tribal',
-            'CHILD CARE INSTITUTION',
-            'Institutional Ongoing Group Educational proposal',
-            'Livelihood Development Projects',
-            'Residential Skill Training Proposal 2',
-            'Development Projects',
-            'NEXT PHASE - DEVELOPMENT PROPOSAL',
-            'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER'
-        ];
-
-        if (in_array($project->project_type, $nonIndividualTypes)) {
-            Log::info('ProjectController@destroy - Deleting common sections for non-individual type');
-            $this->sustainabilityController->destroy($project_id);
-            $this->logicalFrameworkController->destroy($project_id);
-            // Attachments are handled by the model's cascading delete (assumed via foreign key)
+        if ($result === 'already_trashed') {
+            return redirect()->route('projects.index')->with('info', 'Project is already in trash.');
         }
 
-        // Handle project type-specific deletions
-        switch ($project->project_type) {
-            case 'Rural-Urban-Tribal':
-                Log::info('ProjectController@destroy - Deleting Rural-Urban-Tribal data');
-                $this->eduRUTBasicInfoController->destroy($project_id);
-                $this->eduRUTTargetGroupController->destroy($project_id);
-                $this->eduRUTAnnexedTargetGroupController->destroy($project_id);
-                break;
-
-            case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
-                Log::info('ProjectController@destroy - Deleting CIC data');
-                $this->cicBasicInfoController->destroy($project_id);
-                break;
-
-            case 'CHILD CARE INSTITUTION':
-                Log::info('ProjectController@destroy - Deleting CCI data');
-                $this->cciAchievementsController->destroy($project_id);
-                $this->cciAgeProfileController->destroy($project_id);
-                $this->cciAnnexedTargetGroupController->destroy($project_id);
-                $this->cciEconomicBackgroundController->destroy($project_id);
-                $this->cciPersonalSituationController->destroy($project_id);
-                $this->cciPresentSituationController->destroy($project_id);
-                $this->cciRationaleController->destroy($project_id);
-                $this->cciStatisticsController->destroy($project_id);
-                break;
-
-            case 'Institutional Ongoing Group Educational proposal':
-                Log::info('ProjectController@destroy - Deleting IGE data');
-                $this->igeInstitutionInfoController->destroy($project_id);
-                $this->igeBeneficiariesSupportedController->destroy($project_id);
-                $this->igeNewBeneficiariesController->destroy($project_id);
-                $this->igeOngoingBeneficiariesController->destroy($project_id);
-                $this->igeBudgetController->destroy($project_id);
-                $this->igeDevelopmentMonitoringController->destroy($project_id);
-                break;
-
-            case 'Livelihood Development Projects':
-                Log::info('ProjectController@destroy - Deleting LDP data');
-                $this->ldpInterventionLogicController->destroy($project_id);
-                $this->ldpNeedAnalysisController->destroy($project_id);
-                $this->ldpTargetGroupController->destroy($project_id);
-                break;
-
-            case 'Residential Skill Training Proposal 2':
-                Log::info('ProjectController@destroy - Deleting RST data');
-                $this->rstBeneficiariesAreaController->destroy($project_id);
-                $this->rstGeographicalAreaController->destroy($project_id);
-                $this->rstInstitutionInfoController->destroy($project_id);
-                $this->rstTargetGroupAnnexureController->destroy($project_id);
-                $this->rstTargetGroupController->destroy($project_id);
-                break;
-
-            case 'Development Projects':
-                Log::info('ProjectController@destroy - Deleting Development Projects data');
-                $this->rstBeneficiariesAreaController->destroy($project_id);
-                break;
-
-            case 'NEXT PHASE - DEVELOPMENT PROPOSAL':
-                Log::info('ProjectController@destroy - Deleting NEXT PHASE - DEVELOPMENT PROPOSAL data');
-                $this->rstBeneficiariesAreaController->destroy($project_id);
-                break;
-
-            case 'Individual - Ongoing Educational support':
-                Log::info('ProjectController@destroy - Deleting IES data');
-                $this->iesPersonalInfoController->destroy($project->project_id);
-                $this->iesFamilyWorkingMembersController->destroy($project->project_id);
-                $this->iesImmediateFamilyDetailsController->destroy($project->project_id);
-                $this->iesEducationBackgroundController->destroy($project->project_id);
-                $this->iesExpensesController->destroy($project->project_id);
-                $this->iesAttachmentsController->destroy($project->project_id);
-                break;
-
-            case 'Individual - Livelihood Application':
-                Log::info('ProjectController@destroy - Deleting ILP data');
-                $this->ilpPersonalInfoController->destroy($project_id);
-                $this->ilpRevenueGoalsController->destroy($project_id);
-                $this->ilpStrengthWeaknessController->destroy($project_id);
-                $this->ilpRiskAnalysisController->destroy($project_id);
-                $this->ilpAttachedDocumentsController->destroy($project_id);
-                $this->ilpBudgetController->destroy($project_id);
-                break;
-
-            case 'Individual - Access to Health':
-                Log::info('ProjectController@destroy - Deleting IAH data');
-                $this->iahPersonalInfoController->destroy($project->project_id);
-                $this->iahEarningMembersController->destroy($project->project_id);
-                $this->iahHealthConditionController->destroy($project->project_id);
-                $this->iahSupportDetailsController->destroy($project->project_id);
-                $this->iahBudgetDetailsController->destroy($project->project_id);
-                $this->iahDocumentsController->destroy($project->project_id);
-                break;
-
-            case 'Individual - Initial - Educational support':
-                Log::info('ProjectController@destroy - Deleting IIES data');
-                $this->iiesPersonalInfoController->destroy($project->project_id);
-                $this->iiesFamilyWorkingMembersController->destroy($project->project_id);
-                $this->iiesImmediateFamilyDetailsController->destroy($project->project_id);
-                $this->iiesEducationBackgroundController->destroy($project->project_id);
-                $this->iiesFinancialSupportController->destroy($project->project_id);
-                $this->iiesAttachmentsController->destroy($project->project_id);
-                $this->iiesExpensesController->destroy($project->project_id);
-                break;
-
-            default:
-                Log::warning('ProjectController@destroy - Unknown project type', [
-                    'project_type' => $project->project_type
-                ]);
-                break;
-        }
-
-        Log::info('ProjectController@destroy - Deleting project record');
-        $project->delete();
-
-        DB::commit();
-        Log::info('ProjectController@destroy - Project and related data deleted successfully', [
-            'project_id' => $project_id
-        ]);
-
-        return redirect()->route('projects.index')->with('success', 'Project deleted successfully.');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('ProjectController@destroy - Error during deletion', [
-            'project_id' => $project_id,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        return redirect()->back()->withErrors(['error' => 'There was an error deleting the project. Please try again.']);
+        return redirect()->route('projects.index')->with('success', 'Project moved to trash successfully.');
     }
-}
+
+    /**
+     * List trashed projects. Province and role scoped.
+     * Executors/Applicants see only own trashed; Provincial sees province; Coordinator/General/Admin see all.
+     */
+    public function trashIndex()
+    {
+        $user = auth()->user();
+        $projects = ProjectQueryService::getTrashedProjectsQuery($user)
+            ->with(['society', 'user'])
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(15);
+
+        return view('projects.trash.index', compact('projects', 'user'));
+    }
+
+    /**
+     * Restore a soft-deleted project (Move to Trash reversal).
+     * Only allowed when user has canDelete() permission (same as trash).
+     */
+    public function restore($project_id)
+    {
+        $project = Project::withTrashed()->where('project_id', $project_id)->firstOrFail();
+        $result = app(ProjectLifecycleService::class)->restore($project, Auth::user());
+
+        if ($result === 'already_active') {
+            return redirect()->route('projects.trash.index')->with('info', 'Project is not in trash.');
+        }
+
+        return redirect()->route('projects.trash.index')->with('success', 'Project restored successfully.');
+    }
+
+    /**
+     * Permanently delete a trashed project (admin only). Removes project and all related data.
+     */
+    public function forceDelete($project_id)
+    {
+        $project = Project::withTrashed()->where('project_id', $project_id)->firstOrFail();
+
+        app(ProjectLifecycleService::class)->forceDelete($project, Auth::user());
+
+        return redirect()->route('projects.trash.index')->with('success', 'Project permanently deleted.');
+    }
 
     // 9122024
     public function listProjects(Request $request)
@@ -1727,15 +1596,17 @@ public function edit($project_id)
     $user = Auth::user();
     $query = Project::query()->with('user');
 
+    // Province isolation: only projects in user's province
+    if ($user->province_id !== null) {
+        $query->where('province_id', $user->province_id);
+    }
+
     // If Provincial: show only projects whose user's parent_id = provincial->id
     if ($user->role === 'provincial') {
         $query->whereHas('user', function($q) use ($user) {
             $q->where('parent_id', $user->id);
         });
     }
-
-    // If Coordinator: show all projects (no filtering needed)
-    // Coordinators can see all project types including individual projects
 
     // Apply filters if provided (e.g., project_type)
     if ($request->filled('project_type')) {

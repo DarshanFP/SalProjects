@@ -52,12 +52,17 @@ class ProjectFinancialResolver
     /**
      * Resolve project-level fund fields.
      *
+     * M3.7 Phase 1: Canonical separation.
+     * - Non-approved: amount_sanctioned = 0, amount_requested = overall - (forwarded + local), opening = forwarded + local.
+     * - Approved: amount_sanctioned = DB value, amount_requested = 0, opening_balance = DB value.
+     *
      * @param Project $project
      * @return array{
      *     overall_project_budget: float,
      *     amount_forwarded: float,
      *     local_contribution: float,
      *     amount_sanctioned: float,
+     *     amount_requested: float,
      *     opening_balance: float
      * }
      */
@@ -65,7 +70,8 @@ class ProjectFinancialResolver
     {
         $strategy = $this->getStrategyForProject($project);
         $result = $strategy->resolve($project);
-        $normalized = $this->normalize($result);
+        $overlaid = $this->applyCanonicalSeparation($project, $result);
+        $normalized = $this->normalize($overlaid);
 
         $this->assertFinancialInvariants($project, $normalized);
 
@@ -73,7 +79,37 @@ class ProjectFinancialResolver
     }
 
     /**
-     * M3.5.3: Log warnings if financial invariants are violated. Non-breaking.
+     * M3.7 Phase 1: Apply canonical sanctioned vs requested separation.
+     *
+     * Non-approved: amount_sanctioned = 0, amount_requested = max(0, overall - (forwarded + local)), opening_balance = forwarded + local.
+     * Approved: amount_sanctioned = project->amount_sanctioned, amount_requested = 0, opening_balance = project->opening_balance.
+     */
+    private function applyCanonicalSeparation(Project $project, array $result): array
+    {
+        $overall = (float) ($result['overall_project_budget'] ?? 0);
+        $forwarded = (float) ($result['amount_forwarded'] ?? 0);
+        $local = (float) ($result['local_contribution'] ?? 0);
+        $combined = $forwarded + $local;
+
+        if (!$project->isApproved()) {
+            $requested = (float) ($result['amount_requested'] ?? max(0, $overall - $combined));
+            return array_merge($result, [
+                'amount_sanctioned' => 0.0,
+                'amount_requested' => round(max(0, $requested), 2),
+                'opening_balance' => $combined,
+            ]);
+        }
+
+        return array_merge($result, [
+            'amount_sanctioned' => (float) ($project->amount_sanctioned ?? 0),
+            'amount_requested' => 0.0,
+            'opening_balance' => (float) ($project->opening_balance ?? 0),
+        ]);
+    }
+
+    /**
+     * M3.5.3 / M3.7 Phase 1: Assert financial invariants. Log only; no auto-fix.
+     * M3.7: Critical warning when DB has amount_sanctioned > 0 for non-approved project.
      */
     private function assertFinancialInvariants(Project $project, array $data): void
     {
@@ -82,6 +118,25 @@ class ProjectFinancialResolver
         $opening = (float) ($data['opening_balance'] ?? 0);
         $overall = (float) ($data['overall_project_budget'] ?? 0);
         $tolerance = 0.01;
+
+        // M3.7 Phase 1: Strict assertion — non-approved must not have sanctioned > 0 in DB (stabilizing semantics before cleanup).
+        if (!$project->isApproved()) {
+            $storedSanctioned = (float) ($project->amount_sanctioned ?? 0);
+            if ($storedSanctioned > $tolerance) {
+                Log::critical('Financial invariant violation: non-approved project has amount_sanctioned > 0 in DB (M3.7)', [
+                    'project_id' => $projectId,
+                    'stored_amount_sanctioned' => $storedSanctioned,
+                    'invariant' => 'non_approved_implies_sanctioned_zero',
+                ]);
+            }
+            if (abs($sanctioned) > $tolerance) {
+                Log::warning('Financial invariant violation: resolved amount_sanctioned must be 0 for non-approved', [
+                    'project_id' => $projectId,
+                    'amount_sanctioned' => $sanctioned,
+                    'invariant' => 'amount_sanctioned == 0',
+                ]);
+            }
+        }
 
         if ($project->isApproved()) {
             if ($sanctioned <= 0) {
@@ -97,14 +152,6 @@ class ProjectFinancialResolver
                     'opening_balance' => $opening,
                     'overall_project_budget' => $overall,
                     'invariant' => 'opening_balance == overall_project_budget',
-                ]);
-            }
-        } else {
-            if (abs($sanctioned) > $tolerance) {
-                Log::warning('Financial invariant violation: non-approved project must have amount_sanctioned == 0', [
-                    'project_id' => $projectId,
-                    'amount_sanctioned' => $sanctioned,
-                    'invariant' => 'amount_sanctioned == 0',
                 ]);
             }
         }
@@ -126,7 +173,7 @@ class ProjectFinancialResolver
     }
 
     /**
-     * Ensure all numeric values are float, rounded to 2 decimals.
+     * Ensure all numeric values are float, rounded to 2 decimals. Includes amount_requested (M3.7).
      */
     protected function normalize(array $data): array
     {
@@ -135,6 +182,7 @@ class ProjectFinancialResolver
             'amount_forwarded',
             'local_contribution',
             'amount_sanctioned',
+            'amount_requested',
             'opening_balance',
         ];
         $out = [];

@@ -47,12 +47,16 @@ class PhaseBasedBudgetStrategy implements ProjectFinancialStrategyInterface
             $overall = (float) ($project->overall_project_budget ?? 0);
         }
 
+        $combined = $forwarded + $local;
         if (BudgetSyncGuard::isApproved($project)) {
             $sanctioned = (float) ($project->amount_sanctioned ?? 0);
             $opening = (float) ($project->opening_balance ?? 0);
+            $requested = 0.0;
         } else {
-            $sanctioned = $this->calculateAmountSanctioned($overall, $forwarded + $local);
-            $opening = $sanctioned + $forwarded + $local;
+            // M3.7: Do not treat sanctioned as requested. Return requested separately; resolver sets sanctioned = 0.
+            $requested = max(0.0, $this->calculateAmountSanctioned($overall, $combined));
+            $sanctioned = 0.0;
+            $opening = $combined;
         }
 
         return $this->normalize([
@@ -60,12 +64,13 @@ class PhaseBasedBudgetStrategy implements ProjectFinancialStrategyInterface
             'amount_forwarded' => $forwarded,
             'local_contribution' => $local,
             'amount_sanctioned' => max(0, $sanctioned),
+            'amount_requested' => max(0, $requested),
             'opening_balance' => max(0, $opening),
         ]);
     }
 
     /**
-     * Amount sanctioned = overall - (forwarded + local).
+     * Amount requested (pre-approval) = overall - (forwarded + local).
      * Future: move to DerivedCalculationService when permitted.
      */
     private function calculateAmountSanctioned(float $overall, float $combinedContribution): float
@@ -74,7 +79,7 @@ class PhaseBasedBudgetStrategy implements ProjectFinancialStrategyInterface
     }
 
     /**
-     * Ensure all values are non-negative floats rounded to 2 decimals.
+     * Ensure all values are non-negative floats rounded to 2 decimals. Includes amount_requested (M3.7).
      */
     protected function normalize(array $values): array
     {
@@ -83,6 +88,7 @@ class PhaseBasedBudgetStrategy implements ProjectFinancialStrategyInterface
             'amount_forwarded',
             'local_contribution',
             'amount_sanctioned',
+            'amount_requested',
             'opening_balance',
         ];
         $out = [];

@@ -21,7 +21,11 @@ use App\Services\ProjectStatusService;
 use App\Services\ReportStatusService;
 use App\Services\ActivityHistoryService;
 use App\Constants\ProjectStatus;
+use App\Helpers\TableFormatter;
+use App\Helpers\SocietyVisibilityHelper;
+use App\Http\Requests\Provincial\UpdateProjectSocietyRequest;
 use Exception;
+use Illuminate\Support\Facades\DB;
 
 
 class ProvincialController extends Controller
@@ -80,6 +84,56 @@ class ProvincialController extends Controller
     public function provincialDashboard(Request $request)
     {
         $provincial = auth()->user();
+
+        // Wave 6C: Society-wise breakdown only when province has more than one active society
+        $provinceId = $provincial->province_id;
+        $societyCount = $provinceId
+            ? Society::where('province_id', $provinceId)->where('is_active', true)->count()
+            : 0;
+        $enableSocietyBreakdown = ($societyCount > 1);
+        $societyStats = [];
+
+        if ($enableSocietyBreakdown && $provinceId) {
+            $societies = Society::where('province_id', $provinceId)
+                ->where('is_active', true)
+                ->get(['id', 'name']);
+
+            $approvedTotals = Project::where('province_id', $provinceId)
+                ->whereIn('status', [
+                    ProjectStatus::APPROVED_BY_COORDINATOR,
+                    ProjectStatus::APPROVED_BY_GENERAL_AS_COORDINATOR,
+                    ProjectStatus::APPROVED_BY_GENERAL_AS_PROVINCIAL,
+                ])
+                ->selectRaw('society_id, SUM(COALESCE(amount_sanctioned, 0)) as total')
+                ->groupBy('society_id')
+                ->pluck('total', 'society_id');
+
+            $pendingTotals = Project::where('province_id', $provinceId)
+                ->whereNotIn('status', ProjectStatus::FINAL_STATUSES)
+                ->selectRaw('society_id, SUM(GREATEST(0, COALESCE(overall_project_budget, 0) - COALESCE(amount_forwarded, 0) - COALESCE(local_contribution, 0))) as total')
+                ->groupBy('society_id')
+                ->pluck('total', 'society_id');
+
+            $reportedTotals = DPReport::where('province_id', $provinceId)
+                ->whereNotNull('society_id')
+                ->join('DP_AccountDetails', 'DP_Reports.report_id', '=', 'DP_AccountDetails.report_id')
+                ->selectRaw('DP_Reports.society_id as society_id, SUM(COALESCE(DP_AccountDetails.total_expenses, 0)) as total')
+                ->groupBy('DP_Reports.society_id')
+                ->pluck('total', 'society_id');
+
+            foreach ($societies as $society) {
+                $approved = (float) ($approvedTotals[$society->id] ?? 0);
+                $pending = (float) ($pendingTotals[$society->id] ?? 0);
+                $reported = (float) ($reportedTotals[$society->id] ?? 0);
+                $societyStats[$society->id] = [
+                    'society_name' => $society->name,
+                    'approved_total' => $approved,
+                    'pending_total' => $pending,
+                    'reported_total' => $reported,
+                    'remaining' => max($approved - $reported, 0),
+                ];
+            }
+        }
 
         \Log::info('Provincial Dashboard Request', [
             'user_id' => $provincial->id,
@@ -243,7 +297,9 @@ class ProvincialController extends Controller
             'centerPerformance',
             'teamActivities',
             'budgetData',
-            'centerComparison'
+            'centerComparison',
+            'enableSocietyBreakdown',
+            'societyStats'
         ));
     }
 
@@ -471,43 +527,51 @@ class ProvincialController extends Controller
     {
         $provincial = auth()->user();
 
-        // Get all accessible user IDs (handles both provincial and general users)
+        // Province isolation: only projects for accessible users (handles provincial + general with province filter)
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
-        // Fetch ALL projects for accessible users (all statuses)
-        $projectsQuery = Project::whereIn('user_id', $accessibleUserIds);
-
-        // Apply filters
-        if ($request->filled('project_type')) {
-            $projectsQuery->where('project_type', $request->project_type);
-        }
-
-        if ($request->filled('user_id')) {
-            $projectsQuery->where('user_id', $request->user_id);
-        }
-
-        if ($request->filled('status')) {
-            $projectsQuery->where('status', $request->status);
-        }
-
-        if ($request->filled('center')) {
-            $projectsQuery->whereHas('user', function($query) use ($request) {
-                $query->where('center', $request->center);
+        // Base query (clone before get/paginate to avoid mutating)
+        $baseQuery = Project::whereIn('user_id', $accessibleUserIds)
+            ->when($request->filled('project_type'), fn ($q) => $q->where('project_type', $request->project_type))
+            ->when($request->filled('user_id'), fn ($q) => $q->where('user_id', $request->user_id))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
+            ->when($request->filled('center'), function ($q) use ($request) {
+                $q->whereHas('user', fn ($uq) => $uq->where('center', $request->center));
             });
-        }
 
-        $projects = $projectsQuery->with(['user', 'reports.accountDetails'])->get();
+        // Full dataset for grand totals and status distribution (resolver runs on full filtered set)
+        $fullDataset = (clone $baseQuery)
+            ->with(['user', 'reports.accountDetails'])
+            ->get();
 
         $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
         $calc = app(\App\Services\Budget\DerivedCalculationService::class);
         $resolvedFinancials = [];
-        // Calculate project health and budget utilization for each project
-        $projects = $projects->map(function($project) use ($resolver, $calc, &$resolvedFinancials) {
+        // M3.7 Phase 2: Stage-separated totals — sanctioned (approved only), requested (non-approved only)
+        $grandTotals = [
+            'overall_project_budget' => 0,
+            'amount_forwarded' => 0,
+            'local_contribution' => 0,
+            'amount_sanctioned' => 0,
+            'amount_requested' => 0,
+            'opening_balance' => 0,
+        ];
+
+        foreach ($fullDataset as $project) {
             $financials = $resolver->resolve($project);
             $resolvedFinancials[$project->project_id] = $financials;
+            $grandTotals['overall_project_budget'] += (float) ($financials['overall_project_budget'] ?? 0);
+            $grandTotals['amount_forwarded'] += (float) ($financials['amount_forwarded'] ?? 0);
+            $grandTotals['local_contribution'] += (float) ($financials['local_contribution'] ?? 0);
+            $grandTotals['opening_balance'] += (float) ($financials['opening_balance'] ?? 0);
+            if ($project->isApproved()) {
+                $grandTotals['amount_sanctioned'] += (float) ($financials['amount_sanctioned'] ?? 0);
+            } else {
+                $grandTotals['amount_requested'] += (float) ($financials['amount_requested'] ?? 0);
+            }
+
             $projectBudget = (float) ($financials['opening_balance'] ?? 0);
             $totalExpenses = 0;
-
             if ($project->reports) {
                 foreach ($project->reports as $report) {
                     if ($report->isApproved() && $report->accountDetails) {
@@ -515,39 +579,60 @@ class ProvincialController extends Controller
                     }
                 }
             }
-
             $utilization = $calc->calculateUtilization($totalExpenses, $projectBudget);
-
-            // Determine health status
             $health = 'good';
             if ($utilization > 90) {
                 $health = 'critical';
             } elseif ($utilization > 75) {
                 $health = 'warning';
             }
-
-            // Add calculated fields
             $project->budget_utilization = $utilization;
             $project->total_expenses = $totalExpenses;
             $project->health_status = $health;
+        }
 
+        $totalRecordCount = $fullDataset->count();
+        $statusDistribution = $fullDataset->groupBy('status')->map->count();
+
+        // Paginated listing (same filters, same province isolation)
+        $perPage = TableFormatter::resolvePerPage($request);
+        $projects = (clone $baseQuery)
+            ->with(['user', 'reports.accountDetails'])
+            ->paginate($perPage)
+            ->withQueryString();
+
+        // Attach computed fields to current page items (resolvedFinancials already populated)
+        $projects->getCollection()->transform(function ($project) use ($resolvedFinancials, $calc) {
+            $financials = $resolvedFinancials[$project->project_id] ?? [];
+            $projectBudget = (float) ($financials['opening_balance'] ?? 0);
+            $totalExpenses = 0;
+            if ($project->reports) {
+                foreach ($project->reports as $report) {
+                    if ($report->isApproved() && $report->accountDetails) {
+                        $totalExpenses += $report->accountDetails->sum('total_expenses') ?? 0;
+                    }
+                }
+            }
+            $project->budget_utilization = $calc->calculateUtilization($totalExpenses, $projectBudget);
+            $project->total_expenses = $totalExpenses;
+            $health = 'good';
+            if ($project->budget_utilization > 90) {
+                $health = 'critical';
+            } elseif ($project->budget_utilization > 75) {
+                $health = 'warning';
+            }
+            $project->health_status = $health;
             return $project;
         });
 
-        // Get all accessible user IDs
-        $accessibleUserIds = $this->getAccessibleUserIds($provincial);
+        $currentPerPage = $perPage;
+        $allowedPageSizes = TableFormatter::ALLOWED_PAGE_SIZES;
 
-        // Fetch distinct executors/applicants for filtering
+        // Filter dropdowns (province-scoped)
         $users = User::whereIn('id', $accessibleUserIds)
             ->whereIn('role', ['executor', 'applicant'])
             ->get();
-
-        // Distinct project types
-        $projectTypes = Project::whereIn('user_id', $accessibleUserIds)
-            ->distinct()
-            ->pluck('project_type');
-
-        // Distinct centers
+        $projectTypes = Project::whereIn('user_id', $accessibleUserIds)->distinct()->pluck('project_type');
         $centers = User::whereIn('id', $accessibleUserIds)
             ->whereIn('role', ['executor', 'applicant'])
             ->whereNotNull('center')
@@ -556,17 +641,32 @@ class ProvincialController extends Controller
             ->filter()
             ->values();
 
-        // Project status distribution for chart
-        $statusDistribution = $projects->groupBy('status')->map->count();
+        // Wave 5C: Societies for Update Society dropdown (once per page, no N+1)
+        $societies = SocietyVisibilityHelper::queryForProjectForm($provincial)->get();
 
         return view('provincial.ProjectList', compact(
             'projects',
             'resolvedFinancials',
+            'grandTotals',
+            'totalRecordCount',
+            'currentPerPage',
+            'allowedPageSizes',
             'users',
             'projectTypes',
             'centers',
-            'statusDistribution'
+            'statusDistribution',
+            'societies'
         ));
+    }
+
+    /**
+     * Placeholder for provincial projects list Excel export.
+     * Pass current query string to preserve filters. Export logic not implemented yet.
+     */
+    public function projectsExport(Request $request)
+    {
+        // Placeholder: export logic to be implemented later. Query string available in $request->query().
+        abort(501, 'Export not implemented yet.');
     }
 
     public function showProject($project_id)
@@ -586,6 +686,36 @@ class ProvincialController extends Controller
 
         // If passed the authorization, call ProjectController@show
         return app(ProjectController::class)->show($project_id);
+    }
+
+    /**
+     * Wave 5C: Update project society (editable projects only).
+     * Respects ProjectPermissionHelper::canEdit via UpdateProjectSocietyRequest.
+     * Society must be within SocietyVisibilityHelper::getAllowedSocietyIds.
+     */
+    public function updateProjectSociety(UpdateProjectSocietyRequest $request, string $project_id)
+    {
+        $user = auth()->user();
+        $allowedSocietyIds = SocietyVisibilityHelper::getAllowedSocietyIds($user);
+        if (!in_array((int) $request->validated('society_id'), $allowedSocietyIds, true)) {
+            abort(403, 'Selected society is not allowed for your scope.');
+        }
+
+        $project = Project::where('project_id', $project_id)->firstOrFail();
+        $society = Society::findOrFail($request->validated('society_id'));
+        $oldSocietyId = $project->society_id;
+
+        DB::transaction(function () use ($project, $society, $oldSocietyId) {
+            $project->society_id = $society->id;
+            $project->society_name = $society->name;
+            $project->province_id = $society->province_id;
+            $project->save();
+
+            ActivityHistoryService::logProjectSocietyChanged($project, $oldSocietyId, (int) $society->id);
+        });
+
+        return redirect()->route('provincial.projects.list')
+            ->with('success', 'Project society updated successfully.');
     }
 
     public function showMonthlyReport($report_id)
@@ -1627,6 +1757,13 @@ class ProvincialController extends Controller
 
         $projects = $projectsQuery->with(['user', 'reports.accountDetails'])->get();
 
+        // UI boundary: use resolver for amount_sanctioned display (no raw DB)
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $resolvedFinancials = [];
+        foreach ($projects as $project) {
+            $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+        }
+
         // Fetch unique centers from users of approved projects
         $places = User::whereIn('id', $accessibleUserIds)
             ->whereHas('projects', function ($query) {
@@ -1644,7 +1781,7 @@ class ProvincialController extends Controller
             ->distinct()
             ->pluck('project_type');
 
-        return view('provincial.approvedProjects', compact('projects', 'places', 'users', 'projectTypes'));
+        return view('provincial.approvedProjects', compact('projects', 'places', 'users', 'projectTypes', 'resolvedFinancials'));
     }
 
     public function forwardReport(Request $request, $report_id)
@@ -2180,6 +2317,7 @@ class ProvincialController extends Controller
             ->distinct()
             ->pluck('center');
 
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
         $centerPerformance = [];
 
         foreach ($centers as $center) {
@@ -2192,14 +2330,9 @@ class ProvincialController extends Controller
             $approvedProjects = $centerProjects->filter(fn ($p) => $p->isApproved());
             $pendingProjects = $centerProjects->filter(fn ($p) => ! $p->isApproved());
 
-            // M3.3.1: Stage-separated aggregation — Approved Portfolio vs Pending Requests
+            // M3.7 Phase 2: Stage-separated — approved use opening_balance; pending use resolver amount_requested (no inline formula)
             $centerBudget = (float) ($approvedProjects->sum(fn ($p) => (float) ($p->opening_balance ?? 0)) ?? 0);
-            $centerPendingBudget = (float) $pendingProjects->sum(function ($p) {
-                $overall = (float) ($p->overall_project_budget ?? 0);
-                $forwarded = (float) ($p->amount_forwarded ?? 0);
-                $local = (float) ($p->local_contribution ?? 0);
-                return max(0, $overall - ($forwarded + $local));
-            });
+            $centerPendingBudget = (float) $pendingProjects->sum(fn ($p) => (float) (($resolver->resolve($p)['amount_requested'] ?? 0)));
             $centerExpenses = 0;
 
             foreach ($approvedProjects as $project) {
@@ -2248,16 +2381,11 @@ class ProvincialController extends Controller
             ->with(['user', 'reports.accountDetails'])
             ->get();
 
-        // M3.3.1: Pending projects (non-approved) for stage-separated aggregation (M3.3.2: use centralized scope)
+        // M3.7 Phase 2: Pending total from resolver amount_requested (no inline formula)
         $pendingProjects = Project::whereIn('user_id', $accessibleUserIds)
             ->notApproved()
             ->get();
-        $pendingTotal = (float) $pendingProjects->sum(function ($p) {
-            $overall = (float) ($p->overall_project_budget ?? 0);
-            $forwarded = (float) ($p->amount_forwarded ?? 0);
-            $local = (float) ($p->local_contribution ?? 0);
-            return max(0, $overall - ($forwarded + $local));
-        });
+        $pendingTotal = (float) $pendingProjects->sum(fn ($p) => (float) (($resolver->resolve($p)['amount_requested'] ?? 0)));
 
         // Memoize resolved financials (resolve each project exactly once)
         $resolvedFinancials = [];

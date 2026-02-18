@@ -11,12 +11,15 @@ return new class extends Migration
      * Run the migrations.
      * Production Phase 1: Move from composite (province_id + name) to global unique(name).
      * Societies table only. No data changes.
+     * Idempotent: skips drop/add if index was already changed by enforce_unique_name_on_societies.
      */
     public function up(): void
     {
-        Schema::table('societies', function (Blueprint $table) {
-            $table->dropUnique('unique_province_society');
-        });
+        if ($this->indexExists('societies', 'unique_province_society')) {
+            Schema::table('societies', function (Blueprint $table) {
+                $table->dropUnique('unique_province_society');
+            });
+        }
 
         Schema::table('societies', function (Blueprint $table) {
             $table->dropForeign(['province_id']);
@@ -38,9 +41,20 @@ return new class extends Migration
                 ->onDelete('restrict');
         });
 
-        Schema::table('societies', function (Blueprint $table) {
-            $table->unique('name', 'societies_name_unique');
-        });
+        if (!$this->indexExists('societies', 'societies_name_unique')) {
+            Schema::table('societies', function (Blueprint $table) {
+                $table->unique('name', 'societies_name_unique');
+            });
+        }
+    }
+
+    private function indexExists(string $table, string $indexName): bool
+    {
+        $result = DB::selectOne(
+            'SELECT 1 FROM information_schema.statistics WHERE table_schema = ? AND table_name = ? AND index_name = ?',
+            [DB::getDatabaseName(), $table, $indexName]
+        );
+        return $result !== null;
     }
 
     /**

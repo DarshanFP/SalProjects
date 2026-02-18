@@ -34,13 +34,24 @@ class BudgetSyncService
 
     /**
      * All five fund fields written before approval (Step 2B).
-     * Sanctioned and opening are provisional; approval overwrites them.
+     * M3.7 Phase 1: amount_sanctioned is NOT written for non-approved projects; only approval flow persists it.
      */
     protected const PRE_APPROVAL_FIELDS = [
         'overall_project_budget',
         'amount_forwarded',
         'local_contribution',
         'amount_sanctioned',
+        'opening_balance',
+    ];
+
+    /**
+     * Fields written in pre-approval sync when project is NOT approved (M3.7).
+     * Excludes amount_sanctioned — draft update never writes sanctioned.
+     */
+    protected const PRE_APPROVAL_FIELDS_WITHOUT_SANCTIONED = [
+        'overall_project_budget',
+        'amount_forwarded',
+        'local_contribution',
         'opening_balance',
     ];
 
@@ -86,8 +97,7 @@ class BudgetSyncService
 
     /**
      * Sync to projects immediately before approval (Step 2B).
-     * Updates all five fund fields so the next read in the same request sees correct data.
-     * Approval controller then computes sanctioned/opening and overwrites them.
+     * M3.7 Phase 1: If project is NOT approved, do NOT update amount_sanctioned — only approval flow writes it.
      * Idempotent; guarded by feature flag and status forwarded_to_coordinator.
      *
      * @param Project $project Must be loaded with relations needed by resolver.
@@ -106,8 +116,13 @@ class BudgetSyncService
         $resolved = $this->resolver->resolve($project, false);
         $oldValues = $this->getStoredValues($project);
 
+        // M3.7: Never write amount_sanctioned for non-approved projects. Draft update never writes sanctioned.
+        $fieldsToSync = $project->isApproved()
+            ? self::PRE_APPROVAL_FIELDS
+            : self::PRE_APPROVAL_FIELDS_WITHOUT_SANCTIONED;
+
         $updatePayload = [];
-        foreach (self::PRE_APPROVAL_FIELDS as $key) {
+        foreach ($fieldsToSync as $key) {
             $updatePayload[$key] = $resolved[$key] ?? $oldValues[$key];
         }
 

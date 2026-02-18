@@ -4,6 +4,7 @@ namespace App\Models\OldProjects;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * 
@@ -43,8 +44,16 @@ class ProjectAttachment extends Model
         'public_url'
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
 
-    
+        static::deleting(function ($attachment) {
+            if ($attachment->file_path && Storage::disk('public')->exists($attachment->file_path)) {
+                Storage::disk('public')->delete($attachment->file_path);
+            }
+        });
+    }
 
     public function project()
     {

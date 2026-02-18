@@ -8,7 +8,7 @@
             <div class="mb-4">
                 <label class="form-label">Current Attachments</label>
                 @foreach($project->attachments as $index => $attachment)
-                    <div class="border card mb-3">
+                    <div class="border card mb-3" id="common-attachment-{{ $attachment->id }}">
                         <div class="card-body">
                             @php
                                 $fileExists = \Illuminate\Support\Facades\Storage::disk('public')->exists($attachment->file_path);
@@ -31,7 +31,7 @@
                                     </div>
                                 @endif
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ asset('storage/' . $attachment->file_path) }}"
+                                    <a href="{{ route('projects.attachments.view', $attachment->id) }}"
                                        target="_blank"
                                        class="btn btn-outline-primary"
                                        title="View file">
@@ -42,6 +42,11 @@
                                        title="Download file">
                                         <i class="fas fa-download"></i> Download
                                     </a>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            onclick="confirmRemoveCommonAttachment({{ $attachment->id }}, {{ json_encode($attachment->file_name) }})">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
                                 </div>
                             @else
                                 <div class="mb-2 alert alert-warning">
@@ -193,5 +198,43 @@ function formatFileSize(bytes) {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function confirmRemoveCommonAttachment(id, name) {
+    if (!confirm('Are you sure you want to delete "' + name + '"? This action cannot be undone.')) {
+        return;
+    }
+    removeCommonAttachment(id);
+}
+
+function removeCommonAttachment(id) {
+    let urlTemplate = "{{ route('projects.attachments.files.destroy', ':id') }}";
+    let deleteUrl = urlTemplate.replace(':id', id);
+
+    fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        return response.json().then(data => {
+            if (!response.ok) {
+                throw new Error(data.message || 'Delete failed.');
+            }
+            return data;
+        });
+    })
+    .then(data => {
+        if (data.success) {
+            const row = document.getElementById('common-attachment-' + id);
+            if (row) row.remove();
+        }
+    })
+    .catch(error => {
+        alert(error.message);
+        console.error(error);
+    });
 }
 </script>

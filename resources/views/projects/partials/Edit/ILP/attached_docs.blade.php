@@ -45,7 +45,7 @@
                                     @php
                                         $fileExists = Storage::disk('public')->exists($file->file_path);
                                     @endphp
-                                    <div class="file-item mb-2 p-2 border rounded">
+                                    <div class="file-item mb-2 p-2 border rounded" id="ilp-file-{{ $file->id }}">
                                         @if($fileExists)
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
@@ -56,12 +56,17 @@
                                                     @endif
                                                 </div>
                                                 <div>
-                                                    <a href="{{ Storage::url($file->file_path) }}" target="_blank" class="btn btn-sm btn-primary">
+                                                    <a href="{{ route('projects.ilp.documents.view', $file->id) }}" target="_blank" class="btn btn-sm btn-primary">
                                                         <i class="fas fa-eye"></i> View
                                                     </a>
-                                                    <a href="{{ Storage::url($file->file_path) }}" download class="btn btn-sm btn-secondary">
+                                                    <a href="{{ route('projects.ilp.documents.download', $file->id) }}" class="btn btn-sm btn-secondary">
                                                         <i class="fas fa-download"></i> Download
                                                     </a>
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-outline-danger"
+                                                            onclick="confirmRemoveILPFile({{ $file->id }}, {{ json_encode($file->file_name) }})">
+                                                        <i class="fas fa-trash"></i> Delete
+                                                    </button>
                                                 </div>
                                             </div>
                                         @else
@@ -199,6 +204,45 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
+
+<script>
+function confirmRemoveILPFile(fileId, fileName) {
+    if (!confirm('Are you sure you want to delete "' + fileName + '"? This action cannot be undone.')) {
+        return;
+    }
+    removeILPFile(fileId);
+}
+
+function removeILPFile(fileId) {
+    let deleteUrl = "{{ url('projects/ilp/documents/files') }}/" + fileId;
+
+    fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        return response.json().then(data => {
+            if (!response.ok) {
+                throw new Error(data.message || 'Delete failed.');
+            }
+            return data;
+        });
+    })
+    .then(data => {
+        if (data.success) {
+            const row = document.getElementById('ilp-file-' + fileId);
+            if (row) row.remove();
+        }
+    })
+    .catch(error => {
+        alert(error.message);
+        console.error(error);
+    });
+}
 </script>
 
 <script src="{{ asset('js/attachments-validation.js') }}"></script>

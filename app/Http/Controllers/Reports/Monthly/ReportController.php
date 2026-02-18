@@ -394,6 +394,9 @@ class ReportController extends Controller
 
     private function createReport($validatedData, $report_id)
     {
+        // Wave 6A Phase 5: Society snapshot set from project only (not from request); set after create so not mass-assigned.
+        $project = Project::where('project_id', $validatedData['project_id'])->first();
+
         $report = DPReport::create([
             'report_id' => $report_id,
             'user_id' => auth()->id() ?? null,
@@ -401,7 +404,6 @@ class ReportController extends Controller
             'project_title' => $validatedData['project_title'] ?? '',
             'project_type' => $validatedData['project_type'] ?? '',
             'place' => $validatedData['place'] ?? '',
-            'society_name' => $validatedData['society_name'] ?? '',
             'commencement_month_year' => $validatedData['commencement_month_year'] ?? null,
             'in_charge' => $validatedData['in_charge'] ?? '',
             'total_beneficiaries' => $validatedData['total_beneficiaries'] ?? 0,
@@ -415,6 +417,13 @@ class ReportController extends Controller
             'total_balance_forwarded' => $validatedData['total_balance_forwarded'] ?? 0.0,
             'status' => 'draft'
         ]);
+
+        if ($project) {
+            $report->society_id = $project->society_id;
+            $report->society_name = $project->society_name;
+            $report->province_id = $project->province_id;
+            $report->save();
+        }
 
         if (!$report) {
             throw new Exception('Failed to create report');
@@ -1545,12 +1554,16 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
 
     private function updateReport($validatedData, $report)
     {
+        // Wave 6A Phase 6: Report society snapshot is immutable; do not accept or apply society/province from request.
+        if (array_key_exists('society_id', $validatedData) || array_key_exists('province_id', $validatedData)) {
+            abort(403, 'Report society snapshot cannot be changed.');
+        }
+
         $report->update([
             'project_id' => $validatedData['project_id'],
             'project_title' => $validatedData['project_title'] ?? '',
             'project_type' => $validatedData['project_type'] ?? '',
             'place' => $validatedData['place'] ?? '',
-            'society_name' => $validatedData['society_name'] ?? '',
             'commencement_month_year' => $validatedData['commencement_month_year'] ?? null,
             'in_charge' => $validatedData['in_charge'] ?? '',
             'total_beneficiaries' => $validatedData['total_beneficiaries'] ?? 0,

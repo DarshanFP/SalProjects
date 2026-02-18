@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Projects\IAH;
 
+use App\Constants\ProjectStatus;
 use App\Http\Controllers\Controller;
+use App\Helpers\ProjectPermissionHelper;
 use App\Models\OldProjects\IAH\ProjectIAHDocuments;
 use App\Models\OldProjects\IAH\ProjectIAHDocumentFile;
 use App\Models\OldProjects\Project;
@@ -10,6 +12,7 @@ use App\Services\Attachment\AttachmentContext;
 use App\Services\ProjectAttachmentHandler;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -277,6 +280,7 @@ class IAHDocumentsController extends Controller
     /**
      * DOWNLOAD: download a specific IAH document file
      * Streams file through controller - works without storage symlink on production.
+     * Guard: province isolation, canView — read allowed even when project is approved (403 on failure).
      */
     public function downloadFile($fileId)
     {
@@ -284,6 +288,20 @@ class IAHDocumentsController extends Controller
             Log::info('IAHDocumentsController@downloadFile - Start', ['file_id' => $fileId]);
 
             $file = ProjectIAHDocumentFile::findOrFail($fileId);
+
+            $project = $file->project ?? $file->iahDocument?->project;
+            if (! $project) {
+                Log::warning('IAHDocumentsController@downloadFile - No project for file', ['file_id' => $fileId]);
+                return response()->json(['error' => 'File record not found'], 404);
+            }
+
+            $user = Auth::user();
+            if (! ProjectPermissionHelper::passesProvinceCheck($project, $user)) {
+                abort(403);
+            }
+            if (! ProjectPermissionHelper::canView($project, $user)) {
+                abort(403);
+            }
 
             Log::info('IAHDocumentsController@downloadFile - File found', [
                 'file_id' => $fileId,
@@ -320,6 +338,7 @@ class IAHDocumentsController extends Controller
     /**
      * VIEW: view a specific IAH document file (stream response)
      * Streams file through controller - works without storage symlink on production.
+     * Guard: province isolation, canView — read allowed even when project is approved (403 on failure).
      */
     public function viewFile($fileId)
     {
@@ -327,6 +346,20 @@ class IAHDocumentsController extends Controller
             Log::info('IAHDocumentsController@viewFile - Start', ['file_id' => $fileId]);
 
             $file = ProjectIAHDocumentFile::findOrFail($fileId);
+
+            $project = $file->project ?? $file->iahDocument?->project;
+            if (! $project) {
+                Log::warning('IAHDocumentsController@viewFile - No project for file', ['file_id' => $fileId]);
+                return response()->json(['error' => 'File record not found'], 404);
+            }
+
+            $user = Auth::user();
+            if (! ProjectPermissionHelper::passesProvinceCheck($project, $user)) {
+                abort(403);
+            }
+            if (! ProjectPermissionHelper::canView($project, $user)) {
+                abort(403);
+            }
 
             Log::info('IAHDocumentsController@viewFile - File found', [
                 'file_id' => $fileId,
@@ -363,6 +396,91 @@ class IAHDocumentsController extends Controller
                 'error' => $e->getMessage(),
             ]);
             return response()->json(['error' => 'Failed to view file'], 500);
+        }
+    }
+
+    /**
+     * PER-FILE DELETE: remove one IAH document file.
+     * Mutation: enforces province, editable status, canEdit. Model deleting event removes storage.
+     */
+    public function destroyFile($fileId)
+    {
+        try {
+            Log::info('IAHDocumentsController@destroyFile - Start', [
+                'file_id' => $fileId,
+                'user_id' => Auth::id(),
+            ]);
+
+            $file = ProjectIAHDocumentFile::findOrFail($fileId);
+
+            $project = $file->project ?? $file->iahDocument?->project;
+            if (! $project) {
+                return response()->json(['error' => 'File record not found'], 404);
+            }
+
+            $user = Auth::user();
+            if (! ProjectPermissionHelper::passesProvinceCheck($project, $user)) {
+                Log::warning('IAH Delete Blocked - province_mismatch', [
+                    'file_id' => $fileId,
+                    'user_id' => Auth::id(),
+                    'project_id' => $project->project_id ?? $project->id ?? null,
+                    'reason' => 'province_mismatch',
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden.',
+                ], 403);
+            }
+            if (! ProjectStatus::isEditable($project->status)) {
+                Log::warning('IAH Delete Blocked - not_editable', [
+                    'file_id' => $fileId,
+                    'user_id' => Auth::id(),
+                    'project_id' => $project->project_id ?? $project->id ?? null,
+                    'reason' => 'not_editable',
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden.',
+                ], 403);
+            }
+            if (! ProjectPermissionHelper::canEdit($project, $user)) {
+                Log::warning('IAH Delete Blocked - cannot_edit', [
+                    'file_id' => $fileId,
+                    'user_id' => Auth::id(),
+                    'project_id' => $project->project_id ?? $project->id ?? null,
+                    'reason' => 'cannot_edit',
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden.',
+                ], 403);
+            }
+
+            $file->delete();
+
+            Log::info('IAHDocumentsController@destroyFile - Success', [
+                'file_id' => $fileId,
+                'project_id' => $project->project_id ?? $project->id,
+                'user_id' => Auth::id(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Document deleted successfully.',
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['error' => 'File record not found'], 404);
+        } catch (\Exception $e) {
+            Log::error('IAHDocumentsController@destroyFile - Error', [
+                'file_id' => $fileId ?? null,
+                'user_id' => Auth::id(),
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error during delete.',
+            ], 500);
         }
     }
 

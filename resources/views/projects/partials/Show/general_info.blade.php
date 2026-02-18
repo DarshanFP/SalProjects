@@ -27,11 +27,8 @@
     </div>
     <div class="card-body">
         @php
-            $rf = $resolvedFundFields ?? [];
-            $budget_overall = (float) ($rf['overall_project_budget'] ?? 0);
-            $budget_forwarded = (float) ($rf['amount_forwarded'] ?? 0);
-            $budget_local = (float) ($rf['local_contribution'] ?? 0);
-            $amount_requested = (float) ($rf['amount_sanctioned'] ?? 0);
+            // Canonical binding: all financial values from resolvedFundFields only (no raw $project budget fields)
+            $resolvedFundFields = $resolvedFundFields ?? [];
         @endphp
         <table id="general-info-table" class="general-info-table">
             <tbody>
@@ -105,41 +102,39 @@
                     <td class="label">Commencement Month & Year:</td>
                     <td class="value">{{ \Carbon\Carbon::parse($project->commencement_month_year)->format('F Y') ?? 'N/A' }}</td>
                 </tr>
+                @php
+                    \Log::info('Blade resolvedFundFields debug', [
+                        'exists' => isset($resolvedFundFields),
+                        'type' => isset($resolvedFundFields) ? gettype($resolvedFundFields) : null,
+                        'is_array' => isset($resolvedFundFields) ? is_array($resolvedFundFields) : null,
+                        'value' => $resolvedFundFields ?? null
+                    ]);
+                @endphp
                 <tr>
                     <td class="label">Overall Project Budget:</td>
-                    <td class="value">
-                        {{ format_indian_currency($budget_overall, 2) }}
-                    </td>
+                    <td class="value">{{ number_format($resolvedFundFields['overall_project_budget'] ?? 0, 2) }}</td>
                 </tr>
                 <tr>
                     <td class="label">Amount Forwarded  (Existing Funds):</td>
-                    <td class="value">
-                        {{ format_indian_currency($budget_forwarded, 2) }}
-                    </td>
+                    <td class="value">{{ number_format($resolvedFundFields['amount_forwarded'] ?? 0, 2) }}</td>
                 </tr>
                 <tr>
                     <td class="label">Local Contribution:</td>
-                    <td class="value">
-                        {{ format_indian_currency($budget_local, 2) }}
-                    </td>
+                    <td class="value">{{ number_format($resolvedFundFields['local_contribution'] ?? 0, 2) }}</td>
                 </tr>
                 <tr>
                     <td class="label">Amount Requested:</td>
-                    <td class="value">
-                        {{ format_indian_currency($amount_requested, 2) }}
-                    </td>
+                    <td class="value">{{ number_format($resolvedFundFields['amount_requested'] ?? 0, 2) }}</td>
                 </tr>
+                @if($project->isApproved())
                 <tr>
                     <td class="label">Amount Sanctioned:</td>
-                    <td class="value">
-                        {{ format_indian_currency((float) ($rf['amount_sanctioned'] ?? 0), 2) }}
-                    </td>
+                    <td class="value">{{ number_format($resolvedFundFields['amount_sanctioned'] ?? 0, 2) }}</td>
                 </tr>
+                @endif
                 <tr>
                     <td class="label">Opening Balance:</td>
-                    <td class="value">
-                        {{ format_indian_currency((float) ($rf['opening_balance'] ?? 0), 2) }}
-                    </td>
+                    <td class="value">{{ number_format($resolvedFundFields['opening_balance'] ?? 0, 2) }}</td>
                 </tr>
                 <tr>
                     <td class="label">Coordinator India Name:</td>

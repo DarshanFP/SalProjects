@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Domain\Budget\ProjectFinancialResolver;
 use App\Helpers\LogHelper;
 use App\Services\ReportPhotoOptimizationService;
 use App\Traits\HandlesReportPhotoActivity;
@@ -29,7 +30,9 @@ class MonthlyDevelopmentProjectController extends Controller
         $project = Project::where('project_id', $project_id)->firstOrFail();
         $highestPhase = ProjectBudget::where('project_id', $project->project_id)->max('phase');
         $budgets = ProjectBudget::where('project_id', $project->project_id)->where('phase', $highestPhase)->get();
-        $amountSanctioned = $project->amount_sanctioned ?? 0;
+        $resolver = app(ProjectFinancialResolver::class);
+        $financials = $resolver->resolve($project);
+        $amountSanctioned = $project->isApproved() ? (float) ($financials['amount_sanctioned'] ?? 0) : (float) ($financials['amount_requested'] ?? 0);
         $amountForwarded = 0;
         $expensesUpToLastMonth = DPAccountDetail::where('report_id', function ($q) use ($project) {
             $q->select('id')->from('dp_reports')->where('project_id', $project->project_id)->orderBy('created_at', 'desc')->limit(1);
@@ -47,7 +50,9 @@ class MonthlyDevelopmentProjectController extends Controller
         $project = Project::where('project_id', $project_id)->firstOrFail();
         $highestPhase = ProjectBudget::where('project_id', $project->project_id)->max('phase');
         $budgets = ProjectBudget::where('project_id', $project->project_id)->where('phase', $highestPhase)->get();
-        $amountSanctioned = $project->amount_sanctioned ?? 0;
+        $resolver = app(ProjectFinancialResolver::class);
+        $financials = $resolver->resolve($project);
+        $amountSanctioned = $project->isApproved() ? (float) ($financials['amount_sanctioned'] ?? 0) : (float) ($financials['amount_requested'] ?? 0);
         $amountForwarded = 0;
         $reportId = DPReport::where('project_id', $project->project_id)->orderBy('created_at', 'desc')->value('report_id');
         $sum = $reportId ? DPAccountDetail::where('report_id', $reportId)->sum('expenses_this_month') : 0;

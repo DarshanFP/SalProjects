@@ -159,6 +159,12 @@
                     <span class="link-title">Approved Projects</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('projects.trash.index') }}" class="nav-link">
+                    <i class="link-icon" data-feather="trash-2"></i>
+                    <span class="link-title">Trash</span>
+                </a>
+            </li>
 
             <li class="nav-item">
                 <a class="nav-link" data-bs-toggle="collapse" href="#groupProjects" role="button" aria-expanded="false" aria-controls="groupProjects">

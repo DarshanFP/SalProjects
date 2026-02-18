@@ -64,6 +64,9 @@
                         <li class="nav-item">
                             <a href="{{ route('projects.approved') }}" class="nav-link">Approved Projects</a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('projects.trash.index') }}" class="nav-link">Trash</a>
+                        </li>
                         {{-- <li class="nav-item">
                             <a href="#" class="nav-link">Compose</a>
                         </li> --}}

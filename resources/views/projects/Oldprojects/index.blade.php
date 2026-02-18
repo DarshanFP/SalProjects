@@ -28,13 +28,19 @@
                         }
 
                         /* Style buttons for proper sizing */
-                        table.my-projects-table td a.btn {
+                        table.my-projects-table td a.btn,
+                        table.my-projects-table td button.btn {
                             font-size: 12px;
                             padding: 4px 8px;
                             height: auto;
                             line-height: 1;
                             display: inline-block;
                             white-space: nowrap;
+                            vertical-align: middle;
+                        }
+                        table.my-projects-table td form.d-inline {
+                            display: inline;
+                            vertical-align: middle;
                         }
 
                         /* Style badges */
@@ -95,17 +101,23 @@
                                         @endif
                                     </td>
                                     <td class="project-status">
-                                        {{ \App\Models\OldProjects\Project::$statusLabels[$project->status] ?? $project->status }}
+                                        @include('projects.partials.status-badge', ['project' => $project])
                                     </td>
                                     <td>
-                                        <a href="{{ route('projects.show', $project->project_id) }}" class="btn btn-info">View</a>
+                                        <a href="{{ route('projects.show', $project->project_id) }}" class="btn btn-info btn-sm">View</a>
                                         @if(in_array($project->status, $editableStatuses))
                                             @php
                                                 $canEdit = ProjectPermissionHelper::canEdit($project, $user);
                                             @endphp
                                             @if($canEdit)
-                                                <a href="{{ route('projects.edit', $project->project_id) }}" class="btn btn-primary">Edit</a>
+                                                <a href="{{ route('projects.edit', $project->project_id) }}" class="btn btn-primary btn-sm">Edit</a>
                                             @endif
+                                        @endif
+                                        @if(ProjectPermissionHelper::canDelete($project, $user))
+                                            <form action="{{ route('projects.trash', $project->project_id) }}" method="POST" class="d-inline align-middle" onsubmit="return confirm('Move this project to trash? You can restore it later.');">
+                                                @csrf
+                                                <button type="submit" class="btn btn-outline-danger btn-sm ms-1">Trash</button>
+                                            </form>
                                         @endif
                                     </td>
                                 </tr>

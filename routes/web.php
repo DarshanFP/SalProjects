@@ -16,6 +16,7 @@ use App\Http\Controllers\Projects\EduRUTTargetGroupController;
 use App\Http\Controllers\Projects\ExportController;
 use App\Http\Controllers\Projects\IAH\IAHDocumentsController;
 use App\Http\Controllers\Projects\IES\IESAttachmentsController;
+use App\Http\Controllers\Projects\ILP\AttachedDocumentsController as ILPAttachedDocumentsController;
 use App\Http\Controllers\Projects\IIES\IIESAttachmentsController;
 use App\Http\Controllers\Projects\OldDevelopmentProjectController;
 use App\Http\Controllers\Projects\ProjectController;
@@ -131,6 +132,8 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::post('/admin/budget-reconciliation/{id}/accept', [BudgetReconciliationController::class, 'acceptSuggested'])->name('admin.budget-reconciliation.accept');
     Route::post('/admin/budget-reconciliation/{id}/manual', [BudgetReconciliationController::class, 'manualCorrection'])->name('admin.budget-reconciliation.manual');
     Route::post('/admin/budget-reconciliation/{id}/reject', [BudgetReconciliationController::class, 'reject'])->name('admin.budget-reconciliation.reject');
+    // Admin-only permanent delete (force delete) for trashed projects
+    Route::delete('/projects/{project_id}/force-delete', [ProjectController::class, 'forceDelete'])->name('projects.forceDelete');
 });
 
 // Coordinator routes (General has COMPLETE coordinator access - same authorization level)
@@ -308,6 +311,11 @@ Route::middleware(['auth', 'role:general'])->group(function () {
     // Note: General also has access to ALL coordinator routes via middleware (role:coordinator,general)
 });
 
+// Wave 5C: Update project society — provincial and general (editable projects only)
+Route::middleware(['auth', 'role:provincial,general'])->group(function () {
+    Route::patch('/provincial/projects/{project_id}/society', [ProvincialController::class, 'updateProjectSociety'])->name('provincial.projects.updateSociety');
+});
+
 // Provincial routes
 Route::middleware(['auth', 'role:provincial'])->group(function () {
     // Manage Executors
@@ -346,6 +354,7 @@ Route::middleware(['auth', 'role:provincial'])->group(function () {
     Route::get('/provincial/user-manual', [ProvincialController::class, 'userManual'])->name('provincial.user-manual');
     // Projects list
     Route::get('/provincial/projects-list', [ProvincialController::class, 'projectList'])->name('provincial.projects.list');
+    Route::get('/provincial/projects-list/export', [ProvincialController::class, 'projectsExport'])->name('provincial.projects.export');
     // Approved Projects
     Route::get('/provincial/approved-projects', [ProvincialController::class, 'approvedProjects'])->name('provincial.approved.projects');
     // Add this route to allow provincial to view a project
@@ -422,6 +431,7 @@ Route::middleware(['auth', 'role:executor,applicant'])->group(function () {
         Route::get('{project_id}', [ProjectController::class, 'show'])->name('projects.show');
         Route::get('{project_id}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
         Route::put('{project_id}/update', [ProjectController::class, 'update'])->name('projects.update');
+        Route::post('{project_id}/trash', [ProjectController::class, 'destroy'])->name('projects.trash');
         // Download routes moved to shared middleware group
         //Education Rural Urban Tribal
         Route::resource('projects/edurut/basic-info',ProjectEduRUTBasicInfoController::class);
@@ -473,22 +483,38 @@ Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,gener
     Route::get('/projects/{project_id}/download-pdf', [ExportController::class, 'downloadPdf'])->name('projects.downloadPdf');
     Route::get('/projects/{project_id}/download-doc', [ExportController::class, 'downloadDoc'])->name('projects.downloadDoc');
     Route::get('/projects/attachments/download/{id}', [AttachmentController::class, 'downloadAttachment'])->name('projects.attachments.download');
+    Route::get('/projects/attachments/view/{id}', [AttachmentController::class, 'viewAttachment'])->name('projects.attachments.view');
+    Route::delete('/projects/attachments/files/{id}', [AttachmentController::class, 'destroyAttachment'])->name('projects.attachments.files.destroy');
 
-    // IES Attachment file download and view routes (Individual - Ongoing Educational Support)
+    // IES Attachment file download, view and per-file delete routes (Individual - Ongoing Educational Support)
     Route::get('/projects/ies/attachments/download/{fileId}', [IESAttachmentsController::class, 'downloadFile'])->name('projects.ies.attachments.download');
     Route::get('/projects/ies/attachments/view/{fileId}', [IESAttachmentsController::class, 'viewFile'])->name('projects.ies.attachments.view');
+    Route::delete('/projects/ies/attachments/files/{fileId}', [IESAttachmentsController::class, 'destroyFile'])->name('projects.ies.attachments.files.destroy');
 
-    // IAH Document file download and view routes (Individual Assistance for Health)
+    // IAH Document file download, view and per-file delete routes (Individual Assistance for Health)
     Route::get('/projects/iah/documents/view/{fileId}', [IAHDocumentsController::class, 'viewFile'])->name('projects.iah.documents.view');
     Route::get('/projects/iah/documents/download/{fileId}', [IAHDocumentsController::class, 'downloadFile'])->name('projects.iah.documents.download');
+    Route::delete('/projects/iah/documents/files/{fileId}', [IAHDocumentsController::class, 'destroyFile'])->name('projects.iah.documents.files.destroy');
 
-    // IIES Attachment file download and view routes (Individual - Initial Educational Support)
+    // IIES Attachment file download, view and per-file delete routes (Individual - Initial Educational Support)
     Route::get('/projects/iies/attachments/download/{fileId}', [IIESAttachmentsController::class, 'downloadFile'])->name('projects.iies.attachments.download');
     Route::get('/projects/iies/attachments/view/{fileId}', [IIESAttachmentsController::class, 'viewFile'])->name('projects.iies.attachments.view');
+    Route::delete('/projects/iies/attachments/files/{fileId}', [IIESAttachmentsController::class, 'destroyFile'])->name('projects.iies.attachments.files.destroy');
+
+    // ILP Document file view, download and per-file delete routes (Individual - Livelihood Application)
+    Route::get('/projects/ilp/documents/view/{fileId}', [ILPAttachedDocumentsController::class, 'viewFile'])->name('projects.ilp.documents.view');
+    Route::get('/projects/ilp/documents/download/{fileId}', [ILPAttachedDocumentsController::class, 'downloadFile'])->name('projects.ilp.documents.download');
+    Route::delete('/projects/ilp/documents/files/{fileId}', [ILPAttachedDocumentsController::class, 'destroyFile'])->name('projects.ilp.documents.files.destroy');
 
     // Activity History Routes (shared for all roles)
     Route::get('/projects/{project_id}/activity-history', [ActivityHistoryController::class, 'projectHistory'])->name('projects.activity-history');
     Route::get('/reports/{report_id}/activity-history', [ActivityHistoryController::class, 'reportHistory'])->name('reports.activity-history');
+});
+
+// Trash management - accessible to executor, applicant, provincial, coordinator, general, admin
+Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,general,admin'])->group(function () {
+    Route::get('/projects/trash', [ProjectController::class, 'trashIndex'])->name('projects.trash.index');
+    Route::post('/projects/{project_id}/restore', [ProjectController::class, 'restore'])->name('projects.restore');
 });
 
 

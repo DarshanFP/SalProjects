@@ -630,9 +630,16 @@ private function addGeneralInfoSection(PhpWord $phpWord, $project, $projectRoles
     $section->addText(
         "Amount Forwarded: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($resolvedFundFields['amount_forwarded'] ?? 0, 2)
     );
-    $section->addText(
-        "Amount Sanctioned: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($resolvedFundFields['amount_sanctioned'] ?? 0, 2)
-    );
+    // M3.7 Phase 2: Stage-aware — approved show Amount Sanctioned, non-approved show Amount Requested
+    if ($project->isApproved()) {
+        $section->addText(
+            "Amount Sanctioned: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($resolvedFundFields['amount_sanctioned'] ?? 0, 2)
+        );
+    } else {
+        $section->addText(
+            "Amount Requested: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($resolvedFundFields['amount_requested'] ?? 0, 2)
+        );
+    }
     $section->addText(
         "Opening Balance: " . \App\Helpers\NumberFormatHelper::formatIndianCurrency($resolvedFundFields['opening_balance'] ?? 0, 2)
     );

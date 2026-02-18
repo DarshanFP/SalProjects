@@ -27,6 +27,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a href="{{ route('projects.trash.index') }}" class="nav-link">
+                    <i class="link-icon" data-feather="trash-2"></i>
+                    <span class="link-title">Trash</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a href="{{ route('admin.reports.index') }}" class="nav-link">
                     <i class="link-icon" data-feather="file-text"></i>
                     <span class="link-title">Reports</span>

@@ -193,7 +193,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="amount_sanctioned_overview" class="form-label">Amount Sanctioned: Rs.</label>
-                            <input type="number" name="amount_sanctioned_overview" class="form-control" value="{{ $project->amount_sanctioned }}" readonly>
+                            <input type="number" name="amount_sanctioned_overview" class="form-control" value="{{ $amountSanctioned ?? 0 }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label for="amount_forwarded_overview" class="form-label">Amount Forwarded from the Last Financial Year: Rs.</label>
@@ -201,7 +201,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="amount_in_hand" class="form-label">Total Amount: Rs.</label>
-                            <input type="number" name="amount_in_hand" class="form-control" value="{{ $project->amount_sanctioned + $project->amount_forwarded }}" readonly>
+                            <input type="number" name="amount_in_hand" class="form-control" value="{{ ($amountSanctioned ?? 0) + ($project->amount_forwarded ?? 0) }}" readonly>
                         </div>
 
                         <table class="table table-bordered">

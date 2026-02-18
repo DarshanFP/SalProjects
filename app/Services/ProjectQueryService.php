@@ -11,17 +11,24 @@ use Illuminate\Support\Collection;
 class ProjectQueryService
 {
     /**
-     * Get a query builder for projects where user is owner or in-charge
+     * Get a query builder for projects where user is owner or in-charge, scoped by user's province.
      *
      * @param User $user
      * @return Builder
      */
     public static function getProjectsForUserQuery(User $user): Builder
     {
-        return Project::where(function($query) use ($user) {
-            $query->where('user_id', $user->id)
-                  ->orWhere('in_charge', $user->id);
+        $query = Project::query();
+
+        if ($user->province_id !== null) {
+            $query->where('province_id', $user->province_id);
+        }
+
+        $query->where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)->orWhere('in_charge', $user->id);
         });
+
+        return $query;
     }
 
     /**
@@ -54,28 +61,41 @@ class ProjectQueryService
     }
 
     /**
-     * Get a query builder for projects where multiple users are owners or in-charge
+     * Get a query builder for projects where multiple users are owners or in-charge.
+     * When $currentUser is provided and has province_id, results are restricted to that province (Phase 2).
+     * When $currentUser is null or province_id is null, no province filter is applied (global access).
      *
-     * @param array|Collection $userIds
+     * @param array|\Illuminate\Support\Collection $userIds
+     * @param User|null $currentUser Current authenticated user; when set with province_id, enforces province boundary.
      * @return Builder
      */
-    public static function getProjectsForUsersQuery($userIds): Builder
+    public static function getProjectsForUsersQuery($userIds, ?User $currentUser = null): Builder
     {
-        return Project::where(function($query) use ($userIds) {
-            $query->whereIn('user_id', $userIds)
-                  ->orWhereIn('in_charge', $userIds);
+        $query = Project::query();
+
+        if ($currentUser !== null && $currentUser->province_id !== null) {
+            $query->where('province_id', $currentUser->province_id);
+        }
+
+        $query->where(function ($q) use ($userIds) {
+            $q->whereIn('user_id', $userIds)
+              ->orWhereIn('in_charge', $userIds);
         });
+
+        return $query;
     }
 
     /**
-     * Get project IDs where multiple users are owners or in-charge
+     * Get project IDs where multiple users are owners or in-charge.
+     * Pass $currentUser to enforce province boundary when user is province-bound (Phase 2).
      *
-     * @param array|Collection $userIds
+     * @param array|\Illuminate\Support\Collection $userIds
+     * @param User|null $currentUser Current authenticated user; when set with province_id, enforces province boundary.
      * @return Collection
      */
-    public static function getProjectIdsForUsers($userIds): Collection
+    public static function getProjectIdsForUsers($userIds, ?User $currentUser = null): Collection
     {
-        return self::getProjectsForUsersQuery($userIds)->pluck('project_id');
+        return self::getProjectsForUsersQuery($userIds, $currentUser)->pluck('project_id');
     }
 
     /**
@@ -150,6 +170,33 @@ class ProjectQueryService
             ProjectStatus::REVERTED_TO_PROVINCIAL,
             ProjectStatus::REVERTED_TO_COORDINATOR,
         ], $with);
+    }
+
+    /**
+     * Get a query builder for trashed projects, scoped by province and role.
+     * - Province: if user has province_id, restrict to that province.
+     * - Executor/Applicant: only own or in-charge projects.
+     * - Provincial/Coordinator/General/Admin: all visible (province-bound for provincial).
+     *
+     * @param User $user
+     * @return Builder
+     */
+    public static function getTrashedProjectsQuery(User $user): Builder
+    {
+        $query = Project::onlyTrashed();
+
+        if ($user->province_id !== null) {
+            $query->where('province_id', $user->province_id);
+        }
+
+        if (in_array($user->role, ['executor', 'applicant'])) {
+            $query->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                  ->orWhere('in_charge', $user->id);
+            });
+        }
+
+        return $query;
     }
 
     /**

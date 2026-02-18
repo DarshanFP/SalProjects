@@ -3,10 +3,14 @@
 namespace App\Domain\Budget\Strategies;
 
 use App\Models\OldProjects\Project;
+use App\Services\Budget\BudgetSyncGuard;
 use App\Services\Budget\DerivedCalculationService;
 
 /**
  * Resolves fund fields for direct-mapped individual / IGE project types.
+ *
+ * M3.7 Phase 1: Does not write amount_sanctioned for non-approved; returns requested separately.
+ * Resolver enforces sanctioned = 0 pre-approval.
  *
  * Uses type-specific tables (IIES, IES, ILP, IAH, IGE). No phase logic.
  * Uses DerivedCalculationService for sums where applicable.
@@ -26,6 +30,7 @@ class DirectMappedIndividualBudgetStrategy implements ProjectFinancialStrategyIn
 
     /**
      * @inheritDoc
+     * M3.7: For non-approved returns amount_requested from type, amount_sanctioned = 0, opening_balance = forwarded + local.
      */
     public function resolve(Project $project): array
     {
@@ -40,6 +45,17 @@ class DirectMappedIndividualBudgetStrategy implements ProjectFinancialStrategyIn
             'Institutional Ongoing Group Educational proposal' => $this->resolveIGE($project),
             default => $this->fallbackFromProject($project),
         };
+
+        // M3.7 Phase 1: Canonical separation. Do not treat sanctioned as requested; return requested separately.
+        if (BudgetSyncGuard::isApproved($project)) {
+            $resolved['amount_sanctioned'] = (float) ($project->amount_sanctioned ?? 0);
+            $resolved['amount_requested'] = 0.0;
+            $resolved['opening_balance'] = (float) ($project->opening_balance ?? 0);
+        } else {
+            $resolved['amount_requested'] = (float) ($resolved['amount_sanctioned'] ?? 0);
+            $resolved['amount_sanctioned'] = 0.0;
+            $resolved['opening_balance'] = (float) ($resolved['amount_forwarded'] ?? 0) + (float) ($resolved['local_contribution'] ?? 0);
+        }
 
         return $this->normalize($resolved);
     }
@@ -58,6 +74,13 @@ class DirectMappedIndividualBudgetStrategy implements ProjectFinancialStrategyIn
 
     private function resolveIIES(Project $project): array
     {
+        \Log::info('IIES Resolver Debug', [
+            'project_id' => $project->project_id,
+            'project_type' => $project->project_type,
+            'relation_loaded' => $project->relationLoaded('iiesExpenses'),
+            'relation_value_is_null' => is_null($project->iiesExpenses),
+            'raw_relation' => $project->iiesExpenses,
+        ]);
         $expenses = $project->iiesExpenses;
         if (!$expenses) {
             return $this->fallbackFromProject($project);
@@ -183,12 +206,13 @@ class DirectMappedIndividualBudgetStrategy implements ProjectFinancialStrategyIn
             'amount_forwarded' => (float) ($project->amount_forwarded ?? 0),
             'local_contribution' => (float) ($project->local_contribution ?? 0),
             'amount_sanctioned' => (float) ($project->amount_sanctioned ?? 0),
+            'amount_requested' => 0.0,
             'opening_balance' => (float) ($project->opening_balance ?? 0),
         ];
     }
 
     /**
-     * Ensure all values are non-negative floats rounded to 2 decimals.
+     * Ensure all values are non-negative floats rounded to 2 decimals. Includes amount_requested (M3.7).
      */
     protected function normalize(array $values): array
     {
@@ -197,6 +221,7 @@ class DirectMappedIndividualBudgetStrategy implements ProjectFinancialStrategyIn
             'amount_forwarded',
             'local_contribution',
             'amount_sanctioned',
+            'amount_requested',
             'opening_balance',
         ];
         $out = [];

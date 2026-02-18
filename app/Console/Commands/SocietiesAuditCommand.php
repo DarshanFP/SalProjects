@@ -57,7 +57,7 @@ class SocietiesAuditCommand extends Command
 
         // ---------- 2. Projects without user ----------
         $this->info('--- 2️⃣  Projects without user ---');
-        $projectsNoUser = DB::table('projects')->whereNull('user_id')->count();
+        $projectsNoUser = DB::table('projects')->whereNull('deleted_at')->whereNull('user_id')->count();
         if ($projectsNoUser > 0) {
             $this->getOutput()->getErrorStyle()->writeln("   FAIL: {$projectsNoUser} project(s) have user_id IS NULL.");
             $hasFail = true;
@@ -69,6 +69,7 @@ class SocietiesAuditCommand extends Command
         // ---------- 3. project.society_name not found in societies ----------
         $this->info('--- 3️⃣  project.society_name not found in societies ---');
         $projectNamesMissing = DB::table('projects')
+            ->whereNull('projects.deleted_at')
             ->leftJoin('societies', 'projects.society_name', '=', 'societies.name')
             ->whereNotNull('projects.society_name')
             ->where('projects.society_name', '!=', '')
@@ -172,6 +173,7 @@ class SocietiesAuditCommand extends Command
         // ---------- 8. Projects whose user's province would fail resolution ----------
         $this->info('--- 8️⃣  Projects whose user\'s province would fail resolution ---');
         $projectsFailResolution = DB::table('projects')
+            ->whereNull('projects.deleted_at')
             ->join('users', 'projects.user_id', '=', 'users.id')
             ->leftJoin('provinces', 'provinces.name', '=', 'users.province')
             ->where(function ($q) {
@@ -200,6 +202,7 @@ class SocietiesAuditCommand extends Command
         // ---------- 9. Estimate projects province backfill distribution (summary only) ----------
         $this->info('--- 9️⃣  Estimate projects province backfill distribution ---');
         $distribution = DB::table('projects')
+            ->whereNull('projects.deleted_at')
             ->join('users', 'projects.user_id', '=', 'users.id')
             ->select('users.province', DB::raw('COUNT(projects.id) as project_count'))
             ->groupBy('users.province')
@@ -216,10 +219,12 @@ class SocietiesAuditCommand extends Command
         // ---------- 10. Estimate society_name resolution success rate ----------
         $this->info('--- 🔟 Estimate society_name resolution success rate ---');
         $totalDistinctProjectSocietyNames = (int) DB::table('projects')
+            ->whereNull('deleted_at')
             ->whereNotNull('society_name')
             ->where('society_name', '!=', '')
             ->count(DB::raw('DISTINCT society_name'));
         $resolvedProjectSocietyNames = (int) DB::table('projects')
+            ->whereNull('projects.deleted_at')
             ->join('societies', 'projects.society_name', '=', 'societies.name')
             ->whereNotNull('projects.society_name')
             ->where('projects.society_name', '!=', '')
@@ -248,17 +253,20 @@ class SocietiesAuditCommand extends Command
             ->whereNotNull('users.province')
             ->where('users.province', '!=', '')
             ->count('users.id');
-        $totalProjects = DB::table('projects')->count();
+        $totalProjects = DB::table('projects')->whereNull('deleted_at')->count();
         $projectsResolvableProvinceId = DB::table('projects')
+            ->whereNull('projects.deleted_at')
             ->join('users', 'projects.user_id', '=', 'users.id')
             ->join('provinces', 'provinces.name', '=', 'users.province')
             ->count('projects.id');
         $projectsResolvableSocietyId = DB::table('projects')
+            ->whereNull('projects.deleted_at')
             ->join('societies', 'projects.society_name', '=', 'societies.name')
             ->whereNotNull('projects.society_name')
             ->where('projects.society_name', '!=', '')
             ->count('projects.id');
         $projectsWithSocietyName = DB::table('projects')
+            ->whereNull('deleted_at')
             ->whereNotNull('society_name')
             ->where('society_name', '!=', '')
             ->count();

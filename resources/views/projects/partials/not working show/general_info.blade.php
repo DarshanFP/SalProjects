@@ -53,8 +53,8 @@
             <div class="info-label"><strong>Amount Forwarded:</strong></div>
             <div class="info-value">Rs. {{ number_format($project->amount_forwarded, 2) }}</div>
 
-            <div class="info-label"><strong>Amount Sanctioned:</strong></div>
-            <div class="info-value">Rs. {{ number_format($project->amount_sanctioned, 2) }}</div>
+            <div class="info-label"><strong>@if($project->isApproved())Amount Sanctioned:@else Amount Requested:@endif</strong></div>
+            <div class="info-value">Rs. @php $rf = $resolvedFundFields ?? []; @endphp @if($project->isApproved()){{ number_format((float)($rf['amount_sanctioned'] ?? 0), 2) }}@else{{ number_format((float)($rf['amount_requested'] ?? 0), 2) }}@endif</div>
 
             <div class="info-label"><strong>Opening Balance:</strong></div>
             <div class="info-value">Rs. {{ number_format($project->opening_balance, 2) }}</div>

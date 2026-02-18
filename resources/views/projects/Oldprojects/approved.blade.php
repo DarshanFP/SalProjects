@@ -89,7 +89,7 @@
                                         @endif
                                     </td>
                                     <td class="project-status">
-                                        {{ \App\Models\OldProjects\Project::$statusLabels[$project->status] ?? $project->status }}
+                                        @include('projects.partials.status-badge', ['project' => $project])
                                     </td>
                                     <td>
                                         <a href="{{ route('projects.show', $project->project_id) }}" class="btn btn-info">View</a>

@@ -148,7 +148,7 @@ class CoordinatorController extends Controller
             'available_parents_count' => $parents->count(),
             'total_projects' => $projects->count(),
             'projects_by_province' => $projects->groupBy('user.province')->map(fn ($group) => $group->count())->toArray(),
-            'projects_with_amount_sanctioned' => $projects->where('amount_sanctioned', '>', 0)->count(),
+            'projects_with_amount_sanctioned' => $projects->whereIn('status', ProjectStatus::APPROVED_STATUSES)->where('amount_sanctioned', '>', 0)->count(),
             'projects_with_overall_budget' => $projects->where('overall_project_budget', '>', 0)->count(),
             'projects_with_budgets' => $projects->filter(function($p) { return $p->budgets && $p->budgets->count() > 0; })->count(),
             'projects_with_reports' => $projects->filter(function($p) { return $p->reports && $p->reports->count() > 0; })->count()
@@ -2040,12 +2040,9 @@ public function budgetOverview()
         }
 
         $pendingProjects = $pendingProjectsQuery->get();
-        $pendingTotal = (float) $pendingProjects->sum(function ($p) {
-            $overall = (float) ($p->overall_project_budget ?? 0);
-            $forwarded = (float) ($p->amount_forwarded ?? 0);
-            $local = (float) ($p->local_contribution ?? 0);
-            return max(0, $overall - ($forwarded + $local));
-        });
+        // M3.7 Phase 2: Pending total from resolver amount_requested (no inline formula)
+        $financialResolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $pendingTotal = (float) $pendingProjects->sum(fn ($p) => (float) (($financialResolver->resolve($p)['amount_requested'] ?? 0)));
 
         // Calculate total budget, expenses, remaining (M3.3: use opening_balance for total-fund aggregation)
         $totalBudget = $approvedProjects->sum(fn ($p) => (float) ($p->opening_balance ?? 0));
@@ -2691,6 +2688,13 @@ public function budgetOverview()
 
         $projects = $projectsQuery->orderBy('project_id')->orderBy('user_id')->get();
 
+        // UI boundary: use resolver for amount_sanctioned display (no raw DB)
+        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $resolvedFinancials = [];
+        foreach ($projects as $project) {
+            $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+        }
+
         // Fetch distinct project types
         $projectTypes = Project::distinct()->pluck('project_type');
 
@@ -2707,7 +2711,7 @@ public function budgetOverview()
 
         $users = $usersQuery->get();
 
-        return view('coordinator.approvedProjects', compact('projects', 'coordinator', 'projectTypes', 'users', 'provinces'));
+        return view('coordinator.approvedProjects', compact('projects', 'coordinator', 'projectTypes', 'users', 'provinces', 'resolvedFinancials'));
     }
 
     // Get executors by province for AJAX request

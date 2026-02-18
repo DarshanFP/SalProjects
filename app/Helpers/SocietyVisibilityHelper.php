@@ -7,21 +7,18 @@ use App\Models\Society;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Phase 5B1: Role-based society visibility for project and user forms.
- * Used to load dropdown options and to validate society_id.
+ * Province-based society visibility for project and user forms.
+ * Users see only societies in their own province (admin/general with no province_id see all).
  */
 class SocietyVisibilityHelper
 {
     /**
      * Get query builder for societies the user is allowed to assign (e.g. in project form).
-     * - Provincial: province_id = user's province + global (null)
-     * - General (any context for project): all active societies
-     * - Coordinator: all active societies
-     * - Executor/Applicant: user's province + global
+     * Province isolation: if user has province_id, only societies in that province; else all active (admin/general).
      *
      * @return Builder<Society>
      */
-    public static function queryForProjectForm(?User $user = null)
+    public static function queryForProjectForm(?User $user = null): Builder
     {
         $user = $user ?? auth()->user();
         if (!$user) {
@@ -30,31 +27,26 @@ class SocietyVisibilityHelper
 
         $query = Society::active()->orderBy('name');
 
-        if (in_array($user->role, ['admin', 'coordinator', 'general'])) {
+        if ($user->province_id === null) {
             return $query;
         }
 
-        if ($user->role === 'provincial') {
-            return $query->where(function (Builder $q) use ($user) {
-                $q->where('province_id', $user->province_id)
-                  ->orWhereNull('province_id');
-            });
-        }
-
-        if (in_array($user->role, ['executor', 'applicant'])) {
-            return $query->where(function (Builder $q) use ($user) {
-                $q->where('province_id', $user->province_id)
-                  ->orWhereNull('province_id');
-            });
-        }
-
-        return $query;
+        return $query->where('province_id', $user->province_id);
     }
 
     /**
      * Get collection of societies for dropdown (project create/edit).
      */
     public static function getSocietiesForProjectForm(?User $user = null)
+    {
+        return self::queryForProjectForm($user)->get();
+    }
+
+    /**
+     * Get societies in the user's province (for project form dropdown).
+     * Same as getSocietiesForProjectForm; alias for clarity.
+     */
+    public static function getAllowedSocieties(?User $user = null)
     {
         return self::queryForProjectForm($user)->get();
     }

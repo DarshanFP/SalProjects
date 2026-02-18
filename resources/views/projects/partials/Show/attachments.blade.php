@@ -40,7 +40,7 @@
                                         </div>
                                         <div class="ATT-file-buttons">
                                             <div class="btn-group btn-group-sm">
-                                                <a href="{{ asset('storage/' . $attachment->file_path) }}"
+                                                <a href="{{ route('projects.attachments.view', $attachment->id) }}"
                                                    target="_blank"
                                                    class="btn btn-outline-primary"
                                                    title="View file">

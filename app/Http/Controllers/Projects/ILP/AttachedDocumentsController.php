@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers\Projects\ILP;
 
+use App\Constants\ProjectStatus;
 use App\Http\Controllers\Controller;
+use App\Helpers\ProjectPermissionHelper;
 use App\Models\OldProjects\ILP\ProjectILPAttachedDocuments;
+use App\Models\OldProjects\ILP\ProjectILPDocumentFile;
 use App\Models\OldProjects\Project;
 use App\Services\Attachment\AttachmentContext;
 use App\Services\ProjectAttachmentHandler;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -144,7 +148,9 @@ class AttachedDocumentsController extends Controller
             Log::info('Fetching ILP attached documents for editing', ['project_id' => $projectId]);
 
             // Fetch the attached documents for the given project ID
-            $documents = ProjectILPAttachedDocuments::where('project_id', $projectId)->first();
+            $documents = ProjectILPAttachedDocuments::with('files')
+                ->where('project_id', $projectId)
+                ->first();
 
             // Ensure documents exist
             if (!$documents) {
@@ -252,10 +258,100 @@ class AttachedDocumentsController extends Controller
         }
     }
 
+    /**
+     * VIEW: stream file inline (route-based, guarded).
+     * Guard: province isolation, canView.
+     */
+    public function viewFile($fileId)
+    {
+        $file = ProjectILPDocumentFile::findOrFail($fileId);
+
+        $project = $file->project ?? $file->ilpDocument?->project;
+        if (! $project) {
+            abort(404);
+        }
+
+        $user = Auth::user();
+        if (! ProjectPermissionHelper::passesProvinceCheck($project, $user)) {
+            abort(403);
+        }
+        if (! ProjectPermissionHelper::canView($project, $user)) {
+            abort(403);
+        }
+
+        $path = storage_path('app/public/' . $file->file_path);
+        if (! file_exists($path)) {
+            abort(404);
+        }
+
+        return response()->file($path);
+    }
+
+    /**
+     * DOWNLOAD: force download (route-based, guarded).
+     * Guard: province isolation, canView.
+     */
+    public function downloadFile($fileId)
+    {
+        $file = ProjectILPDocumentFile::findOrFail($fileId);
+
+        $project = $file->project ?? $file->ilpDocument?->project;
+        if (! $project) {
+            abort(404);
+        }
+
+        $user = Auth::user();
+        if (! ProjectPermissionHelper::passesProvinceCheck($project, $user)) {
+            abort(403);
+        }
+        if (! ProjectPermissionHelper::canView($project, $user)) {
+            abort(403);
+        }
+
+        $path = storage_path('app/public/' . $file->file_path);
+        if (! file_exists($path)) {
+            abort(404);
+        }
+
+        return response()->download($path, $file->file_name);
+    }
+
+    /**
+     * PER-FILE DELETE: remove one ILP document file.
+     * Guard: province, isEditable, canEdit. Model deleting event removes storage.
+     */
+    public function destroyFile($fileId)
+    {
+        $file = ProjectILPDocumentFile::findOrFail($fileId);
+
+        $project = $file->project ?? $file->ilpDocument?->project;
+        if (! $project) {
+            return response()->json(['success' => false, 'message' => 'File record not found.'], 404);
+        }
+
+        $user = Auth::user();
+        if (! ProjectPermissionHelper::passesProvinceCheck($project, $user)) {
+            abort(403);
+        }
+        if (! ProjectStatus::isEditable($project->status)) {
+            abort(403);
+        }
+        if (! ProjectPermissionHelper::canEdit($project, $user)) {
+            abort(403);
+        }
+
+        $file->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Document deleted successfully.',
+        ]);
+    }
+
     private function hasAnyILPFile(Request $request): bool
     {
         foreach (self::ILP_FIELDS as $field) {
-            if ($request->hasFile($field)) {
+            if ($request->hasFile('attachments.' . $field)) {
                 return true;
             }
         }

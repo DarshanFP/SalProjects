@@ -60,6 +60,14 @@ class GeneralInfoController extends Controller
             }
         }
 
+        // Province integrity: server-set only, never from request (Phase 1 fix)
+        if (!empty($validated['society_id'])) {
+            $provinceId = Society::find($validated['society_id'])?->province_id ?? Auth::user()->province_id;
+        } else {
+            $provinceId = Auth::user()->province_id;
+        }
+        $validated['province_id'] = $provinceId;
+
         // Log only non-sensitive data
         Log::info('GeneralInfoController@store - Data passed to database', [
             'project_type' => $validated['project_type'] ?? null,

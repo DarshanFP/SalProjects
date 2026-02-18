@@ -58,9 +58,9 @@ class UpdateIIESFinancialSupportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'govt_eligible_scholarship' => 'required|boolean',
+            'govt_eligible_scholarship' => 'nullable|boolean',
             'scholarship_amt' => ['nullable', 'numeric', 'min:0', new NumericBoundsRule],
-            'other_eligible_scholarship' => 'required|boolean',
+            'other_eligible_scholarship' => 'nullable|boolean',
             'other_scholarship_amt' => ['nullable', 'numeric', 'min:0', new NumericBoundsRule],
             'family_contrib' => ['nullable', 'numeric', 'min:0', new NumericBoundsRule],
             'no_contrib_reason' => 'nullable|string',

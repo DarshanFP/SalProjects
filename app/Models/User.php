@@ -56,7 +56,9 @@ use Illuminate\Auth\Passwords\CanResetPassword as CanResetPasswordTrait;
  * @method static \Illuminate\Database\Eloquent\Builder|User whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder|User whereUsername($value)
  * @property string $province
+ * @property int|null $society_id
  * @property string|null $society_name
+ * @property-read \App\Models\Society|null $society
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ReportComment> $comments
  * @property-read int|null $comments_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \Spatie\Permission\Models\Permission> $permissions
@@ -152,6 +154,14 @@ class User extends Authenticatable implements CanResetPassword
     public function provinceRelation()
     {
         return $this->belongsTo(Province::class, 'province_id');
+    }
+
+    /**
+     * Get the society relationship (using foreign key).
+     */
+    public function society()
+    {
+        return $this->belongsTo(Society::class, 'society_id');
     }
 
     /**

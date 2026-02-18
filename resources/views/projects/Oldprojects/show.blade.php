@@ -272,6 +272,14 @@
         <a href="{{ route('projects.edit', $project->project_id) }}" class="btn btn-warning">Edit Project</a>
     @endif
 
+    @php $canDelete = ProjectPermissionHelper::canDelete($project, $user); @endphp
+    @if($canDelete)
+        <form action="{{ route('projects.trash', $project->project_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Move this project to trash? You can restore it later.');">
+            @csrf
+            <button type="submit" class="btn btn-outline-secondary">Move to Trash</button>
+        </form>
+    @endif
+
     @if(auth()->user()->role !== 'admin')
         @if(auth()->user()->role === 'provincial')
             <a href="{{ route('provincial.projects.downloadPdf', $project->project_id) }}" class="btn btn-secondary">Download PDF</a>

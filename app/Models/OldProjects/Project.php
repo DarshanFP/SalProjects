@@ -64,6 +64,7 @@ use App\Models\ProjectStatusHistory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  *
@@ -250,11 +251,25 @@ use Illuminate\Database\Eloquent\Model;
 class Project extends Model
 {
     use HasFactory;
+    use SoftDeletes;
     // protected $primaryKey = 'project_id';
 
     protected static function newFactory()
     {
         return \Database\Factories\ProjectFactory::new();
+    }
+
+    /**
+     * Wave 6D: Block any update when project is in a FINAL status (approved/rejected).
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (Project $project): void {
+            $originalStatus = $project->getOriginal('status');
+            if ($originalStatus !== null && ProjectStatus::isFinal($originalStatus)) {
+                abort(403, 'Project is in FINAL status and cannot be modified.');
+            }
+        });
     }
 
     protected $fillable = [
@@ -264,6 +279,7 @@ class Project extends Model
         'project_title',
         'society_id',
         'society_name',
+        'province_id', // Server-set only on create; never from client/request
         'president_name',
         'in_charge',
         'in_charge_name',
@@ -416,6 +432,10 @@ public static $statusLabels = [
         static::creating(function ($model) {
             $model->project_id = $model->generateProjectId();
         });
+
+        static::forceDeleting(function (Project $project) {
+            app(\App\Services\ProjectForceDeleteCleanupService::class)->cleanup($project);
+        });
     }
 
     private function generateProjectId()
@@ -437,7 +457,11 @@ public static $statusLabels = [
 
         $initials = $initialsMap[$this->project_type] ?? 'GEN';
 
-        $latestProject = self::where('project_id', 'like', $initials . '-%')->latest('id')->first();
+        // Include soft-deleted rows so we never reuse a project_id (unique constraint applies to all rows)
+        $latestProject = self::withTrashed()
+            ->where('project_id', 'like', $initials . '-%')
+            ->latest('id')
+            ->first();
         $sequenceNumber = $latestProject ? intval(substr($latestProject->project_id, strlen($initials) + 1)) + 1 : 1;
 
         $sequenceNumberPadded = str_pad($sequenceNumber, 4, '0', STR_PAD_LEFT);

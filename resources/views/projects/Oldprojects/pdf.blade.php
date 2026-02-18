@@ -792,8 +792,8 @@
         <table class="pdf-signature-table">
             <tbody>
                 <tr>
-                    <td>Amount approved (Sanctioned)</td>
-                    <td>{{ format_indian_currency($resolvedFundFields['amount_sanctioned'] ?? 0, 2) }}</td>
+                    <td>{{ $project->isApproved() ? 'Amount approved (Sanctioned)' : 'Amount Requested' }}</td>
+                    <td>{{ $project->isApproved() ? format_indian_currency($resolvedFundFields['amount_sanctioned'] ?? 0, 2) : format_indian_currency($resolvedFundFields['amount_requested'] ?? 0, 2) }}</td>
                 </tr>
                 <tr>
                     <td>Contributions considered</td>
