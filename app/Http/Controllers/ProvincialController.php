@@ -20,6 +20,7 @@ use Illuminate\Support\Str;
 use App\Services\ProjectStatusService;
 use App\Services\ReportStatusService;
 use App\Services\ActivityHistoryService;
+use App\Services\ProjectAccessService;
 use App\Constants\ProjectStatus;
 use App\Helpers\TableFormatter;
 use App\Helpers\SocietyVisibilityHelper;
@@ -30,54 +31,18 @@ use Illuminate\Support\Facades\DB;
 
 class ProvincialController extends Controller
 {
-    // Access to provincials and general users (who can be provincial for provinces)
-    public function __construct()
-    {
+    public function __construct(
+        protected ProjectAccessService $projectAccessService
+    ) {
         $this->middleware(['auth', 'role:provincial,general']);
     }
 
     /**
-     * Get all user IDs that this provincial user can access.
-     * For regular provincial users: Direct children (parent_id = provincial.id)
-     * For general users managing provinces: All users in managed provinces + direct children
-     * Respects province filter for general users (from session)
+     * Get user IDs this provincial can access (Phase 7: delegated to ProjectAccessService).
      */
     protected function getAccessibleUserIds($provincial)
     {
-        $userIds = collect();
-
-        // Always include direct children (executors/applicants under this user)
-        $directChildren = User::where('parent_id', $provincial->id)
-            ->whereIn('role', ['executor', 'applicant'])
-            ->pluck('id');
-        $userIds = $userIds->merge($directChildren);
-
-        // For general users managing multiple provinces, also include users from all managed provinces
-        if ($provincial->role === 'general') {
-            $managedProvinces = $provincial->managedProvinces()->pluck('provinces.id');
-
-            // Check if province filter is set in session
-            $filteredProvinceIds = session('province_filter_ids', []);
-            $filterAll = session('province_filter_all', true);
-
-            // If filter is set and not "all", use filtered provinces
-            if (!empty($filteredProvinceIds) && !$filterAll) {
-                // Only use provinces that are both managed and in the filter
-                $provincesToUse = array_intersect($managedProvinces->toArray(), $filteredProvinceIds);
-            } else {
-                // Use all managed provinces (default or "all" selected)
-                $provincesToUse = $managedProvinces->toArray();
-            }
-
-            if (!empty($provincesToUse)) {
-                $provinceUsers = User::whereIn('province_id', $provincesToUse)
-                    ->whereIn('role', ['executor', 'applicant', 'provincial'])
-                    ->pluck('id');
-                $userIds = $userIds->merge($provinceUsers);
-            }
-        }
-
-        return $userIds->unique()->values();
+        return $this->projectAccessService->getAccessibleUserIds($provincial);
     }
 
     // Index page for provincial
@@ -146,8 +111,8 @@ class ProvincialController extends Controller
         // Get all accessible user IDs (handles both provincial and general users)
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
-        // Get approved projects for all accessible users
-        $projectsQuery = Project::whereIn('user_id', $accessibleUserIds)
+        // Get approved projects for all accessible users (owner OR in-charge in scope)
+        $projectsQuery = Project::accessibleByUserIds($accessibleUserIds)
             ->approved();
 
         // Apply comprehensive filters
@@ -182,7 +147,7 @@ class ProvincialController extends Controller
 
         $roles = ['executor', 'applicant'];
 
-        $projectTypes = Project::whereIn('user_id', $accessibleUserIds)
+        $projectTypes = Project::accessibleByUserIds($accessibleUserIds)
             ->approved()
             ->distinct()
             ->pluck('project_type');
@@ -439,7 +404,7 @@ class ProvincialController extends Controller
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
         // Fetch reports for all accessible users
-        $reportsQuery = DPReport::whereIn('user_id', $accessibleUserIds);
+        $reportsQuery = DPReport::accessibleByUserIds($accessibleUserIds);
 
         // Apply filtering if provided in the request
         if ($request->filled('place')) {
@@ -469,7 +434,7 @@ class ProvincialController extends Controller
         $users = User::whereIn('id', $accessibleUserIds)->get();
 
         // Fetch distinct project types for filters
-        $projectTypes = DPReport::whereIn('user_id', $accessibleUserIds)
+        $projectTypes = DPReport::accessibleByUserIds($accessibleUserIds)
             ->distinct()
             ->pluck('project_type');
 
@@ -531,13 +496,17 @@ class ProvincialController extends Controller
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
         // Base query (clone before get/paginate to avoid mutating)
-        $baseQuery = Project::whereIn('user_id', $accessibleUserIds)
+        // Include projects where owner OR in-charge is in scope (Phase 1: owner/in-charge parity)
+        $baseQuery = Project::accessibleByUserIds($accessibleUserIds)
             ->when($request->filled('project_type'), fn ($q) => $q->where('project_type', $request->project_type))
-            ->when($request->filled('user_id'), fn ($q) => $q->where('user_id', $request->user_id))
+            ->when($request->filled('user_id'), fn ($q) => $q->where(function ($q2) use ($request) {
+                $q2->where('user_id', $request->user_id)->orWhere('in_charge', $request->user_id);
+            }))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
             ->when($request->filled('center'), function ($q) use ($request) {
                 $q->whereHas('user', fn ($uq) => $uq->where('center', $request->center));
-            });
+            })
+            ->when($request->filled('society_id'), fn ($q) => $q->where('society_id', $request->society_id));
 
         // Full dataset for grand totals and status distribution (resolver runs on full filtered set)
         $fullDataset = (clone $baseQuery)
@@ -632,7 +601,7 @@ class ProvincialController extends Controller
         $users = User::whereIn('id', $accessibleUserIds)
             ->whereIn('role', ['executor', 'applicant'])
             ->get();
-        $projectTypes = Project::whereIn('user_id', $accessibleUserIds)->distinct()->pluck('project_type');
+        $projectTypes = Project::accessibleByUserIds($accessibleUserIds)->distinct()->pluck('project_type');
         $centers = User::whereIn('id', $accessibleUserIds)
             ->whereIn('role', ['executor', 'applicant'])
             ->whereNotNull('center')
@@ -678,9 +647,11 @@ class ProvincialController extends Controller
             ->with('user')
             ->firstOrFail();
 
-        // Authorization check: the project's user must be accessible by this provincial
+        // Authorization check: owner OR in-charge must be accessible by this provincial (Phase 1: owner/in-charge parity)
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
-        if (!in_array($project->user_id, $accessibleUserIds->toArray())) {
+        $canAccess = in_array($project->user_id, $accessibleUserIds->toArray())
+            || ($project->in_charge && in_array($project->in_charge, $accessibleUserIds->toArray()));
+        if (!$canAccess) {
             abort(403, 'Unauthorized');
         }
 
@@ -1738,8 +1709,8 @@ class ProvincialController extends Controller
         // Get all accessible user IDs (handles both provincial and general users)
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
-        // Get approved projects for all accessible users
-        $projectsQuery = Project::whereIn('user_id', $accessibleUserIds)
+        // Get approved projects for all accessible users (owner OR in-charge in scope)
+        $projectsQuery = Project::accessibleByUserIds($accessibleUserIds)
             ->approved();
 
         // Apply filtering if provided in the request
@@ -1776,7 +1747,7 @@ class ProvincialController extends Controller
         $users = User::whereIn('id', $accessibleUserIds)->get();
 
         // Fetch distinct project types for filters
-        $projectTypes = Project::whereIn('user_id', $accessibleUserIds)
+        $projectTypes = Project::accessibleByUserIds($accessibleUserIds)
             ->approved()
             ->distinct()
             ->pluck('project_type');
@@ -1855,7 +1826,7 @@ class ProvincialController extends Controller
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
         // Fetch pending reports for all accessible users
-        $reportsQuery = DPReport::whereIn('user_id', $accessibleUserIds)
+        $reportsQuery = DPReport::accessibleByUserIds($accessibleUserIds)
             ->whereIn('status', [DPReport::STATUS_SUBMITTED_TO_PROVINCIAL, DPReport::STATUS_REVERTED_BY_COORDINATOR]);
 
         // Apply filtering if provided in the request
@@ -1885,7 +1856,7 @@ class ProvincialController extends Controller
         $users = User::whereIn('id', $accessibleUserIds)->get();
 
         // Fetch distinct project types for filters
-        $projectTypes = DPReport::whereIn('user_id', $accessibleUserIds)
+        $projectTypes = DPReport::accessibleByUserIds($accessibleUserIds)
             ->whereIn('status', [DPReport::STATUS_SUBMITTED_TO_PROVINCIAL, DPReport::STATUS_REVERTED_BY_COORDINATOR])
             ->distinct()
             ->pluck('project_type');
@@ -1901,7 +1872,7 @@ class ProvincialController extends Controller
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
         // Fetch approved reports for all accessible users
-        $reportsQuery = DPReport::whereIn('user_id', $accessibleUserIds)
+        $reportsQuery = DPReport::accessibleByUserIds($accessibleUserIds)
             ->whereIn('status', ProjectStatus::APPROVED_STATUSES);
 
         // Apply filtering if provided in the request
@@ -1931,7 +1902,7 @@ class ProvincialController extends Controller
         $users = User::whereIn('id', $accessibleUserIds)->get();
 
         // Fetch distinct project types for filters
-        $projectTypes = DPReport::whereIn('user_id', $accessibleUserIds)
+        $projectTypes = DPReport::accessibleByUserIds($accessibleUserIds)
             ->whereIn('status', ProjectStatus::APPROVED_STATUSES)
             ->distinct()
             ->pluck('project_type');
@@ -1948,7 +1919,7 @@ class ProvincialController extends Controller
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
         // Get pending reports
-        $pendingReports = DPReport::whereIn('user_id', $accessibleUserIds)
+        $pendingReports = DPReport::accessibleByUserIds($accessibleUserIds)
         ->whereIn('status', [
             DPReport::STATUS_SUBMITTED_TO_PROVINCIAL,
             DPReport::STATUS_REVERTED_BY_COORDINATOR
@@ -2049,7 +2020,7 @@ class ProvincialController extends Controller
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
         // Get pending reports
-        $pendingReports = DPReport::whereIn('user_id', $accessibleUserIds)
+        $pendingReports = DPReport::accessibleByUserIds($accessibleUserIds)
         ->whereIn('status', [
             DPReport::STATUS_SUBMITTED_TO_PROVINCIAL,
             DPReport::STATUS_REVERTED_BY_COORDINATOR
@@ -2173,13 +2144,13 @@ class ProvincialController extends Controller
         // Get all accessible user IDs
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
-        // Get all team projects (all statuses)
-        $teamProjects = Project::whereIn('user_id', $accessibleUserIds)
+        // Get all team projects (all statuses) — owner OR in-charge in scope
+        $teamProjects = Project::accessibleByUserIds($accessibleUserIds)
             ->with(['user', 'reports.accountDetails'])
             ->get();
 
         // Get all team reports (all statuses)
-        $teamReports = DPReport::whereIn('user_id', $accessibleUserIds)->get();
+        $teamReports = DPReport::accessibleByUserIds($accessibleUserIds)->get();
 
         // Calculate projects by status
         $projectsByStatus = $teamProjects->groupBy('status')->map(function($group) {
@@ -2251,11 +2222,11 @@ class ProvincialController extends Controller
         // Get all accessible user IDs
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
-        // Get all team projects
-        $teamProjects = Project::whereIn('user_id', $accessibleUserIds)->get();
+        // Get all team projects — owner OR in-charge in scope
+        $teamProjects = Project::accessibleByUserIds($accessibleUserIds)->get();
 
         // Get all team reports
-        $teamReports = DPReport::whereIn('user_id', $accessibleUserIds)->get();
+        $teamReports = DPReport::accessibleByUserIds($accessibleUserIds)->get();
 
         // Projects by status
         $projectsByStatus = $teamProjects->groupBy('status')->map(function($group) {
@@ -2375,14 +2346,14 @@ class ProvincialController extends Controller
         // Get all accessible user IDs
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
-        // Get all approved projects (M3.3.2: use centralized scope)
-        $approvedProjects = Project::whereIn('user_id', $accessibleUserIds)
+        // Get all approved projects (M3.3.2: use centralized scope) — owner OR in-charge in scope
+        $approvedProjects = Project::accessibleByUserIds($accessibleUserIds)
             ->approved()
             ->with(['user', 'reports.accountDetails'])
             ->get();
 
         // M3.7 Phase 2: Pending total from resolver amount_requested (no inline formula)
-        $pendingProjects = Project::whereIn('user_id', $accessibleUserIds)
+        $pendingProjects = Project::accessibleByUserIds($accessibleUserIds)
             ->notApproved()
             ->get();
         $pendingTotal = (float) $pendingProjects->sum(fn ($p) => (float) (($resolver->resolve($p)['amount_requested'] ?? 0)));
@@ -2510,7 +2481,7 @@ class ProvincialController extends Controller
             // Get all accessible user IDs
             $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
-            $monthReports = DPReport::whereIn('user_id', $accessibleUserIds)
+            $monthReports = DPReport::accessibleByUserIds($accessibleUserIds)
                 ->whereIn('status', DPReport::APPROVED_STATUSES)
             ->whereBetween('created_at', [$monthStart, $monthEnd])
             ->with('accountDetails')

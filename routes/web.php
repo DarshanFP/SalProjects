@@ -472,10 +472,13 @@ Route::prefix('reports/monthly')->group(function () {
     Route::get('development-project/create/{project_id}', [MonthlyDevelopmentProjectController::class, 'createForm'])->name('monthly.developmentProject.create');
     Route::post('development-project/store', [MonthlyDevelopmentProjectController::class, 'store'])->name('monthly.developmentProject.store');
 });
+
+}); // CLOSE executor group — shared attachment group must be outside
+
 // Shared route for Executor, Provincial and Coordinator
 
-// for Projects 9122024 (General has COMPLETE coordinator access)
-Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,general'])->group(function () {
+// for Projects 9122024 (General has COMPLETE coordinator access; Admin included for download/attachments/activity-history)
+Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,general,admin'])->group(function () {
     Route::get('/projects-list', [ProjectController::class, 'listProjects'])->name('projects.list');
 
     // Project download routes accessible to all roles - ORDER MATTERS!
@@ -598,7 +601,6 @@ Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,gener
         Route::get('list', [WomenInDistressController::class, 'index'])->name('quarterly.womenInDistress.index');
         Route::get('{id}', [WomenInDistressController::class, 'show'])->name('quarterly.womenInDistress.show');
     });
-});
 
 // Aggregated Report Routes (Quarterly, Half-Yearly, Annual) (General has COMPLETE coordinator access)
 Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,general'])->group(function () {

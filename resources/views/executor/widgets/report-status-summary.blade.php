@@ -36,25 +36,22 @@
                 </div>
             </div>
 
-            {{-- Approved Reports --}}
+            {{-- Approved Reports (sum of DPReport::APPROVED_STATUSES) --}}
             <div class="col-md-6 col-lg-4">
                 <div class="card bg-success bg-opacity-25 border-success">
                     <div class="card-body p-3">
                         <h6 class="text-muted mb-1 small">Approved</h6>
-                        <h4 class="mb-0 text-white">{{ $reportStatusSummary['monthly'][App\Models\Reports\Monthly\DPReport::STATUS_APPROVED_BY_COORDINATOR] ?? 0 }}</h4>
+                        <h4 class="mb-0 text-white">{{ $reportStatusSummary['approved_count'] ?? 0 }}</h4>
                     </div>
                 </div>
             </div>
 
-            {{-- Reverted Reports --}}
+            {{-- Reverted Reports (all reverted statuses) --}}
             <div class="col-md-6 col-lg-4">
                 <div class="card bg-danger bg-opacity-25 border-danger">
                     <div class="card-body p-3">
                         <h6 class="text-muted mb-1 small">Reverted</h6>
-                        <h4 class="mb-0 text-white">
-                            {{ ($reportStatusSummary['monthly'][App\Models\Reports\Monthly\DPReport::STATUS_REVERTED_BY_PROVINCIAL] ?? 0) +
-                               ($reportStatusSummary['monthly'][App\Models\Reports\Monthly\DPReport::STATUS_REVERTED_BY_COORDINATOR] ?? 0) }}
-                        </h4>
+                        <h4 class="mb-0 text-white">{{ $reportStatusSummary['reverted_count'] ?? 0 }}</h4>
                     </div>
                 </div>
             </div>

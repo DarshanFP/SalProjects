@@ -25,11 +25,7 @@
                 <div class="card bg-warning bg-opacity-25 border-warning">
                     <div class="card-body p-3 text-center">
                         <small class="text-muted d-block">Pending Reports</small>
-                        <h4 class="mb-0 text-white">
-                            {{ ($reportStatusSummary['monthly'][App\Models\Reports\Monthly\DPReport::STATUS_DRAFT] ?? 0) +
-                               ($reportStatusSummary['monthly'][App\Models\Reports\Monthly\DPReport::STATUS_REVERTED_BY_PROVINCIAL] ?? 0) +
-                               ($reportStatusSummary['monthly'][App\Models\Reports\Monthly\DPReport::STATUS_REVERTED_BY_COORDINATOR] ?? 0) }}
-                        </h4>
+                        <h4 class="mb-0 text-white">{{ $reportStatusSummary['pending_count'] ?? 0 }}</h4>
                         <small class="text-muted">Need attention</small>
                     </div>
                 </div>
@@ -38,32 +34,17 @@
                 <div class="card bg-success bg-opacity-25 border-success">
                     <div class="card-body p-3 text-center">
                         <small class="text-muted d-block">Approved Reports</small>
-                        <h4 class="mb-0 text-white">{{ $reportStatusSummary['monthly'][App\Models\Reports\Monthly\DPReport::STATUS_APPROVED_BY_COORDINATOR] ?? 0 }}</h4>
+                        <h4 class="mb-0 text-white">{{ $reportStatusSummary['approved_count'] ?? 0 }}</h4>
                         <small class="text-muted">Completed</small>
                     </div>
                 </div>
             </div>
         </div>
 
-        {{-- Recent Reports Table --}}
+        {{-- Recent Reports Table (Phase 3: owned scope only; controller-passed $recentReports) --}}
         <div class="mb-3">
             <h6 class="mb-3">Recent Reports</h6>
-            @php
-                $user = auth()->user();
-                // Get recent reports for display
-                $projectIds = \App\Models\OldProjects\Project::where(function($query) use ($user) {
-                    $query->where('user_id', $user->id)
-                          ->orWhere('in_charge', $user->id);
-                })->pluck('project_id');
-
-                $recentReports = \App\Models\Reports\Monthly\DPReport::whereIn('project_id', $projectIds)
-                    ->with('project')
-                    ->orderBy('created_at', 'desc')
-                    ->limit(5)
-                    ->get();
-            @endphp
-
-            @if($recentReports->count() > 0)
+            @if(isset($recentReports) && $recentReports->count() > 0)
                 <div class="table-responsive">
                     <table class="table table-sm table-hover">
                         <thead class="table-dark">
@@ -110,7 +91,7 @@
                                     </td>
                                     <td>
                                         <span class="badge bg-{{
-                                            $report->status === App\Models\Reports\Monthly\DPReport::STATUS_APPROVED_BY_COORDINATOR ? 'success' :
+                                            $report->isApproved() ? 'success' :
                                             ($report->status === App\Models\Reports\Monthly\DPReport::STATUS_DRAFT ? 'warning' :
                                             (str_contains($report->status, 'reverted') ? 'danger' : 'secondary'))
                                         }}">

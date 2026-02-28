@@ -98,7 +98,25 @@ class UpdateProjectRequest extends FormRequest
             'executor_email' => 'nullable|string|max:255',
             'gi_full_address' => 'nullable|string|max:255',
             'overall_project_period' => 'nullable|integer|min:1|max:4',
-            'current_phase' => 'nullable|integer|min:1',
+            'current_phase' => [
+                'nullable',
+                'integer',
+                'min:1',
+                // Phase 3 Fix: Ensure current_phase does not exceed overall_project_period
+                function ($attribute, $value, $fail) {
+                    $period = $this->input('overall_project_period');
+                    
+                    // Allow if either field is null (draft mode)
+                    if ($value === null || $period === null) {
+                        return;
+                    }
+                    
+                    // Validate: phase must be <= period
+                    if ((int)$value > (int)$period) {
+                        $fail('The current phase cannot exceed the overall project period (Phase ' . $value . ' > ' . $period . ' years).');
+                    }
+                },
+            ],
             'commencement_month' => 'nullable|integer|min:1|max:12',
             'commencement_year' => 'nullable|integer|min:2000|max:2100',
             'overall_project_budget' => 'nullable|numeric|min:0',

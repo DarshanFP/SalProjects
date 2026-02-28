@@ -5,6 +5,7 @@ namespace App\Helpers;
 use App\Models\OldProjects\Project;
 use App\Models\User;
 use App\Constants\ProjectStatus;
+use App\Services\ProjectAccessService;
 
 /**
  * Helper class for project permission checks
@@ -16,10 +17,14 @@ class ProjectPermissionHelper
 {
     /**
      * Enforce province isolation: user can only access projects in their province.
-     * If user has no province_id (e.g. admin/general), allow (backward compatibility).
+     * Coordinator/Admin: global oversight — bypass province check.
+     * If user has no province_id (e.g. general), allow (backward compatibility).
      */
     public static function passesProvinceCheck(Project $project, User $user): bool
     {
+        if (in_array($user->role, ['admin', 'coordinator'])) {
+            return true;
+        }
         if ($user->province_id === null) {
             return true;
         }
@@ -84,21 +89,13 @@ class ProjectPermissionHelper
     }
 
     /**
-     * Check if user can view a project
-     * Province must match; then provincial/coordinator/admin/general can view; executor/applicant only if owner or in_charge.
+     * Check if user can view a project.
+     * Delegates to ProjectAccessService (single source of truth).
+     * Coordinator: global oversight. Provincial: hierarchy. Executor/Applicant: own or in-charge.
      */
     public static function canView(Project $project, User $user): bool
     {
-        if (!self::passesProvinceCheck($project, $user)) {
-            return false;
-        }
-        if (in_array($user->role, ['admin', 'coordinator', 'provincial', 'general'])) {
-            return true;
-        }
-        if (in_array($user->role, ['executor', 'applicant'])) {
-            return $project->user_id === $user->id || $project->in_charge === $user->id;
-        }
-        return false;
+        return app(ProjectAccessService::class)->canViewProject($project, $user);
     }
 
     /**

@@ -125,6 +125,31 @@ class DPReport extends Model
     public const STATUS_REVERTED_TO_COORDINATOR = 'reverted_to_coordinator';
 
     /**
+     * Dashboard status keys – canonical set for status domain integrity.
+     * Single source of truth for report status aggregation (Phase 1).
+     */
+    public static function getDashboardStatusKeys(): array
+    {
+        return [
+            self::STATUS_DRAFT,
+            self::STATUS_SUBMITTED_TO_PROVINCIAL,
+            self::STATUS_FORWARDED_TO_COORDINATOR,
+            self::STATUS_APPROVED_BY_COORDINATOR,
+            self::STATUS_APPROVED_BY_GENERAL_AS_COORDINATOR,
+            self::STATUS_APPROVED_BY_GENERAL_AS_PROVINCIAL,
+            self::STATUS_REVERTED_BY_PROVINCIAL,
+            self::STATUS_REVERTED_BY_COORDINATOR,
+            self::STATUS_REVERTED_BY_GENERAL_AS_PROVINCIAL,
+            self::STATUS_REVERTED_BY_GENERAL_AS_COORDINATOR,
+            self::STATUS_REVERTED_TO_EXECUTOR,
+            self::STATUS_REVERTED_TO_APPLICANT,
+            self::STATUS_REVERTED_TO_PROVINCIAL,
+            self::STATUS_REVERTED_TO_COORDINATOR,
+            self::STATUS_REJECTED_BY_COORDINATOR,
+        ];
+    }
+
+    /**
      * Approved statuses (M3 Phase 2: canonical grouping for aggregation alignment).
      */
     public const APPROVED_STATUSES = [
@@ -198,6 +223,17 @@ class DPReport extends Model
         'revert_reason',
         'pmc_comments'
     ];
+
+    /**
+     * Scope: reports accessible by provincial (project owner OR in-charge in given user IDs).
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param \Illuminate\Support\Collection|array $userIds Executor/applicant user IDs
+     */
+    public function scopeAccessibleByUserIds($query, $userIds)
+    {
+        return $query->whereHas('project', fn ($q) => $q->accessibleByUserIds($userIds));
+    }
 
     public function user()
     {

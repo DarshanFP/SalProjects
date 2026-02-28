@@ -6,6 +6,7 @@ use App\Models\ActivityHistory;
 use App\Models\OldProjects\Project;
 use App\Models\Reports\Monthly\DPReport;
 use App\Models\User;
+use App\Services\ProjectAccessService;
 
 class ActivityHistoryHelper
 {
@@ -46,27 +47,7 @@ class ActivityHistoryHelper
             return false;
         }
 
-        // Admin and coordinator can view all
-        if (in_array($user->role, ['admin', 'coordinator'])) {
-            return true;
-        }
-
-        // Provincial can view if project belongs to their executors/applicants
-        if ($user->role === 'provincial') {
-            $teamUserIds = User::where('parent_id', $user->id)
-                ->whereIn('role', ['executor', 'applicant'])
-                ->pluck('id');
-
-            return in_array($project->user_id, $teamUserIds->toArray()) ||
-                   in_array($project->in_charge, $teamUserIds->toArray());
-        }
-
-        // Executor/applicant can view if they own or are in-charge
-        if (in_array($user->role, ['executor', 'applicant'])) {
-            return $project->user_id === $user->id || $project->in_charge === $user->id;
-        }
-
-        return false;
+        return app(ProjectAccessService::class)->canViewProject($project, $user);
     }
 
     /**
@@ -80,41 +61,17 @@ class ActivityHistoryHelper
     {
         $report = DPReport::where('report_id', $reportId)->first();
 
-        if (!$report) {
+        if (!$report || !$report->project) {
             return false;
         }
 
-        $project = $report->project;
-
-        if (!$project) {
-            return false;
-        }
-
-        // Admin and coordinator can view all
-        if (in_array($user->role, ['admin', 'coordinator'])) {
-            return true;
-        }
-
-        // Provincial can view if report belongs to their executors/applicants
-        if ($user->role === 'provincial') {
-            $teamUserIds = User::where('parent_id', $user->id)
-                ->whereIn('role', ['executor', 'applicant'])
-                ->pluck('id');
-
-            return in_array($project->user_id, $teamUserIds->toArray()) ||
-                   in_array($project->in_charge, $teamUserIds->toArray());
-        }
-
-        // Executor/applicant can view if they own or are in-charge of the project
-        if (in_array($user->role, ['executor', 'applicant'])) {
-            return $project->user_id === $user->id || $project->in_charge === $user->id;
-        }
-
-        return false;
+        return app(ProjectAccessService::class)->canViewProject($report->project, $user);
     }
 
     /**
-     * Get query builder for activities based on user role
+     * Get query builder for activities based on user role.
+     * Coordinator: routes through ProjectAccessService (global oversight = all projects).
+     * Scope matches project visibility.
      *
      * @param User $user
      * @return \Illuminate\Database\Eloquent\Builder
@@ -124,8 +81,16 @@ class ActivityHistoryHelper
         $query = ActivityHistory::query();
 
         if (in_array($user->role, ['admin', 'coordinator'])) {
-            // No filtering - see all activities
-            return $query;
+            // Use ProjectAccessService for consistency (coordinator = global; admin = global)
+            $visibleProjectIds = app(ProjectAccessService::class)->getVisibleProjectsQuery($user)->pluck('project_id');
+            $visibleReportIds = DPReport::whereIn('project_id', $visibleProjectIds)->pluck('report_id');
+            return $query->where(function ($q) use ($visibleProjectIds, $visibleReportIds) {
+                $q->where(function ($subQ) use ($visibleProjectIds) {
+                    $subQ->where('type', 'project')->whereIn('related_id', $visibleProjectIds);
+                })->orWhere(function ($subQ) use ($visibleReportIds) {
+                    $subQ->where('type', 'report')->whereIn('related_id', $visibleReportIds);
+                });
+            });
         }
 
         if ($user->role === 'provincial') {

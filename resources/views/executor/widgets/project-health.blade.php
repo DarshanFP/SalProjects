@@ -28,21 +28,22 @@
                 </div>
             </div>
 
-            {{-- Health Mini Chart --}}
-            @if(isset($projects) && $projects->total() > 0 && isset($enhancedProjects))
+            {{-- Health Mini Chart (Phase 2: full filtered scope) --}}
+            @if(isset($projectHealthSummary) && $projectHealthSummary['total'] > 0)
                 <div class="mb-3">
                     <h6 class="mb-3 text-center">Health Distribution</h6>
                     <div id="projectHealthChart" style="min-height: 200px;"></div>
                 </div>
 
-                {{-- Health Breakdown --}}
+                {{-- Health Breakdown (Phase 2: uses enhancedFullOwnedProjects = full filtered scope) --}}
+                @if(isset($enhancedFullOwnedProjects) && count($enhancedFullOwnedProjects) > 0)
                 <div class="mt-3 pt-3 border-top border-secondary">
                     <h6 class="mb-3">Health Factors Overview</h6>
                     <div class="row g-2">
                         <div class="col-6">
                             <small class="text-muted d-block">Projects with Budget Issues</small>
                             <strong class="text-warning">
-                                {{ collect($enhancedProjects)->filter(function($meta) {
+                                {{ collect($enhancedFullOwnedProjects)->filter(function($meta) {
                                     return ($meta['utilization_percent'] ?? 0) > 75;
                                 })->count() }}
                             </strong>
@@ -50,13 +51,14 @@
                         <div class="col-6">
                             <small class="text-muted d-block">Projects Needing Reports</small>
                             <strong class="text-danger">
-                                {{ collect($enhancedProjects)->filter(function($meta) {
+                                {{ collect($enhancedFullOwnedProjects)->filter(function($meta) {
                                     return !isset($meta['last_report_date']) || is_null($meta['last_report_date']);
                                 })->count() }}
                             </strong>
                         </div>
                     </div>
                 </div>
+                @endif
             @endif
 
             {{-- View All Link --}}

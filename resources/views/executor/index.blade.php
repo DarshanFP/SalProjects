@@ -10,9 +10,9 @@
         'report-status-summary' => isset($reportStatusSummary),
         'upcoming-deadlines' => isset($upcomingDeadlines) && $upcomingDeadlines['total'] > 0,
         'quick-stats' => isset($quickStats),
-            'project-health' => isset($projectHealthSummary) && isset($projects) && $projects->total() > 0,
+            'project-health' => isset($projectHealthSummary) && isset($ownedProjects) && $ownedProjects->total() > 0,
             'activity-feed' => isset($recentActivities) && $recentActivities->count() > 0,
-            'project-status-visualization' => isset($projects) && $projects->total() > 0,
+            'project-status-visualization' => isset($ownedProjects) && $ownedProjects->total() > 0,
             'report-analytics' => isset($reportChartData),
             'budget-analytics' => isset($chartData) && !empty($chartData),
             'report-overview' => isset($reportStatusSummary),
@@ -152,7 +152,7 @@
         @endif
 
         {{-- Project Health Widget --}}
-        @if(isset($projectHealthSummary) && isset($projects) && $projects->total() > 0)
+        @if(isset($projectHealthSummary) && isset($ownedProjects) && $ownedProjects->total() > 0)
             <div class="widget-container col-12 col-md-6" data-widget-id="project-health" data-widget-default="true" title="Drag to reorder">
                 @include('executor.widgets.project-health')
             </div>
@@ -166,7 +166,7 @@
         @endif
 
         {{-- Project Status Visualization Widget - Full width on larger screens --}}
-        @if(isset($projects) && $projects->total() > 0)
+        @if(isset($ownedProjects) && $ownedProjects->total() > 0)
             <div class="widget-container col-12" data-widget-id="project-status-visualization" data-widget-default="true" title="Drag to reorder">
                 @include('executor.widgets.project-status-visualization')
             </div>
@@ -201,7 +201,8 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i data-feather="folder" class="me-2"></i>
-                        My Projects
+                        My Projects (Owned)
+                        <span class="badge bg-primary ms-2">{{ $ownedCount ?? 0 }}</span>
                     </h5>
                 </div>
                 <div class="card-body">
@@ -211,12 +212,12 @@
                             <div class="d-flex gap-2">
                                 {{-- Project Type Tabs/Filter --}}
                                 <div class="btn-group" role="group">
-                                    <a href="{{ route('executor.dashboard', array_merge(request()->except(['show', 'page']), ['show' => 'approved'])) }}"
+                                    <a href="{{ route('executor.dashboard', array_merge(request()->except(['show', 'page', 'owned_page', 'incharge_page']), ['show' => 'approved'])) }}"
                                        class="btn btn-sm {{ (!isset($showType) || $showType === 'approved') ? 'btn-primary' : 'btn-outline-secondary' }}">
                                         <i data-feather="check-circle" style="width: 14px; height: 14px;"></i>
                                         Approved
                                     </a>
-                                    <a href="{{ route('executor.dashboard', array_merge(request()->except(['show', 'page']), ['show' => 'needs_work'])) }}"
+                                    <a href="{{ route('executor.dashboard', array_merge(request()->except(['show', 'page', 'owned_page', 'incharge_page']), ['show' => 'needs_work'])) }}"
                                        class="btn btn-sm {{ (isset($showType) && $showType === 'needs_work') ? 'btn-warning' : 'btn-outline-secondary' }}">
                                         <i data-feather="alert-triangle" style="width: 14px; height: 14px;"></i>
                                         Needs Work
@@ -224,7 +225,7 @@
                                             <span class="badge bg-danger ms-1">{{ $projectsRequiringAttention['total'] }}</span>
                                         @endif
                                     </a>
-                                    <a href="{{ route('executor.dashboard', array_merge(request()->except(['show', 'page']), ['show' => 'all'])) }}"
+                                    <a href="{{ route('executor.dashboard', array_merge(request()->except(['show', 'page', 'owned_page', 'incharge_page']), ['show' => 'all'])) }}"
                                        class="btn btn-sm {{ (isset($showType) && $showType === 'all') ? 'btn-info' : 'btn-outline-secondary' }}">
                                         <i data-feather="list" style="width: 14px; height: 14px;"></i>
                                         All
@@ -250,7 +251,7 @@
                                         <input type="hidden" name="show" value="{{ request('show') }}">
                                     @endif
 
-                                    {{-- Search --}}
+                                    {{-- Search (filters apply to both Owned and In-Charge lists) --}}
                                     <div class="col-md-4">
                                         <label for="search" class="form-label">Search</label>
                                         <input type="text"
@@ -353,9 +354,9 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($projects as $project)
+                                    @forelse($ownedProjects as $project)
                                         @php
-                                            $metadata = $enhancedProjects[$project->project_id] ?? null;
+                                            $metadata = $enhancedOwnedProjects[$project->project_id] ?? null;
                                         @endphp
                                         <tr>
                                             <td>
@@ -471,7 +472,7 @@
                                         <tr>
                                             <td colspan="10" class="text-center py-4">
                                                 <i data-feather="inbox" class="text-muted" style="width: 48px; height: 48px;"></i>
-                                                <p class="text-muted mt-2 mb-0">No projects found matching your criteria.</p>
+                                                <p class="text-muted mt-2 mb-0">No owned projects found.</p>
                                             </td>
                                         </tr>
                                     @endforelse
@@ -479,20 +480,108 @@
                             </table>
                         </div>
 
-                        {{-- Pagination --}}
-                        @if($projects->hasPages())
+                        {{-- Pagination (owned) --}}
+                        @if($ownedProjects->hasPages())
                             <div class="mt-3">
-                                {{ $projects->links() }}
+                                {{ $ownedProjects->links() }}
                             </div>
                         @endif
 
                         {{-- Results Summary --}}
                         <div class="mt-2">
                             <small class="text-muted">
-                                Showing {{ $projects->firstItem() ?? 0 }} to {{ $projects->lastItem() ?? 0 }} of {{ $projects->total() }} projects
+                                Showing {{ $ownedProjects->firstItem() ?? 0 }} to {{ $ownedProjects->lastItem() ?? 0 }} of {{ $ownedProjects->total() }} owned projects
                             </small>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {{-- Section 2: Assigned Projects (In-Charge) — view-only, no Create Report --}}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i data-feather="users" class="me-2"></i>
+                        Assigned Projects (In-Charge)
+                        <span class="badge bg-secondary ms-2">{{ $inChargeCount ?? 0 }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Project ID</th>
+                                    <th style="min-width: 200px;">Project Title</th>
+                                    <th>Project Type</th>
+                                    <th>Budget</th>
+                                    <th>Expenses</th>
+                                    <th>Utilization</th>
+                                    <th>Health</th>
+                                    <th>Last Report</th>
+                                    <th>Status</th>
+                                    <th style="min-width: 120px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($inChargeProjects as $project)
+                                    @php
+                                        $metadata = $enhancedInChargeProjects[$project->project_id] ?? null;
+                                        $isApproved = $project->status === ProjectStatus::APPROVED_BY_COORDINATOR || $project->status === ProjectStatus::APPROVED_BY_GENERAL_AS_COORDINATOR;
+                                        $isDraft = $project->status === ProjectStatus::DRAFT;
+                                        $isReverted = str_contains($project->status, 'reverted');
+                                        $isRejected = $project->status === ProjectStatus::REJECTED_BY_COORDINATOR;
+                                        $badgeColor = $isApproved ? 'success' : ($isDraft ? 'secondary' : ($isReverted ? 'danger' : ($isRejected ? 'danger' : 'warning')));
+                                    @endphp
+                                    <tr>
+                                        <td><a href="{{ route('projects.show', $project->project_id) }}" class="text-primary text-decoration-none fw-bold" title="View Project">{{ $project->project_id }}</a></td>
+                                        <td style="max-width: 300px; word-wrap: break-word; white-space: normal;"><div class="text-wrap" title="{{ $project->project_title }}">{{ $project->project_title }}</div></td>
+                                        <td><span class="badge bg-secondary">{{ $project->project_type }}</span></td>
+                                        <td>@if($metadata)<small class="text-muted">{{ format_indian_currency($metadata['budget'], 2) }}</small>@else<small class="text-muted">-</small>@endif</td>
+                                        <td>@if($metadata)<small class="text-muted">{{ format_indian_currency($metadata['expenses'], 2) }}</small>@else<small class="text-muted">-</small>@endif</td>
+                                        <td>
+                                            @if($metadata)
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress me-2" style="width: 60px; height: 20px;">
+                                                        <div class="progress-bar {{ $metadata['utilization_percent'] > 90 ? 'bg-danger' : ($metadata['utilization_percent'] > 75 ? 'bg-warning' : 'bg-success') }}" role="progressbar" style="width: {{ min($metadata['utilization_percent'], 100) }}%" aria-valuenow="{{ $metadata['utilization_percent'] }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <small class="text-muted">{{ format_indian_percentage($metadata['utilization_percent'], 1) }}</small>
+                                                </div>
+                                            @else
+                                                <small class="text-muted">-</small>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($metadata)
+                                                <span class="badge bg-{{ $metadata['health']['color'] }}" data-bs-toggle="tooltip" data-bs-placement="top" title="Health Score: {{ $metadata['health_score'] }}/100 @if(!empty($metadata['health']['factors'])){{ implode(', ', $metadata['health']['factors']) }}@endif">
+                                                    <i data-feather="{{ $metadata['health']['icon'] }}" style="width: 14px; height: 14px;"></i> {{ ucfirst($metadata['health_level']) }}
+                                                </span>
+                                            @else
+                                                <span class="badge bg-secondary">N/A</span>
+                                            @endif
+                                        </td>
+                                        <td>@if($metadata && $metadata['last_report_date'])<small class="text-muted">{{ $metadata['last_report_date']->format('M d, Y') }}<br><span class="text-muted">{{ $metadata['last_report_date']->diffForHumans() }}</span></small>@else<small class="text-danger">No reports</small>@endif</td>
+                                        <td><span class="badge bg-{{ $badgeColor }}">{{ ucfirst(str_replace('_', ' ', $project->status)) }}</span></td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                <a href="{{ route('projects.show', $project->project_id) }}" class="btn btn-sm btn-primary">View</a>
+                                                @if(in_array($project->status, ProjectStatus::getEditableStatuses()))
+                                                    <a href="{{ route('projects.edit', $project->project_id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                                @endif
+                                                {{-- No Create Report for in-charge (view-only for reporting responsibility) --}}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="10" class="text-center py-4"><i data-feather="inbox" class="text-muted" style="width: 48px; height: 48px;"></i><p class="text-muted mt-2 mb-0">No assigned (in-charge) projects.</p></td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    @if($inChargeProjects->hasPages())
+                        <div class="mt-3">{{ $inChargeProjects->links() }}</div>
+                    @endif
+                    <div class="mt-2"><small class="text-muted">Showing {{ $inChargeProjects->firstItem() ?? 0 }} to {{ $inChargeProjects->lastItem() ?? 0 }} of {{ $inChargeProjects->total() }} in-charge projects</small></div>
                 </div>
             </div>
         </div>

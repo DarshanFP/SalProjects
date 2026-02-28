@@ -49,21 +49,16 @@ let projectStatusChart = null;
 let projectTypeChart = null;
 
 function initializeProjectStatusCharts() {
-    // Get projects from paginator or collection
-    const projectsData = @json(isset($projects) && method_exists($projects, 'items') ? $projects->items() : (is_array($projects) ? $projects : []));
-    const enhancedProjects = @json($enhancedProjects ?? []);
+    // Phase 2: Use full filtered owned scope (not paginated) for KPI charts
+    const projectChartData = @json($projectChartData ?? ['status_distribution' => [], 'type_distribution' => [], 'total' => 0]);
+    const statusCounts = projectChartData.status_distribution || {};
+    const typeCounts = projectChartData.type_distribution || {};
+    const totalProjects = projectChartData.total || 0;
 
     // Project Status Distribution
-    if (document.querySelector("#projectStatusChart") && projectsData && projectsData.length > 0) {
-        const statusCounts = {};
-        
-        projectsData.forEach(project => {
-            const status = project.status || 'unknown';
-            statusCounts[status] = (statusCounts[status] || 0) + 1;
-        });
-
+    if (document.querySelector("#projectStatusChart") && totalProjects > 0 && Object.keys(statusCounts).length > 0) {
         const statusLabels = Object.keys(statusCounts);
-        const statusValues = Object.values(statusCounts);
+        const statusValues = statusLabels.map(k => statusCounts[k]);
         
         // Map status to colors
         const statusColors = statusLabels.map(status => {
@@ -111,7 +106,7 @@ function initializeProjectStatusCharts() {
                                 show: true,
                                 label: 'Total Projects',
                                 formatter: function() {
-                                    return statusValues.reduce((a, b) => a + b, 0).toString();
+                                    return totalProjects.toString();
                                 },
                                 color: '#d0d6e1'
                             },
@@ -132,16 +127,9 @@ function initializeProjectStatusCharts() {
     }
 
     // Project Type Distribution
-    if (document.querySelector("#projectTypeChart") && projectsData && projectsData.length > 0) {
-        const typeCounts = {};
-        
-        projectsData.forEach(project => {
-            const type = project.project_type || 'Unknown';
-            typeCounts[type] = (typeCounts[type] || 0) + 1;
-        });
-
+    if (document.querySelector("#projectTypeChart") && totalProjects > 0 && Object.keys(typeCounts).length > 0) {
         const typeLabels = Object.keys(typeCounts);
-        const typeValues = Object.values(typeCounts);
+        const typeValues = typeLabels.map(k => typeCounts[k]);
 
         const typeChartOptions = {
             series: typeValues,
@@ -181,13 +169,20 @@ function initializeProjectStatusCharts() {
 
         projectTypeChart = new ApexCharts(document.querySelector("#projectTypeChart"), typeChartOptions);
         projectTypeChart.render();
-    } else {
-        // Show empty state message
-        document.querySelector("#projectStatusChart").innerHTML = '<div class="text-center py-5 text-muted"><p>No projects to display</p></div>';
-        document.querySelector("#projectTypeChart").innerHTML = '<div class="text-center py-5 text-muted"><p>No projects to display</p></div>';
-        if (typeof feather !== 'undefined') {
-            feather.replace();
-        }
+    }
+
+    // Empty state for charts that did not render
+    const statusChartEl = document.querySelector("#projectStatusChart");
+    const typeChartEl = document.querySelector("#projectTypeChart");
+    const emptyHtml = '<div class="text-center py-5 text-muted"><p>No projects to display</p></div>';
+    if (statusChartEl && totalProjects === 0) {
+        statusChartEl.innerHTML = emptyHtml;
+    }
+    if (typeChartEl && totalProjects === 0) {
+        typeChartEl.innerHTML = emptyHtml;
+    }
+    if (typeof feather !== 'undefined') {
+        feather.replace();
     }
 }
 </script>

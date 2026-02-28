@@ -74,6 +74,17 @@
                                     @endforeach
                                 </select>
                             </div>
+                            <div class="col-md-2">
+                                <label for="society_id" class="form-label">Society</label>
+                                <select name="society_id" id="society_id" class="form-select">
+                                    <option value="">All Societies</option>
+                                    @foreach($societies ?? [] as $society)
+                                        <option value="{{ $society->id }}" {{ request('society_id') == $society->id ? 'selected' : '' }}>
+                                            {{ $society->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <div class="col-md-2 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary me-2">Apply</button>
                                 <a href="{{ route('provincial.projects.list') }}" class="btn btn-secondary">Reset</a>
@@ -82,60 +93,67 @@
                     </form>
 
                     {{-- Page size selector and Export --}}
-                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                        <form method="GET" action="{{ route('provincial.projects.list') }}" class="d-flex align-items-center gap-2">
+                    <div class="flex-wrap gap-2 mb-3 d-flex justify-content-between align-items-center">
+                        <form method="GET" action="{{ route('provincial.projects.list') }}" class="gap-2 d-flex align-items-center">
                             @foreach(request()->except('per_page', 'page') as $key => $value)
                                 <input type="hidden" name="{{ $key }}" value="{{ $value }}">
                             @endforeach
-                            <label for="per_page" class="form-label mb-0">Per page</label>
+                            <label for="per_page" class="mb-0 form-label">Per page</label>
                             <select name="per_page" id="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
                                 @foreach($allowedPageSizes ?? TableFormatter::ALLOWED_PAGE_SIZES as $size)
                                     <option value="{{ $size }}" {{ ($currentPerPage ?? 25) == $size ? 'selected' : '' }}>{{ $size }}</option>
                                 @endforeach
                             </select>
                         </form>
-                        <a href="{{ route('provincial.projects.export', request()->query()) }}" class="btn btn-sm btn-success">
+                        {{-- <a href="{{ route('provincial.projects.export', request()->query()) }}" class="btn btn-sm btn-success">
                             <i data-feather="download"></i> Download Excel
-                        </a>
+                        </a> --}}
                     </div>
 
-                    {{-- Summary block above table --}}
+                    {{-- Summary block above table (two-row table: header row + figure row) --}}
                     @if(isset($grandTotals) && isset($totalRecordCount))
-                    <div class="card mb-3">
-                        <div class="card-body py-3">
-                            <div class="row g-3 text-center">
-                                <div class="col">
-                                    <span class="text-muted small">Total Records</span>
-                                    <div class="fw-bold">{{ number_format($totalRecordCount) }}</div>
-                                </div>
-                                <div class="col">
-                                    <span class="text-muted small">Total Overall Budget</span>
-                                    <div class="fw-bold">{{ format_indian_currency($grandTotals['overall_project_budget'] ?? 0, 2) }}</div>
-                                </div>
-                                <div class="col">
-                                    <span class="text-muted small">Total Existing Funds</span>
-                                    <div class="fw-bold">{{ format_indian_currency($grandTotals['amount_forwarded'] ?? 0, 2) }}</div>
-                                </div>
-                                <div class="col">
-                                    <span class="text-muted small">Total Local Contribution</span>
-                                    <div class="fw-bold">{{ format_indian_currency($grandTotals['local_contribution'] ?? 0, 2) }}</div>
-                                </div>
-                                <div class="col">
-                                    <span class="text-muted small">Total Amount Sanctioned (Approved)</span>
-                                    <div class="fw-bold">{{ format_indian_currency($grandTotals['amount_sanctioned'] ?? 0, 2) }}</div>
-                                </div>
-                                <div class="col">
-                                    <span class="text-muted small">Total Amount Requested (Pending)</span>
-                                    <div class="fw-bold">{{ format_indian_currency($grandTotals['amount_requested'] ?? 0, 2) }}</div>
-                                </div>
-                            </div>
+                    <style>
+                        .summary-totals-table { table-layout: fixed; }
+                        .summary-totals-table thead th {
+                            white-space: normal;
+                            word-wrap: break-word;
+                            overflow-wrap: break-word;
+                            word-break: break-word;
+                            background-color: transparent !important;
+                            color: #6571ff;
+                        }
+                    </style>
+                    <div class="mb-3 card">
+                        <div class="py-3 card-body">
+                            <table class="table table-bordered table-sm mb-0 summary-totals-table w-100">
+                                <thead>
+                                    <tr class="text-center">
+                                        <th class="text-muted small fw-normal">Total Records</th>
+                                        <th class="text-muted small fw-normal">Total Overall Budget</th>
+                                        <th class="text-muted small fw-normal">Total Existing Funds</th>
+                                        <th class="text-muted small fw-normal">Total Local Contribution</th>
+                                        <th class="text-muted small fw-normal">Total Amount Sanctioned (Approved)</th>
+                                        <th class="text-muted small fw-normal">Total Amount Requested (Pending)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="text-center">
+                                        <td class="fw-bold">{{ number_format($totalRecordCount) }}</td>
+                                        <td class="fw-bold">{{ format_indian_currency($grandTotals['overall_project_budget'] ?? 0, 2) }}</td>
+                                        <td class="fw-bold">{{ format_indian_currency($grandTotals['amount_forwarded'] ?? 0, 2) }}</td>
+                                        <td class="fw-bold">{{ format_indian_currency($grandTotals['local_contribution'] ?? 0, 2) }}</td>
+                                        <td class="fw-bold">{{ format_indian_currency($grandTotals['amount_sanctioned'] ?? 0, 2) }}</td>
+                                        <td class="fw-bold">{{ format_indian_currency($grandTotals['amount_requested'] ?? 0, 2) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                     @endif
 
                     {{-- Status Summary Cards --}}
                     @if(isset($statusDistribution) && $statusDistribution->count() > 0)
-                    <div class="row mb-4">
+                    <div class="mb-4 row">
                         @foreach($statusDistribution->take(6) as $status => $count)
                             @php
                                 $statusLabel = Project::$statusLabels[$status] ?? $status;
@@ -150,8 +168,8 @@
                                 ][$status] ?? 'bg-secondary';
                             @endphp
                             <div class="col-md-2">
-                                <div class="card text-center">
-                                    <div class="card-body p-2">
+                                <div class="text-center card">
+                                    <div class="p-2 card-body">
                                         <span class="badge {{ $badgeClass }} mb-2">{{ Str::limit($statusLabel, 20) }}</span>
                                         <h5 class="mb-0">{{ $count }}</h5>
                                     </div>
@@ -219,15 +237,15 @@
                                     <th>S.No</th>
                                     <th>Project ID</th>
                                     <th>Team Member</th>
-                                    <th>Role</th>
                                     <th>Center</th>
                                     <th>Society</th>
+                                    <th></th>
                                     <th>Project Title</th>
                                     <th>Project Type</th>
-                                    <th>Overall Project Budget</th>
+                                    <th>Overall Budget</th>
                                     <th>Existing Funds</th>
-                                    <th>Local Contribution</th>
-                                    <th>Requested / Sanctioned</th>
+                                    <th>Local Funds</th>
+                                    <th>Balance</th>
                                     <th>Health</th>
                                     <th>Status</th>
                                     <th class="col-actions">Actions</th>
@@ -256,7 +274,7 @@
                                     <tr class="align-middle">
                                         <td>{{ \App\Helpers\TableFormatter::resolveSerial($loop, $projects, $projects->hasPages()) }}</td>
                                         <td>
-                                            <a href="{{ route('projects.show', $project->project_id) }}"
+                                            <a href="{{ route('provincial.projects.show', $project->project_id) }}"
                                                class="text-decoration-none fw-bold">
                                                 {{ $project->project_id }}
                                             </a>
@@ -274,42 +292,35 @@
                                         <td>
                                             <div class="text-cell"
                                                  data-bs-toggle="tooltip"
-                                                 title="{{ ucfirst($project->user->role) }}">
-                                                {{ ucfirst($project->user->role) }}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="text-cell"
-                                                 data-bs-toggle="tooltip"
                                                  title="{{ $project->user->center ?? 'N/A' }}">
                                                 <small>{{ $project->user->center ?? 'N/A' }}</small>
                                             </div>
                                         </td>
                                         <td>
-                                            <div class="d-flex align-items-center gap-1 flex-nowrap">
-                                                <div class="text-cell flex-grow-1 min-w-0"
-                                                     data-bs-toggle="tooltip"
-                                                     title="{{ $project->society_name ?? '—' }}">
-                                                    <small>{{ $project->society_name ?? '—' }}</small>
-                                                </div>
-                                                @if(ProjectPermissionHelper::canEdit($project, auth()->user()))
-                                                    <button type="button"
-                                                            class="btn btn-link text-muted p-0 border-0 align-baseline"
-                                                            style="font-size: 0.75rem; min-width: 1.5rem;"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#updateSocietyModal"
-                                                            data-project-id="{{ $project->project_id }}"
-                                                            data-project-title="{{ Str::limit($project->project_title ?? $project->project_id, 40) }}"
-                                                            data-update-url="{{ route('provincial.projects.updateSociety', $project->project_id) }}"
-                                                            title="Update Society">
-                                                        <i data-feather="edit-2" style="width: 12px; height: 12px;"></i>
-                                                    </button>
-                                                @else
-                                                    <span class="text-muted" title="Project not editable">
-                                                        <i data-feather="lock" style="width: 12px; height: 12px;"></i>
-                                                    </span>
-                                                @endif
+                                            <div class="text-cell"
+                                                 data-bs-toggle="tooltip"
+                                                 title="{{ $project->society_name ?? '—' }}">
+                                                {{ $project->society_name ?? '—' }}
                                             </div>
+                                        </td>
+                                        <td>
+                                            @if(ProjectPermissionHelper::canEdit($project, auth()->user()))
+                                                <button type="button"
+                                                        class="p-0 border-0 btn btn-link text-muted"
+                                                        style="font-size: 0.75rem; min-width: 1.5rem;"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#updateSocietyModal"
+                                                        data-project-id="{{ $project->project_id }}"
+                                                        data-project-title="{{ Str::limit($project->project_title ?? $project->project_id, 40) }}"
+                                                        data-update-url="{{ route('provincial.projects.updateSociety', $project->project_id) }}"
+                                                        title="Update Society">
+                                                    <i data-feather="edit-2" style="width: 12px; height: 12px;"></i>
+                                                </button>
+                                            @else
+                                                <span class="text-muted" title="Project not editable">
+                                                    <i data-feather="lock" style="width: 12px; height: 12px;"></i>
+                                                </span>
+                                            @endif
                                         </td>
                                         <td>
                                             <div class="text-cell"
@@ -319,10 +330,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <div class="text-wrap-cell"
+                                            <div class="text-cell"
                                                  data-bs-toggle="tooltip"
                                                  title="{{ $project->project_type }}">
-                                                <span class="badge bg-secondary">{{ $project->project_type }}</span>
+                                                {{ $project->project_type }}
                                             </div>
                                         </td>
                                         @php
@@ -395,7 +406,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="15" class="text-center py-4">
+                                        <td colspan="15" class="py-4 text-center">
                                             <i data-feather="inbox" class="text-muted" style="width: 48px; height: 48px;"></i>
                                             <p class="mt-3 text-muted">No projects found</p>
                                         </td>
@@ -427,7 +438,7 @@
                 @csrf
                 @method('PATCH')
                 <div class="modal-body">
-                    <p class="text-muted small mb-2" id="updateSocietyProjectInfo">—</p>
+                    <p class="mb-2 text-muted small" id="updateSocietyProjectInfo">—</p>
                     <label for="updateSocietySocietyId" class="form-label">Society</label>
                     <select name="society_id" id="updateSocietySocietyId" class="form-select" required>
                         <option value="">Select society...</option>

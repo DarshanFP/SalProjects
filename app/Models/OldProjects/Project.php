@@ -371,6 +371,25 @@ class Project extends Model
     }
 
     /**
+     * Scope: projects accessible by provincial (owner OR in-charge in given user IDs).
+     * Used for provincial project lists, reports, and team overview.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param \Illuminate\Support\Collection|array $userIds Executor/applicant user IDs
+     */
+    public function scopeAccessibleByUserIds($query, $userIds)
+    {
+        $ids = $userIds instanceof \Illuminate\Support\Collection ? $userIds->toArray() : (array) $userIds;
+        if (empty($ids)) {
+            return $query->whereRaw('1 = 0');
+        }
+        return $query->where(function ($q) use ($ids) {
+            $q->whereIn('user_id', $ids)
+              ->orWhereIn('in_charge', $ids);
+        });
+    }
+
+    /**
      * Base path for project attachments (e.g. project_attachments/DP/DP-0001).
      * Used for Problem Tree and aligned with AttachmentController / type-specific controllers.
      */
@@ -472,6 +491,14 @@ public static $statusLabels = [
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Get the in-charge user (executor/applicant responsible for the project).
+     */
+    public function inChargeUser()
+    {
+        return $this->belongsTo(User::class, 'in_charge');
     }
 
     /**

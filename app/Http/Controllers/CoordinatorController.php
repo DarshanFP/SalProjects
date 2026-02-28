@@ -24,6 +24,7 @@ use App\Services\ReportStatusService;
 use App\Services\NotificationService;
 use App\Services\Budget\BudgetSyncService;
 use App\Services\Budget\DerivedCalculationService;
+use App\Services\ProjectAccessService;
 use App\Constants\ProjectStatus;
 use App\Http\Requests\Projects\ApproveProjectRequest;
 use Carbon\Carbon;
@@ -33,7 +34,8 @@ use Exception;
 class CoordinatorController extends Controller
 {
     public function __construct(
-        private readonly DerivedCalculationService $calculationService
+        private readonly DerivedCalculationService $calculationService,
+        private readonly ProjectAccessService $projectAccessService
     ) {
     }
 
@@ -466,8 +468,9 @@ class CoordinatorController extends Controller
     {
         $coordinator = Auth::user();
 
-        // Base query for projects - coordinators can see ALL projects with ALL statuses
-        $projectsQuery = Project::with(['user.parent', 'reports.accountDetails', 'budgets']);
+        // Base query: use ProjectAccessService (coordinator = global oversight, all projects)
+        $projectsQuery = $this->projectAccessService->getVisibleProjectsQuery($coordinator)
+            ->with(['user.parent', 'reports.accountDetails', 'budgets']);
 
         // Search functionality
         if ($request->filled('search')) {
@@ -659,15 +662,15 @@ class CoordinatorController extends Controller
 
     public function showProject($project_id)
     {
-        // Retrieve the project
+        $coordinator = Auth::user();
         $project = Project::where('project_id', $project_id)
             ->with('user')
             ->firstOrFail();
 
-        // Coordinator can view all projects, so no additional authorization needed here
-        // If you need to restrict access further, you can add authorization logic
+        if (!$this->projectAccessService->canViewProject($project, $coordinator)) {
+            abort(403);
+        }
 
-        // If allowed, call ProjectController@show
         return app(ProjectController::class)->show($project_id);
     }
 
@@ -1275,22 +1278,16 @@ public function budgetOverview()
 {
     $coordinator = auth()->user();
 
-    // Get provinces from users where the coordinator is the parent
-    $provinces = User::where('parent_id', $coordinator->id)
-        ->where('role', 'provincial')
-        ->pluck('province')
-        ->unique();
+    // Coordinator: global oversight - use ProjectAccessService (all projects, no parent_id filter)
+    $projects = $this->projectAccessService->getVisibleProjectsQuery($coordinator)
+        ->whereNotIn('project_type', [
+            'NEXT PHASE - DEVELOPMENT PROPOSAL'
+        ])
+        ->with(['user', 'reports.accountDetails'])
+        ->get();
 
-    // Get all projects accessible to the coordinator
-    $projects = Project::whereHas('user', function($query) use ($coordinator, $provinces) {
-        $query->whereIn('province', $provinces);
-    })
-    ->whereNotIn('project_type', [
-        'NEXT PHASE - DEVELOPMENT PROPOSAL'
-        // Removed individual project type exclusions - coordinators can see all project types
-    ])
-    ->with(['user', 'reports.accountDetails'])
-    ->get();
+    // Derive provinces from projects for view filter/display (coordinator sees all)
+    $provinces = $projects->pluck('user.province')->unique()->filter()->values();
 
     // Group projects by type and province
     $budgetData = [];

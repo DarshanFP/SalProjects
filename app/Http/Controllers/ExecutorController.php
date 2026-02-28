@@ -18,69 +18,83 @@ class ExecutorController extends Controller
     {
         $user = Auth::user();
 
-        // Get projects where user is owner or in-charge (for both executor and applicant)
-        $projectsQuery = ProjectQueryService::getProjectsForUserQuery($user);
+        // Phase 3: Separate owned and in-charge project lists (structural split)
+        // Phase 2: Build filtered owned base query; clone for pagination vs KPI (full scope)
+        $ownedBaseQuery = ProjectQueryService::getOwnedProjectsQuery($user);
+        $inChargeProjectsQuery = ProjectQueryService::getInChargeProjectsQuery($user);
 
-        // Determine which projects to show based on filter
+        // Determine which projects to show based on filter (applied to both lists)
         $showType = $request->get('show', 'approved'); // 'approved', 'needs_work', 'all'
+        $editableStatuses = ProjectStatus::getEditableStatuses();
+        $approvedStatuses = [
+            ProjectStatus::APPROVED_BY_COORDINATOR,
+            ProjectStatus::APPROVED_BY_GENERAL_AS_COORDINATOR,
+            ProjectStatus::APPROVED_BY_GENERAL_AS_PROVINCIAL,
+        ];
 
         if ($showType === 'needs_work') {
-            // Show projects that need work (draft, reverted statuses)
-            $editableStatuses = ProjectStatus::getEditableStatuses();
-            $projectsQuery->whereIn('status', $editableStatuses);
+            $ownedBaseQuery->whereIn('status', $editableStatuses);
+            $inChargeProjectsQuery->whereIn('status', $editableStatuses);
         } elseif ($showType === 'all') {
-            // Show all projects (no status filter)
+            // No status filter
         } else {
-            // Default: show approved projects (any approval status)
-            $projectsQuery->whereIn('status', [
-                ProjectStatus::APPROVED_BY_COORDINATOR,
-                ProjectStatus::APPROVED_BY_GENERAL_AS_COORDINATOR,
-                ProjectStatus::APPROVED_BY_GENERAL_AS_PROVINCIAL,
-            ]);
+            $ownedBaseQuery->whereIn('status', $approvedStatuses);
+            $inChargeProjectsQuery->whereIn('status', $approvedStatuses);
         }
 
-        // Apply search filter
+        // Apply search filter to both
         if ($request->filled('search')) {
-            $projectsQuery = ProjectQueryService::applySearchFilter($projectsQuery, $request->search);
+            $ownedBaseQuery = ProjectQueryService::applySearchFilter($ownedBaseQuery, $request->search);
+            $inChargeProjectsQuery = ProjectQueryService::applySearchFilter($inChargeProjectsQuery, $request->search);
         }
 
-        // Apply filtering if provided in the request
+        // Apply project_type and status filters to both
         if ($request->filled('project_type')) {
-            $projectsQuery->where('project_type', $request->project_type);
+            $ownedBaseQuery->where('project_type', $request->project_type);
+            $inChargeProjectsQuery->where('project_type', $request->project_type);
         }
-
-        // Apply specific status filter (for showing specific status if needed)
         if ($request->filled('status')) {
-            $projectsQuery->where('status', $request->status);
+            $ownedBaseQuery->where('status', $request->status);
+            $inChargeProjectsQuery->where('status', $request->status);
         }
 
-        // Apply sorting
+        // Sorting (apply to clones)
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
         $allowedSortFields = ['project_id', 'project_title', 'project_type', 'created_at', 'commencement_month_year'];
-        if (in_array($sortBy, $allowedSortFields)) {
-            $projectsQuery->orderBy($sortBy, $sortOrder);
-        } else {
-            $projectsQuery->orderBy('created_at', 'desc');
-        }
+        $orderBy = in_array($sortBy, $allowedSortFields) ? $sortBy : 'created_at';
+        $inChargeProjectsQuery->orderBy($orderBy, $sortOrder);
 
-        // Eager load relationships
-        $projectsQuery->with([
-            'reports' => function($query) {
+        $eagerWith = [
+            'reports' => function ($query) {
                 $query->orderBy('created_at', 'desc');
             },
             'reports.accountDetails',
             'budgets',
             'user',
-        ]);
+        ];
+        $inChargeProjectsQuery->with($eagerWith);
 
-        // Paginate results
         $perPage = $request->get('per_page', 15);
-        $projects = $projectsQuery->paginate($perPage)->appends($request->query());
+        $inChargeProjects = $inChargeProjectsQuery->paginate($perPage, ['*'], 'incharge_page')->appends($request->query());
+
+        // Phase 2: Clone owned base for pagination (table display only)
+        $ownedPaginatedQuery = clone $ownedBaseQuery;
+        $ownedPaginatedQuery->with($eagerWith)->orderBy($orderBy, $sortOrder);
+        $ownedProjects = $ownedPaginatedQuery->paginate($perPage, ['*'], 'owned_page')->appends($request->query());
+
+        // Phase 2: Clone owned base for KPI (full filtered scope, no pagination)
+        $ownedFullQuery = clone $ownedBaseQuery;
+        $ownedFullQuery->with($eagerWith)->orderBy($orderBy, $sortOrder);
+        $ownedFullProjects = $ownedFullQuery->get();
+
+        // Total counts for section headers (unfiltered)
+        $ownedCount = ProjectQueryService::getOwnedProjectsQuery($user)->count();
+        $inChargeCount = ProjectQueryService::getInChargeProjectsQuery($user)->count();
 
         // Calculate budget summaries from APPROVED projects only (regardless of current filter)
-        // Budget summaries should only reflect approved projects with active budgets
-        $approvedProjectsForSummary = ProjectQueryService::getApprovedProjectsForUser($user, [
+        // Budget summaries should only reflect approved projects with active budgets (owned scope for KPIs)
+        $approvedProjectsForSummary = ProjectQueryService::getApprovedOwnedProjectsForUser($user, [
             'reports' => function($query) {
                 $query->orderBy('created_at', 'desc');
             },
@@ -91,37 +105,53 @@ class ExecutorController extends Controller
         // Pass collection directly (method accepts both arrays and collections)
         $budgetSummaries = $this->calculateBudgetSummariesFromProjects($approvedProjectsForSummary->all(), $request);
 
-        // Enhance projects with additional data (budget utilization, health, last report date)
-        $enhancedProjects = $this->enhanceProjectsWithMetadata($projects->items());
+        // Enhance paginated lists with metadata for table display
+        $enhancedOwnedProjects = $this->enhanceProjectsWithMetadata($ownedProjects->items());
+        $enhancedInChargeProjects = $this->enhanceProjectsWithMetadata($inChargeProjects->items());
 
-        // Fetch distinct project types for filters (from all projects)
-        $projectTypes = ProjectQueryService::getProjectsForUserQuery($user)
+        // Phase 2: Enhance full filtered owned set for KPI widgets (health, status/type charts)
+        $ownedFullItems = $ownedFullProjects->all();
+        $enhancedFullOwnedProjects = $this->enhanceProjectsWithMetadata($ownedFullItems);
+
+        // Fetch distinct project types for filters (Phase 3: owned-only scope for dashboard)
+        $projectTypes = ProjectQueryService::getOwnedProjectsQuery($user)
             ->distinct()
             ->pluck('project_type');
 
-        // Get action items data for dashboard widgets
+        // Get action items data for dashboard widgets (KPI: owned-only, unchanged)
         $actionItems = $this->getActionItems($user);
         $reportStatusSummary = $this->getReportStatusSummary($user);
         $upcomingDeadlines = $this->getUpcomingDeadlines($user);
 
-        // Get chart data for visual analytics (only if we have projects)
+        // Get chart data for visual analytics (only if user has owned projects)
         $chartData = [];
         $reportChartData = [];
-        if ($projects->total() > 0) {
+        if ($ownedProjects->total() > 0) {
             $chartData = $this->getChartData($user, $request);
         }
 
         // Get report chart data (always available if user has reports)
         $reportChartData = $this->getReportChartData($user, $request);
 
+        // Phase 3: Recent reports for Report Overview (owned scope only; reconciles with reportStatusSummary)
+        $ownedProjectIds = ProjectQueryService::getOwnedProjectIds($user);
+        $recentReports = DPReport::whereIn('project_id', $ownedProjectIds)
+            ->with('project')
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
         // Get quick stats data
         $quickStats = $this->getQuickStats($user);
 
-        // Get recent activities for feed
+        // Activity feed: intentionally uses combined scope for visibility (owner + in-charge).
         $recentActivities = $this->getRecentActivities($user);
 
-        // Get project health summary
-        $projectHealthSummary = $this->getProjectHealthSummary($enhancedProjects ?? []);
+        // Phase 2: Get project health summary from full filtered owned scope (not paginated)
+        $projectHealthSummary = $this->getProjectHealthSummary($enhancedFullOwnedProjects ?? []);
+
+        // Phase 2: Build project chart data (status/type) from full filtered owned scope
+        $projectChartData = $this->buildProjectChartData($ownedFullProjects);
 
         // Get projects requiring attention (draft, reverted)
         $projectsRequiringAttention = $this->getProjectsRequiringAttention($user);
@@ -129,8 +159,8 @@ class ExecutorController extends Controller
         // Get reports requiring attention (draft, reverted)
         $reportsRequiringAttention = $this->getReportsRequiringAttention($user);
 
-        // Pass the projects to the executor index view
-        return view('executor.index', compact('projects', 'budgetSummaries', 'projectTypes', 'actionItems', 'reportStatusSummary', 'upcomingDeadlines', 'enhancedProjects', 'chartData', 'reportChartData', 'quickStats', 'recentActivities', 'projectHealthSummary', 'projectsRequiringAttention', 'reportsRequiringAttention', 'showType'));
+        // Pass to view: owned/in-charge split (Phase 3) + Phase 2 KPI full scope + Phase 3 report overview (owned)
+        return view('executor.index', compact('ownedProjects', 'inChargeProjects', 'ownedCount', 'inChargeCount', 'enhancedOwnedProjects', 'enhancedInChargeProjects', 'enhancedFullOwnedProjects', 'projectChartData', 'budgetSummaries', 'projectTypes', 'actionItems', 'reportStatusSummary', 'upcomingDeadlines', 'chartData', 'reportChartData', 'quickStats', 'recentActivities', 'recentReports', 'projectHealthSummary', 'projectsRequiringAttention', 'reportsRequiringAttention', 'showType'));
     }
 
     public function reportList(Request $request)
@@ -433,8 +463,8 @@ class ExecutorController extends Controller
      */
     private function getActionItems($user)
     {
-        // Get project IDs where user is owner or in-charge
-        $projectIds = ProjectQueryService::getProjectIdsForUser($user);
+        // Get project IDs where user is owner (KPI: owned scope only)
+        $projectIds = ProjectQueryService::getOwnedProjectIds($user);
 
         // Pending reports (draft, reverted)
         $pendingReports = DPReport::whereIn('project_id', $projectIds)
@@ -451,8 +481,8 @@ class ExecutorController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Reverted projects (all reverted statuses)
-        $revertedProjects = ProjectQueryService::getRevertedProjectsForUser($user)
+        // Reverted projects (all reverted statuses, owned scope for KPI)
+        $revertedProjects = ProjectQueryService::getRevertedOwnedProjectsForUser($user)
             ->sortByDesc('updated_at')
             ->values();
 
@@ -462,8 +492,8 @@ class ExecutorController extends Controller
         $lastMonth = $now->copy()->subMonth();
         $overdueReports = collect();
 
-        // Get approved projects that should have reports
-        $approvedProjects = ProjectQueryService::getApprovedProjectsForUser($user);
+        // Get approved projects that should have reports (owned scope for KPI)
+        $approvedProjects = ProjectQueryService::getApprovedOwnedProjectsForUser($user);
 
         foreach ($approvedProjects as $project) {
             // Check if last month's report exists and is not approved
@@ -502,7 +532,7 @@ class ExecutorController extends Controller
      */
     private function getProjectsRequiringAttention($user)
     {
-        $projects = ProjectQueryService::getEditableProjectsForUser($user, ['user'])
+        $projects = ProjectQueryService::getEditableOwnedProjectsForUser($user, ['user'])
             ->sortByDesc('updated_at')
             ->values();
 
@@ -527,8 +557,8 @@ class ExecutorController extends Controller
      */
     private function getReportsRequiringAttention($user)
     {
-        // Get project IDs where user is owner or in-charge
-        $projectIds = ProjectQueryService::getProjectIdsForUser($user);
+        // Get project IDs where user is owner (KPI: owned scope only)
+        $projectIds = ProjectQueryService::getOwnedProjectIds($user);
 
         // Get reports that need work
         $reports = DPReport::whereIn('project_id', $projectIds)
@@ -563,11 +593,12 @@ class ExecutorController extends Controller
 
     /**
      * Get report status summary for dashboard widget
+     * Uses DPReport::getDashboardStatusKeys() as canonical status set (Phase 1).
      */
     private function getReportStatusSummary($user)
     {
-        // Get project IDs where user is owner or in-charge
-        $projectIds = ProjectQueryService::getProjectIdsForUser($user);
+        // Get project IDs where user is owner (KPI: owned scope only)
+        $projectIds = ProjectQueryService::getOwnedProjectIds($user);
 
         // Get monthly reports grouped by status
         $monthlyReports = DPReport::whereIn('project_id', $projectIds)
@@ -576,25 +607,38 @@ class ExecutorController extends Controller
             ->get()
             ->keyBy('status');
 
-        // Initialize all statuses with 0 count
-        $statuses = [
-            DPReport::STATUS_DRAFT => 0,
-            DPReport::STATUS_SUBMITTED_TO_PROVINCIAL => 0,
-            DPReport::STATUS_FORWARDED_TO_COORDINATOR => 0,
-            DPReport::STATUS_APPROVED_BY_COORDINATOR => 0,
-            DPReport::STATUS_REVERTED_BY_PROVINCIAL => 0,
-            DPReport::STATUS_REVERTED_BY_COORDINATOR => 0,
-        ];
+        $statusKeys = DPReport::getDashboardStatusKeys();
+        $statuses = array_fill_keys($statusKeys, 0);
 
         foreach ($monthlyReports as $status => $data) {
-            if (isset($statuses[$status])) {
-                $statuses[$status] = $data->count;
+            $statuses[$status] = (int) $data->count;
+        }
+
+        $total = array_sum($statuses);
+
+        $approvedCount = 0;
+        foreach (DPReport::APPROVED_STATUSES as $s) {
+            $approvedCount += $statuses[$s] ?? 0;
+        }
+
+        $revertedCount = 0;
+        foreach (array_keys($statuses) as $s) {
+            if (str_starts_with($s, 'reverted_')) {
+                $revertedCount += $statuses[$s];
             }
         }
 
+        $pendingCount = ($statuses[DPReport::STATUS_DRAFT] ?? 0)
+            + ($statuses[DPReport::STATUS_SUBMITTED_TO_PROVINCIAL] ?? 0)
+            + ($statuses[DPReport::STATUS_FORWARDED_TO_COORDINATOR] ?? 0)
+            + $revertedCount;
+
         return [
             'monthly' => $statuses,
-            'total' => array_sum($statuses),
+            'total' => $total,
+            'approved_count' => $approvedCount,
+            'reverted_count' => $revertedCount,
+            'pending_count' => $pendingCount,
         ];
     }
 
@@ -607,8 +651,8 @@ class ExecutorController extends Controller
         $currentMonth = $now->format('Y-m');
         $nextMonth = $now->copy()->addMonth()->format('Y-m');
 
-        // Get approved projects
-        $approvedProjects = ProjectQueryService::getApprovedProjectsForUser($user);
+        // Get approved projects (owned scope for KPI)
+        $approvedProjects = ProjectQueryService::getApprovedOwnedProjectsForUser($user);
 
         $thisMonthDeadlines = collect();
         $nextMonthDeadlines = collect();
@@ -808,14 +852,14 @@ class ExecutorController extends Controller
         $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
         $calc = app(\App\Services\Budget\DerivedCalculationService::class);
 
-        // Get project IDs where user is owner or in-charge
-        $projectIds = ProjectQueryService::getProjectIdsForUser($user);
+        // Get project IDs where user is owner (KPI: owned scope only)
+        $projectIds = ProjectQueryService::getOwnedProjectIds($user);
 
         // Budget by Project Type Data (for pie/donut chart)
         $budgetByType = [];
         $expensesByType = [];
 
-        $projects = ProjectQueryService::getApprovedProjectsForUser($user, ['reports.accountDetails', 'budgets']);
+        $projects = ProjectQueryService::getApprovedOwnedProjectsForUser($user, ['reports.accountDetails', 'budgets']);
 
         // Memoize resolved financials (resolve each project exactly once)
         $resolvedFinancials = [];
@@ -909,11 +953,13 @@ class ExecutorController extends Controller
 
     /**
      * Get report chart data for visual analytics
+     * Uses DPReport::getDashboardStatusKeys() for status_distribution (Phase 1).
+     * Chart total aligns with reportStatusSummary total.
      */
     private function getReportChartData($user, $request)
     {
-        // Get project IDs where user is owner or in-charge
-        $projectIds = ProjectQueryService::getProjectIdsForUser($user);
+        // Get project IDs where user is owner (KPI: owned scope only)
+        $projectIds = ProjectQueryService::getOwnedProjectIds($user);
 
         // Report Status Distribution
         $reportStatusCounts = DPReport::whereIn('project_id', $projectIds)
@@ -921,26 +967,19 @@ class ExecutorController extends Controller
             ->groupBy('status')
             ->get()
             ->keyBy('status')
-            ->map(function($item) {
-                return $item->count;
+            ->map(function ($item) {
+                return (int) $item->count;
             })
             ->toArray();
 
-        // Initialize all statuses with 0 count
-        $statusCounts = [
-            DPReport::STATUS_DRAFT => 0,
-            DPReport::STATUS_SUBMITTED_TO_PROVINCIAL => 0,
-            DPReport::STATUS_FORWARDED_TO_COORDINATOR => 0,
-            DPReport::STATUS_APPROVED_BY_COORDINATOR => 0,
-            DPReport::STATUS_REVERTED_BY_PROVINCIAL => 0,
-            DPReport::STATUS_REVERTED_BY_COORDINATOR => 0,
-        ];
+        $statusKeys = DPReport::getDashboardStatusKeys();
+        $statusCounts = array_fill_keys($statusKeys, 0);
 
         foreach ($reportStatusCounts as $status => $count) {
-            if (isset($statusCounts[$status])) {
-                $statusCounts[$status] = $count;
-            }
+            $statusCounts[$status] = $count;
         }
+
+        $totalReports = array_sum($statusCounts);
 
         // Report Submission Timeline (Monthly reports over time)
         $monthlyReportCounts = DPReport::whereIn('project_id', $projectIds)
@@ -955,11 +994,11 @@ class ExecutorController extends Controller
             })
             ->toArray();
 
-        // Report Completion Rate (Approved vs Total)
-        $totalReports = DPReport::whereIn('project_id', $projectIds)->count();
-        $approvedReports = DPReport::whereIn('project_id', $projectIds)
-            ->whereIn('status', DPReport::APPROVED_STATUSES)
-            ->count();
+        // Report Completion Rate (Approved vs Total) – use status distribution for consistency
+        $approvedReports = 0;
+        foreach (DPReport::APPROVED_STATUSES as $s) {
+            $approvedReports += $statusCounts[$s] ?? 0;
+        }
         $completionRate = $totalReports > 0 ? ($approvedReports / $totalReports) * 100 : 0;
 
         // Reports by Type (if we track report types)
@@ -991,14 +1030,14 @@ class ExecutorController extends Controller
         $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
         $calc = app(\App\Services\Budget\DerivedCalculationService::class);
 
-        // Get project IDs where user is owner or in-charge
-        $projectIds = ProjectQueryService::getProjectIdsForUser($user);
+        // Get project IDs where user is owner (KPI: owned scope only)
+        $projectIds = ProjectQueryService::getOwnedProjectIds($user);
 
         // Total projects
-        $totalProjects = ProjectQueryService::getProjectsForUserQuery($user)->count();
+        $totalProjects = ProjectQueryService::getOwnedProjectsQuery($user)->count();
 
         // Active projects (approved)
-        $activeProjects = ProjectQueryService::getApprovedProjectsForUser($user)->count();
+        $activeProjects = ProjectQueryService::getApprovedOwnedProjectsForUser($user)->count();
 
         // Total reports
         $totalReports = DPReport::whereIn('project_id', $projectIds)->count();
@@ -1013,12 +1052,12 @@ class ExecutorController extends Controller
 
         // Projects created this month
         $thisMonth = Carbon::now()->startOfMonth();
-        $newProjectsThisMonth = ProjectQueryService::getProjectsForUserQuery($user)
+        $newProjectsThisMonth = ProjectQueryService::getOwnedProjectsQuery($user)
             ->where('created_at', '>=', $thisMonth)
             ->count();
 
         // Total budget (from approved projects)
-        $approvedProjects = ProjectQueryService::getApprovedProjectsForUser($user, ['reports.accountDetails', 'budgets']);
+        $approvedProjects = ProjectQueryService::getApprovedOwnedProjectsForUser($user, ['reports.accountDetails', 'budgets']);
 
         // Memoize resolved financials (resolve each project exactly once)
         $resolvedFinancials = [];
@@ -1048,7 +1087,7 @@ class ExecutorController extends Controller
         $lastMonth = Carbon::now()->subMonth()->startOfMonth();
         $lastMonthEnd = Carbon::now()->subMonth()->endOfMonth();
 
-        $projectsLastMonth = ProjectQueryService::getProjectsForUserQuery($user)
+        $projectsLastMonth = ProjectQueryService::getOwnedProjectsQuery($user)
             ->whereBetween('created_at', [$lastMonth, $lastMonthEnd])
             ->count();
 
@@ -1115,6 +1154,34 @@ class ExecutorController extends Controller
             'warning' => $healthCounts['warning'] ?? 0,
             'critical' => $healthCounts['critical'] ?? 0,
             'total' => array_sum($healthCounts),
+        ];
+    }
+
+    /**
+     * Build project chart data (status/type distribution) from full filtered owned collection.
+     * Phase 2: KPI scope = filtered owned (no pagination).
+     */
+    private function buildProjectChartData($ownedFullProjects)
+    {
+        $items = $ownedFullProjects instanceof \Illuminate\Support\Collection
+            ? $ownedFullProjects->all()
+            : (is_array($ownedFullProjects) ? $ownedFullProjects : []);
+
+        $statusCounts = [];
+        $typeCounts = [];
+
+        foreach ($items as $project) {
+            $status = $project->status ?? 'unknown';
+            $statusCounts[$status] = ($statusCounts[$status] ?? 0) + 1;
+
+            $type = $project->project_type ?? 'Unknown';
+            $typeCounts[$type] = ($typeCounts[$type] ?? 0) + 1;
+        }
+
+        return [
+            'status_distribution' => $statusCounts,
+            'type_distribution' => $typeCounts,
+            'total' => count($items),
         ];
     }
 }

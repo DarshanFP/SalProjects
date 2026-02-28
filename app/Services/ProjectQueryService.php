@@ -220,4 +220,145 @@ class ProjectQueryService
               ->orWhere('projects.place', 'like', "%{$searchTerm}%");
         });
     }
+
+    /**
+     * Get a query builder for projects owned by the user (projects.user_id = user.id).
+     * Scope: Owned only. Does NOT replace the merged scope (owner or in-charge).
+     * Safe infrastructure for dashboard separation (e.g. Owned vs In-Charge tabs).
+     *
+     * @param User $user
+     * @return Builder
+     */
+    public static function getOwnedProjectsQuery(User $user): Builder
+    {
+        $query = Project::query();
+
+        if ($user->province_id !== null) {
+            $query->where('province_id', $user->province_id);
+        }
+
+        $query->where('user_id', $user->id);
+
+        return $query;
+    }
+
+    /**
+     * Get a query builder for projects where the user is in-charge but not owner
+     * (projects.in_charge = user.id AND projects.user_id != user.id).
+     * Scope: In-Charge only. Does NOT replace the merged scope (owner or in-charge).
+     * Safe infrastructure for dashboard separation (e.g. Owned vs In-Charge tabs).
+     *
+     * @param User $user
+     * @return Builder
+     */
+    public static function getInChargeProjectsQuery(User $user): Builder
+    {
+        $query = Project::query();
+
+        if ($user->province_id !== null) {
+            $query->where('province_id', $user->province_id);
+        }
+
+        $query->where('in_charge', $user->id)
+              ->where('user_id', '!=', $user->id);
+
+        return $query;
+    }
+
+    /**
+     * Get project IDs for projects owned by the user (Owned scope).
+     * Does NOT replace the merged scope. Safe infrastructure for dashboard separation.
+     *
+     * @param User $user
+     * @return Collection
+     */
+    public static function getOwnedProjectIds(User $user): Collection
+    {
+        return self::getOwnedProjectsQuery($user)->pluck('project_id');
+    }
+
+    /**
+     * Get project IDs for projects where the user is in-charge but not owner (In-Charge scope).
+     * Does NOT replace the merged scope. Safe infrastructure for dashboard separation.
+     *
+     * @param User $user
+     * @return Collection
+     */
+    public static function getInChargeProjectIds(User $user): Collection
+    {
+        return self::getInChargeProjectsQuery($user)->pluck('project_id');
+    }
+
+    /**
+     * Get approved projects for the user limited to owned scope (projects.user_id = user.id).
+     * Does NOT replace getApprovedProjectsForUser (merged scope). Safe infrastructure for dashboard separation.
+     *
+     * @param User $user
+     * @param array $with Relationships to eager load
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public static function getApprovedOwnedProjectsForUser(User $user, array $with = []): \Illuminate\Database\Eloquent\Collection
+    {
+        $query = self::getOwnedProjectsQuery($user)
+            ->whereIn('status', [
+                ProjectStatus::APPROVED_BY_COORDINATOR,
+                ProjectStatus::APPROVED_BY_GENERAL_AS_COORDINATOR,
+                ProjectStatus::APPROVED_BY_GENERAL_AS_PROVINCIAL,
+            ]);
+
+        if (!empty($with)) {
+            $query->with($with);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Get editable projects for the user limited to owned scope (projects.user_id = user.id).
+     * Does NOT replace getEditableProjectsForUser (merged scope). Safe infrastructure for dashboard separation.
+     *
+     * @param User $user
+     * @param array $with Relationships to eager load
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public static function getEditableOwnedProjectsForUser(User $user, array $with = []): \Illuminate\Database\Eloquent\Collection
+    {
+        $query = self::getOwnedProjectsQuery($user)
+            ->whereIn('status', ProjectStatus::getEditableStatuses());
+
+        if (!empty($with)) {
+            $query->with($with);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Get reverted projects for the user limited to owned scope (projects.user_id = user.id).
+     * Does NOT replace getRevertedProjectsForUser (merged scope). Safe infrastructure for dashboard separation.
+     *
+     * @param User $user
+     * @param array $with Relationships to eager load
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public static function getRevertedOwnedProjectsForUser(User $user, array $with = []): \Illuminate\Database\Eloquent\Collection
+    {
+        $query = self::getOwnedProjectsQuery($user)
+            ->whereIn('status', [
+                ProjectStatus::REVERTED_BY_PROVINCIAL,
+                ProjectStatus::REVERTED_BY_COORDINATOR,
+                ProjectStatus::REVERTED_BY_GENERAL_AS_PROVINCIAL,
+                ProjectStatus::REVERTED_BY_GENERAL_AS_COORDINATOR,
+                ProjectStatus::REVERTED_TO_EXECUTOR,
+                ProjectStatus::REVERTED_TO_APPLICANT,
+                ProjectStatus::REVERTED_TO_PROVINCIAL,
+                ProjectStatus::REVERTED_TO_COORDINATOR,
+            ]);
+
+        if (!empty($with)) {
+            $query->with($with);
+        }
+
+        return $query->get();
+    }
 }

@@ -320,7 +320,7 @@ class ExportController extends Controller
     {
         try {
             $project = Project::where('project_id', $project_id)
-                ->with(['attachments', 'objectives.risks', 'objectives.activities.timeframes', 'sustainabilities', 'budgets', 'user'])
+                ->with(['attachments', 'objectives.risks', 'objectives.activities.timeframes', 'sustainabilities', 'budgets', 'user', 'inChargeUser'])
                 ->firstOrFail();
 
             $user = Auth::user();
@@ -329,36 +329,31 @@ class ExportController extends Controller
             // For admin, coordinator, and provincial roles, check separately as they have different rules
             $hasAccess = false;
 
-            if (in_array($user->role, ['admin', 'coordinator', 'provincial'])) {
+            if (in_array($user->role, ['admin', 'coordinator', 'provincial', 'general'])) {
                 // Admin, coordinators, and provincials have special access rules
                 switch ($user->role) {
                     case 'provincial':
-                        // Provincials can download projects from executors under them with specific statuses
-                        if ($project->user->parent_id === $user->id) {
-                            if (in_array($project->status, [
-                                ProjectStatus::SUBMITTED_TO_PROVINCIAL,
-                                ProjectStatus::REVERTED_BY_COORDINATOR,
-                                ProjectStatus::APPROVED_BY_COORDINATOR
-                            ])) {
-                                $hasAccess = true;
-                            }
+                        // Provincials can download if owner OR in-charge is under them (align with view; no status restriction)
+                        $ownerInScope = $project->user && $project->user->parent_id === $user->id;
+                        $inChargeInScope = $project->inChargeUser && $project->inChargeUser->parent_id === $user->id;
+                        if ($ownerInScope || $inChargeInScope) {
+                            $hasAccess = true;
                         }
                         break;
 
                     case 'coordinator':
-                        // Coordinators can download projects with various statuses
-                        if (in_array($project->status, [
-                            ProjectStatus::FORWARDED_TO_COORDINATOR,
-                            ProjectStatus::APPROVED_BY_COORDINATOR,
-                            ProjectStatus::REVERTED_BY_COORDINATOR
-                        ])) {
-                            $hasAccess = true;
-                        }
+                        // Coordinators can download if they can view (no status restriction; aligns with view access)
+                        $hasAccess = ProjectPermissionHelper::canView($project, $user);
                         break;
 
                     case 'admin':
                         // Admins can download all projects
                         $hasAccess = true;
+                        break;
+
+                    case 'general':
+                        // General can download if they can view (no status restriction)
+                        $hasAccess = ProjectPermissionHelper::canView($project, $user);
                         break;
                 }
             } else {
@@ -448,6 +443,7 @@ class ExportController extends Controller
                     'sustainabilities',
                     'budgets',
                     'user',
+                    'inChargeUser',
                     'society'
                 ])->firstOrFail();
 
@@ -457,36 +453,31 @@ class ExportController extends Controller
             // For admin, coordinator, and provincial roles, check separately as they have different rules
             $hasAccess = false;
 
-            if (in_array($user->role, ['admin', 'coordinator', 'provincial'])) {
+            if (in_array($user->role, ['admin', 'coordinator', 'provincial', 'general'])) {
                 // Admin, coordinators, and provincials have special access rules
                 switch ($user->role) {
                     case 'provincial':
-                        // Provincials can download projects from executors under them with specific statuses
-                        if ($project->user->parent_id === $user->id) {
-                            if (in_array($project->status, [
-                                ProjectStatus::SUBMITTED_TO_PROVINCIAL,
-                                ProjectStatus::REVERTED_BY_COORDINATOR,
-                                ProjectStatus::APPROVED_BY_COORDINATOR
-                            ])) {
-                                $hasAccess = true;
-                            }
+                        // Provincials can download if owner OR in-charge is under them (align with view; no status restriction)
+                        $ownerInScope = $project->user && $project->user->parent_id === $user->id;
+                        $inChargeInScope = $project->inChargeUser && $project->inChargeUser->parent_id === $user->id;
+                        if ($ownerInScope || $inChargeInScope) {
+                            $hasAccess = true;
                         }
                         break;
 
                     case 'coordinator':
-                        // Coordinators can download projects with various statuses
-                        if (in_array($project->status, [
-                            ProjectStatus::FORWARDED_TO_COORDINATOR,
-                            ProjectStatus::APPROVED_BY_COORDINATOR,
-                            ProjectStatus::REVERTED_BY_COORDINATOR
-                        ])) {
-                            $hasAccess = true;
-                        }
+                        // Coordinators can download if they can view (no status restriction; aligns with view access)
+                        $hasAccess = ProjectPermissionHelper::canView($project, $user);
                         break;
 
                     case 'admin':
                         // Admins can download all projects
                         $hasAccess = true;
+                        break;
+
+                    case 'general':
+                        // General can download if they can view (no status restriction)
+                        $hasAccess = ProjectPermissionHelper::canView($project, $user);
                         break;
                 }
             } else {
