@@ -573,7 +573,7 @@ public static $statusLabels = [
     }
     public function cciAnnexedTargetGroup()
     {
-        return $this->hasOne(ProjectCCIAnnexedTargetGroup::class, 'project_id', 'project_id');
+        return $this->hasMany(ProjectCCIAnnexedTargetGroup::class, 'project_id', 'project_id');
     }
     public function cciPersonalSituation()
     {

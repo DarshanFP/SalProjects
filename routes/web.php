@@ -153,6 +153,7 @@ Route::middleware(['auth', 'role:coordinator,general'])->group(function () {
     Route::post('/coordinator/dashboard/refresh', [CoordinatorController::class, 'refreshDashboard'])->name('coordinator.dashboard.refresh');
     // Project List
     Route::get('/coordinator/projects-list', [CoordinatorController::class, 'projectList'])->name('coordinator.projects.list');
+    Route::get('/coordinator/projects-list/pending', [CoordinatorController::class, 'projectList'])->name('coordinator.pending.projects');
     // Approved Projects
     Route::get('/coordinator/approved-projects', [CoordinatorController::class, 'approvedProjects'])->name('coordinator.approved.projects');
 

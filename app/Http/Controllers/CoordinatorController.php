@@ -1077,42 +1077,15 @@ public function approveProject(ApproveProjectRequest $request, $project_id)
     app(BudgetSyncService::class)->syncBeforeApproval($project);
     $project->refresh();
 
-    // Create commencement date (validation already ensures it's not in the past)
-    $commencementDate = Carbon::create(
-        $validated['commencement_year'],
-        $validated['commencement_month'],
-        1
-    )->startOfMonth();
-
-    // Update commencement date before approval
-    $project->commencement_month = $validated['commencement_month'];
-    $project->commencement_year = $validated['commencement_year'];
-    $project->commencement_month_year = $commencementDate->format('Y-m-d');
-
-    try {
-        Log::info('Coordinator approveProject: calling ProjectStatusService::approve', ['project_id' => $project_id]);
-        ProjectStatusService::approve($project, $coordinator);
-        Log::info('Coordinator approveProject: approve succeeded', ['project_id' => $project_id, 'new_status' => $project->fresh()->status]);
-    } catch (Exception $e) {
-        Log::error('Coordinator approveProject: ProjectStatusService::approve exception', [
-            'project_id' => $project_id,
-            'exception' => get_class($e),
-            'message' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-        ]);
-        return redirect()->back()
-            ->withErrors(['error' => $e->getMessage()])
-            ->withInput();
-    }
-
-    // Get financial values from resolver (no inline arithmetic)
+    // Get financial values from resolver (no inline arithmetic) – BEFORE approval
     $financials = app(\App\Domain\Budget\ProjectFinancialResolver::class)->resolve($project);
     $overallBudget = (float) ($financials['overall_project_budget'] ?? 0);
     $amountForwarded = (float) ($financials['amount_forwarded'] ?? 0);
     $localContribution = (float) ($financials['local_contribution'] ?? 0);
     $combinedContribution = $amountForwarded + $localContribution;
-    $amountSanctioned = (float) ($financials['amount_sanctioned'] ?? 0);
-    $openingBalance = (float) ($financials['opening_balance'] ?? 0);
+    // Pre-approval: resolver returns amount_sanctioned=0; use combined as sanctioned and opening
+    $amountSanctioned = (float) ($financials['amount_sanctioned'] ?? 0) ?: $combinedContribution;
+    $openingBalance = (float) ($financials['opening_balance'] ?? 0) ?: $combinedContribution;
 
     Log::info('Coordinator approveProject: budget check', [
         'project_id' => $project_id,
@@ -1122,7 +1095,7 @@ public function approveProject(ApproveProjectRequest $request, $project_id)
         'combined_contribution' => $combinedContribution,
     ]);
 
-    // Validate: combined contribution cannot exceed overall budget
+    // Validate: combined contribution cannot exceed overall budget (Wave 6D preserved)
     if ($combinedContribution > $overallBudget) {
         Log::warning('Coordinator approveProject: budget validation failed (combined > overall)', [
             'project_id' => $project_id,
@@ -1133,12 +1106,46 @@ public function approveProject(ApproveProjectRequest $request, $project_id)
             ->with('error', 'Cannot approve project: (Amount Forwarded + Local Contribution) of Rs. ' . number_format($combinedContribution, 2) . ' exceeds Overall Project Budget (Rs. ' . number_format($overallBudget, 2) . '). Please ask the executor to correct this.');
     }
 
-    // Update project with resolver values
-    $project->amount_sanctioned = $amountSanctioned;
-    $project->opening_balance = $openingBalance;
-    $project->save();
+    // Build approval data for atomic save (Phase 2A)
+    $commencementDate = Carbon::create(
+        $validated['commencement_year'],
+        $validated['commencement_month'],
+        1
+    )->startOfMonth();
 
-    Log::info('Coordinator approveProject: budget saved', [
+    $approvalData = [
+        'commencement_month' => (int) $validated['commencement_month'],
+        'commencement_year' => (int) $validated['commencement_year'],
+        'commencement_month_year' => $commencementDate->format('Y-m-d'),
+        'amount_sanctioned' => $amountSanctioned,
+        'opening_balance' => $openingBalance,
+    ];
+
+    try {
+        \App\Domain\Finance\FinancialInvariantService::validateForApproval($project, $approvalData);
+    } catch (\DomainException $e) {
+        return redirect()->route('coordinator.pending.projects')
+            ->withErrors(['error' => $e->getMessage()])
+            ->withInput();
+    }
+
+    try {
+        Log::info('Coordinator approveProject: calling ProjectStatusService::approve (atomic)', ['project_id' => $project_id]);
+        ProjectStatusService::approve($project, $coordinator, $approvalData);
+        Log::info('Coordinator approveProject: approve succeeded', ['project_id' => $project_id, 'new_status' => $project->fresh()->status]);
+    } catch (Exception $e) {
+        Log::error('Coordinator approveProject: ProjectStatusService::approve exception', [
+            'project_id' => $project_id,
+            'exception' => get_class($e),
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return redirect()->route('coordinator.pending.projects')
+            ->withErrors(['error' => $e->getMessage()])
+            ->withInput();
+    }
+
+    Log::info('Coordinator approveProject: budget saved (atomic)', [
         'project_id' => $project_id,
         'amount_sanctioned' => $amountSanctioned,
         'opening_balance' => $openingBalance,
@@ -1174,18 +1181,8 @@ public function approveProject(ApproveProjectRequest $request, $project_id)
         'opening_balance' => $openingBalance,
     ]);
 
-    // Return success message with budget breakdown
-    return redirect()->back()->with('success',
-        'Project approved successfully.<br>' .
-        '<strong>Budget Summary:</strong><br>' .
-        'Overall Budget: Rs. ' . number_format($overallBudget, 2) . '<br>' .
-        'Amount Forwarded: Rs. ' . number_format($amountForwarded, 2) . '<br>' .
-        'Local Contribution: Rs. ' . number_format($localContribution, 2) . '<br>' .
-        'Amount Sanctioned: Rs. ' . number_format($amountSanctioned, 2) . '<br>' .
-        'Opening Balance: Rs. ' . number_format($openingBalance, 2) . '<br>' .
-        '<strong>Commencement Date:</strong> ' .
-        date('F Y', mktime(0, 0, 0, $project->commencement_month, 1, $project->commencement_year))
-    );
+    return redirect()->route('coordinator.approved.projects')
+        ->with('success', 'Project approved successfully.');
 }
 
 public function rejectProject(Request $request, $project_id)

@@ -239,12 +239,16 @@ class BudgetValidationService
         // Check if expenses exceed opening balance
         if ($budgetData['total_expenses'] > $budgetData['opening_balance']) {
             $overAmount = $budgetData['total_expenses'] - $budgetData['opening_balance'];
+            $percentageOver = $budgetData['opening_balance'] > 0 
+                ? ($overAmount / $budgetData['opening_balance']) * 100 
+                : 0;
+            
             $warnings[] = [
                 'type' => 'over_budget',
                 'severity' => 'error',
                 'message' => 'Total expenses exceed available budget.',
                 'over_amount' => $overAmount,
-                'percentage_over' => ($overAmount / $budgetData['opening_balance']) * 100,
+                'percentage_over' => $percentageOver,
                 'suggestion' => 'Review expenses or request additional funding.'
             ];
         }

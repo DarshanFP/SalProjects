@@ -14,10 +14,24 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
+                    @php
+                        $statPrevTotal = (is_numeric($statistics->reintegrated_children_previous_year ?? null) ? (int)$statistics->reintegrated_children_previous_year : 0)
+                            + (is_numeric($statistics->shifted_children_previous_year ?? null) ? (int)$statistics->shifted_children_previous_year : 0)
+                            + (is_numeric($statistics->pursuing_higher_studies_previous_year ?? null) ? (int)$statistics->pursuing_higher_studies_previous_year : 0)
+                            + (is_numeric($statistics->settled_children_previous_year ?? null) ? (int)$statistics->settled_children_previous_year : 0)
+                            + (is_numeric($statistics->working_children_previous_year ?? null) ? (int)$statistics->working_children_previous_year : 0)
+                            + (is_numeric($statistics->other_category_previous_year ?? null) ? (int)$statistics->other_category_previous_year : 0);
+                        $statCurrTotal = (is_numeric($statistics->reintegrated_children_current_year ?? null) ? (int)$statistics->reintegrated_children_current_year : 0)
+                            + (is_numeric($statistics->shifted_children_current_year ?? null) ? (int)$statistics->shifted_children_current_year : 0)
+                            + (is_numeric($statistics->pursuing_higher_studies_current_year ?? null) ? (int)$statistics->pursuing_higher_studies_current_year : 0)
+                            + (is_numeric($statistics->settled_children_current_year ?? null) ? (int)$statistics->settled_children_current_year : 0)
+                            + (is_numeric($statistics->working_children_current_year ?? null) ? (int)$statistics->working_children_current_year : 0)
+                            + (is_numeric($statistics->other_category_current_year ?? null) ? (int)$statistics->other_category_current_year : 0);
+                    @endphp
+                    <tr class="table-active">
                         <td style="text-align: left;">Total number of children in the institution</td>
-                        <td>{{ $statistics->total_children_previous_year ?? 'N/A' }}</td>
-                        <td>{{ $statistics->total_children_current_year ?? 'N/A' }}</td>
+                        <td><strong>{{ $statPrevTotal }}</strong></td>
+                        <td><strong>{{ $statCurrTotal }}</strong></td>
                     </tr>
                     <tr>
                         <td style="text-align: left;">Children who are reintegrated with their guardians/parents</td>

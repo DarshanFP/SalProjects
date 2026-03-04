@@ -119,14 +119,16 @@ class ProjectStatusService
     }
 
     /**
-     * Approve project
+     * Approve project (atomic: status + budget fields in single save)
      *
      * @param Project $project
      * @param User $user
+     * @param array $data Optional approval data: commencement_month, commencement_year,
+     *                    commencement_month_year, amount_sanctioned, opening_balance
      * @return bool
      * @throws Exception
      */
-    public static function approve(Project $project, User $user): bool
+    public static function approve(Project $project, User $user, array $data = []): bool
     {
         // Allow both coordinator and general roles
         if (!in_array($user->role, ['coordinator', 'general'])) {
@@ -161,7 +163,25 @@ class ProjectStatusService
         }
 
         $previousStatus = $project->status;
+
+        // Set all approval fields before single save (Phase 2A: atomic approval)
         $project->status = $to;
+        if (isset($data['commencement_month'])) {
+            $project->commencement_month = $data['commencement_month'];
+        }
+        if (isset($data['commencement_year'])) {
+            $project->commencement_year = $data['commencement_year'];
+        }
+        if (isset($data['commencement_month_year'])) {
+            $project->commencement_month_year = $data['commencement_month_year'];
+        }
+        if (array_key_exists('amount_sanctioned', $data)) {
+            $project->amount_sanctioned = $data['amount_sanctioned'];
+        }
+        if (array_key_exists('opening_balance', $data)) {
+            $project->opening_balance = $data['opening_balance'];
+        }
+
         $saved = $project->save();
 
         if ($saved) {

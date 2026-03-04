@@ -4,7 +4,7 @@
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-bordered">
+            <table class="table table-bordered" id="cci-age-profile-table">
                 <thead>
                     <tr>
                         <th>Age Category</th>
@@ -18,13 +18,13 @@
                     <tr>
                         <td style="text-align: left;" rowspan="3">Children below 5 years</td>
                         <td style="text-align: left;">Bridge course</td>
-                        <td><input type="number" name="education_below_5_bridge_course_prev_year" value="{{ $ageProfile->education_below_5_bridge_course_prev_year ?? 0 }}" class="form-control"></td>
-                        <td><input type="number" name="education_below_5_bridge_course_current_year" value="{{ $ageProfile->education_below_5_bridge_course_current_year ?? 0 }}" class="form-control"></td>
+                        <td><input type="number" name="education_below_5_bridge_course_prev_year" value="{{ $ageProfile->education_below_5_bridge_course_prev_year ?? 0 }}" class="form-control cci-ap-prev"></td>
+                        <td><input type="number" name="education_below_5_bridge_course_current_year" value="{{ $ageProfile->education_below_5_bridge_course_current_year ?? 0 }}" class="form-control cci-ap-current"></td>
                     </tr>
                     <tr>
                         <td style="text-align: left;">Kindergarten</td>
-                        <td><input type="number" name="education_below_5_kindergarten_prev_year" value="{{ $ageProfile->education_below_5_kindergarten_prev_year ?? 0 }}" class="form-control"></td>
-                        <td><input type="number" name="education_below_5_kindergarten_current_year" value="{{ $ageProfile->education_below_5_kindergarten_current_year ?? 0 }}" class="form-control"></td>
+                        <td><input type="number" name="education_below_5_kindergarten_prev_year" value="{{ $ageProfile->education_below_5_kindergarten_prev_year ?? 0 }}" class="form-control cci-ap-prev"></td>
+                        <td><input type="number" name="education_below_5_kindergarten_current_year" value="{{ $ageProfile->education_below_5_kindergarten_current_year ?? 0 }}" class="form-control cci-ap-current"></td>
                     </tr>
                     <tr>
                         <td><input type="text" name="education_below_5_other_specify" value="{{ $ageProfile->education_below_5_other_specify ?? '' }}" class="form-control" placeholder="Specify other"></td>
@@ -36,13 +36,13 @@
                     <tr>
                         <td style="text-align: left;" rowspan="3">Children between 6 to 10 years</td>
                         <td style="text-align: left;">Primary school</td>
-                        <td><input type="number" name="education_6_10_primary_school_prev_year" value="{{ $ageProfile->education_6_10_primary_school_prev_year ?? 0 }}" class="form-control"></td>
-                        <td><input type="number" name="education_6_10_primary_school_current_year" value="{{ $ageProfile->education_6_10_primary_school_current_year ?? 0 }}" class="form-control"></td>
+                        <td><input type="number" name="education_6_10_primary_school_prev_year" value="{{ $ageProfile->education_6_10_primary_school_prev_year ?? 0 }}" class="form-control cci-ap-prev"></td>
+                        <td><input type="number" name="education_6_10_primary_school_current_year" value="{{ $ageProfile->education_6_10_primary_school_current_year ?? 0 }}" class="form-control cci-ap-current"></td>
                     </tr>
                     <tr>
                         <td style="text-align: left;">Bridge course</td>
-                        <td><input type="number" name="education_6_10_bridge_course_prev_year" value="{{ $ageProfile->education_6_10_bridge_course_prev_year ?? 0 }}" class="form-control"></td>
-                        <td><input type="number" name="education_6_10_bridge_course_current_year" value="{{ $ageProfile->education_6_10_bridge_course_current_year ?? 0 }}" class="form-control"></td>
+                        <td><input type="number" name="education_6_10_bridge_course_prev_year" value="{{ $ageProfile->education_6_10_bridge_course_prev_year ?? 0 }}" class="form-control cci-ap-prev"></td>
+                        <td><input type="number" name="education_6_10_bridge_course_current_year" value="{{ $ageProfile->education_6_10_bridge_course_current_year ?? 0 }}" class="form-control cci-ap-current"></td>
                     </tr>
                     <tr>
                         <td><input type="text" name="education_6_10_other_specify" value="{{ $ageProfile->education_6_10_other_specify ?? '' }}" class="form-control" placeholder="Specify other"></td>
@@ -54,13 +54,13 @@
                     <tr>
                         <td style="text-align: left;" rowspan="3">Children between 11 to 15 years</td>
                         <td style="text-align: left;">Secondary school</td>
-                        <td><input type="number" name="education_11_15_secondary_school_prev_year" value="{{ $ageProfile->education_11_15_secondary_school_prev_year ?? 0 }}" class="form-control"></td>
-                        <td><input type="number" name="education_11_15_secondary_school_current_year" value="{{ $ageProfile->education_11_15_secondary_school_current_year ?? 0 }}" class="form-control"></td>
+                        <td><input type="number" name="education_11_15_secondary_school_prev_year" value="{{ $ageProfile->education_11_15_secondary_school_prev_year ?? 0 }}" class="form-control cci-ap-prev"></td>
+                        <td><input type="number" name="education_11_15_secondary_school_current_year" value="{{ $ageProfile->education_11_15_secondary_school_current_year ?? 0 }}" class="form-control cci-ap-current"></td>
                     </tr>
                     <tr>
                         <td style="text-align: left;">High school</td>
-                        <td><input type="number" name="education_11_15_high_school_prev_year" value="{{ $ageProfile->education_11_15_high_school_prev_year ?? 0 }}" class="form-control"></td>
-                        <td><input type="number" name="education_11_15_high_school_current_year" value="{{ $ageProfile->education_11_15_high_school_current_year ?? 0 }}" class="form-control"></td>
+                        <td><input type="number" name="education_11_15_high_school_prev_year" value="{{ $ageProfile->education_11_15_high_school_prev_year ?? 0 }}" class="form-control cci-ap-prev"></td>
+                        <td><input type="number" name="education_11_15_high_school_current_year" value="{{ $ageProfile->education_11_15_high_school_current_year ?? 0 }}" class="form-control cci-ap-current"></td>
                     </tr>
                     <tr>
                         <td><input type="text" name="education_11_15_other_specify" value="{{ $ageProfile->education_11_15_other_specify ?? '' }}" class="form-control" placeholder="Specify other"></td>
@@ -72,21 +72,48 @@
                     <tr>
                         <td style="text-align: left;" rowspan="3">16 and above</td>
                         <td style="text-align: left;">Undergraduate</td>
-                        <td><input type="number" name="education_16_above_undergraduate_prev_year" value="{{ $ageProfile->education_16_above_undergraduate_prev_year ?? 0 }}" class="form-control"></td>
-                        <td><input type="number" name="education_16_above_undergraduate_current_year" value="{{ $ageProfile->education_16_above_undergraduate_current_year ?? 0 }}" class="form-control"></td>
+                        <td><input type="number" name="education_16_above_undergraduate_prev_year" value="{{ $ageProfile->education_16_above_undergraduate_prev_year ?? 0 }}" class="form-control cci-ap-prev"></td>
+                        <td><input type="number" name="education_16_above_undergraduate_current_year" value="{{ $ageProfile->education_16_above_undergraduate_current_year ?? 0 }}" class="form-control cci-ap-current"></td>
                     </tr>
                     <tr>
                         <td style="text-align: left;">Technical/Vocational education</td>
-                        <td><input type="number" name="education_16_above_technical_vocational_prev_year" value="{{ $ageProfile->education_16_above_technical_vocational_prev_year ?? 0 }}" class="form-control"></td>
-                        <td><input type="number" name="education_16_above_technical_vocational_current_year" value="{{ $ageProfile->education_16_above_technical_vocational_current_year ?? 0 }}" class="form-control"></td>
+                        <td><input type="number" name="education_16_above_technical_vocational_prev_year" value="{{ $ageProfile->education_16_above_technical_vocational_prev_year ?? 0 }}" class="form-control cci-ap-prev"></td>
+                        <td><input type="number" name="education_16_above_technical_vocational_current_year" value="{{ $ageProfile->education_16_above_technical_vocational_current_year ?? 0 }}" class="form-control cci-ap-current"></td>
                     </tr>
                     <tr>
                         <td><input type="text" name="education_16_above_other_specify" value="{{ $ageProfile->education_16_above_other_specify ?? '' }}" class="form-control" placeholder="Specify other"></td>
                         <td><input type="text" name="education_16_above_other_prev_year" value="{{ $ageProfile->education_16_above_other_prev_year ?? '' }}" class="form-control"></td>
                         <td><input type="text" name="education_16_above_other_current_year" value="{{ $ageProfile->education_16_above_other_current_year ?? '' }}" class="form-control"></td>
                     </tr>
+                    <tr class="table-active">
+                        <td colspan="2" style="text-align: right;"><strong>Total</strong></td>
+                        <td><strong id="cci-age-profile-total-prev">0</strong></td>
+                        <td><strong id="cci-age-profile-total-current">0</strong></td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function calcCciAgeProfileTotals() {
+        var prev = 0, curr = 0;
+        document.querySelectorAll('#cci-age-profile-table .cci-ap-prev').forEach(function(inp) {
+            prev += parseFloat(inp.value) || 0;
+        });
+        document.querySelectorAll('#cci-age-profile-table .cci-ap-current').forEach(function(inp) {
+            curr += parseFloat(inp.value) || 0;
+        });
+        var prevEl = document.getElementById('cci-age-profile-total-prev');
+        var currEl = document.getElementById('cci-age-profile-total-current');
+        if (prevEl) prevEl.textContent = prev;
+        if (currEl) currEl.textContent = curr;
+    }
+    var table = document.getElementById('cci-age-profile-table');
+    if (table) {
+        table.addEventListener('input', calcCciAgeProfileTotals);
+        calcCciAgeProfileTotals();
+    }
+});
+</script>

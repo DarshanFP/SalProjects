@@ -86,7 +86,7 @@ class AgeProfileController extends Controller
         try {
             Log::info('Editing CCI Age Profile', ['project_id' => $projectId]);
 
-            $ageProfile = ProjectCCIAgeProfile::where('project_id', $projectId)->first();
+            $ageProfile = ProjectCCIAgeProfile::firstOrNew(['project_id' => $projectId]);
 
             return $ageProfile;
         } catch (\Exception $e) {

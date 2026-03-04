@@ -49,6 +49,27 @@
                         <td>{{ $personalSituation->other_ailments_last_year ?? 'N/A' }}</td>
                         <td>{{ $personalSituation->other_ailments_current_year ?? 'N/A' }}</td>
                     </tr>
+                    @php
+                        $psLastTotal = (is_numeric($personalSituation->children_with_parents_last_year ?? null) ? (int)$personalSituation->children_with_parents_last_year : 0)
+                            + (is_numeric($personalSituation->semi_orphans_last_year ?? null) ? (int)$personalSituation->semi_orphans_last_year : 0)
+                            + (is_numeric($personalSituation->orphans_last_year ?? null) ? (int)$personalSituation->orphans_last_year : 0)
+                            + (is_numeric($personalSituation->hiv_infected_last_year ?? null) ? (int)$personalSituation->hiv_infected_last_year : 0)
+                            + (is_numeric($personalSituation->differently_abled_last_year ?? null) ? (int)$personalSituation->differently_abled_last_year : 0)
+                            + (is_numeric($personalSituation->parents_in_conflict_last_year ?? null) ? (int)$personalSituation->parents_in_conflict_last_year : 0)
+                            + (is_numeric($personalSituation->other_ailments_last_year ?? null) ? (int)$personalSituation->other_ailments_last_year : 0);
+                        $psCurrTotal = (is_numeric($personalSituation->children_with_parents_current_year ?? null) ? (int)$personalSituation->children_with_parents_current_year : 0)
+                            + (is_numeric($personalSituation->semi_orphans_current_year ?? null) ? (int)$personalSituation->semi_orphans_current_year : 0)
+                            + (is_numeric($personalSituation->orphans_current_year ?? null) ? (int)$personalSituation->orphans_current_year : 0)
+                            + (is_numeric($personalSituation->hiv_infected_current_year ?? null) ? (int)$personalSituation->hiv_infected_current_year : 0)
+                            + (is_numeric($personalSituation->differently_abled_current_year ?? null) ? (int)$personalSituation->differently_abled_current_year : 0)
+                            + (is_numeric($personalSituation->parents_in_conflict_current_year ?? null) ? (int)$personalSituation->parents_in_conflict_current_year : 0)
+                            + (is_numeric($personalSituation->other_ailments_current_year ?? null) ? (int)$personalSituation->other_ailments_current_year : 0);
+                    @endphp
+                    <tr class="table-active">
+                        <td style="text-align: right;"><strong>Total</strong></td>
+                        <td><strong>{{ $psLastTotal }}</strong></td>
+                        <td><strong>{{ $psCurrTotal }}</strong></td>
+                    </tr>
                 </tbody>
             </table>
         </div>

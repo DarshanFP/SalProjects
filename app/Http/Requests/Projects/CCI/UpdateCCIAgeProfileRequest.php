@@ -20,8 +20,18 @@ class UpdateCCIAgeProfileRequest extends FormRequest
         'education_below_5_bridge_course_current_year',
         'education_below_5_kindergarten_prev_year',
         'education_below_5_kindergarten_current_year',
-        'education_below_5_other_prev_year',
-        'education_below_5_other_current_year',
+        'education_6_10_primary_school_prev_year',
+        'education_6_10_primary_school_current_year',
+        'education_6_10_bridge_course_prev_year',
+        'education_6_10_bridge_course_current_year',
+        'education_11_15_secondary_school_prev_year',
+        'education_11_15_secondary_school_current_year',
+        'education_11_15_high_school_prev_year',
+        'education_11_15_high_school_current_year',
+        'education_16_above_undergraduate_prev_year',
+        'education_16_above_undergraduate_current_year',
+        'education_16_above_technical_vocational_prev_year',
+        'education_16_above_technical_vocational_current_year',
     ];
 
     public function authorize(): bool
@@ -59,6 +69,17 @@ class UpdateCCIAgeProfileRequest extends FormRequest
     {
         $rules = [
             'education_below_5_other_specify' => 'nullable|string|max:255',
+            'education_below_5_other_prev_year' => 'nullable|string|max:255',
+            'education_below_5_other_current_year' => 'nullable|string|max:255',
+            'education_6_10_other_specify' => 'nullable|string|max:255',
+            'education_6_10_other_prev_year' => 'nullable|string|max:255',
+            'education_6_10_other_current_year' => 'nullable|string|max:255',
+            'education_11_15_other_specify' => 'nullable|string|max:255',
+            'education_11_15_other_prev_year' => 'nullable|string|max:255',
+            'education_11_15_other_current_year' => 'nullable|string|max:255',
+            'education_16_above_other_specify' => 'nullable|string|max:255',
+            'education_16_above_other_prev_year' => 'nullable|string|max:255',
+            'education_16_above_other_current_year' => 'nullable|string|max:255',
         ];
         foreach (self::INTEGER_KEYS as $key) {
             $rules[$key] = ['nullable', new OptionalIntegerRule];

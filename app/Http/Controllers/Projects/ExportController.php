@@ -866,8 +866,10 @@ private function addAnnexedTargetGroupSection(PhpWord $phpWord, $project)
     $section->addText("Annexed Target Group (CCI)", ['bold' => true, 'size' => 14]);
     $section->addTextBreak(1); // Add spacing
 
-    // Check if annexedTargetGroup is available and not empty
-    if (isset($project->annexed_target_groups) && $project->annexed_target_groups->isNotEmpty()) {
+    $cciAnnexedRows = $project->cciAnnexedTargetGroup;
+
+    // Check if CCI annexed target group data is available and not empty
+    if ($cciAnnexedRows && $cciAnnexedRows->isNotEmpty()) {
         // Define table style
         $tableStyle = [
             'borderSize' => 6, // 1pt = 8 twips, 0.75pt ≈ 6 twips
@@ -889,8 +891,8 @@ private function addAnnexedTargetGroupSection(PhpWord $phpWord, $project)
         $table->addCell(2000)->addText("Class of Study", ['bold' => true, 'color' => 'FFFFFF']);
         $table->addCell(4000)->addText("Family Background", ['bold' => true, 'color' => 'FFFFFF']);
 
-        // Add Data Rows
-        foreach ($project->annexed_target_groups as $index => $group) {
+        // Add Data Rows (CCI columns: beneficiary_name, dob, date_of_joining, class_of_study, family_background_description)
+        foreach ($cciAnnexedRows as $index => $group) {
             $table->addRow();
             $table->addCell(1000)->addText($index + 1, [], ['align' => 'center']);
             $table->addCell(3000)->addText($group->beneficiary_name ?? 'N/A');

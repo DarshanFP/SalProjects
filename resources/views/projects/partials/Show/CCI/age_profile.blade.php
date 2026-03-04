@@ -86,6 +86,29 @@
                         <td>{{ $ageProfile['education_16_above_other_prev_year'] ?? 'N/A' }}</td>
                         <td>{{ $ageProfile['education_16_above_other_current_year'] ?? 'N/A' }}</td>
                     </tr>
+                    @php
+                        $apPrevTotal = (is_numeric($ageProfile['education_below_5_bridge_course_prev_year'] ?? null) ? (int)$ageProfile['education_below_5_bridge_course_prev_year'] : 0)
+                            + (is_numeric($ageProfile['education_below_5_kindergarten_prev_year'] ?? null) ? (int)$ageProfile['education_below_5_kindergarten_prev_year'] : 0)
+                            + (is_numeric($ageProfile['education_6_10_primary_school_prev_year'] ?? null) ? (int)$ageProfile['education_6_10_primary_school_prev_year'] : 0)
+                            + (is_numeric($ageProfile['education_6_10_bridge_course_prev_year'] ?? null) ? (int)$ageProfile['education_6_10_bridge_course_prev_year'] : 0)
+                            + (is_numeric($ageProfile['education_11_15_secondary_school_prev_year'] ?? null) ? (int)$ageProfile['education_11_15_secondary_school_prev_year'] : 0)
+                            + (is_numeric($ageProfile['education_11_15_high_school_prev_year'] ?? null) ? (int)$ageProfile['education_11_15_high_school_prev_year'] : 0)
+                            + (is_numeric($ageProfile['education_16_above_undergraduate_prev_year'] ?? null) ? (int)$ageProfile['education_16_above_undergraduate_prev_year'] : 0)
+                            + (is_numeric($ageProfile['education_16_above_technical_vocational_prev_year'] ?? null) ? (int)$ageProfile['education_16_above_technical_vocational_prev_year'] : 0);
+                        $apCurrTotal = (is_numeric($ageProfile['education_below_5_bridge_course_current_year'] ?? null) ? (int)$ageProfile['education_below_5_bridge_course_current_year'] : 0)
+                            + (is_numeric($ageProfile['education_below_5_kindergarten_current_year'] ?? null) ? (int)$ageProfile['education_below_5_kindergarten_current_year'] : 0)
+                            + (is_numeric($ageProfile['education_6_10_primary_school_current_year'] ?? null) ? (int)$ageProfile['education_6_10_primary_school_current_year'] : 0)
+                            + (is_numeric($ageProfile['education_6_10_bridge_course_current_year'] ?? null) ? (int)$ageProfile['education_6_10_bridge_course_current_year'] : 0)
+                            + (is_numeric($ageProfile['education_11_15_secondary_school_current_year'] ?? null) ? (int)$ageProfile['education_11_15_secondary_school_current_year'] : 0)
+                            + (is_numeric($ageProfile['education_11_15_high_school_current_year'] ?? null) ? (int)$ageProfile['education_11_15_high_school_current_year'] : 0)
+                            + (is_numeric($ageProfile['education_16_above_undergraduate_current_year'] ?? null) ? (int)$ageProfile['education_16_above_undergraduate_current_year'] : 0)
+                            + (is_numeric($ageProfile['education_16_above_technical_vocational_current_year'] ?? null) ? (int)$ageProfile['education_16_above_technical_vocational_current_year'] : 0);
+                    @endphp
+                    <tr class="table-active">
+                        <td colspan="2" style="text-align: right;"><strong>Total</strong></td>
+                        <td><strong>{{ $apPrevTotal }}</strong></td>
+                        <td><strong>{{ $apCurrTotal }}</strong></td>
+                    </tr>
                 </tbody>
             </table>
         </div>
