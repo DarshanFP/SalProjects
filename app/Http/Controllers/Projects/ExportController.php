@@ -444,7 +444,16 @@ class ExportController extends Controller
                     'budgets',
                     'user',
                     'inChargeUser',
-                    'society'
+                    'society',
+                    // CCI relations (for DOC export when project_type is CHILD CARE INSTITUTION)
+                    'cciAgeProfile',
+                    'cciRationale',
+                    'cciStatistics',
+                    'cciPersonalSituation',
+                    'cciEconomicBackground',
+                    'cciAchievements',
+                    'cciPresentSituation',
+                    'cciAnnexedTargetGroup',
                 ])->firstOrFail();
 
             $user = Auth::user();
@@ -783,7 +792,7 @@ private function addRationaleSection(PhpWord $phpWord, $project)
     $table->addRow();
     $table->addCell(3000)->addText("Description:", ['bold' => true]);
     $descriptionCell = $table->addCell(7000);
-    $this->addTextWithLineBreaks($descriptionCell, $project->rationale->description ?? 'No rationale provided yet.');
+    $this->addTextWithLineBreaks($descriptionCell, optional($project->cciRationale)->description ?? 'No rationale provided yet.');
 }
 //Section - Statistics - CHILD CARE INSTITUTION
 
@@ -813,36 +822,36 @@ private function addStatisticsSection(PhpWord $phpWord, $project)
     $table->addCell(3000, ['valign' => 'center'])->addText("Current Year on Roll", ['bold' => true]);
 
     // Add data rows
-    $statistics = $project->statistics; // Assuming $statistics is available as a property or relation
+    $statistics = $project->cciStatistics;
 
     $rows = [
         'Total number of children in the institution' => [
-            'previous' => $statistics->total_children_previous_year ?? 'N/A',
-            'current' => $statistics->total_children_current_year ?? 'N/A',
+            'previous' => optional($statistics)->total_children_previous_year ?? 'N/A',
+            'current' => optional($statistics)->total_children_current_year ?? 'N/A',
         ],
         'Children who are reintegrated with their guardians/parents' => [
-            'previous' => $statistics->reintegrated_children_previous_year ?? 'N/A',
-            'current' => $statistics->reintegrated_children_current_year ?? 'N/A',
+            'previous' => optional($statistics)->reintegrated_children_previous_year ?? 'N/A',
+            'current' => optional($statistics)->reintegrated_children_current_year ?? 'N/A',
         ],
         'Children who are shifted to other NGOs / Govt.' => [
-            'previous' => $statistics->shifted_children_previous_year ?? 'N/A',
-            'current' => $statistics->shifted_children_current_year ?? 'N/A',
+            'previous' => optional($statistics)->shifted_children_previous_year ?? 'N/A',
+            'current' => optional($statistics)->shifted_children_current_year ?? 'N/A',
         ],
         'Children who are pursuing higher studies outside' => [
-            'previous' => $statistics->pursuing_higher_studies_previous_year ?? 'N/A',
-            'current' => $statistics->pursuing_higher_studies_current_year ?? 'N/A',
+            'previous' => optional($statistics)->pursuing_higher_studies_previous_year ?? 'N/A',
+            'current' => optional($statistics)->pursuing_higher_studies_current_year ?? 'N/A',
         ],
         'Children who completed the studies and settled down in life (i.e., married etc.)' => [
-            'previous' => $statistics->settled_children_previous_year ?? 'N/A',
-            'current' => $statistics->settled_children_current_year ?? 'N/A',
+            'previous' => optional($statistics)->settled_children_previous_year ?? 'N/A',
+            'current' => optional($statistics)->settled_children_current_year ?? 'N/A',
         ],
         'Children who are now settled and working' => [
-            'previous' => $statistics->working_children_previous_year ?? 'N/A',
-            'current' => $statistics->working_children_current_year ?? 'N/A',
+            'previous' => optional($statistics)->working_children_previous_year ?? 'N/A',
+            'current' => optional($statistics)->working_children_current_year ?? 'N/A',
         ],
         'Any other category' => [
-            'previous' => $statistics->other_category_previous_year ?? 'N/A',
-            'current' => $statistics->other_category_current_year ?? 'N/A',
+            'previous' => optional($statistics)->other_category_previous_year ?? 'N/A',
+            'current' => optional($statistics)->other_category_current_year ?? 'N/A',
         ],
     ];
 
@@ -938,29 +947,29 @@ private function addAgeProfileSection(PhpWord $phpWord, $project)
     $table->addCell(2000)->addText("Up to Previous Year", ['bold' => true]);
     $table->addCell(2000)->addText("Present Academic Year", ['bold' => true]);
 
-    // Age Profile Data
-    $ageProfile = $project->age_profile; // Assuming this relation is fetched with the project
+    // Age Profile Data (hasOne relation - treat as object)
+    $ageProfile = $project->cciAgeProfile;
 
     $dataRows = [
         // Children below 5 years
-        ['Children below 5 years', 'Bridge course', $ageProfile['education_below_5_bridge_course_prev_year'] ?? 'N/A', $ageProfile['education_below_5_bridge_course_current_year'] ?? 'N/A'],
-        ['', 'Kindergarten', $ageProfile['education_below_5_kindergarten_prev_year'] ?? 'N/A', $ageProfile['education_below_5_kindergarten_current_year'] ?? 'N/A'],
-        ['', $ageProfile['education_below_5_other_specify'] ?? 'Other', $ageProfile['education_below_5_other_prev_year'] ?? 'N/A', $ageProfile['education_below_5_other_current_year'] ?? 'N/A'],
+        ['Children below 5 years', 'Bridge course', optional($ageProfile)->education_below_5_bridge_course_prev_year ?? 'N/A', optional($ageProfile)->education_below_5_bridge_course_current_year ?? 'N/A'],
+        ['', 'Kindergarten', optional($ageProfile)->education_below_5_kindergarten_prev_year ?? 'N/A', optional($ageProfile)->education_below_5_kindergarten_current_year ?? 'N/A'],
+        ['', optional($ageProfile)->education_below_5_other_specify ?? 'Other', optional($ageProfile)->education_below_5_other_prev_year ?? 'N/A', optional($ageProfile)->education_below_5_other_current_year ?? 'N/A'],
 
         // Children between 6 to 10 years
-        ['Children between 6 to 10 years', 'Primary school', $ageProfile['education_6_10_primary_school_prev_year'] ?? 'N/A', $ageProfile['education_6_10_primary_school_current_year'] ?? 'N/A'],
-        ['', 'Bridge course', $ageProfile['education_6_10_bridge_course_prev_year'] ?? 'N/A', $ageProfile['education_6_10_bridge_course_current_year'] ?? 'N/A'],
-        ['', $ageProfile['education_6_10_other_specify'] ?? 'Other', $ageProfile['education_6_10_other_prev_year'] ?? 'N/A', $ageProfile['education_6_10_other_current_year'] ?? 'N/A'],
+        ['Children between 6 to 10 years', 'Primary school', optional($ageProfile)->education_6_10_primary_school_prev_year ?? 'N/A', optional($ageProfile)->education_6_10_primary_school_current_year ?? 'N/A'],
+        ['', 'Bridge course', optional($ageProfile)->education_6_10_bridge_course_prev_year ?? 'N/A', optional($ageProfile)->education_6_10_bridge_course_current_year ?? 'N/A'],
+        ['', optional($ageProfile)->education_6_10_other_specify ?? 'Other', optional($ageProfile)->education_6_10_other_prev_year ?? 'N/A', optional($ageProfile)->education_6_10_other_current_year ?? 'N/A'],
 
         // Children between 11 to 15 years
-        ['Children between 11 to 15 years', 'Secondary school', $ageProfile['education_11_15_secondary_school_prev_year'] ?? 'N/A', $ageProfile['education_11_15_secondary_school_current_year'] ?? 'N/A'],
-        ['', 'High school', $ageProfile['education_11_15_high_school_prev_year'] ?? 'N/A', $ageProfile['education_11_15_high_school_current_year'] ?? 'N/A'],
-        ['', $ageProfile['education_11_15_other_specify'] ?? 'Other', $ageProfile['education_11_15_other_prev_year'] ?? 'N/A', $ageProfile['education_11_15_other_current_year'] ?? 'N/A'],
+        ['Children between 11 to 15 years', 'Secondary school', optional($ageProfile)->education_11_15_secondary_school_prev_year ?? 'N/A', optional($ageProfile)->education_11_15_secondary_school_current_year ?? 'N/A'],
+        ['', 'High school', optional($ageProfile)->education_11_15_high_school_prev_year ?? 'N/A', optional($ageProfile)->education_11_15_high_school_current_year ?? 'N/A'],
+        ['', optional($ageProfile)->education_11_15_other_specify ?? 'Other', optional($ageProfile)->education_11_15_other_prev_year ?? 'N/A', optional($ageProfile)->education_11_15_other_current_year ?? 'N/A'],
 
         // 16 and above
-        ['16 and above', 'Undergraduate', $ageProfile['education_16_above_undergraduate_prev_year'] ?? 'N/A', $ageProfile['education_16_above_undergraduate_current_year'] ?? 'N/A'],
-        ['', 'Technical/Vocational education', $ageProfile['education_16_above_technical_vocational_prev_year'] ?? 'N/A', $ageProfile['education_16_above_technical_vocational_current_year'] ?? 'N/A'],
-        ['', $ageProfile['education_16_above_other_specify'] ?? 'Other', $ageProfile['education_16_above_other_prev_year'] ?? 'N/A', $ageProfile['education_16_above_other_current_year'] ?? 'N/A'],
+        ['16 and above', 'Undergraduate', optional($ageProfile)->education_16_above_undergraduate_prev_year ?? 'N/A', optional($ageProfile)->education_16_above_undergraduate_current_year ?? 'N/A'],
+        ['', 'Technical/Vocational education', optional($ageProfile)->education_16_above_technical_vocational_prev_year ?? 'N/A', optional($ageProfile)->education_16_above_technical_vocational_current_year ?? 'N/A'],
+        ['', optional($ageProfile)->education_16_above_other_specify ?? 'Other', optional($ageProfile)->education_16_above_other_prev_year ?? 'N/A', optional($ageProfile)->education_16_above_other_current_year ?? 'N/A'],
     ];
 
     // Populate the table
@@ -1005,16 +1014,16 @@ private function addPersonalSituationSection(PhpWord $phpWord, $project)
     $table->addCell(3000)->addText("Current Year", ['bold' => true]);
 
     // Personal Situation Data
-    $personalSituation = $project->personal_situation; // Assuming you fetched this relation with the project
+    $personalSituation = $project->cciPersonalSituation;
 
     $dataRows = [
-        ['Children with parents', $personalSituation->children_with_parents_last_year ?? 'N/A', $personalSituation->children_with_parents_current_year ?? 'N/A'],
-        ['Semi-orphans (living with relatives)', $personalSituation->semi_orphans_last_year ?? 'N/A', $personalSituation->semi_orphans_current_year ?? 'N/A'],
-        ['Orphans', $personalSituation->orphans_last_year ?? 'N/A', $personalSituation->orphans_current_year ?? 'N/A'],
-        ['HIV-infected/affected', $personalSituation->hiv_infected_last_year ?? 'N/A', $personalSituation->hiv_infected_current_year ?? 'N/A'],
-        ['Differently-abled children', $personalSituation->differently_abled_last_year ?? 'N/A', $personalSituation->differently_abled_current_year ?? 'N/A'],
-        ['Parents in conflict', $personalSituation->parents_in_conflict_last_year ?? 'N/A', $personalSituation->parents_in_conflict_current_year ?? 'N/A'],
-        ['Other ailments', $personalSituation->other_ailments_last_year ?? 'N/A', $personalSituation->other_ailments_current_year ?? 'N/A'],
+        ['Children with parents', optional($personalSituation)->children_with_parents_last_year ?? 'N/A', optional($personalSituation)->children_with_parents_current_year ?? 'N/A'],
+        ['Semi-orphans (living with relatives)', optional($personalSituation)->semi_orphans_last_year ?? 'N/A', optional($personalSituation)->semi_orphans_current_year ?? 'N/A'],
+        ['Orphans', optional($personalSituation)->orphans_last_year ?? 'N/A', optional($personalSituation)->orphans_current_year ?? 'N/A'],
+        ['HIV-infected/affected', optional($personalSituation)->hiv_infected_last_year ?? 'N/A', optional($personalSituation)->hiv_infected_current_year ?? 'N/A'],
+        ['Differently-abled children', optional($personalSituation)->differently_abled_last_year ?? 'N/A', optional($personalSituation)->differently_abled_current_year ?? 'N/A'],
+        ['Parents in conflict', optional($personalSituation)->parents_in_conflict_last_year ?? 'N/A', optional($personalSituation)->parents_in_conflict_current_year ?? 'N/A'],
+        ['Other ailments', optional($personalSituation)->other_ailments_last_year ?? 'N/A', optional($personalSituation)->other_ailments_current_year ?? 'N/A'],
     ];
 
     foreach ($dataRows as $row) {
@@ -1027,7 +1036,7 @@ private function addPersonalSituationSection(PhpWord $phpWord, $project)
     // Add General Remarks Section
     $section->addTextBreak(1);
     $section->addText("General Remarks", ['bold' => true]);
-    $this->addTextWithLineBreaks($section, $personalSituation->general_remarks ?? 'No remarks provided.');
+    $this->addTextWithLineBreaks($section, optional($personalSituation)->general_remarks ?? 'No remarks provided.');
 }
 //Section - Economic BackgroundS - CHILD CARE INSTITUTION
 private function addEconomicBackgroundSection(PhpWord $phpWord, $project)
@@ -1039,14 +1048,14 @@ private function addEconomicBackgroundSection(PhpWord $phpWord, $project)
     $section->addTextBreak(1);
 
     // Add Economic Background Data
-    $economicBackground = $project->economic_background; // Assuming you fetched this relation with the project
+    $economicBackground = $project->cciEconomicBackground;
 
     $dataRows = [
-        'Agricultural Labour' => $economicBackground->agricultural_labour_number ?? 'N/A',
-        'Marginal Farmers (less than two and half acres)' => $economicBackground->marginal_farmers_number ?? 'N/A',
-        'Parents in Self-Employment' => $economicBackground->self_employed_parents_number ?? 'N/A',
-        'Parents Working in Informal Sector' => $economicBackground->informal_sector_parents_number ?? 'N/A',
-        'Any Other' => $economicBackground->any_other_number ?? 'N/A',
+        'Agricultural Labour' => optional($economicBackground)->agricultural_labour_number ?? 'N/A',
+        'Marginal Farmers (less than two and half acres)' => optional($economicBackground)->marginal_farmers_number ?? 'N/A',
+        'Parents in Self-Employment' => optional($economicBackground)->self_employed_parents_number ?? 'N/A',
+        'Parents Working in Informal Sector' => optional($economicBackground)->informal_sector_parents_number ?? 'N/A',
+        'Any Other' => optional($economicBackground)->any_other_number ?? 'N/A',
     ];
 
     // Add data in a table format
@@ -1073,7 +1082,7 @@ private function addEconomicBackgroundSection(PhpWord $phpWord, $project)
     // Add General Remarks
     $section->addTextBreak(1);
     $section->addText("General Remarks", ['bold' => true]);
-    $this->addTextWithLineBreaks($section, $economicBackground->general_remarks ?? 'No remarks provided.');
+    $this->addTextWithLineBreaks($section, optional($economicBackground)->general_remarks ?? 'No remarks provided.');
 }
 //Section - Achievements - CHILD CARE INSTITUTION
 private function addAchievementsSection(PhpWord $phpWord, $project)
@@ -1084,12 +1093,13 @@ private function addAchievementsSection(PhpWord $phpWord, $project)
     $section->addText("Achievements", ['bold' => true, 'size' => 14]);
     $section->addTextBreak(1);
 
-    $achievements = $project->achievements; // Assuming this relation is fetched
+    $achievements = $project->cciAchievements;
 
     // Academic Achievements
     $section->addText("Academic Achievements:", ['bold' => true]);
-    if (!empty($achievements->academic_achievements)) {
-        foreach ($achievements->academic_achievements as $achievement) {
+    $academicAchievements = optional($achievements)->academic_achievements ?? [];
+    if (!empty($academicAchievements)) {
+        foreach ($academicAchievements as $achievement) {
             $section->addText("- $achievement");
         }
     } else {
@@ -1099,8 +1109,9 @@ private function addAchievementsSection(PhpWord $phpWord, $project)
 
     // Sports Achievements
     $section->addText("Sports Achievements:", ['bold' => true]);
-    if (!empty($achievements->sport_achievements)) {
-        foreach ($achievements->sport_achievements as $achievement) {
+    $sportAchievements = optional($achievements)->sport_achievements ?? [];
+    if (!empty($sportAchievements)) {
+        foreach ($sportAchievements as $achievement) {
             $section->addText("- $achievement");
         }
     } else {
@@ -1110,8 +1121,9 @@ private function addAchievementsSection(PhpWord $phpWord, $project)
 
     // Other Achievements
     $section->addText("Other Achievements:", ['bold' => true]);
-    if (!empty($achievements->other_achievements)) {
-        foreach ($achievements->other_achievements as $achievement) {
+    $otherAchievements = optional($achievements)->other_achievements ?? [];
+    if (!empty($otherAchievements)) {
+        foreach ($otherAchievements as $achievement) {
             $section->addText("- $achievement");
         }
     } else {
@@ -1129,12 +1141,12 @@ private function addPresentSituationSection(PhpWord $phpWord, $project)
 
     // Add Internal Challenges
     $section->addText("Internal Challenges Faced from Inmates:", ['bold' => true]);
-    $this->addTextWithLineBreaks($section, $project->present_situation->internal_challenges ?? 'No internal challenges recorded.');
+    $this->addTextWithLineBreaks($section, optional($project->cciPresentSituation)->internal_challenges ?? 'No internal challenges recorded.');
     $section->addTextBreak(1);
 
     // Add External Challenges
     $section->addText("External Challenges / Present Difficulties:", ['bold' => true]);
-    $this->addTextWithLineBreaks($section, $project->present_situation->external_challenges ?? 'No external challenges recorded.');
+    $this->addTextWithLineBreaks($section, optional($project->cciPresentSituation)->external_challenges ?? 'No external challenges recorded.');
     $section->addTextBreak(2);
 
     // Add Header for Area of Focus
@@ -1143,7 +1155,7 @@ private function addPresentSituationSection(PhpWord $phpWord, $project)
 
     // Add Main Focus Areas
     $section->addText("Main Focus Areas:", ['bold' => true]);
-    $this->addTextWithLineBreaks($section, $project->present_situation->area_of_focus ?? 'No focus areas specified.');
+    $this->addTextWithLineBreaks($section, optional($project->cciPresentSituation)->area_of_focus ?? 'No focus areas specified.');
     $section->addTextBreak(1);
 }
 

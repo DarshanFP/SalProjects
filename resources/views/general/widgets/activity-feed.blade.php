@@ -49,7 +49,7 @@
                                                         {{ $activity->formatted_message ?? $activity->notes ?? 'Activity' }}
                                                     </span>
                                                 </div>
-                                                <small class="text-muted">{{ $activity->created_at->diffForHumans() }}</small>
+                                                <small class="text-muted">{{ optional($activity->created_at)->diffForHumans() ?? '—' }}</small>
                                             </div>
                                             <div class="activity-meta">
                                                 <span class="badge bg-{{ $activity->type === 'project' ? 'primary' : 'info' }} me-2">{{ ucfirst($activity->type) }}</span>

@@ -11,28 +11,50 @@
                 </div>
                 <div class="card-body">
                     <form method="GET" action="{{ route('provincial.approved.projects') }}">
-                        <div class="mb-3 row">
+                        <div class="mb-3 row g-2 align-items-end">
+                            <div class="col-md-2">
+                                <label for="fy" class="form-label">Financial Year</label>
+                                <select name="fy" id="fy" class="form-select auto-filter">
+                                    @foreach($fyList ?? [] as $year)
+                                        <option value="{{ $year }}" {{ ($fy ?? '') == $year ? 'selected' : '' }}>FY {{ $year }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <div class="col-md-3">
-                                <select name="project_type" class="form-control">
-                                    <option value="">Filter by Project Type</option>
+                                <label for="project_type" class="form-label">Project Type</label>
+                                <select name="project_type" id="project_type" class="form-select auto-filter">
+                                    <option value="">All Project Types</option>
                                     @foreach($projectTypes as $type)
                                         <option value="{{ $type }}" {{ request('project_type') == $type ? 'selected' : '' }}>{{ $type }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <select name="user_id" class="form-control">
-                                    <option value="">Filter by Executor</option>
+                                <label for="user_id" class="form-label">Team Member</label>
+                                <select name="user_id" id="user_id" class="form-select auto-filter">
+                                    <option value="">All Team Members</option>
                                     @foreach($users as $user)
                                         <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-4">
-                                <button type="submit" class="btn btn-primary">Filter</button>
+                            <div class="col-md-2">
+                                <a href="{{ route('provincial.approved.projects', ['fy' => \App\Support\FinancialYearHelper::currentFY()]) }}" class="btn btn-secondary">Reset</a>
                             </div>
                         </div>
                     </form>
+                    <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        var filterSubmitting = false;
+                        document.querySelectorAll('.auto-filter').forEach(function(el) {
+                            el.addEventListener('change', function() {
+                                if (filterSubmitting) return;
+                                filterSubmitting = true;
+                                this.closest('form').submit();
+                            });
+                        });
+                    });
+                    </script>
 
                     <style>
                         table.my-projects-table {
@@ -108,6 +130,11 @@
                             </tbody>
                         </table>
                     </div>
+                    @if(isset($projects) && method_exists($projects, 'links'))
+                        <div class="card-footer d-flex justify-content-end mt-3">
+                            {{ $projects->links() }}
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

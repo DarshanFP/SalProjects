@@ -34,7 +34,15 @@
                     {{-- Basic Filters --}}
                     <form method="GET" action="{{ route('coordinator.projects.list') }}" id="filterForm">
                         <div class="mb-3 row">
-                            <div class="col-md-3">
+                            <div class="col-md-2">
+                                <label for="fy" class="form-label">Financial Year</label>
+                                <select name="fy" id="fy" class="form-select auto-filter">
+                                    @foreach($fyList ?? [] as $year)
+                                        <option value="{{ $year }}" {{ ($fy ?? '') == $year ? 'selected' : '' }}>FY {{ $year }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-2">
                                 <label for="search" class="form-label">Search</label>
                                 <input type="text" name="search" id="search" class="form-control"
                                        placeholder="Project ID, Title, Type..."
@@ -42,7 +50,7 @@
                             </div>
                             <div class="col-md-2">
                                 <label for="province" class="form-label">Province</label>
-                                <select name="province" id="province" class="form-control">
+                                <select name="province" id="province" class="form-select auto-filter">
                                     <option value="">All Provinces</option>
                                     @foreach($provinces as $province)
                                         <option value="{{ $province }}" {{ request('province') == $province ? 'selected' : '' }}>
@@ -53,7 +61,7 @@
                             </div>
                             <div class="col-md-2">
                                 <label for="status" class="form-label">Status</label>
-                                <select name="status" id="status" class="form-control">
+                                <select name="status" id="status" class="form-select auto-filter">
                                     <option value="">All Statuses</option>
                                     @foreach($statuses as $status)
                                         <option value="{{ $status }}" {{ request('status') == $status ? 'selected' : '' }}>
@@ -64,7 +72,7 @@
                             </div>
                             <div class="col-md-2">
                                 <label for="project_type" class="form-label">Project Type</label>
-                                <select name="project_type" id="project_type" class="form-control">
+                                <select name="project_type" id="project_type" class="form-select auto-filter">
                                     <option value="">All Types</option>
                                     @foreach($projectTypes as $type)
                                         <option value="{{ $type }}" {{ request('project_type') == $type ? 'selected' : '' }}>
@@ -73,12 +81,8 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">&nbsp;</label>
-                                <div class="gap-2 d-flex">
-                                    <button type="submit" class="btn btn-primary">Filter</button>
-                                    <a href="{{ route('coordinator.projects.list') }}" class="btn btn-secondary">Clear</a>
-                                </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <a href="{{ route('coordinator.projects.list') }}" class="btn btn-secondary">Clear</a>
                             </div>
                         </div>
 
@@ -87,7 +91,7 @@
                             <div class="pt-3 mb-3 row border-top">
                                 <div class="col-md-3">
                                     <label for="provincial_id" class="form-label">Provincial</label>
-                                    <select name="provincial_id" id="provincial_id" class="form-control">
+                                    <select name="provincial_id" id="provincial_id" class="form-select auto-filter">
                                         <option value="">All Provincials</option>
                                         @foreach($provincials as $provincial)
                                             <option value="{{ $provincial->id }}" {{ request('provincial_id') == $provincial->id ? 'selected' : '' }}>
@@ -98,7 +102,7 @@
                                 </div>
                                 <div class="col-md-3">
                                     <label for="user_id" class="form-label">Executor/Applicant</label>
-                                    <select name="user_id" id="user_id" class="form-control">
+                                    <select name="user_id" id="user_id" class="form-select auto-filter">
                                         <option value="">All Executors/Applicants</option>
                                         @foreach($users as $user)
                                             <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>
@@ -109,7 +113,7 @@
                                 </div>
                                 <div class="col-md-2">
                                     <label for="center" class="form-label">Center</label>
-                                    <select name="center" id="center" class="form-control">
+                                    <select name="center" id="center" class="form-select auto-filter">
                                         <option value="">All Centers</option>
                                         @foreach($centers as $center)
                                             <option value="{{ $center }}" {{ request('center') == $center ? 'selected' : '' }}>
@@ -120,7 +124,7 @@
                                 </div>
                                 <div class="col-md-2">
                                     <label for="sort_by" class="form-label">Sort By</label>
-                                    <select name="sort_by" id="sort_by" class="form-control">
+                                    <select name="sort_by" id="sort_by" class="form-select auto-filter">
                                         <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>Created Date</option>
                                         <option value="project_id" {{ request('sort_by') == 'project_id' ? 'selected' : '' }}>Project ID</option>
                                         <option value="project_title" {{ request('sort_by') == 'project_title' ? 'selected' : '' }}>Title</option>
@@ -129,7 +133,7 @@
                                 </div>
                                 <div class="col-md-2">
                                     <label for="sort_order" class="form-label">Order</label>
-                                    <select name="sort_order" id="sort_order" class="form-control">
+                                    <select name="sort_order" id="sort_order" class="form-select auto-filter">
                                         <option value="desc" {{ request('sort_order', 'desc') == 'desc' ? 'selected' : '' }}>Descending</option>
                                         <option value="asc" {{ request('sort_order') == 'asc' ? 'selected' : '' }}>Ascending</option>
                                     </select>
@@ -149,9 +153,12 @@
                     </form>
 
                     {{-- Active Filters Display --}}
-                    @if(request()->anyFilled(['search', 'province', 'status', 'project_type', 'provincial_id', 'user_id', 'center', 'start_date', 'end_date']))
+                    @if(request()->anyFilled(['fy', 'search', 'province', 'status', 'project_type', 'provincial_id', 'user_id', 'center', 'start_date', 'end_date']))
                     <div class="mb-3 alert alert-info">
                         <strong>Active Filters:</strong>
+                        @if(request('fy'))
+                            <span class="badge bg-info me-2">FY: {{ request('fy') }}</span>
+                        @endif
                         @if(request('search'))
                             <span class="badge badge-primary me-2">Search: {{ request('search') }}</span>
                         @endif
@@ -193,6 +200,7 @@
                             <thead class="thead-light">
                                 <tr>
                                     <th>Project ID</th>
+                                    <th>Last Action</th>
                                     <th>Project Title</th>
                                     <th>Project Type</th>
                                     <th>Executor/Applicant</th>
@@ -244,6 +252,9 @@
                                                class="text-primary font-weight-bold">
                                                 {{ $project->project_id }}
                                             </a>
+                                        </td>
+                                        <td>
+                                            <small>{{ $project->status_history_max_created_at ? \Carbon\Carbon::parse($project->status_history_max_created_at)->format('d/m/Y') : '—' }}</small>
                                         </td>
                                         <td>
                                             {{ Str::limit($project->project_title ?? 'N/A', 40) }}
@@ -413,7 +424,7 @@
                                     @endif
                                 @empty
                                     <tr>
-                                        <td colspan="15" class="py-4 text-center text-muted">
+                                        <td colspan="16" class="py-4 text-center text-muted">
                                             No projects found matching the filters.
                                         </td>
                                     </tr>
@@ -467,6 +478,16 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Auto-filter: submit form when any dropdown with .auto-filter is changed
+    var filterSubmitting = false;
+    document.querySelectorAll('.auto-filter').forEach(function(el) {
+        el.addEventListener('change', function() {
+            if (filterSubmitting) return;
+            filterSubmitting = true;
+            this.closest('form').submit();
+        });
+    });
+
     // Toggle Advanced Filters
     window.toggleAdvancedFilters = function() {
         const filters = document.getElementById('advancedFilters');

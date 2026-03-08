@@ -20,3 +20,24 @@
         border-color: #172340;
     }
 }
+
+/* Dashboard Control Bar (Phase 6.7) — FY & Scope selectors */
+.dashboard-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.dashboard-select {
+    background: #0b1b33;
+    border: 1px solid #243b5e;
+    color: #ffffff;
+    padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+}
+
+.dashboard-select:focus {
+    border-color: #4c7cff;
+    box-shadow: none;
+}

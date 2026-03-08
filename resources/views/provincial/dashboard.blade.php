@@ -83,5 +83,6 @@
     <script src="{{ asset('js/textarea-auto-resize.js') }}"></script>
     <!-- End custom js for this page -->
 
+    @stack('scripts')
 </body>
 </html>

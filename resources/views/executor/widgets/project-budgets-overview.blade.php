@@ -13,6 +13,8 @@
                 @if(request('show'))
                     <input type="hidden" name="show" value="{{ request('show') }}">
                 @endif
+                <input type="hidden" name="fy" value="{{ request('fy', $fy ?? '') }}">
+                <input type="hidden" name="scope" value="{{ request('scope', $scope ?? 'owned') }}">
                 <div class="col-md-4">
                     <label for="project_type_overview" class="form-label">Project Type</label>
                     <select name="project_type" id="project_type_overview" class="form-select">
@@ -24,10 +26,10 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
-                    <a href="{{ route('executor.dashboard') }}" class="btn btn-secondary">Reset</a>
-                </div>
+                                    <div class="col-md-4 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+                                    <a href="{{ route('executor.dashboard', array_filter(['show' => request('show'), 'fy' => request('fy', $fy ?? ''), 'scope' => request('scope', $scope ?? 'owned')], fn($v) => $v !== null && $v !== '')) }}" class="btn btn-secondary">Reset</a>
+                                </div>
             </form>
         </div>
 

@@ -58,6 +58,7 @@ use App\Models\OldProjects\ILP\ProjectILPRevenuePlanItem;
 use App\Models\OldProjects\ILP\ProjectILPRiskAnalysis;
 use App\Models\OldProjects\RST\ProjectDPRSTBeneficiariesArea;
 use App\Constants\ProjectStatus;
+use App\Support\FinancialYearHelper;
 use App\Models\ActivityHistory;
 use App\Models\ProjectComment;
 use App\Models\ProjectStatusHistory;
@@ -387,6 +388,22 @@ class Project extends Model
             $q->whereIn('user_id', $ids)
               ->orWhereIn('in_charge', $ids);
         });
+    }
+
+    /**
+     * Scope: projects whose commencement_month_year falls within the given financial year.
+     * India FY: 1 April (Y) → 31 March (Y+1). Uses FinancialYearHelper for bounds.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $fy FY label (e.g. "2024-25")
+     */
+    public function scopeInFinancialYear($query, string $fy)
+    {
+        $start = FinancialYearHelper::startDate($fy);
+        $end = FinancialYearHelper::endDate($fy);
+
+        return $query->whereNotNull('commencement_month_year')
+            ->whereBetween('commencement_month_year', [$start->format('Y-m-d'), $end->format('Y-m-d')]);
     }
 
     /**

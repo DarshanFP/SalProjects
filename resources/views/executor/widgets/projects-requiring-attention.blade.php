@@ -53,7 +53,7 @@
                                                 <span class="text-muted">{{ $project->place }}</span>
                                             @endif
                                         </p>
-                                        <small class="text-muted">Last updated: {{ $project->updated_at->diffForHumans() }}</small>
+                                        <small class="text-muted">Last updated: {{ optional($project->updated_at)->diffForHumans() ?? '—' }}</small>
                                     </div>
                                     <div>
                                         <a href="{{ route('projects.edit', $project->project_id) }}"
@@ -113,7 +113,7 @@ Edit
                                         @if($project->revert_reason)
                                             <small class="text-warning d-block mt-1">{{ Str::limit($project->revert_reason, 100) }}</small>
                                         @endif
-                                        <small class="text-muted">Reverted: {{ $project->updated_at->diffForHumans() }}</small>
+                                        <small class="text-muted">Reverted: {{ optional($project->updated_at)->diffForHumans() ?? '—' }}</small>
                                     </div>
                                     <div>
                                         <a href="{{ route('projects.edit', $project->project_id) }}"

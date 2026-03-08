@@ -71,7 +71,7 @@
                                         </div>
                                         <p class="text-muted mb-2">{{ $notification->message }}</p>
                                         <small class="text-muted">
-                                            <i class="feather icon-clock"></i> {{ $notification->created_at->diffForHumans() }}
+                                            <i class="feather icon-clock"></i> {{ optional($notification->created_at)->diffForHumans() ?? '—' }}
                                             @if($notification->related_type && $notification->related_id)
                                                 |
                                                 @if($notification->related_type == 'project')

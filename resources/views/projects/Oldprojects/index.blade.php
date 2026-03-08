@@ -10,6 +10,25 @@
                     <h4 class="fp-text-center1">My Projects (Pending)</h4>
                 </div>
                 <div class="card-body">
+                    <form method="GET" class="dashboard-controls mb-3">
+                        <select name="fy" class="dashboard-select">
+                            <option value="">All Financial Years</option>
+                            @foreach($availableFY as $year)
+                                <option value="{{ $year }}" {{ ($fy ?? '') == $year ? 'selected' : '' }}>FY {{ $year }}</option>
+                            @endforeach
+                        </select>
+                        <select name="role" class="dashboard-select">
+                            <option value="owned" {{ ($role ?? '') == 'owned' ? 'selected' : '' }}>Owner / Executor</option>
+                            <option value="in_charge" {{ ($role ?? '') == 'in_charge' ? 'selected' : '' }}>In-Charge / Applicant</option>
+                            <option value="owned_and_in_charge" {{ ($role ?? '') == 'owned_and_in_charge' ? 'selected' : '' }}>All My Projects</option>
+                        </select>
+                    </form>
+                    <script>
+                        document.querySelectorAll('.dashboard-select').forEach(function(el) {
+                            el.addEventListener('change', function() { this.closest('form').submit(); });
+                        });
+                    </script>
+
                     <style>
                         /* Center buttons horizontally and vertically in their cells */
                         table.my-projects-table td {
@@ -75,15 +94,16 @@
                         <thead>
                             <tr>
                                 <th style="width: 10%;">Project ID</th>
-                                <th style="width: 30%;">Project Title</th>
-                                <th style="width: 15%;">Project Type</th>
-                                <th style="width: 12%;">Role</th>
+                                <th style="width: 25%;">Project Title</th>
+                                <th style="width: 12%;">Project Type</th>
+                                <th style="width: 10%;">Start</th>
+                                <th style="width: 10%;">Role</th>
                                 <th style="width: 13%;">Status</th>
                                 <th style="width: 20%;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($projects as $project)
+                            @forelse($projects as $project)
                                 @php
                                     $user = auth()->user();
                                     $isOwner = $project->user_id === $user->id;
@@ -93,6 +113,20 @@
                                     <td>{{ $project->project_id }}</td>
                                     <td class="project-title">{{ $project->project_title }}</td>
                                     <td class="project-type">{{ $project->project_type }}</td>
+                                    <td class="text-center">
+                                        @php
+                                            $date = $project->commencement_month_year;
+                                            $fyBadge = $date ? \App\Support\FinancialYearHelper::fromDate(\Carbon\Carbon::parse($date)) : null;
+                                        @endphp
+                                        @if($date)
+                                            <span class="badge bg-info">{{ \Carbon\Carbon::parse($date)->format('M Y') }}</span>
+                                            @if($fyBadge)
+                                                <span class="badge bg-secondary">FY {{ $fyBadge }}</span>
+                                            @endif
+                                        @else
+                                            —
+                                        @endif
+                                    </td>
                                     <td class="text-center">
                                         @if($isOwner)
                                             <span class="badge bg-success">Executor</span>
@@ -121,9 +155,16 @@
                                         @endif
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="text-center">No pending projects found.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
+                    <div class="mt-3">
+                        {{ $projects->links() }}
+                    </div>
                 </div>
             </div>
         </div>

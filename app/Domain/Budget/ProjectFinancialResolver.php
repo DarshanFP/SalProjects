@@ -7,6 +7,7 @@ use App\Domain\Budget\Strategies\PhaseBasedBudgetStrategy;
 use App\Domain\Budget\Strategies\ProjectFinancialStrategyInterface;
 use App\Models\OldProjects\Project;
 use App\Services\Budget\DerivedCalculationService;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -57,6 +58,7 @@ class ProjectFinancialResolver
      * - Approved: amount_sanctioned = DB value, amount_requested = 0, opening_balance = DB value.
      *
      * @param Project $project
+     * @param bool $force Optional; when true, caller may use for force-recompute semantics. No behavioural change when false.
      * @return array{
      *     overall_project_budget: float,
      *     amount_forwarded: float,
@@ -66,7 +68,7 @@ class ProjectFinancialResolver
      *     opening_balance: float
      * }
      */
-    public function resolve(Project $project): array
+    public function resolve(Project $project, bool $force = false): array
     {
         $strategy = $this->getStrategyForProject($project);
         $result = $strategy->resolve($project);
@@ -146,12 +148,18 @@ class ProjectFinancialResolver
                     'invariant' => 'amount_sanctioned > 0',
                 ]);
             }
-            if (abs($opening - $overall) > $tolerance) {
-                Log::warning('Financial invariant violation: approved project must have opening_balance == overall_project_budget', [
+            // Phase 1: Canonical rule — expected_opening = sanctioned + forwarded + local (replaces INV-7)
+            $forwarded = (float) ($project->amount_forwarded ?? 0);
+            $local = (float) ($project->local_contribution ?? 0);
+            $expectedOpening = $sanctioned + $forwarded + $local;
+            if (abs($opening - $expectedOpening) > $tolerance) {
+                Log::warning('Financial invariant violation: opening_balance != amount_sanctioned + amount_forwarded + local_contribution (Phase 1 canonical)', [
                     'project_id' => $projectId,
                     'opening_balance' => $opening,
-                    'overall_project_budget' => $overall,
-                    'invariant' => 'opening_balance == overall_project_budget',
+                    'expected_opening' => $expectedOpening,
+                    'amount_sanctioned' => $sanctioned,
+                    'amount_forwarded' => $forwarded,
+                    'local_contribution' => $local,
                 ]);
             }
         }
@@ -191,5 +199,23 @@ class ProjectFinancialResolver
             $out[$k] = round(max(0, (float) $v), 2);
         }
         return $out;
+    }
+
+    /**
+     * Resolve financials for a collection of projects in one pass.
+     * Phase 2.6: Batch resolution for dashboard optimization.
+     * Returns map keyed by project_id; structure matches resolve() output.
+     *
+     * @param Collection<int, Project> $projects Projects must have reports, reports.accountDetails, budgets eager-loaded.
+     * @return array<string, array{overall_project_budget: float, amount_forwarded: float, local_contribution: float, amount_sanctioned: float, amount_requested: float, opening_balance: float}>
+     */
+    public static function resolveCollection(Collection $projects): array
+    {
+        $resolver = app(self::class);
+        $result = [];
+        foreach ($projects as $project) {
+            $result[$project->project_id] = $resolver->resolve($project);
+        }
+        return $result;
     }
 }

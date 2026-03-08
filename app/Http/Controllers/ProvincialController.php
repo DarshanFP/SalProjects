@@ -21,10 +21,13 @@ use App\Services\ProjectStatusService;
 use App\Services\ReportStatusService;
 use App\Services\ActivityHistoryService;
 use App\Services\ProjectAccessService;
+use App\Services\ProjectQueryService;
+use App\Services\DatasetCacheService;
 use App\Constants\ProjectStatus;
 use App\Helpers\TableFormatter;
 use App\Helpers\SocietyVisibilityHelper;
 use App\Http\Requests\Provincial\UpdateProjectSocietyRequest;
+use App\Support\FinancialYearHelper;
 use Exception;
 use Illuminate\Support\Facades\DB;
 
@@ -50,6 +53,27 @@ class ProvincialController extends Controller
     {
         $provincial = auth()->user();
 
+        // Phase 3 FY: Default to current financial year; allow dropdown selection
+        $fy = $request->input('fy', FinancialYearHelper::currentFY());
+
+        // Phase 6: Dashboard cache — bypass for general users and users without province
+        $useDashboardCache = $provincial->role !== 'general' && $provincial->province_id !== null;
+
+        if ($useDashboardCache) {
+            $filterHash = md5(
+                ($request->input('center') ?? '') . '|' .
+                ($request->input('role') ?? '') . '|' .
+                ($request->input('project_type') ?? '')
+            );
+            $cacheKey = "provincial_dashboard_{$provincial->province_id}_{$fy}_{$filterHash}";
+            $cachedDashboard = Cache::get($cacheKey);
+
+            if ($cachedDashboard !== null) {
+                $realtimeData = $this->getRealtimeDashboardData($provincial, $cachedDashboard['centers']);
+                return view('provincial.index', array_merge($cachedDashboard, $realtimeData));
+            }
+        }
+
         // Wave 6C: Society-wise breakdown only when province has more than one active society
         $provinceId = $provincial->province_id;
         $societyCount = $provinceId
@@ -63,21 +87,31 @@ class ProvincialController extends Controller
                 ->where('is_active', true)
                 ->get(['id', 'name']);
 
-            $approvedTotals = Project::where('province_id', $provinceId)
-                ->whereIn('status', [
-                    ProjectStatus::APPROVED_BY_COORDINATOR,
-                    ProjectStatus::APPROVED_BY_GENERAL_AS_COORDINATOR,
-                    ProjectStatus::APPROVED_BY_GENERAL_AS_PROVINCIAL,
-                ])
-                ->selectRaw('society_id, SUM(COALESCE(amount_sanctioned, 0)) as total')
-                ->groupBy('society_id')
-                ->pluck('total', 'society_id');
+            // Phase 2.5: Resolver-based society totals (Option A) — one resolve per project; Phase 3 FY
+            $projects = Project::where('province_id', $provinceId)
+                ->whereNotNull('society_id')
+                ->inFinancialYear($fy)
+                ->get();
 
-            $pendingTotals = Project::where('province_id', $provinceId)
-                ->whereNotIn('status', ProjectStatus::FINAL_STATUSES)
-                ->selectRaw('society_id, SUM(GREATEST(0, COALESCE(overall_project_budget, 0) - COALESCE(amount_forwarded, 0) - COALESCE(local_contribution, 0))) as total')
-                ->groupBy('society_id')
-                ->pluck('total', 'society_id');
+            $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+            $resolvedFinancials = [];
+            foreach ($projects as $project) {
+                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+            }
+
+            $societyTotals = [];
+            foreach ($projects as $project) {
+                $societyId = $project->society_id;
+                if (!isset($societyTotals[$societyId])) {
+                    $societyTotals[$societyId] = ['approved_total' => 0.0, 'pending_total' => 0.0];
+                }
+                $resolved = $resolvedFinancials[$project->project_id];
+                if ($project->isApproved()) {
+                    $societyTotals[$societyId]['approved_total'] += (float) ($resolved['opening_balance'] ?? 0);
+                } else {
+                    $societyTotals[$societyId]['pending_total'] += (float) ($resolved['amount_requested'] ?? 0);
+                }
+            }
 
             $reportedTotals = DPReport::where('province_id', $provinceId)
                 ->whereNotNull('society_id')
@@ -87,8 +121,8 @@ class ProvincialController extends Controller
                 ->pluck('total', 'society_id');
 
             foreach ($societies as $society) {
-                $approved = (float) ($approvedTotals[$society->id] ?? 0);
-                $pending = (float) ($pendingTotals[$society->id] ?? 0);
+                $approved = (float) ($societyTotals[$society->id]['approved_total'] ?? 0);
+                $pending = (float) ($societyTotals[$society->id]['pending_total'] ?? 0);
                 $reported = (float) ($reportedTotals[$society->id] ?? 0);
                 $societyStats[$society->id] = [
                     'society_name' => $society->name,
@@ -111,9 +145,11 @@ class ProvincialController extends Controller
         // Get all accessible user IDs (handles both provincial and general users)
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
-        // Get approved projects for all accessible users (owner OR in-charge in scope)
-        $projectsQuery = Project::accessibleByUserIds($accessibleUserIds)
-            ->approved();
+        // Phase 3.2: Shared dataset — single project query for FY scope
+        $baseProjectsQuery = ProjectQueryService::forProvincial($provincial, $fy);
+
+        // Get approved projects for budget summaries (apply filters)
+        $projectsQuery = (clone $baseProjectsQuery)->approved();
 
         // Apply comprehensive filters
         if ($request->filled('center')) {
@@ -130,27 +166,47 @@ class ProvincialController extends Controller
             $projectsQuery->where('project_type', $request->project_type);
         }
 
-        $projects = $projectsQuery->with(['user', 'reports.accountDetails'])->get();
+        $projects = $projectsQuery->with(['user', 'reports.accountDetails', 'budgets'])->get();
 
-        // Calculate budget summaries from projects and their reports
-        $budgetSummaries = $this->calculateBudgetSummariesFromProjects($projects, $request);
+        // Phase 4A — Immutable Dataset Architecture Safeguard
+        //
+        // $teamProjects is a shared dataset used by multiple widget methods.
+        // It must be treated as READ-ONLY.
+        //
+        // Widget methods must never mutate this collection.
+        // Only derived collections may be created using:
+        // filter(), map(), groupBy(), where(), whereIn().
+        //
+        // Mutating operations such as transform(), push(), forget(), etc.
+        // are strictly prohibited to prevent cross-widget data corruption.
+        //
+        // Optional safeguard:
+        // CI or static analysis tools (PHPStan/Psalm) may enforce a rule
+        // preventing mutation operations on $teamProjects.
+        $teamProjects = DatasetCacheService::getProvincialDataset($provincial, $fy);
 
-        // Get comprehensive filter options for this provincial's jurisdiction
-        $centers = User::whereIn('id', $accessibleUserIds)
-                      ->whereIn('role', ['executor', 'applicant'])
-                      ->whereNotNull('center')
-                      ->where('center', '!=', '')
-                      ->distinct()
-                      ->pluck('center')
-                      ->filter()
-                      ->values();
+        // Phase 5: Resolve financials once; reuse map across widgets
+        $resolvedFinancials = \App\Domain\Budget\ProjectFinancialResolver::resolveCollection($teamProjects);
+
+        // Calculate budget summaries from approved filtered projects only
+        $budgetSummaries = $this->calculateBudgetSummariesFromProjects($projects, $request, $resolvedFinancials);
+
+        // Get comprehensive filter options (Phase 3.2: FY-scoped)
+        $projectTypesQuery = (clone $baseProjectsQuery)->approved();
+        $projectTypes = $projectTypesQuery->distinct()->pluck('project_type');
+        $userIdsWithProjectsInFy = $baseProjectsQuery->distinct()->pluck('user_id')
+            ->merge($baseProjectsQuery->distinct()->pluck('in_charge'))
+            ->unique()->filter()->values();
+        $centers = User::whereIn('id', $userIdsWithProjectsInFy)
+            ->whereIn('role', ['executor', 'applicant'])
+            ->whereNotNull('center')
+            ->where('center', '!=', '')
+            ->distinct()
+            ->pluck('center')
+            ->filter()
+            ->values();
 
         $roles = ['executor', 'applicant'];
-
-        $projectTypes = Project::accessibleByUserIds($accessibleUserIds)
-            ->approved()
-            ->distinct()
-            ->pluck('project_type');
 
         // Widget Data: Pending Approvals (Both Projects and Reports)
         $pendingData = $this->getPendingApprovalsForDashboard($provincial);
@@ -207,21 +263,22 @@ class ProvincialController extends Controller
         // Merge with existing centers and ensure uniqueness
         $allCenters = $centers->merge($approvalQueueCenters)->unique()->filter()->sort()->values();
 
-        // Phase 2 Widget Data: Team Performance Summary
-        $performanceMetrics = $this->calculateTeamPerformanceMetrics($provincial);
-        $chartData = $this->prepareChartDataForTeamPerformance($provincial);
-        $centerPerformance = $this->calculateCenterPerformance($provincial);
+        // Phase 4: Widget methods receive shared teamProjects (immutable); no redundant project queries
+        // Phase 5: Pass resolved financial map to avoid repeated resolver calls
+        $performanceMetrics = $this->calculateTeamPerformanceMetrics($provincial, $fy, $teamProjects, $resolvedFinancials);
+        $chartData = $this->prepareChartDataForTeamPerformance($provincial, $fy, $teamProjects, $resolvedFinancials);
+        $centerPerformance = $this->calculateCenterPerformance($provincial, $fy, $teamProjects, $resolvedFinancials);
 
         // Phase 2 Widget Data: Team Activity Feed
         $teamActivities = ActivityHistoryService::getForProvincial($provincial)
             ->take(50)
             ->values();
 
-        // Phase 3 Widget Data: Team Budget Overview (Enhanced)
-        $budgetData = $this->calculateEnhancedBudgetData($provincial);
+        // Phase 4: Team Budget Overview (Enhanced) — shared teamProjects
+        $budgetData = $this->calculateEnhancedBudgetData($provincial, $fy, $teamProjects, $resolvedFinancials);
 
-        // Phase 3 Widget Data: Center Performance Comparison
-        $centerComparison = $this->prepareCenterComparisonData($provincial);
+        // Phase 4: Center Performance Comparison — shared teamProjects
+        $centerComparison = $this->prepareCenterComparisonData($provincial, $fy, $teamProjects, $resolvedFinancials);
 
         \Log::info('Provincial Dashboard Filter Options', [
             'selected_center' => $request->get('center'),
@@ -236,7 +293,40 @@ class ProvincialController extends Controller
             })->toArray()
         ]);
 
-        return view('provincial.index', compact(
+        // Phase 2.1: FY Selector Data Integrity — derive FY only from approved projects; no fabricated FYs
+        $fyList = FinancialYearHelper::listAvailableFYFromProjects(
+            Project::accessibleByUserIds($accessibleUserIds)->approved(),
+            false
+        );
+        if (empty($fyList)) {
+            $fyList = [FinancialYearHelper::currentFY()];
+        }
+
+        // Phase 6: Cache widget data for provincial users (exclude real-time approval data)
+        if ($useDashboardCache) {
+            $dashboardCacheData = [
+                'budgetSummaries' => $budgetSummaries,
+                'performanceMetrics' => $performanceMetrics,
+                'chartData' => $chartData,
+                'centerPerformance' => $centerPerformance,
+                'budgetData' => $budgetData,
+                'centerComparison' => $centerComparison,
+                'societyStats' => $societyStats,
+                'centers' => $centers,
+                'roles' => $roles,
+                'projectTypes' => $projectTypes,
+                'fyList' => $fyList,
+                'fy' => $fy,
+                'enableSocietyBreakdown' => $enableSocietyBreakdown,
+                'teamMembers' => $teamMembers,
+                'teamStats' => $teamStats,
+                'teamActivities' => $teamActivities,
+            ];
+            $ttl = now()->addMinutes(config('dashboard.cache_ttl_minutes', 5));
+            Cache::put($cacheKey, $dashboardCacheData, $ttl);
+        }
+
+        $viewData = compact(
             'budgetSummaries',
             'centers',
             'allCenters',
@@ -264,8 +354,80 @@ class ProvincialController extends Controller
             'budgetData',
             'centerComparison',
             'enableSocietyBreakdown',
-            'societyStats'
-        ));
+            'societyStats',
+            'fy',
+            'fyList'
+        );
+
+        return view('provincial.index', $viewData);
+    }
+
+    /**
+     * Build real-time dashboard data (pending, approval queue) that must not be cached.
+     * Phase 6: Called on every request; used both on cache hit and after full computation.
+     *
+     * @param \App\Models\User $provincial
+     * @param \Illuminate\Support\Collection $centers Cached centers; allCenters = centers + approvalQueueCenters
+     * @return array
+     */
+    private function getRealtimeDashboardData($provincial, $centers)
+    {
+        $accessibleUserIds = $this->getAccessibleUserIds($provincial);
+
+        $pendingData = $this->getPendingApprovalsForDashboard($provincial);
+        $pendingProjects = $pendingData['projects'];
+        $pendingReports = $pendingData['reports'];
+
+        $approvalQueueData = $this->getApprovalQueueForDashboard($provincial);
+        $approvalQueueProjects = $approvalQueueData['projects'];
+        $approvalQueueReports = $approvalQueueData['reports'];
+        $approvalQueue = $approvalQueueReports;
+
+        $teamMembersForQueue = User::whereIn('id', $accessibleUserIds)
+            ->whereIn('role', ['executor', 'applicant'])
+            ->select('id', 'name')
+            ->get();
+
+        $approvalQueueCenters = collect();
+        foreach ($approvalQueueProjects as $project) {
+            if ($project->user && $project->user->center) {
+                $approvalQueueCenters->push(trim($project->user->center));
+            }
+        }
+        foreach ($approvalQueueReports as $report) {
+            if ($report->user && $report->user->center) {
+                $approvalQueueCenters->push(trim($report->user->center));
+            }
+        }
+        $allCenters = $centers->merge($approvalQueueCenters)->unique()->filter()->sort()->values();
+
+        $urgentCount = $pendingReports->filter(fn ($r) => $r->created_at->diffInDays(now()) > 7)->count();
+        $normalCount = $pendingReports->filter(function ($r) {
+            $days = $r->created_at->diffInDays(now());
+            return $days > 3 && $days <= 7;
+        })->count();
+        $urgentProjectsCount = $pendingProjects->filter(fn ($p) => $p->created_at->diffInDays(now()) > 7)->count();
+        $normalProjectsCount = $pendingProjects->filter(function ($p) {
+            $days = $p->created_at->diffInDays(now());
+            return $days > 3 && $days <= 7;
+        })->count();
+
+        return [
+            'pendingProjects' => $pendingProjects,
+            'pendingReports' => $pendingReports,
+            'pendingProjectsCount' => $pendingProjects->count(),
+            'pendingReportsCount' => $pendingReports->count(),
+            'totalPendingCount' => $pendingProjects->count() + $pendingReports->count(),
+            'urgentCount' => $urgentCount,
+            'normalCount' => $normalCount,
+            'urgentProjectsCount' => $urgentProjectsCount,
+            'normalProjectsCount' => $normalProjectsCount,
+            'approvalQueue' => $approvalQueue,
+            'approvalQueueProjects' => $approvalQueueProjects,
+            'approvalQueueReports' => $approvalQueueReports,
+            'teamMembersForQueue' => $teamMembersForQueue,
+            'allCenters' => $allCenters,
+        ];
     }
 
     /**
@@ -278,9 +440,9 @@ class ProvincialController extends Controller
         abort(501, 'User Manual not implemented yet.');
     }
 
-    private function calculateBudgetSummariesFromProjects($projects, $request)
+    private function calculateBudgetSummariesFromProjects($projects, $request, ?array $resolvedFinancials = null)
     {
-        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $resolver = $resolvedFinancials === null ? app(\App\Domain\Budget\ProjectFinancialResolver::class) : null;
         $calc = app(\App\Services\Budget\DerivedCalculationService::class);
         $budgetSummaries = [
             'by_project_type' => [],
@@ -295,7 +457,9 @@ class ProvincialController extends Controller
         ];
 
         foreach ($projects as $project) {
-            $financials = $resolver->resolve($project);
+            $financials = $resolvedFinancials !== null
+                ? ($resolvedFinancials[$project->project_id] ?? [])
+                : $resolver->resolve($project);
             $projectBudget = (float) ($financials['opening_balance'] ?? 0);
 
             // Calculate approved and unapproved expenses separately
@@ -491,13 +655,19 @@ class ProvincialController extends Controller
     public function projectList(Request $request)
     {
         $provincial = auth()->user();
+        // When status=submitted_to_provincial, default FY to next financial year
+        $defaultFy = $request->input('status') === 'submitted_to_provincial'
+            ? FinancialYearHelper::nextFY()
+            : FinancialYearHelper::currentFY();
+        $fy = $request->input('fy', $defaultFy);
 
         // Province isolation: only projects for accessible users (handles provincial + general with province filter)
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
         // Base query (clone before get/paginate to avoid mutating)
-        // Include projects where owner OR in-charge is in scope (Phase 1: owner/in-charge parity)
+        // Phase 3.1: FY filter applies to all statuses (projects-list, projects-list?status=*)
         $baseQuery = Project::accessibleByUserIds($accessibleUserIds)
+            ->inFinancialYear($fy)
             ->when($request->filled('project_type'), fn ($q) => $q->where('project_type', $request->project_type))
             ->when($request->filled('user_id'), fn ($q) => $q->where(function ($q2) use ($request) {
                 $q2->where('user_id', $request->user_id)->orWhere('in_charge', $request->user_id);
@@ -508,14 +678,15 @@ class ProvincialController extends Controller
             })
             ->when($request->filled('society_id'), fn ($q) => $q->where('society_id', $request->society_id));
 
-        // Full dataset for grand totals and status distribution (resolver runs on full filtered set)
+        // Full dataset for grand totals and status distribution
         $fullDataset = (clone $baseQuery)
-            ->with(['user', 'reports.accountDetails'])
+            ->with(['user', 'reports.accountDetails', 'budgets'])
             ->get();
 
-        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        // Phase 5: Resolve financials once for full dataset
+        $resolvedFinancials = \App\Domain\Budget\ProjectFinancialResolver::resolveCollection($fullDataset);
+
         $calc = app(\App\Services\Budget\DerivedCalculationService::class);
-        $resolvedFinancials = [];
         // M3.7 Phase 2: Stage-separated totals — sanctioned (approved only), requested (non-approved only)
         $grandTotals = [
             'overall_project_budget' => 0,
@@ -527,8 +698,7 @@ class ProvincialController extends Controller
         ];
 
         foreach ($fullDataset as $project) {
-            $financials = $resolver->resolve($project);
-            $resolvedFinancials[$project->project_id] = $financials;
+            $financials = $resolvedFinancials[$project->project_id] ?? [];
             $grandTotals['overall_project_budget'] += (float) ($financials['overall_project_budget'] ?? 0);
             $grandTotals['amount_forwarded'] += (float) ($financials['amount_forwarded'] ?? 0);
             $grandTotals['local_contribution'] += (float) ($financials['local_contribution'] ?? 0);
@@ -567,6 +737,7 @@ class ProvincialController extends Controller
         $perPage = TableFormatter::resolvePerPage($request);
         $projects = (clone $baseQuery)
             ->with(['user', 'reports.accountDetails'])
+            ->withMax('statusHistory', 'created_at')
             ->paginate($perPage)
             ->withQueryString();
 
@@ -597,12 +768,25 @@ class ProvincialController extends Controller
         $currentPerPage = $perPage;
         $allowedPageSizes = TableFormatter::ALLOWED_PAGE_SIZES;
 
-        // Filter dropdowns (province-scoped)
+        // Filter dropdowns (province-scoped, Phase 3.2: FY-scoped for project types and centers)
         $users = User::whereIn('id', $accessibleUserIds)
             ->whereIn('role', ['executor', 'applicant'])
             ->get();
-        $projectTypes = Project::accessibleByUserIds($accessibleUserIds)->distinct()->pluck('project_type');
-        $centers = User::whereIn('id', $accessibleUserIds)
+        $projectTypes = Project::accessibleByUserIds($accessibleUserIds)
+            ->inFinancialYear($fy)
+            ->distinct()
+            ->pluck('project_type');
+        $userIdsWithProjectsInFy = Project::accessibleByUserIds($accessibleUserIds)
+            ->inFinancialYear($fy)
+            ->distinct()
+            ->pluck('user_id')
+            ->merge(
+                Project::accessibleByUserIds($accessibleUserIds)->inFinancialYear($fy)->distinct()->pluck('in_charge')
+            )
+            ->unique()
+            ->filter()
+            ->values();
+        $centers = User::whereIn('id', $userIdsWithProjectsInFy)
             ->whereIn('role', ['executor', 'applicant'])
             ->whereNotNull('center')
             ->distinct()
@@ -612,6 +796,23 @@ class ProvincialController extends Controller
 
         // Wave 5C: Societies for Update Society dropdown (once per page, no N+1)
         $societies = SocietyVisibilityHelper::queryForProjectForm($provincial)->get();
+
+        // Phase 3.1: FY list for dropdown (approved projects only; no fabricated FYs)
+        $fyList = FinancialYearHelper::listAvailableFYFromProjects(
+            Project::accessibleByUserIds($accessibleUserIds)->approved(),
+            false
+        );
+        if (empty($fyList)) {
+            $fyList = [FinancialYearHelper::currentFY()];
+        }
+        // When status=submitted_to_provincial, ensure next FY is in dropdown (submitted projects may not yet be approved)
+        if ($request->input('status') === 'submitted_to_provincial') {
+            $nextFy = FinancialYearHelper::nextFY();
+            if (!in_array($nextFy, $fyList, true)) {
+                $fyList = array_values(array_unique(array_merge([$nextFy], $fyList)));
+                rsort($fyList);
+            }
+        }
 
         return view('provincial.ProjectList', compact(
             'projects',
@@ -624,7 +825,9 @@ class ProvincialController extends Controller
             'projectTypes',
             'centers',
             'statusDistribution',
-            'societies'
+            'societies',
+            'fy',
+            'fyList'
         ));
     }
 
@@ -1705,13 +1908,16 @@ class ProvincialController extends Controller
     public function approvedProjects(Request $request)
     {
         $provincial = auth()->user();
+        $fy = $request->input('fy', FinancialYearHelper::currentFY());
 
         // Get all accessible user IDs (handles both provincial and general users)
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
         // Get approved projects for all accessible users (owner OR in-charge in scope)
+        // Phase 3.1: FY filter applied
         $projectsQuery = Project::accessibleByUserIds($accessibleUserIds)
-            ->approved();
+            ->approved()
+            ->inFinancialYear($fy);
 
         // Apply filtering if provided in the request
         if ($request->filled('place')) {
@@ -1726,33 +1932,41 @@ class ProvincialController extends Controller
             $projectsQuery->where('project_type', $request->project_type);
         }
 
-        $projects = $projectsQuery->with(['user', 'reports.accountDetails'])->get();
+        $perPage = 25;
+        $projects = $projectsQuery
+            ->with(['user', 'reports.accountDetails'])
+            ->paginate($perPage)
+            ->withQueryString();
 
-        // UI boundary: use resolver for amount_sanctioned display (no raw DB)
+        // UI boundary: use resolver for amount_sanctioned display (only for current page)
         $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
         $resolvedFinancials = [];
         foreach ($projects as $project) {
             $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
         }
 
-        // Fetch unique centers from users of approved projects
+        // Phase 3.2: FY-scoped dropdowns (centers from users with approved projects in FY)
+        $baseFyQuery = Project::accessibleByUserIds($accessibleUserIds)->approved()->inFinancialYear($fy);
         $places = User::whereIn('id', $accessibleUserIds)
-            ->whereHas('projects', function ($query) {
-                $query->approved();
-            })
+            ->whereHas('projects', fn ($q) => $q->approved()->inFinancialYear($fy))
             ->whereNotNull('center')
             ->distinct()
             ->pluck('center');
 
         $users = User::whereIn('id', $accessibleUserIds)->get();
 
-        // Fetch distinct project types for filters
-        $projectTypes = Project::accessibleByUserIds($accessibleUserIds)
-            ->approved()
-            ->distinct()
-            ->pluck('project_type');
+        $projectTypes = $baseFyQuery->distinct()->pluck('project_type');
 
-        return view('provincial.approvedProjects', compact('projects', 'places', 'users', 'projectTypes', 'resolvedFinancials'));
+        // Phase 3.1: FY list for dropdown (approved projects only; no fabricated FYs)
+        $fyList = FinancialYearHelper::listAvailableFYFromProjects(
+            Project::accessibleByUserIds($accessibleUserIds)->approved(),
+            false
+        );
+        if (empty($fyList)) {
+            $fyList = [FinancialYearHelper::currentFY()];
+        }
+
+        return view('provincial.approvedProjects', compact('projects', 'places', 'users', 'projectTypes', 'resolvedFinancials', 'fy', 'fyList'));
     }
 
     public function forwardReport(Request $request, $report_id)
@@ -2135,19 +2349,29 @@ class ProvincialController extends Controller
 
     /**
      * Calculate team performance metrics
+     * Phase 3.2 / Phase 4: Accept optional $teamProjects to avoid redundant queries.
+     *
+     * @param \App\Models\User $provincial
+     * @param string $fy Financial year
+     * @param \Illuminate\Support\Collection|null $teamProjects Immutable shared dataset (all statuses). Must NOT be mutated.
+     *
+     * Allowed: filter(), map(), groupBy(), where(), whereIn(), pluck(), unique(), sum(), count().
+     * Prohibited: transform(), forget(), push(), pop(), shift(), splice().
+     * If mutation is required, create a derived collection first.
      */
-    private function calculateTeamPerformanceMetrics($provincial)
+    private function calculateTeamPerformanceMetrics($provincial, string $fy, $teamProjects = null, ?array $resolvedFinancials = null)
     {
-        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $resolver = $resolvedFinancials === null ? app(\App\Domain\Budget\ProjectFinancialResolver::class) : null;
         $calc = app(\App\Services\Budget\DerivedCalculationService::class);
 
-        // Get all accessible user IDs
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
-        // Get all team projects (all statuses) — owner OR in-charge in scope
-        $teamProjects = Project::accessibleByUserIds($accessibleUserIds)
-            ->with(['user', 'reports.accountDetails'])
-            ->get();
+        if ($teamProjects === null) {
+            $teamProjects = Project::accessibleByUserIds($accessibleUserIds)
+                ->inFinancialYear($fy)
+                ->with(['user', 'reports.accountDetails'])
+                ->get();
+        }
 
         // Get all team reports (all statuses)
         $teamReports = DPReport::accessibleByUserIds($accessibleUserIds)->get();
@@ -2165,10 +2389,12 @@ class ProvincialController extends Controller
         // Calculate budget metrics (from approved projects only)
         $approvedProjects = $teamProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
 
-        // Memoize resolved financials (resolve each project exactly once)
-        $resolvedFinancials = [];
-        foreach ($approvedProjects as $project) {
-            $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+        // Phase 5: Use passed map or resolve inline
+        if ($resolvedFinancials === null) {
+            $resolvedFinancials = [];
+            foreach ($approvedProjects as $project) {
+                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+            }
         }
 
         $totalBudget = $approvedProjects->sum(
@@ -2214,16 +2440,25 @@ class ProvincialController extends Controller
 
     /**
      * Prepare chart data for team performance widget
+     * Phase 3.2 / Phase 4: Accept optional $teamProjects to avoid redundant queries.
+     *
+     * @param \App\Models\User $provincial
+     * @param string $fy Financial year
+     * @param \Illuminate\Support\Collection|null $teamProjects Immutable shared dataset (all statuses). Must NOT be mutated.
+     *
+     * Allowed: filter(), map(), groupBy(), where(), whereIn(), pluck(), unique(), sum(), count().
+     * Prohibited: transform(), forget(), push(), pop(), shift(), splice().
+     * If mutation is required, create a derived collection first.
      */
-    private function prepareChartDataForTeamPerformance($provincial)
+    private function prepareChartDataForTeamPerformance($provincial, string $fy, $teamProjects = null, ?array $resolvedFinancials = null)
     {
-        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $resolver = $resolvedFinancials === null ? app(\App\Domain\Budget\ProjectFinancialResolver::class) : null;
 
-        // Get all accessible user IDs
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
-        // Get all team projects — owner OR in-charge in scope
-        $teamProjects = Project::accessibleByUserIds($accessibleUserIds)->get();
+        if ($teamProjects === null) {
+            $teamProjects = Project::accessibleByUserIds($accessibleUserIds)->inFinancialYear($fy)->get();
+        }
 
         // Get all team reports
         $teamReports = DPReport::accessibleByUserIds($accessibleUserIds)->get();
@@ -2241,10 +2476,12 @@ class ProvincialController extends Controller
         // Budget by project type (from approved projects)
         $approvedProjects = $teamProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
 
-        // Memoize resolved financials (resolve each project exactly once)
-        $resolvedFinancials = [];
-        foreach ($approvedProjects as $project) {
-            $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+        // Phase 5: Use passed map or resolve inline
+        if ($resolvedFinancials === null) {
+            $resolvedFinancials = [];
+            foreach ($approvedProjects as $project) {
+                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+            }
         }
 
         $budgetByProjectType = [];
@@ -2276,34 +2513,53 @@ class ProvincialController extends Controller
 
     /**
      * Calculate center-wise performance
+     * Phase 3.2 / Phase 4: Accept optional $teamProjects to avoid redundant queries.
+     *
+     * @param \App\Models\User $provincial
+     * @param string $fy Financial year
+     * @param \Illuminate\Support\Collection|null $teamProjects Immutable shared dataset (all statuses). Must NOT be mutated.
+     *
+     * Allowed: filter(), map(), groupBy(), where(), whereIn(), pluck(), unique(), sort(), values(), sum(), count().
+     * Prohibited: transform(), forget(), push(), pop(), shift(), splice().
+     * If mutation is required, create a derived collection first.
      */
-    private function calculateCenterPerformance($provincial)
+    private function calculateCenterPerformance($provincial, string $fy, $teamProjects = null, ?array $resolvedFinancials = null)
     {
-        // Get all accessible user IDs
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
-        $centers = User::whereIn('id', $accessibleUserIds)
-            ->whereIn('role', ['executor', 'applicant'])
-            ->whereNotNull('center')
-            ->distinct()
-            ->pluck('center');
+        if ($teamProjects === null) {
+            $teamProjects = Project::accessibleByUserIds($accessibleUserIds)
+                ->inFinancialYear($fy)
+                ->with(['user', 'reports.accountDetails'])
+                ->get();
+        }
 
-        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $centers = $teamProjects->pluck('user.center')->unique()->filter()->sort()->values();
+
+        $resolver = $resolvedFinancials === null ? app(\App\Domain\Budget\ProjectFinancialResolver::class) : null;
         $centerPerformance = [];
 
         foreach ($centers as $center) {
-            $centerUsers = User::whereIn('id', $accessibleUserIds)
-                ->where('center', $center)
-                ->whereIn('role', ['executor', 'applicant'])
-                ->pluck('id');
-
-            $centerProjects = Project::whereIn('user_id', $centerUsers)->get();
+            $centerProjects = $teamProjects->filter(fn ($p) => ($p->user->center ?? '') === $center);
+            $centerUsers = $centerProjects->pluck('user_id')->merge($centerProjects->pluck('in_charge'))->unique()->filter()->values();
             $approvedProjects = $centerProjects->filter(fn ($p) => $p->isApproved());
             $pendingProjects = $centerProjects->filter(fn ($p) => ! $p->isApproved());
 
-            // M3.7 Phase 2: Stage-separated — approved use opening_balance; pending use resolver amount_requested (no inline formula)
-            $centerBudget = (float) ($approvedProjects->sum(fn ($p) => (float) ($p->opening_balance ?? 0)) ?? 0);
-            $centerPendingBudget = (float) $pendingProjects->sum(fn ($p) => (float) (($resolver->resolve($p)['amount_requested'] ?? 0)));
+            // Phase 5: Use passed map or resolve inline
+            $map = $resolvedFinancials;
+            if ($map === null) {
+                $map = [];
+                foreach ($approvedProjects as $project) {
+                    $map[$project->project_id] = $resolver->resolve($project);
+                }
+            }
+
+            // M3.7 Phase 2 / Phase 2.5: Stage-separated — approved use opening_balance; pending use amount_requested
+            $centerBudget = (float) ($approvedProjects->sum(fn ($p) => (float) (($map[$p->project_id] ?? [])['opening_balance'] ?? 0)) ?? 0);
+            $centerPendingBudget = (float) $pendingProjects->sum(function ($p) use ($map, $resolver) {
+                $fin = $map[$p->project_id] ?? ($resolver ? $resolver->resolve($p) : []);
+                return (float) ($fin['amount_requested'] ?? 0);
+            });
             $centerExpenses = 0;
 
             foreach ($approvedProjects as $project) {
@@ -2337,32 +2593,45 @@ class ProvincialController extends Controller
 
     /**
      * Calculate enhanced budget data for Team Budget Overview widget
+     * Phase 3.2 / Phase 4: Accept optional $teamProjects to avoid redundant queries.
+     *
+     * @param \App\Models\User $provincial
+     * @param string $fy Financial year
+     * @param \Illuminate\Support\Collection|null $teamProjects Immutable shared dataset (all statuses). Must NOT be mutated.
+     *
+     * Allowed: filter(), map(), groupBy(), where(), whereIn(), pluck(), unique(), sortByDesc(), take(), values(), sum(), count().
+     * Prohibited: transform(), forget(), push(), pop(), shift(), splice().
+     * If mutation is required, create a derived collection first.
      */
-    private function calculateEnhancedBudgetData($provincial)
+    private function calculateEnhancedBudgetData($provincial, string $fy, $teamProjects = null, ?array $resolvedFinancials = null)
     {
-        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $resolver = $resolvedFinancials === null ? app(\App\Domain\Budget\ProjectFinancialResolver::class) : null;
         $calc = app(\App\Services\Budget\DerivedCalculationService::class);
 
-        // Get all accessible user IDs
         $accessibleUserIds = $this->getAccessibleUserIds($provincial);
 
-        // Get all approved projects (M3.3.2: use centralized scope) — owner OR in-charge in scope
-        $approvedProjects = Project::accessibleByUserIds($accessibleUserIds)
-            ->approved()
-            ->with(['user', 'reports.accountDetails'])
-            ->get();
-
-        // M3.7 Phase 2: Pending total from resolver amount_requested (no inline formula)
-        $pendingProjects = Project::accessibleByUserIds($accessibleUserIds)
-            ->notApproved()
-            ->get();
-        $pendingTotal = (float) $pendingProjects->sum(fn ($p) => (float) (($resolver->resolve($p)['amount_requested'] ?? 0)));
-
-        // Memoize resolved financials (resolve each project exactly once)
-        $resolvedFinancials = [];
-        foreach ($approvedProjects as $project) {
-            $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+        if ($teamProjects === null) {
+            $teamProjects = Project::accessibleByUserIds($accessibleUserIds)
+                ->inFinancialYear($fy)
+                ->with(['user', 'reports.accountDetails'])
+                ->get();
         }
+
+        $approvedProjects = $teamProjects->filter(fn ($p) => $p->isApproved());
+        $pendingProjects = $teamProjects->filter(fn ($p) => ! $p->isApproved());
+
+        // Phase 5: Use passed map or resolve inline
+        if ($resolvedFinancials === null) {
+            $resolvedFinancials = [];
+            foreach ($approvedProjects as $project) {
+                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+            }
+        }
+
+        $pendingTotal = (float) $pendingProjects->sum(function ($p) use ($resolvedFinancials, $resolver) {
+            $fin = $resolvedFinancials[$p->project_id] ?? ($resolver ? $resolver->resolve($p) : []);
+            return (float) ($fin['amount_requested'] ?? 0);
+        });
 
         // Calculate totals
         $totalBudget = $approvedProjects->sum(
@@ -2478,9 +2747,6 @@ class ProvincialController extends Controller
             $monthStart = $month->copy()->startOfMonth();
             $monthEnd = $month->copy()->endOfMonth();
 
-            // Get all accessible user IDs
-            $accessibleUserIds = $this->getAccessibleUserIds($provincial);
-
             $monthReports = DPReport::accessibleByUserIds($accessibleUserIds)
                 ->whereIn('status', DPReport::APPROVED_STATUSES)
             ->whereBetween('created_at', [$monthStart, $monthEnd])
@@ -2519,12 +2785,21 @@ class ProvincialController extends Controller
     }
 
     /**
-     * Prepare center comparison data
+     * Prepare center comparison data (delegates to calculateCenterPerformance)
+     * Phase 4 / Phase 4A: Accept optional $teamProjects — immutable shared dataset. Must NOT be mutated.
+     *
+     * @param \App\Models\User $provincial
+     * @param string $fy Financial year
+     * @param \Illuminate\Support\Collection|null $teamProjects Immutable shared dataset (all statuses).
+     *
+     * Allowed: filter(), map(), groupBy(), where(), whereIn(), pluck(), unique(), sort(), values(), sum(), count().
+     * Prohibited: transform(), forget(), push(), pop(), shift(), splice().
+     * If mutation is required, create a derived collection first.
      */
-    private function prepareCenterComparisonData($provincial)
+    private function prepareCenterComparisonData($provincial, string $fy, $teamProjects = null, ?array $resolvedFinancials = null)
     {
         // This reuses centerPerformance but formats it for comparison widget
-        $centerPerformance = $this->calculateCenterPerformance($provincial);
+        $centerPerformance = $this->calculateCenterPerformance($provincial, $fy, $teamProjects, $resolvedFinancials);
 
         // Add additional comparison metrics
         foreach ($centerPerformance as $center => &$data) {

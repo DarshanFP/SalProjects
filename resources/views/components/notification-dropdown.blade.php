@@ -73,7 +73,7 @@
                                         <p class="mb-1 small text-muted">{{ Str::limit($notification->message, 70) }}</p>
                                         <small class="text-muted d-flex align-items-center">
                                             <i data-feather="clock" style="width: 12px; height: 12px;" class="me-1"></i>
-                                            {{ $notification->created_at->diffForHumans() }}
+                                            {{ optional($notification->created_at)->diffForHumans() ?? '—' }}
                                         </small>
                                     </div>
                                 </div>

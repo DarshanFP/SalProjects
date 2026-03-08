@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Budget\ProjectFinancialResolver;
 use App\Models\OldProjects\Project;
 use App\Models\Reports\Quarterly\RQDPReport;
 use App\Models\Reports\Monthly\DPReport;
 use App\Constants\ProjectStatus;
 use App\Services\ProjectQueryService;
+use App\Support\FinancialYearHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -17,6 +19,13 @@ class ExecutorController extends Controller
     public function executorDashboard(Request $request)
     {
         $user = Auth::user();
+
+        // Phase 3 FY: Default to current financial year; allow dropdown selection
+        $fy = $request->input('fy', FinancialYearHelper::currentFY());
+
+        // Phase 3 Scope: Read scope from request; default owned; validate allowed values
+        $scope = $request->input('scope', 'owned');
+        $scope = in_array($scope, ['owned', 'in_charge', 'owned_and_in_charge'], true) ? $scope : 'owned';
 
         // Phase 3: Separate owned and in-charge project lists (structural split)
         // Phase 2: Build filtered owned base query; clone for pagination vs KPI (full scope)
@@ -41,6 +50,10 @@ class ExecutorController extends Controller
             $ownedBaseQuery->whereIn('status', $approvedStatuses);
             $inChargeProjectsQuery->whereIn('status', $approvedStatuses);
         }
+
+        // Phase 3 FY: Restrict project set to selected financial year (after role/status)
+        $ownedBaseQuery->inFinancialYear($fy);
+        $inChargeProjectsQuery->inFinancialYear($fy);
 
         // Apply search filter to both
         if ($request->filled('search')) {
@@ -93,41 +106,49 @@ class ExecutorController extends Controller
         $inChargeCount = ProjectQueryService::getInChargeProjectsQuery($user)->count();
 
         // Calculate budget summaries from APPROVED projects only (regardless of current filter)
-        // Budget summaries should only reflect approved projects with active budgets (owned scope for KPIs)
-        $approvedProjectsForSummary = ProjectQueryService::getApprovedOwnedProjectsForUser($user, [
+        // Phase 3 Scope: Use scope-aware dataset (owned / in_charge / owned_and_in_charge)
+        // Phase 3 FY: Scope budget summary to selected financial year
+        $with = [
             'reports' => function($query) {
                 $query->orderBy('created_at', 'desc');
             },
             'reports.accountDetails',
             'budgets',
-        ]);
+        ];
+        $approvedProjectsForSummary = ProjectQueryService::getApprovedProjectsForExecutorScope($user, $scope, $with, $fy);
+
+        // Phase 2.6: Resolve financials once and reuse across widgets (avoids 5-7× repeated resolver calls)
+        $resolvedFinancials = ProjectFinancialResolver::resolveCollection($approvedProjectsForSummary);
 
         // Pass collection directly (method accepts both arrays and collections)
-        $budgetSummaries = $this->calculateBudgetSummariesFromProjects($approvedProjectsForSummary->all(), $request);
+        $budgetSummaries = $this->calculateBudgetSummariesFromProjects($approvedProjectsForSummary->all(), $request, $resolvedFinancials);
 
         // Enhance paginated lists with metadata for table display
-        $enhancedOwnedProjects = $this->enhanceProjectsWithMetadata($ownedProjects->items());
-        $enhancedInChargeProjects = $this->enhanceProjectsWithMetadata($inChargeProjects->items());
+        $enhancedOwnedProjects = $this->enhanceProjectsWithMetadata($ownedProjects->items(), $resolvedFinancials);
+        $enhancedInChargeProjects = $this->enhanceProjectsWithMetadata($inChargeProjects->items(), $resolvedFinancials);
 
         // Phase 2: Enhance full filtered owned set for KPI widgets (health, status/type charts)
         $ownedFullItems = $ownedFullProjects->all();
-        $enhancedFullOwnedProjects = $this->enhanceProjectsWithMetadata($ownedFullItems);
+        $enhancedFullOwnedProjects = $this->enhanceProjectsWithMetadata($ownedFullItems, $resolvedFinancials);
 
-        // Fetch distinct project types for filters (Phase 3: owned-only scope for dashboard)
-        $projectTypes = ProjectQueryService::getOwnedProjectsQuery($user)
-            ->distinct()
-            ->pluck('project_type');
+        // Fetch distinct project types for filters (Phase 3 Scope: scope-aware query)
+        $projectTypesQuery = match ($scope) {
+            'in_charge' => ProjectQueryService::getInChargeProjectsQuery($user),
+            'owned_and_in_charge' => ProjectQueryService::getProjectsForUserQuery($user),
+            default => ProjectQueryService::getOwnedProjectsQuery($user),
+        };
+        $projectTypes = $projectTypesQuery->inFinancialYear($fy)->distinct()->pluck('project_type');
 
-        // Get action items data for dashboard widgets (KPI: owned-only, unchanged)
-        $actionItems = $this->getActionItems($user);
+        // Get action items data for dashboard widgets (KPI: owned-only; Phase 2.5: FY-aware)
+        $actionItems = $this->getActionItems($user, $fy);
         $reportStatusSummary = $this->getReportStatusSummary($user);
-        $upcomingDeadlines = $this->getUpcomingDeadlines($user);
+        $upcomingDeadlines = $this->getUpcomingDeadlines($user, $fy);
 
-        // Get chart data for visual analytics (only if user has owned projects)
+        // Get chart data for visual analytics (Phase 2.5: FY-aware; Phase 2.6: pre-resolved; Phase 3: scope-aware)
         $chartData = [];
         $reportChartData = [];
-        if ($ownedProjects->total() > 0) {
-            $chartData = $this->getChartData($user, $request);
+        if ($approvedProjectsForSummary->isNotEmpty()) {
+            $chartData = $this->getChartData($user, $request, $fy, $resolvedFinancials, $scope);
         }
 
         // Get report chart data (always available if user has reports)
@@ -141,8 +162,8 @@ class ExecutorController extends Controller
             ->limit(5)
             ->get();
 
-        // Get quick stats data
-        $quickStats = $this->getQuickStats($user);
+        // Get quick stats data (Phase 2.5: FY-aware; Phase 2.6: pre-resolved; Phase 3: scope-aware)
+        $quickStats = $this->getQuickStats($user, $fy, $resolvedFinancials, $scope);
 
         // Activity feed: intentionally uses combined scope for visibility (owner + in-charge).
         $recentActivities = $this->getRecentActivities($user);
@@ -159,8 +180,21 @@ class ExecutorController extends Controller
         // Get reports requiring attention (draft, reverted)
         $reportsRequiringAttention = $this->getReportsRequiringAttention($user);
 
-        // Pass to view: owned/in-charge split (Phase 3) + Phase 2 KPI full scope + Phase 3 report overview (owned)
-        return view('executor.index', compact('ownedProjects', 'inChargeProjects', 'ownedCount', 'inChargeCount', 'enhancedOwnedProjects', 'enhancedInChargeProjects', 'enhancedFullOwnedProjects', 'projectChartData', 'budgetSummaries', 'projectTypes', 'actionItems', 'reportStatusSummary', 'upcomingDeadlines', 'chartData', 'reportChartData', 'quickStats', 'recentActivities', 'recentReports', 'projectHealthSummary', 'projectsRequiringAttention', 'reportsRequiringAttention', 'showType'));
+        // Phase 6.5/6.6: Dynamic FY list derived from project data (owner or in-charge)
+        $queryForFY = ProjectQueryService::getProjectsForUserQuery($user);
+        $availableFY = FinancialYearHelper::listAvailableFYFromProjects($queryForFY);
+        if (empty($availableFY)) {
+            $availableFY = FinancialYearHelper::listAvailableFY();
+        }
+        // Ensure selected FY is in the list when user has explicitly chosen it
+        if ($fy && !in_array($fy, $availableFY, true)) {
+            $availableFY = array_merge([$fy], $availableFY);
+            $availableFY = array_values(array_unique($availableFY));
+            rsort($availableFY);
+        }
+
+        // Pass to view: owned/in-charge split (Phase 3) + Phase 2 KPI full scope + Phase 3 report overview (owned) + scope selector
+        return view('executor.index', compact('ownedProjects', 'inChargeProjects', 'ownedCount', 'inChargeCount', 'enhancedOwnedProjects', 'enhancedInChargeProjects', 'enhancedFullOwnedProjects', 'projectChartData', 'budgetSummaries', 'projectTypes', 'actionItems', 'reportStatusSummary', 'upcomingDeadlines', 'chartData', 'reportChartData', 'quickStats', 'recentActivities', 'recentReports', 'projectHealthSummary', 'projectsRequiringAttention', 'reportsRequiringAttention', 'showType', 'fy', 'availableFY', 'scope'));
     }
 
     public function reportList(Request $request)
@@ -379,7 +413,11 @@ class ExecutorController extends Controller
         return $budgetSummaries;
     }
 
-    private function calculateBudgetSummariesFromProjects($projects, $request)
+    /**
+     * Calculate budget summaries from project collection.
+     * NOTE (Phase 5): Scope-aware. Caller (executorDashboard) passes projects from getApprovedProjectsForExecutorScope.
+     */
+    private function calculateBudgetSummariesFromProjects($projects, $request, ?array $resolvedFinancials = null)
     {
         $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
         $calc = app(\App\Services\Budget\DerivedCalculationService::class);
@@ -395,7 +433,9 @@ class ExecutorController extends Controller
         ];
 
         foreach ($projects as $project) {
-            $financials = $resolver->resolve($project);
+            $financials = ($resolvedFinancials !== null && isset($resolvedFinancials[$project->project_id]))
+                ? $resolvedFinancials[$project->project_id]
+                : $resolver->resolve($project);
             $projectBudget = (float) ($financials['opening_balance'] ?? 0);
 
             // Calculate approved and unapproved expenses separately (following expenses tracking guidelines)
@@ -460,8 +500,13 @@ class ExecutorController extends Controller
     /**
      * Get action items for dashboard widget
      * Returns pending reports, reverted projects, and overdue reports
+     * Phase 2.5: Optional FY filter for approved projects (overdue logic).
+     *
+     * NOTE (Phase 5): Action items remain owned-only intentionally.
+     * These represent executor responsibilities (pending reports, reverted projects, overdue reports)
+     * and must NOT use getApprovedProjectsForExecutorScope. Do not include in-charge projects.
      */
-    private function getActionItems($user)
+    private function getActionItems($user, ?string $fy = null)
     {
         // Get project IDs where user is owner (KPI: owned scope only)
         $projectIds = ProjectQueryService::getOwnedProjectIds($user);
@@ -492,8 +537,10 @@ class ExecutorController extends Controller
         $lastMonth = $now->copy()->subMonth();
         $overdueReports = collect();
 
-        // Get approved projects that should have reports (owned scope for KPI)
-        $approvedProjects = ProjectQueryService::getApprovedOwnedProjectsForUser($user);
+        // Get approved projects that should have reports (owned scope for KPI; Phase 2.5: FY-aware)
+        $approvedProjects = $fy !== null
+            ? ProjectQueryService::getApprovedOwnedProjectsForUser($user, [], $fy)
+            : ProjectQueryService::getApprovedOwnedProjectsForUser($user);
 
         foreach ($approvedProjects as $project) {
             // Check if last month's report exists and is not approved
@@ -644,15 +691,22 @@ class ExecutorController extends Controller
 
     /**
      * Get upcoming deadlines for dashboard widget
+     * Phase 2.5: Optional FY filter for approved projects.
+     *
+     * NOTE (Phase 5): Deadlines remain owned-only intentionally.
+     * Report submission deadlines apply to projects the executor owns.
+     * Must use getApprovedOwnedProjectsForUser; do NOT use getApprovedProjectsForExecutorScope.
      */
-    private function getUpcomingDeadlines($user)
+    private function getUpcomingDeadlines($user, ?string $fy = null)
     {
         $now = Carbon::now();
         $currentMonth = $now->format('Y-m');
         $nextMonth = $now->copy()->addMonth()->format('Y-m');
 
-        // Get approved projects (owned scope for KPI)
-        $approvedProjects = ProjectQueryService::getApprovedOwnedProjectsForUser($user);
+        // Get approved projects (owned scope for KPI; Phase 2.5: FY-aware)
+        $approvedProjects = $fy !== null
+            ? ProjectQueryService::getApprovedOwnedProjectsForUser($user, [], $fy)
+            : ProjectQueryService::getApprovedOwnedProjectsForUser($user);
 
         $thisMonthDeadlines = collect();
         $nextMonthDeadlines = collect();
@@ -718,15 +772,18 @@ class ExecutorController extends Controller
 
     /**
      * Enhance projects with metadata (budget utilization, health, last report date)
+     * Phase 2.6: Optional pre-resolved financials map for batch optimization.
      */
-    private function enhanceProjectsWithMetadata($projects)
+    private function enhanceProjectsWithMetadata($projects, ?array $resolvedFinancials = null)
     {
         $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
         $calc = app(\App\Services\Budget\DerivedCalculationService::class);
         $enhanced = [];
 
         foreach ($projects as $project) {
-            $financials = $resolver->resolve($project);
+            $financials = ($resolvedFinancials !== null && isset($resolvedFinancials[$project->project_id]))
+                ? $resolvedFinancials[$project->project_id]
+                : $resolver->resolve($project);
             $projectBudget = (float) ($financials['opening_balance'] ?? 0);
 
             // Calculate expenses from approved reports
@@ -846,29 +903,37 @@ class ExecutorController extends Controller
 
     /**
      * Get chart data for visual analytics
+     * Phase 2.5: Optional FY filter for approved projects (budget/expense aggregation).
+     * Phase 2.6: Optional pre-resolved financials for batch optimization.
+     * Phase 3: Scope-aware dataset (owned / in_charge / owned_and_in_charge).
+     * NOTE (Phase 5): Scope-aware. Uses getApprovedProjectsForExecutorScope. Do not change to owned-only.
      */
-    private function getChartData($user, $request)
+    private function getChartData($user, $request, ?string $fy = null, ?array $resolvedFinancials = null, ?string $scope = 'owned')
     {
         $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
         $calc = app(\App\Services\Budget\DerivedCalculationService::class);
 
-        // Get project IDs where user is owner (KPI: owned scope only)
-        $projectIds = ProjectQueryService::getOwnedProjectIds($user);
+        $with = ['reports.accountDetails', 'budgets'];
+        $projects = ProjectQueryService::getApprovedProjectsForExecutorScope($user, $scope ?: 'owned', $with, $fy);
+
+        // Project IDs for monthly expense trends (scope-aware)
+        $projectIds = $projects->pluck('project_id');
 
         // Budget by Project Type Data (for pie/donut chart)
         $budgetByType = [];
         $expensesByType = [];
 
-        $projects = ProjectQueryService::getApprovedOwnedProjectsForUser($user, ['reports.accountDetails', 'budgets']);
-
-        // Memoize resolved financials (resolve each project exactly once)
-        $resolvedFinancials = [];
-        foreach ($projects as $project) {
-            $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+        // Use pre-resolved financials when provided; otherwise resolve per project (Phase 2.6)
+        if ($resolvedFinancials === null) {
+            $resolvedFinancials = [];
+            foreach ($projects as $project) {
+                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+            }
         }
 
         foreach ($projects as $project) {
-            $projectBudget = (float) ($resolvedFinancials[$project->project_id]['opening_balance'] ?? 0);
+            $financials = $resolvedFinancials[$project->project_id] ?? $resolver->resolve($project);
+            $projectBudget = (float) ($financials['opening_balance'] ?? 0);
 
             // Calculate expenses from approved reports
             $totalExpenses = 0;
@@ -1024,20 +1089,33 @@ class ExecutorController extends Controller
 
     /**
      * Get quick stats for dashboard widget
+     * Phase 2.5: Optional FY filter for approved projects (active count, budget totals).
+     * Phase 2.6: Optional pre-resolved financials for batch optimization.
+     * Phase 3: Scope-aware dataset (owned / in_charge / owned_and_in_charge).
+     * NOTE (Phase 5): Scope-aware. Uses getApprovedProjectsForExecutorScope. Do not change to owned-only.
      */
-    private function getQuickStats($user)
+    private function getQuickStats($user, ?string $fy = null, ?array $resolvedFinancials = null, ?string $scope = 'owned')
     {
         $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
         $calc = app(\App\Services\Budget\DerivedCalculationService::class);
 
-        // Get project IDs where user is owner (KPI: owned scope only)
+        // Scope-aware query for total projects count and trend stats
+        $scopeQuery = match ($scope ?: 'owned') {
+            'in_charge' => ProjectQueryService::getInChargeProjectsQuery($user),
+            'owned_and_in_charge' => ProjectQueryService::getProjectsForUserQuery($user),
+            default => ProjectQueryService::getOwnedProjectsQuery($user),
+        };
+        $totalProjects = (clone $scopeQuery)->count();
+
+        // Get project IDs for reports (owned scope for report stats; reports are submitted by owner)
         $projectIds = ProjectQueryService::getOwnedProjectIds($user);
 
-        // Total projects
-        $totalProjects = ProjectQueryService::getOwnedProjectsQuery($user)->count();
-
-        // Active projects (approved)
-        $activeProjects = ProjectQueryService::getApprovedOwnedProjectsForUser($user)->count();
+        // Active projects (approved; Phase 2.5: FY-aware; Phase 3: scope-aware) — use count from resolved map when available
+        if ($resolvedFinancials !== null) {
+            $activeProjects = count($resolvedFinancials);
+        } else {
+            $activeProjects = ProjectQueryService::getApprovedProjectsForExecutorScope($user, $scope ?: 'owned', [], $fy)->count();
+        }
 
         // Total reports
         $totalReports = DPReport::whereIn('project_id', $projectIds)->count();
@@ -1050,25 +1128,25 @@ class ExecutorController extends Controller
         // Approval rate
         $approvalRate = $totalReports > 0 ? ($approvedReports / $totalReports) * 100 : 0;
 
-        // Projects created this month
+        // Projects created this month (Phase 3: scope-aware)
         $thisMonth = Carbon::now()->startOfMonth();
-        $newProjectsThisMonth = ProjectQueryService::getOwnedProjectsQuery($user)
-            ->where('created_at', '>=', $thisMonth)
-            ->count();
+        $newProjectsThisMonth = (clone $scopeQuery)->where('created_at', '>=', $thisMonth)->count();
 
-        // Total budget (from approved projects)
-        $approvedProjects = ProjectQueryService::getApprovedOwnedProjectsForUser($user, ['reports.accountDetails', 'budgets']);
+        // Total budget (from approved projects; Phase 2.5: FY-aware; Phase 2.6: pre-resolved; Phase 3: scope-aware)
+        $approvedProjects = ProjectQueryService::getApprovedProjectsForExecutorScope($user, $scope ?: 'owned', ['reports.accountDetails', 'budgets'], $fy);
 
-        // Memoize resolved financials (resolve each project exactly once)
-        $resolvedFinancials = [];
-        foreach ($approvedProjects as $project) {
-            $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+        if ($resolvedFinancials === null) {
+            $resolvedFinancials = [];
+            foreach ($approvedProjects as $project) {
+                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+            }
         }
 
         $totalBudget = 0;
         $totalExpenses = 0;
         foreach ($approvedProjects as $project) {
-            $projectBudget = (float) ($resolvedFinancials[$project->project_id]['opening_balance'] ?? 0);
+            $financials = $resolvedFinancials[$project->project_id] ?? $resolver->resolve($project);
+            $projectBudget = (float) ($financials['opening_balance'] ?? 0);
             $totalBudget += $projectBudget;
 
             if ($project->reports && $project->reports->count() > 0) {
@@ -1083,13 +1161,10 @@ class ExecutorController extends Controller
         $budgetUtilization = $calc->calculateUtilization($totalExpenses, $totalBudget);
         $averageProjectBudget = $activeProjects > 0 ? $totalBudget / $activeProjects : 0;
 
-        // Calculate trends (vs last month)
+        // Calculate trends (vs last month) (Phase 3: scope-aware)
         $lastMonth = Carbon::now()->subMonth()->startOfMonth();
         $lastMonthEnd = Carbon::now()->subMonth()->endOfMonth();
-
-        $projectsLastMonth = ProjectQueryService::getOwnedProjectsQuery($user)
-            ->whereBetween('created_at', [$lastMonth, $lastMonthEnd])
-            ->count();
+        $projectsLastMonth = (clone $scopeQuery)->whereBetween('created_at', [$lastMonth, $lastMonthEnd])->count();
 
         $reportsLastMonth = DPReport::whereIn('project_id', $projectIds)
             ->whereBetween('created_at', [$lastMonth, $lastMonthEnd])

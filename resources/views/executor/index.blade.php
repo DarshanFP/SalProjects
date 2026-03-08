@@ -102,6 +102,48 @@
         </div>
     </div>
 
+    {{-- FY & Scope Control Bar (Phase 6.7: Dashboard controls above widgets) --}}
+    <form method="GET" action="{{ route('executor.dashboard') }}" id="dashboardFyScopeForm" class="mb-3">
+        @if(request('show'))
+            <input type="hidden" name="show" value="{{ request('show') }}">
+        @endif
+        @if(request('search'))
+            <input type="hidden" name="search" value="{{ request('search') }}">
+        @endif
+        @if(request('project_type'))
+            <input type="hidden" name="project_type" value="{{ request('project_type') }}">
+        @endif
+        @if(request('sort_by'))
+            <input type="hidden" name="sort_by" value="{{ request('sort_by') }}">
+        @endif
+        @if(request('sort_order'))
+            <input type="hidden" name="sort_order" value="{{ request('sort_order') }}">
+        @endif
+        @if(request('per_page'))
+            <input type="hidden" name="per_page" value="{{ request('per_page') }}">
+        @endif
+        <div class="dashboard-controls">
+            <select name="fy" id="fy" class="dashboard-select" onchange="this.form.submit()">
+                @foreach($availableFY ?? [] as $year)
+                    <option value="{{ $year }}" {{ ($fy ?? '') == $year ? 'selected' : '' }}>
+                        FY {{ $year }}
+                    </option>
+                @endforeach
+            </select>
+            <select name="scope" id="scope" class="dashboard-select" onchange="this.form.submit()">
+                <option value="owned" {{ ($scope ?? 'owned') == 'owned' ? 'selected' : '' }}>
+                    My Projects
+                </option>
+                <option value="in_charge" {{ ($scope ?? 'owned') == 'in_charge' ? 'selected' : '' }}>
+                    Projects I'm In-Charge Of
+                </option>
+                <option value="owned_and_in_charge" {{ ($scope ?? 'owned') == 'owned_and_in_charge' ? 'selected' : '' }}>
+                    All My Projects
+                </option>
+            </select>
+        </div>
+    </form>
+
     {{-- Dashboard Widgets Section --}}
     <div id="dashboardWidgetsContainer" class="row">
         {{-- Project Budgets Overview Widget - Full width, first widget --}}
@@ -251,6 +293,26 @@
                                         <input type="hidden" name="show" value="{{ request('show') }}">
                                     @endif
 
+                                    {{-- Financial Year (Phase 3 FY) --}}
+                                    <div class="col-md-3">
+                                        <label for="fy" class="form-label">Financial Year</label>
+                                        <select name="fy" id="fy" class="form-select" onchange="this.form.submit()">
+                                            @foreach($availableFY ?? [] as $year)
+                                                <option value="{{ $year }}" {{ ($fy ?? '') == $year ? 'selected' : '' }}>FY {{ $year }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    {{-- Scope (Phase 4) --}}
+                                    <div class="col-md-3">
+                                        <label for="scope" class="form-label">Scope</label>
+                                        <select name="scope" id="scope" class="form-select" onchange="this.form.submit()">
+                                            <option value="owned" {{ ($scope ?? 'owned') == 'owned' ? 'selected' : '' }}>Owned</option>
+                                            <option value="in_charge" {{ ($scope ?? 'owned') == 'in_charge' ? 'selected' : '' }}>In-Charge</option>
+                                            <option value="owned_and_in_charge" {{ ($scope ?? 'owned') == 'owned_and_in_charge' ? 'selected' : '' }}>Owned + In-Charge</option>
+                                        </select>
+                                    </div>
+
                                     {{-- Search (filters apply to both Owned and In-Charge lists) --}}
                                     <div class="col-md-4">
                                         <label for="search" class="form-label">Search</label>
@@ -321,9 +383,15 @@
                         </div>
 
                         {{-- Active Filters Display --}}
-                        @if(request()->hasAny(['search', 'project_type', 'sort_by']))
+                        @if(request()->hasAny(['fy', 'search', 'project_type', 'sort_by', 'scope']))
                             <div class="mb-3">
                                 <small class="text-muted">Active filters: </small>
+                                @if(request('fy'))
+                                    <span class="badge bg-primary me-1">FY: {{ request('fy') }}</span>
+                                @endif
+                                @if(in_array(request('scope', 'owned'), ['in_charge', 'owned_and_in_charge']))
+                                    <span class="badge bg-secondary me-1">Scope: {{ request('scope') == 'in_charge' ? 'In-Charge' : 'Owned + In-Charge' }}</span>
+                                @endif
                                 @if(request('search'))
                                     <span class="badge bg-info me-1">Search: {{ request('search') }}</span>
                                 @endif

@@ -57,7 +57,14 @@ class StatisticsController extends Controller
         try {
             Log::info('Editing CCI Statistics', ['project_id' => $projectId]);
 
-            $statistics = ProjectCCIStatistics::where('project_id', $projectId)->firstOrFail();
+            $statistics = ProjectCCIStatistics::where('project_id', $projectId)->first();
+
+            // CCI projects may not have a statistics record yet (e.g. migrated/legacy data).
+            // Return a new unsaved model so the edit form can render with empty fields.
+            if (! $statistics) {
+                Log::warning('No CCI Statistics record found for project; using empty model for edit form', ['project_id' => $projectId]);
+                $statistics = new ProjectCCIStatistics(['project_id' => $projectId]);
+            }
 
             return $statistics;
         } catch (\Exception $e) {

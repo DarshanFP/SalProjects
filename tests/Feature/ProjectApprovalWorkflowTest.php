@@ -332,14 +332,14 @@ class ProjectApprovalWorkflowTest extends TestCase
             'status' => 'active',
         ]);
 
-        // 3. Create unique project with valid budget (amount_forwarded + local = combined for resolver)
-        // Note: project_id is auto-generated based on project_type
+        // 3. Create unique project with valid budget: overall=200000, forwarded=100000, new sanction=100000
+        // Phase 1 canonical: opening_balance = sanctioned + forwarded + local = 100000 + 100000 + 0 = 200000
         $project = Project::create([
             'project_title' => 'Test Approval Flow Project ' . uniqid(),
             'status' => ProjectStatus::FORWARDED_TO_COORDINATOR,
             'amount_forwarded' => 100000,
             'local_contribution' => 0,
-            'overall_project_budget' => 100000,
+            'overall_project_budget' => 200000,
             'user_id' => $executor->id,
             'in_charge' => $executor->id,
             'province_id' => $province->id,
@@ -385,8 +385,8 @@ class ProjectApprovalWorkflowTest extends TestCase
             $project->status,
             'Project status should be approved_by_coordinator'
         );
-        $this->assertEquals(100000, (float) $project->amount_sanctioned, 'Amount sanctioned should be 100000');
-        $this->assertEquals(100000, (float) $project->opening_balance, 'Opening balance should be 100000');
+        $this->assertEquals(100000, (float) $project->amount_sanctioned, 'Amount sanctioned (new money) should be 100000');
+        $this->assertEquals(200000, (float) $project->opening_balance, 'Opening balance should be sanctioned+forwarded+local = 200000');
         $this->assertEquals(3, (int) $project->commencement_month, 'Commencement month should be 3');
         $this->assertEquals(2026, (int) $project->commencement_year, 'Commencement year should be 2026');
     }

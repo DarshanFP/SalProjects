@@ -101,7 +101,7 @@
                                         @endif
                                     </div>
                                     <small class="text-muted ms-2">
-                                        {{ $activity->created_at->diffForHumans() }}
+                                        {{ optional($activity->created_at)->diffForHumans() ?? '—' }}
                                     </small>
                                 </div>
 

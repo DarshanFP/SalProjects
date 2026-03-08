@@ -30,7 +30,7 @@
                                 <td>
                                     {{ $activity->created_at->format('Y-m-d H:i:s') }}
                                     <br>
-                                    <small class="text-muted">{{ $activity->created_at->diffForHumans() }}</small>
+                                    <small class="text-muted">{{ optional($activity->created_at)->diffForHumans() ?? '—' }}</small>
                                 </td>
                                 <td>
                                     @if($activity->previous_status)

@@ -27,7 +27,7 @@
                                 <td>
                                     {{ $history->created_at->format('Y-m-d H:i:s') }}
                                     <br>
-                                    <small class="text-muted">{{ $history->created_at->diffForHumans() }}</small>
+                                    <small class="text-muted">{{ optional($history->created_at)->diffForHumans() ?? '—' }}</small>
                                 </td>
                                 <td>
                                     @if($history->previous_status)

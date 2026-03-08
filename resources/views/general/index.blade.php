@@ -26,6 +26,23 @@
                         </div>
                     @endif
 
+                    {{-- Financial Year filter (Phase 3 FY) --}}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <form method="GET" action="{{ route('general.dashboard') }}" class="d-inline">
+                                @if(request('province'))<input type="hidden" name="province" value="{{ request('province') }}">@endif
+                                @if(request('center'))<input type="hidden" name="center" value="{{ request('center') }}">@endif
+                                @if(request('coordinator_id'))<input type="hidden" name="coordinator_id" value="{{ request('coordinator_id') }}">@endif
+                                <label for="fy" class="form-label me-2">Financial Year</label>
+                                <select name="fy" id="fy" class="form-select form-select-sm d-inline-block w-auto" onchange="this.form.submit()">
+                                    @foreach($availableFY ?? [] as $year)
+                                        <option value="{{ $year }}" {{ ($fy ?? '') == $year ? 'selected' : '' }}>FY {{ $year }}</option>
+                                    @endforeach
+                                </select>
+                            </form>
+                        </div>
+                    </div>
+
                     {{-- Budget Overview (First Priority) --}}
                     <div class="row mb-4">
                         <div class="col-12">

@@ -22,6 +22,52 @@
         </div>
     @endif
 
+    {{-- Phase 3: Dashboard Control Bar (above widgets) --}}
+    <form method="GET" action="{{ route('provincial.dashboard') }}" id="fyFilterForm" class="mb-0">
+        <div class="dashboard-controls card mb-4 p-3">
+            <div class="row g-2 align-items-end">
+                <div class="col-md col-lg-2">
+                    <label for="fySelector" class="form-label">Financial Year</label>
+                    <select name="fy" id="fySelector" class="form-select" onchange="this.form.submit()">
+                        @foreach($fyList ?? [] as $year)
+                            <option value="{{ $year }}" {{ ($fy ?? '') == $year ? 'selected' : '' }}>FY {{ $year }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md col-lg-2">
+                    <label for="center" class="form-label">Center</label>
+                    <select name="center" id="center" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Centers</option>
+                        @foreach($centers as $center)
+                            <option value="{{ $center }}" {{ request('center') == $center ? 'selected' : '' }}>{{ $center }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md col-lg-2">
+                    <label for="role" class="form-label">Role</label>
+                    <select name="role" id="role" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Roles</option>
+                        @foreach($roles as $role)
+                            <option value="{{ $role }}" {{ request('role') == $role ? 'selected' : '' }}>{{ ucfirst($role) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md col-lg-2">
+                    <label for="project_type" class="form-label">Project Type</label>
+                    <select name="project_type" id="project_type" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Project Types</option>
+                        @foreach($projectTypes as $type)
+                            <option value="{{ $type }}" {{ request('project_type') == $type ? 'selected' : '' }}>{{ $type }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md col-lg-auto">
+                    <a href="{{ route('provincial.dashboard') }}" class="btn btn-outline-secondary">Clear Filters</a>
+                </div>
+            </div>
+        </div>
+    </form>
+
     {{-- ========================================
          SECTION 1: BUDGET OVERVIEW
          Budget summary cards and data tables
@@ -48,55 +94,13 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary widget-toggle" data-widget="budget-overview" title="Minimize">−</button>
                 </div>
                 <div class="card-body widget-content">
-                    <!-- Filter Form -->
-                    <form method="GET" action="{{ route('provincial.dashboard') }}" class="mb-4">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <label for="center" class="form-label">Center</label>
-                                <select name="center" id="center" class="form-select" onchange="this.form.submit()">
-                                    <option value="">All Centers</option>
-                                    @foreach($centers as $center)
-                                        <option value="{{ $center }}" {{ request('center') == $center ? 'selected' : '' }}>
-                                            {{ $center }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="role" class="form-label">Role</label>
-                                <select name="role" id="role" class="form-select" onchange="this.form.submit()">
-                                    <option value="">All Roles</option>
-                                    @foreach($roles as $role)
-                                        <option value="{{ $role }}" {{ request('role') == $role ? 'selected' : '' }}>
-                                            {{ ucfirst($role) }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="project_type" class="form-label">Project Type</label>
-                                <select name="project_type" id="project_type" class="form-select" onchange="this.form.submit()">
-                                    <option value="">All Project Types</option>
-                                    @foreach($projectTypes as $type)
-                                        <option value="{{ $type }}" {{ request('project_type') == $type ? 'selected' : '' }}>
-                                            {{ $type }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-md-12">
-                                <button type="submit" class="btn btn-primary">Apply Filters</button>
-                                <a href="{{ route('provincial.dashboard') }}" class="btn btn-secondary">Clear Filters</a>
-                            </div>
-                        </div>
-                    </form>
-
-                    <!-- Active Filters Display -->
-                    @if(request('center') || request('role') || request('project_type'))
+                    <!-- Active Filters Display (Phase 3: control bar moved above) -->
+                    @if(request('fy') || request('center') || request('role') || request('project_type'))
                     <div class="alert alert-info mb-4">
                         <strong>Active Filters:</strong>
+                        @if(request('fy'))
+                            <span class="badge bg-primary me-1">FY: {{ request('fy') }}</span>
+                        @endif
                         @if(request('center'))
                             <span class="badge badge-success me-2">Center: {{ request('center') }}</span>
                         @endif
@@ -446,6 +450,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize feather icons for widgets
     if (typeof feather !== 'undefined') {
         feather.replace();
+    }
+
+    // Phase 2: FY selector auto-submit (preserves center, role, project_type via form)
+    const fySelector = document.getElementById('fySelector');
+    const fyFilterForm = document.getElementById('fyFilterForm');
+    if (fySelector && fyFilterForm) {
+        fySelector.addEventListener('change', function() {
+            fyFilterForm.submit();
+        });
     }
 
     // Load dashboard preferences (this will reorder and show/hide widgets)

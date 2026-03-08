@@ -96,7 +96,7 @@
                                                 @if($activity->notes)
                                                     <p class="text-muted small mb-1">{{ Str::limit($activity->notes, 100) }}</p>
                                                 @endif
-                                                <small class="text-muted">{{ $activity->created_at->diffForHumans() }}</small>
+                                                <small class="text-muted">{{ optional($activity->created_at)->diffForHumans() ?? '—' }}</small>
                                             </div>
                                             <div class="ms-3">
                                                 <span class="badge {{ $activity->new_status_badge_class ?? 'bg-secondary' }}">

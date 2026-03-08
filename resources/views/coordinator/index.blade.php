@@ -237,7 +237,7 @@
                                             <a href="{{ route('coordinator.projects.show', $project->project_id) }}" class="list-group-item list-group-item-action">
                                                 <div class="d-flex w-100 justify-content-between">
                                                     <h6 class="mb-1">{{ $project->project_title ?? $project->project_id }}</h6>
-                                                    <small>{{ $project->created_at->diffForHumans() }}</small>
+                                                    <small>{{ optional($project->created_at)->diffForHumans() ?? '—' }}</small>
                                                 </div>
                                                 <p class="mb-1">
                                                     <span class="badge badge-{{ $project->status === 'approved_by_coordinator' ? 'success' : 'warning' }}">

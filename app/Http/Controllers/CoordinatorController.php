@@ -14,6 +14,7 @@ use App\Models\Province;
 use App\Models\Center;
 use App\Models\ActivityHistory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
@@ -24,7 +25,10 @@ use App\Services\ReportStatusService;
 use App\Services\NotificationService;
 use App\Services\Budget\BudgetSyncService;
 use App\Services\Budget\DerivedCalculationService;
+use App\Services\DatasetCacheService;
 use App\Services\ProjectAccessService;
+use App\Domain\Budget\ProjectFinancialResolver;
+use App\Support\FinancialYearHelper;
 use App\Constants\ProjectStatus;
 use App\Http\Requests\Projects\ApproveProjectRequest;
 use Carbon\Carbon;
@@ -43,95 +47,111 @@ class CoordinatorController extends Controller
     {
         $coordinator = Auth::user();
 
-        \Log::info('Coordinator Dashboard Request', [
+        // Phase 3 FY: Default to current financial year; allow dropdown selection
+        $fy = $request->input('fy', FinancialYearHelper::currentFY());
+
+        // Phase 7: Request parameters for cache key
+        $analyticsRange = (int) $request->get('analytics_range', 30);
+        $filterData = array_filter([
             'province' => $request->get('province'),
             'center' => $request->get('center'),
             'role' => $request->get('role'),
-            'parent_id' => $request->get('parent_id')
+            'parent_id' => $request->get('parent_id'),
+            'project_type' => $request->get('project_type'),
+        ], fn($v) => $v !== null && $v !== '');
+        ksort($filterData);
+        $filterHash = md5(json_encode($filterData));
+        $cacheKey = "coordinator_dashboard_{$fy}_{$filterHash}_{$analyticsRange}";
+
+        // Phase 7: Dashboard cache (requires Redis with tags for Cache::tags()->remember)
+        $cacheTtl = config('dashboard.coordinator_dashboard_cache_ttl_minutes', config('dashboard.cache_ttl_minutes', 10));
+
+        try {
+            $cachePayload = Cache::tags(['coordinator_dashboard'])->remember(
+                $cacheKey,
+                now()->addMinutes($cacheTtl),
+                function () use ($coordinator, $fy, $filterData, $analyticsRange, $request) {
+                    return $this->buildCoordinatorDashboardPayload($coordinator, $fy, $filterData, $analyticsRange, $request);
+                }
+            );
+
+            // Real-time widgets: always computed outside cache (never cached)
+            $pendingApprovalsData = $this->getPendingApprovalsData($fy);
+            $systemActivityFeedData = $this->getSystemActivityFeedData($fy, 50);
+
+            $viewData = array_merge($cachePayload, [
+                'pendingApprovalsData' => $pendingApprovalsData,
+                'systemActivityFeedData' => $systemActivityFeedData,
+            ]);
+
+            return view('coordinator.index', $viewData);
+        } catch (\Throwable $e) {
+            Log::debug('Coordinator dashboard cache skipped (tags not supported)', ['message' => $e->getMessage()]);
+        }
+
+        // Fallback: run full pipeline (cache tags not supported, e.g. file driver)
+        $cachePayload = $this->buildCoordinatorDashboardPayload($coordinator, $fy, $filterData, $analyticsRange, $request);
+
+        $pendingApprovalsData = $this->getPendingApprovalsData($fy);
+        $systemActivityFeedData = $this->getSystemActivityFeedData($fy, 50);
+
+        $viewData = array_merge($cachePayload, [
+            'pendingApprovalsData' => $pendingApprovalsData,
+            'systemActivityFeedData' => $systemActivityFeedData,
         ]);
 
-        // First, get approved projects with comprehensive filtering
-        $projectsQuery = Project::approved()->with('user');
+        return view('coordinator.index', $viewData);
+    }
 
-        // Apply comprehensive filters based on user attributes
-        if ($request->filled('province')) {
-            $projectsQuery->whereHas('user', function($query) use ($request) {
-                $query->where('province', $request->province);
-            });
-        }
-        if ($request->filled('center')) {
-            $projectsQuery->whereHas('user', function($query) use ($request) {
-                $query->where('center', $request->center);
-            });
-        }
-        if ($request->filled('role')) {
-            $projectsQuery->whereHas('user', function($query) use ($request) {
-                $query->where('role', $request->role);
-            });
-        }
-        if ($request->filled('parent_id')) {
-            $projectsQuery->whereHas('user', function($query) use ($request) {
-                $query->where('parent_id', $request->parent_id);
-            });
-        }
+    /**
+     * Build coordinator dashboard payload (cacheable). Phase 7.
+     * Excludes real-time widgets: pendingApprovalsData, systemActivityFeedData.
+     *
+     * @param \App\Models\User $coordinator
+     * @param string $fy Financial year (e.g. 2025-26)
+     * @param array $filterData Filter parameters (province, center, role, parent_id, project_type)
+     * @param int $analyticsRange Analytics time range in days
+     * @param \Illuminate\Http\Request $request
+     * @return array Payload for view (excludes pendingApprovalsData, systemActivityFeedData)
+     */
+    private function buildCoordinatorDashboardPayload($coordinator, string $fy, array $filterData, int $analyticsRange, Request $request): array
+    {
+        $filters = ! empty($filterData) ? $filterData : null;
 
-        $projects = $projectsQuery->with(['user.parent', 'reports.accountDetails', 'budgets'])->get();
+        $teamProjects = DatasetCacheService::getCoordinatorDataset($coordinator, $fy, $filters);
+        $resolvedFinancials = ProjectFinancialResolver::resolveCollection($teamProjects);
 
-        // Calculate budget summaries from projects and their reports
-        $budgetSummaries = $this->calculateBudgetSummariesFromProjects($projects, $request);
+        $allReports = DPReport::whereIn('project_id', $teamProjects->pluck('project_id'))
+            ->with('user')
+            ->get();
 
-        // Get comprehensive filter options
+        $projectsByProvince = $teamProjects->groupBy(fn ($p) => $p->user->province ?? 'Unknown');
+        $reportsByProvince = $allReports->groupBy(fn ($r) => $r->user->province ?? 'Unknown');
+        $approvedProjectsByProvince = $teamProjects->filter(fn ($p) => $p->isApproved())
+            ->groupBy(fn ($p) => $p->user->province ?? 'Unknown');
+
+        $projects = $teamProjects->filter(fn ($p) => $p->isApproved());
+        $budgetSummaries = $this->calculateBudgetSummariesFromProjects($projects, $request, $resolvedFinancials);
+
         $provinces = User::whereIn('role', ['provincial', 'executor', 'applicant'])
-                        ->distinct()
-                        ->pluck('province')
-                        ->filter()
-                        ->values();
+            ->distinct()
+            ->pluck('province')
+            ->filter()
+            ->values();
 
         $centers = User::whereIn('role', ['provincial', 'executor', 'applicant'])
-                      ->whereNotNull('center')
-                      ->where('center', '!=', '')
-                      ->distinct()
-                      ->pluck('center')
-                      ->filter()
-                      ->values();
+            ->whereNotNull('center')
+            ->where('center', '!=', '')
+            ->distinct()
+            ->pluck('center')
+            ->filter()
+            ->values();
 
         $roles = ['provincial', 'executor', 'applicant'];
+        $parents = User::where('role', 'provincial')->select('id', 'name', 'province')->get();
+        $projectTypes = $projects->pluck('project_type')->unique()->filter()->values();
+        $allProjects = $teamProjects;
 
-        // Get parent options (provincials only)
-        $parents = User::where('role', 'provincial')
-                      ->select('id', 'name', 'province')
-                      ->get();
-
-        $projectTypes = Project::approved()->distinct()->pluck('project_type');
-
-        // Get all projects for statistics (not just approved)
-        $allProjectsQuery = Project::with('user');
-
-        // Apply same filters for statistics
-        if ($request->filled('province')) {
-            $allProjectsQuery->whereHas('user', function($query) use ($request) {
-                $query->where('province', $request->province);
-            });
-        }
-        if ($request->filled('center')) {
-            $allProjectsQuery->whereHas('user', function($query) use ($request) {
-                $query->where('center', $request->center);
-            });
-        }
-        if ($request->filled('role')) {
-            $allProjectsQuery->whereHas('user', function($query) use ($request) {
-                $query->where('role', $request->role);
-            });
-        }
-        if ($request->filled('parent_id')) {
-            $allProjectsQuery->whereHas('user', function($query) use ($request) {
-                $query->where('parent_id', $request->parent_id);
-            });
-        }
-
-        $allProjects = $allProjectsQuery->get();
-
-        // Calculate project statistics
         $statistics = [
             'total_projects' => $allProjects->count(),
             'projects_by_status' => $allProjects->groupBy('status')->map->count(),
@@ -140,58 +160,58 @@ class CoordinatorController extends Controller
             'recent_activity' => $this->getRecentActivity($allProjects),
         ];
 
-        \Log::info('Coordinator Dashboard Filter Options', [
-            'selected_province' => $request->get('province'),
-            'selected_center' => $request->get('center'),
-            'selected_role' => $request->get('role'),
-            'selected_parent_id' => $request->get('parent_id'),
-            'available_provinces_count' => $provinces->count(),
-            'available_centers_count' => $centers->count(),
-            'available_parents_count' => $parents->count(),
-            'total_projects' => $projects->count(),
-            'projects_by_province' => $projects->groupBy('user.province')->map(fn ($group) => $group->count())->toArray(),
-            'projects_with_amount_sanctioned' => $projects->whereIn('status', ProjectStatus::APPROVED_STATUSES)->where('amount_sanctioned', '>', 0)->count(),
-            'projects_with_overall_budget' => $projects->where('overall_project_budget', '>', 0)->count(),
-            'projects_with_budgets' => $projects->filter(function($p) { return $p->budgets && $p->budgets->count() > 0; })->count(),
-            'projects_with_reports' => $projects->filter(function($p) { return $p->reports && $p->reports->count() > 0; })->count()
-        ]);
+        $provincialOverviewData = $this->getProvincialOverviewData($fy);
+        $systemPerformanceData = $this->getSystemPerformanceData(
+            $teamProjects,
+            $resolvedFinancials,
+            $projectsByProvince,
+            $reportsByProvince
+        );
+        $systemAnalyticsData = $this->getSystemAnalyticsData(
+            $teamProjects,
+            $resolvedFinancials,
+            $analyticsRange,
+            $projectsByProvince,
+            $approvedProjectsByProvince,
+            $reportsByProvince
+        );
+        $systemBudgetOverviewData = $this->getSystemBudgetOverviewData(
+            $request,
+            $teamProjects,
+            $resolvedFinancials,
+            $approvedProjectsByProvince,
+            $allReports
+        );
+        $provinceComparisonData = $this->getProvinceComparisonData(
+            $teamProjects,
+            $resolvedFinancials,
+            $projectsByProvince,
+            $reportsByProvince
+        );
+        $provincialManagementData = $this->getProvincialManagementData($teamProjects, $resolvedFinancials, $allReports);
+        $systemHealthData = $this->getSystemHealthData($teamProjects, $resolvedFinancials, $allReports);
 
-        // Get Phase 1 widget data (with caching)
-        $pendingApprovalsData = $this->getPendingApprovalsData();
-        $provincialOverviewData = $this->getProvincialOverviewData();
-        $systemPerformanceData = $this->getSystemPerformanceData();
+        $availableFY = FinancialYearHelper::listAvailableFYFromProjects(Project::approved(), true);
 
-        // Get Phase 2 widget data (with caching based on time range)
-        $timeRange = $request->get('analytics_range', 30);
-        $systemAnalyticsData = $this->getSystemAnalyticsData($timeRange);
-        $systemActivityFeedData = $this->getSystemActivityFeedData(50);
-
-        // Get Phase 3 widget data (with caching)
-        // Pass filter parameters to budget overview (for filtering by province, center, project_type, provincial)
-        $systemBudgetOverviewData = $this->getSystemBudgetOverviewData($request);
-        $provinceComparisonData = $this->getProvinceComparisonData();
-        $provincialManagementData = $this->getProvincialManagementData();
-        $systemHealthData = $this->getSystemHealthData();
-
-        return view('coordinator.index', compact(
-            'budgetSummaries',
-            'provinces',
-            'centers',
-            'roles',
-            'parents',
-            'projectTypes',
-            'statistics',
-            'allProjects',
-            'pendingApprovalsData',
-            'provincialOverviewData',
-            'systemPerformanceData',
-            'systemAnalyticsData',
-            'systemActivityFeedData',
-            'systemBudgetOverviewData',
-            'provinceComparisonData',
-            'provincialManagementData',
-            'systemHealthData'
-        ));
+        return [
+            'budgetSummaries' => $budgetSummaries,
+            'provinces' => $provinces,
+            'centers' => $centers,
+            'roles' => $roles,
+            'parents' => $parents,
+            'projectTypes' => $projectTypes,
+            'statistics' => $statistics,
+            'allProjects' => $allProjects,
+            'provincialOverviewData' => $provincialOverviewData,
+            'systemPerformanceData' => $systemPerformanceData,
+            'systemAnalyticsData' => $systemAnalyticsData,
+            'systemBudgetOverviewData' => $systemBudgetOverviewData,
+            'provinceComparisonData' => $provinceComparisonData,
+            'provincialManagementData' => $provincialManagementData,
+            'systemHealthData' => $systemHealthData,
+            'fy' => $fy,
+            'availableFY' => $availableFY,
+        ];
     }
 
     /**
@@ -271,10 +291,19 @@ class CoordinatorController extends Controller
         return $budgetSummaries;
     }
 
-    private function calculateBudgetSummariesFromProjects($projects, $request)
+    /**
+     * Calculate budget summaries from projects. Phase 5: Uses pre-resolved financial map.
+     *
+     * @param \Illuminate\Support\Collection $projects
+     * @param \Illuminate\Http\Request|null $request
+     * @param array<int, array> $resolvedFinancials Map of project_id => financial data
+     */
+    private function calculateBudgetSummariesFromProjects($projects, $request, array $resolvedFinancials = [])
     {
-        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
         $calc = app(\App\Services\Budget\DerivedCalculationService::class);
+        $useMap = ! empty($resolvedFinancials);
+        $resolver = $useMap ? null : app(\App\Domain\Budget\ProjectFinancialResolver::class);
+
         $budgetSummaries = [
             'by_project_type' => [],
             'by_province' => [],
@@ -285,7 +314,7 @@ class CoordinatorController extends Controller
             ]
         ];
         foreach ($projects as $project) {
-            $financials = $resolver->resolve($project);
+            $financials = $useMap ? ($resolvedFinancials[$project->project_id] ?? []) : $resolver->resolve($project);
             $projectBudget = (float) ($financials['opening_balance'] ?? 0);
             $totalExpenses = 0;
             if ($project->reports && $project->reports->count() > 0) {
@@ -467,10 +496,26 @@ class CoordinatorController extends Controller
     public function projectList(Request $request)
     {
         $coordinator = Auth::user();
+        $fy = $request->input('fy', FinancialYearHelper::currentFY());
 
-        // Base query: use ProjectAccessService (coordinator = global oversight, all projects)
-        $projectsQuery = $this->projectAccessService->getVisibleProjectsQuery($coordinator)
-            ->with(['user.parent', 'reports.accountDetails', 'budgets']);
+        // FY list for dropdown (from approved projects; coordinator sees all)
+        $fyList = FinancialYearHelper::listAvailableFYFromProjects(Project::approved(), false);
+        if (empty($fyList)) {
+            $fyList = [FinancialYearHelper::currentFY()];
+        }
+        // When status=forwarded_to_coordinator, ensure next FY in dropdown (pending projects may not yet have commencement)
+        if ($request->input('status') === 'forwarded_to_coordinator') {
+            $nextFy = FinancialYearHelper::nextFY();
+            if (! in_array($nextFy, $fyList, true)) {
+                $fyList = array_values(array_unique(array_merge([$nextFy], $fyList)));
+                rsort($fyList);
+            }
+        }
+
+        // Base query: use ProjectAccessService (coordinator = global oversight); optional FY for list aggregation
+        $projectsQuery = $this->projectAccessService->getVisibleProjectsQuery($coordinator, $fy)
+            ->with(['user.parent', 'reports.accountDetails', 'budgets'])
+            ->withMax('statusHistory', 'created_at');
 
         // Search functionality
         if ($request->filled('search')) {
@@ -656,7 +701,9 @@ class CoordinatorController extends Controller
             'provincials',
             'statuses',
             'filterPresets',
-            'pagination'
+            'pagination',
+            'fy',
+            'fyList'
         ));
     }
 
@@ -1083,9 +1130,9 @@ public function approveProject(ApproveProjectRequest $request, $project_id)
     $amountForwarded = (float) ($financials['amount_forwarded'] ?? 0);
     $localContribution = (float) ($financials['local_contribution'] ?? 0);
     $combinedContribution = $amountForwarded + $localContribution;
-    // Pre-approval: resolver returns amount_sanctioned=0; use combined as sanctioned and opening
-    $amountSanctioned = (float) ($financials['amount_sanctioned'] ?? 0) ?: $combinedContribution;
-    $openingBalance = (float) ($financials['opening_balance'] ?? 0) ?: $combinedContribution;
+    // Phase 1: amount_sanctioned = NEW money (overall - combined); fallback to combined when overall=combined (e.g. all-forwarded)
+    $newMoney = max(0.0, $overallBudget - $combinedContribution);
+    $amountSanctioned = $newMoney > 0 ? $newMoney : ((float) ($financials['amount_sanctioned'] ?? 0) ?: $combinedContribution);
 
     Log::info('Coordinator approveProject: budget check', [
         'project_id' => $project_id,
@@ -1107,11 +1154,14 @@ public function approveProject(ApproveProjectRequest $request, $project_id)
     }
 
     // Build approval data for atomic save (Phase 2A)
+    // Phase 1: Canonical rule — opening_balance = sanctioned + forwarded + local
     $commencementDate = Carbon::create(
         $validated['commencement_year'],
         $validated['commencement_month'],
         1
     )->startOfMonth();
+
+    $openingBalance = $amountSanctioned + $amountForwarded + $localContribution;
 
     $approvalData = [
         'commencement_month' => (int) $validated['commencement_month'],
@@ -1119,6 +1169,8 @@ public function approveProject(ApproveProjectRequest $request, $project_id)
         'commencement_month_year' => $commencementDate->format('Y-m-d'),
         'amount_sanctioned' => $amountSanctioned,
         'opening_balance' => $openingBalance,
+        'amount_forwarded' => $amountForwarded,
+        'local_contribution' => $localContribution,
     ];
 
     try {
@@ -1222,9 +1274,10 @@ public function rejectProject(Request $request, $project_id)
 public function projectBudgets(Request $request)
 {
     $coordinator = Auth::user();
+    $fy = $request->input('fy', \App\Support\FinancialYearHelper::currentFY());
 
-    // First, get approved projects (coordinators can see all approved projects)
-    $projectsQuery = Project::approved()->with('user');
+    // First, get approved projects (coordinators can see all approved projects) — FY-scoped for dashboard aggregation
+    $projectsQuery = Project::approved()->inFinancialYear($fy)->with('user');
 
     // Apply filters
     if ($request->filled('province')) {
@@ -1266,17 +1319,18 @@ public function projectBudgets(Request $request)
     }
     $users = $usersQuery->get();
 
-    $projectTypes = Project::approved()->distinct()->pluck('project_type');
+    $projectTypes = Project::approved()->inFinancialYear($fy)->distinct()->pluck('project_type');
 
-    return view('coordinator.index', compact('budgetSummaries', 'provinces', 'places', 'users', 'projectTypes'));
+    return view('coordinator.index', compact('budgetSummaries', 'provinces', 'places', 'users', 'projectTypes', 'fy'));
 }
 
-public function budgetOverview()
+public function budgetOverview(Request $request)
 {
     $coordinator = auth()->user();
+    $fy = $request->input('fy', \App\Support\FinancialYearHelper::currentFY());
 
-    // Coordinator: global oversight - use ProjectAccessService (all projects, no parent_id filter)
-    $projects = $this->projectAccessService->getVisibleProjectsQuery($coordinator)
+    // Coordinator: global oversight - use ProjectAccessService; optional FY for dashboard aggregation
+    $projects = $this->projectAccessService->getVisibleProjectsQuery($coordinator, $fy)
         ->whereNotIn('project_type', [
             'NEXT PHASE - DEVELOPMENT PROPOSAL'
         ])
@@ -1458,13 +1512,15 @@ public function budgetOverview()
     /**
      * Get pending approvals data for widget (with caching - 2 minutes TTL for frequent updates)
      */
-    private function getPendingApprovalsData()
+    private function getPendingApprovalsData(string $fy)
     {
-        $cacheKey = 'coordinator_pending_approvals_data';
+        $cacheKey = "coordinator_pending_approvals_data_{$fy}";
 
-        return Cache::remember($cacheKey, now()->addMinutes(2), function () {
-            // Get pending reports awaiting coordinator approval
+        return Cache::remember($cacheKey, now()->addMinutes(2), function () use ($fy) {
+            // Get pending reports awaiting coordinator approval (scope by projects in FY)
+            $fyProjectIds = Project::inFinancialYear($fy)->pluck('project_id');
             $pendingReports = DPReport::where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
+                ->whereIn('project_id', $fyProjectIds)
                 ->with(['user', 'user.parent', 'project'])
                 ->orderBy('created_at', 'asc')
                 ->get()
@@ -1486,6 +1542,7 @@ public function budgetOverview()
 
             // Get pending projects awaiting coordinator approval
             $pendingProjects = Project::where('status', ProjectStatus::FORWARDED_TO_COORDINATOR)
+                ->inFinancialYear($fy)
                 ->with(['user', 'user.parent'])
                 ->orderBy('created_at', 'asc')
                 ->get()
@@ -1552,44 +1609,50 @@ public function budgetOverview()
     /**
      * Get provincial overview data for widget (with caching - 5 minutes TTL)
      */
-    private function getProvincialOverviewData()
+    private function getProvincialOverviewData(string $fy)
     {
-        $cacheKey = 'coordinator_provincial_overview_data';
+        $cacheKey = "coordinator_provincial_overview_data_{$fy}";
 
-        return Cache::remember($cacheKey, now()->addMinutes(5), function () {
-            // Get all provincials with counts
+        return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($fy) {
+            // Get all provincials with counts (FY-scoped project count)
             $provincials = User::where('role', 'provincial')
                 ->withCount([
                     'children' => function($query) {
                         $query->whereIn('role', ['executor', 'applicant']);
                     },
-                    'projects' => function($query) {
-                        $query->approved();
+                    'projects' => function($query) use ($fy) {
+                        $query->approved()->inFinancialYear($fy);
                     }
                 ])
                 ->get()
-                ->map(function($provincial) {
+                ->map(function($provincial) use ($fy) {
                     // Get team reports count (optimized with single query)
                     $teamUserIds = User::where('parent_id', $provincial->id)
                         ->whereIn('role', ['executor', 'applicant'])
                         ->pluck('id');
 
-                    // Use direct count queries instead of loading all reports
+                    $fyProjectIds = Project::whereIn('user_id', $teamUserIds)->inFinancialYear($fy)->pluck('project_id');
+
+                    // Use direct count queries instead of loading all reports (reports for projects in FY)
                     $provincial->team_reports_pending = DPReport::whereIn('user_id', $teamUserIds)
+                        ->whereIn('project_id', $fyProjectIds)
                         ->where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
                         ->count();
 
                     $provincial->team_reports_approved = DPReport::whereIn('user_id', $teamUserIds)
+                        ->whereIn('project_id', $fyProjectIds)
                         ->whereIn('status', DPReport::APPROVED_STATUSES)
                         ->count();
 
-                    // Get last activity (latest report submission or project update)
+                    // Get last activity (latest report submission or project update) within FY
                     $latestReport = DPReport::whereIn('user_id', $teamUserIds)
+                        ->whereIn('project_id', $fyProjectIds)
                         ->orderBy('created_at', 'desc')
                         ->select('created_at')
                         ->first();
 
                     $latestProject = Project::whereIn('user_id', $teamUserIds)
+                        ->inFinancialYear($fy)
                         ->orderBy('updated_at', 'desc')
                         ->select('updated_at')
                         ->first();
@@ -1634,51 +1697,41 @@ public function budgetOverview()
     }
 
     /**
-     * Get system performance summary data for widget (with caching - 10 minutes TTL)
+     * Get system performance summary data for widget.
+     * Phase 4: Receives shared dataset and province partitions. Partitions are immutable.
+     *
+     * @param Collection $teamProjects All FY projects (filtered)
+     * @param array<int, array> $resolvedFinancials Map of project_id => financial data
+     * @param Collection $projectsByProvince Partition by province (immutable)
+     * @param Collection $reportsByProvince Partition by province (immutable)
      */
-    private function getSystemPerformanceData()
-    {
-        $cacheKey = 'coordinator_system_performance_data';
+    private function getSystemPerformanceData(
+        Collection $teamProjects,
+        array $resolvedFinancials,
+        Collection $projectsByProvince,
+        Collection $reportsByProvince
+    ) {
+        $calc = $this->calculationService;
 
-        return Cache::remember($cacheKey, now()->addMinutes(10), function () {
-            $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
-            $calc = $this->calculationService;
-
-            // Load all projects and reports once with eager loading
-            $systemProjects = Project::with(['user', 'user.parent', 'budgets'])->get();
-            $systemReports = DPReport::with(['user'])->get();
-
-            $resolvedFinancials = [];
-            foreach ($systemProjects as $project) {
-                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
-            }
-
-        // Calculate system-wide metrics
-        $approvedProjects = $systemProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
+        $approvedProjects = $teamProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
         $totalBudget = $approvedProjects->sum(fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0));
 
-        // Calculate total expenses from approved reports
-        $approvedReportIds = $systemReports->whereIn('status', DPReport::APPROVED_STATUSES)->pluck('report_id');
+        $approvedReportIds = $reportsByProvince->flatten(1)->whereIn('status', DPReport::APPROVED_STATUSES)->pluck('report_id');
         $totalExpenses = (float) (DPAccountDetail::whereIn('report_id', $approvedReportIds)->sum('total_expenses') ?? 0);
 
         $budgetUtilization = $calc->calculateUtilization($totalExpenses, $totalBudget);
 
-        $approvalRate = $systemReports->count() > 0 ?
-            ($systemReports->whereIn('status', DPReport::APPROVED_STATUSES)->count() / $systemReports->count()) * 100 : 0;
+        $allReports = $reportsByProvince->flatten(1);
+        $approvalRate = $allReports->count() > 0 ?
+            ($allReports->whereIn('status', DPReport::APPROVED_STATUSES)->count() / $allReports->count()) * 100 : 0;
 
-        // Projects by status
-        $projectsByStatus = $systemProjects->groupBy('status')->map->count();
+        $projectsByStatus = $teamProjects->groupBy('status')->map->count();
 
-        // Reports by status
-        $reportsByStatus = $systemReports->groupBy('status')->map->count();
+        $reportsByStatus = $allReports->groupBy('status')->map->count();
 
-        // Active users count
         $activeUsers = User::where('status', 'active')->count();
 
-        // Province-wise breakdown - group in memory
         $provinceMetrics = [];
-        $projectsByProvince = $systemProjects->groupBy(fn($p) => $p->user->province ?? null);
-        $reportsByProvince = $systemReports->groupBy(fn($r) => $r->user->province ?? null);
         $provinces = $projectsByProvince->keys()->merge($reportsByProvince->keys())->unique()->filter();
 
         foreach ($provinces as $province) {
@@ -1704,8 +1757,8 @@ public function budgetOverview()
         }
 
         return [
-            'total_projects' => $systemProjects->count(),
-            'total_reports' => $systemReports->count(),
+            'total_projects' => $teamProjects->count(),
+            'total_reports' => $allReports->count(),
             'total_budget' => $totalBudget,
             'total_expenses' => $totalExpenses,
             'total_remaining' => $calc->calculateRemainingBalance($totalBudget, $totalExpenses),
@@ -1716,38 +1769,36 @@ public function budgetOverview()
             'reports_by_status' => $reportsByStatus,
             'province_metrics' => $provinceMetrics,
         ];
-        });
     }
 
     /**
-     * Get system analytics data for charts (time-based) (with caching - 15 minutes TTL)
+     * Get system analytics data for charts (time-based).
+     * Phase 4: Receives shared dataset and province partitions. Partitions are immutable.
+     *
+     * @param Collection $teamProjects
+     * @param array<int, array> $resolvedFinancials
+     * @param int $timeRange
+     * @param Collection $projectsByProvince (immutable)
+     * @param Collection $approvedProjectsByProvince (immutable)
+     * @param Collection $reportsByProvince (immutable)
      */
-    private function getSystemAnalyticsData($timeRange = 30)
-    {
-        $cacheKey = "coordinator_system_analytics_data_{$timeRange}";
+    private function getSystemAnalyticsData(
+        Collection $teamProjects,
+        array $resolvedFinancials,
+        $timeRange,
+        Collection $projectsByProvince,
+        Collection $approvedProjectsByProvince,
+        Collection $reportsByProvince
+    ) {
+        $calc = $this->calculationService;
 
-        return Cache::remember($cacheKey, now()->addMinutes(15), function () use ($timeRange) {
-            $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
-            $calc = $this->calculationService;
+        $endDate = now();
+        $startDate = now()->subDays($timeRange);
 
-            $endDate = now();
-            $startDate = now()->subDays($timeRange);
-
-            // Load all projects and reports once
-            $allProjects = Project::with(['user', 'user.parent', 'budgets'])->get();
-            $allApprovedProjects = $allProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
-            $allReports = DPReport::with(['user'])->get();
-
-            $resolvedFinancials = [];
-            foreach ($allProjects as $project) {
-                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
-            }
-
-            $projectsByProvince = $allProjects->groupBy(fn($p) => $p->user->province ?? 'Unknown');
-            $approvedProjectsByProvince = $allApprovedProjects->groupBy(fn($p) => $p->user->province ?? 'Unknown');
-            $projectsByType = $allApprovedProjects->groupBy('project_type');
-            $provinces = $projectsByProvince->keys()->filter(fn($p) => $p !== 'Unknown')->values();
-            $reportsByProvince = $allReports->groupBy(fn($r) => $r->user->province ?? 'Unknown');
+        $allApprovedProjects = $teamProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
+        $allReports = $reportsByProvince->flatten(1);
+        $projectsByType = $allApprovedProjects->groupBy('project_type');
+        $provinces = $projectsByProvince->keys()->filter(fn($p) => $p !== 'Unknown')->values();
 
             // Budget Utilization Timeline (monthly) - filter in memory
             $budgetUtilizationTimeline = [];
@@ -1875,19 +1926,28 @@ public function budgetOverview()
             'report_submission_timeline' => $reportSubmissionTimeline,
             'province_comparison' => $provinceComparison,
         ];
-        });
     }
 
     /**
      * Get system activity feed data for widget (with caching - 2 minutes TTL for frequent updates)
      */
-    private function getSystemActivityFeedData($limit = 50)
+    private function getSystemActivityFeedData(string $fy, $limit = 50)
     {
-        $cacheKey = "coordinator_system_activity_feed_data_{$limit}";
+        $cacheKey = "coordinator_system_activity_feed_data_{$fy}_{$limit}";
 
-        return Cache::remember($cacheKey, now()->addMinutes(2), function () use ($limit) {
-            // Get activities directly with limit for better performance
+        return Cache::remember($cacheKey, now()->addMinutes(2), function () use ($fy, $limit) {
+            // Get activities for projects in selected FY (project-type or report-type whose project is in FY)
+            $fyProjectIds = Project::inFinancialYear($fy)->pluck('project_id');
             $activities = ActivityHistory::with(['changedBy', 'project', 'report'])
+                ->where(function ($q) use ($fyProjectIds) {
+                    $q->where(function ($q2) use ($fyProjectIds) {
+                        $q2->where('type', 'project')->whereIn('related_id', $fyProjectIds);
+                    })->orWhere(function ($q2) use ($fyProjectIds) {
+                        $q2->where('type', 'report')->whereHas('report', function ($q3) use ($fyProjectIds) {
+                            $q3->whereIn('project_id', $fyProjectIds);
+                        });
+                    });
+                })
                 ->orderBy('created_at', 'desc')
                 ->limit($limit)
                 ->get()
@@ -1969,89 +2029,45 @@ public function budgetOverview()
     }
 
     /**
-     * Phase 3: Get system budget overview data with enhanced breakdowns (with caching - 15 minutes TTL)
+     * Phase 3: Get system budget overview data with enhanced breakdowns.
+     * Phase 4: Receives shared dataset and approvedProjectsByProvince partition. Partitions are immutable.
+     * Phase 6: Receives allReports for in-memory filtering; no DPReport queries.
+     *
+     * @param \Illuminate\Http\Request|null $request
+     * @param Collection $teamProjects
+     * @param array<int, array> $resolvedFinancials
+     * @param Collection $approvedProjectsByProvince (immutable)
+     * @param Collection $allReports Shared reports dataset (immutable)
      */
-    private function getSystemBudgetOverviewData($request = null)
-    {
-        // Build cache key based on filters
-        $filterHash = md5(json_encode($request ? $request->only(['province', 'center', 'project_type', 'parent_id', 'role']) : []));
-        $cacheKey = "coordinator_system_budget_overview_data_{$filterHash}";
+    private function getSystemBudgetOverviewData(
+        $request,
+        Collection $teamProjects,
+        array $resolvedFinancials,
+        Collection $approvedProjectsByProvince,
+        Collection $allReports
+    ) {
+        $approvedProjects = $teamProjects->filter(fn ($p) => $p->isApproved());
+        $pendingProjects = $teamProjects->filter(fn ($p) => ! $p->isApproved());
 
-        return Cache::remember($cacheKey, now()->addMinutes(15), function () use ($request) {
-            // Get approved projects with relationships and apply filters (M3.3.2: use centralized scope)
-            $approvedProjectsQuery = Project::approved()
-                ->with(['user.parent', 'user', 'reports.accountDetails', 'budgets']);
+        $pendingTotal = (float) $pendingProjects->sum(fn ($p) => (float) ($resolvedFinancials[$p->project_id]['amount_requested'] ?? 0));
 
-            // Apply filters if provided
-            if ($request && $request->filled('province')) {
-                $approvedProjectsQuery->whereHas('user', function($query) use ($request) {
-                    $query->where('province', $request->province);
-                });
-            }
+        // Calculate total budget, expenses, remaining (M3.3 / Phase 2.5: resolver for total-fund aggregation)
+        $totalBudget = $approvedProjects->sum(fn ($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0));
 
-            if ($request && $request->filled('center')) {
-                $approvedProjectsQuery->whereHas('user', function($query) use ($request) {
-                    $query->where('center', $request->center);
-                });
-            }
-
-            if ($request && $request->filled('project_type')) {
-                $approvedProjectsQuery->where('project_type', $request->project_type);
-            }
-
-            if ($request && $request->filled('parent_id')) {
-                // Filter by provincial (who manages the executor/applicant)
-                $approvedProjectsQuery->whereHas('user', function($query) use ($request) {
-                    $query->where('parent_id', $request->parent_id);
-                });
-            }
-
-            if ($request && $request->filled('role')) {
-                $approvedProjectsQuery->whereHas('user', function($query) use ($request) {
-                    $query->where('role', $request->role);
-                });
-            }
-
-            $approvedProjects = $approvedProjectsQuery->get();
-
-        // M3.3.1: Pending projects (non-approved) for stage-separated aggregation (M3.3.2: use centralized scope)
-        $pendingProjectsQuery = Project::notApproved()->with(['user']);
-
-        if ($request && $request->filled('province')) {
-            $pendingProjectsQuery->whereHas('user', fn ($q) => $q->where('province', $request->province));
-        }
-        if ($request && $request->filled('center')) {
-            $pendingProjectsQuery->whereHas('user', fn ($q) => $q->where('center', $request->center));
-        }
-        if ($request && $request->filled('project_type')) {
-            $pendingProjectsQuery->where('project_type', $request->project_type);
-        }
-        if ($request && $request->filled('parent_id')) {
-            $pendingProjectsQuery->whereHas('user', fn ($q) => $q->where('parent_id', $request->parent_id));
-        }
-        if ($request && $request->filled('role')) {
-            $pendingProjectsQuery->whereHas('user', fn ($q) => $q->where('role', $request->role));
-        }
-
-        $pendingProjects = $pendingProjectsQuery->get();
-        // M3.7 Phase 2: Pending total from resolver amount_requested (no inline formula)
-        $financialResolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
-        $pendingTotal = (float) $pendingProjects->sum(fn ($p) => (float) (($financialResolver->resolve($p)['amount_requested'] ?? 0)));
-
-        // Calculate total budget, expenses, remaining (M3.3: use opening_balance for total-fund aggregation)
-        $totalBudget = $approvedProjects->sum(fn ($p) => (float) ($p->opening_balance ?? 0));
-
-        // Calculate approved expenses (from approved reports)
-        $approvedReportIds = DPReport::approved()
-            ->whereIn('project_id', $approvedProjects->pluck('project_id'))
+        // Calculate approved expenses (from approved reports) — Phase 6: in-memory from shared dataset
+        $approvedProjectIds = $approvedProjects->pluck('project_id');
+        $approvedReportIds = $allReports
+            ->whereIn('status', DPReport::APPROVED_STATUSES)
+            ->whereIn('project_id', $approvedProjectIds)
             ->pluck('report_id');
 
         $approvedExpenses = DPAccountDetail::whereIn('report_id', $approvedReportIds)
             ->sum('total_expenses') ?? 0;
 
-        // Calculate unapproved expenses (from reports pending approval - in pipeline)
-        $unapprovedReportIds = DPReport::where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
-            ->whereIn('project_id', $approvedProjects->pluck('project_id'))
+        // Calculate unapproved expenses (from reports pending approval - in pipeline) — Phase 6: in-memory
+        $unapprovedReportIds = $allReports
+            ->where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
+            ->whereIn('project_id', $approvedProjectIds)
             ->pluck('report_id');
 
         $unapprovedExpenses = DPAccountDetail::whereIn('report_id', $unapprovedReportIds)
@@ -2067,20 +2083,22 @@ public function budgetOverview()
         // Budget by Project Type
         $budgetByProjectType = [];
         foreach ($approvedProjects->groupBy('project_type') as $type => $projects) {
-            $typeBudget = $projects->sum(fn ($p) => (float) ($p->opening_balance ?? 0));
+            $typeBudget = $projects->sum(fn ($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0));
 
             $typeProjectIds = $projects->pluck('project_id');
 
-            // Approved expenses
-            $typeApprovedReportIds = DPReport::approved()
+            // Approved expenses — Phase 6: in-memory from shared dataset
+            $typeApprovedReportIds = $allReports
+                ->whereIn('status', DPReport::APPROVED_STATUSES)
                 ->whereIn('project_id', $typeProjectIds)
                 ->pluck('report_id');
 
             $typeApprovedExpenses = DPAccountDetail::whereIn('report_id', $typeApprovedReportIds)
                 ->sum('total_expenses') ?? 0;
 
-            // Unapproved expenses (in pipeline)
-            $typeUnapprovedReportIds = DPReport::where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
+            // Unapproved expenses (in pipeline) — Phase 6: in-memory
+            $typeUnapprovedReportIds = $allReports
+                ->where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
                 ->whereIn('project_id', $typeProjectIds)
                 ->pluck('report_id');
 
@@ -2101,23 +2119,25 @@ public function budgetOverview()
             ];
         }
 
-        // Budget by Province (with approved/unapproved expenses)
+        // Budget by Province — use provided partition (Phase 4)
         $budgetByProvince = [];
-        foreach ($approvedProjects->groupBy(function($p) { return $p->user->province ?? 'Unknown'; }) as $province => $projects) {
-            $provinceBudget = $projects->sum(fn ($p) => (float) ($p->opening_balance ?? 0));
+        foreach ($approvedProjectsByProvince as $province => $projects) {
+            $provinceBudget = $projects->sum(fn ($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0));
 
             $provinceProjectIds = $projects->pluck('project_id');
 
-            // Approved expenses
-            $provinceApprovedReportIds = DPReport::approved()
+            // Approved expenses — Phase 6: in-memory from shared dataset
+            $provinceApprovedReportIds = $allReports
+                ->whereIn('status', DPReport::APPROVED_STATUSES)
                 ->whereIn('project_id', $provinceProjectIds)
                 ->pluck('report_id');
 
             $provinceApprovedExpenses = DPAccountDetail::whereIn('report_id', $provinceApprovedReportIds)
                 ->sum('total_expenses') ?? 0;
 
-            // Unapproved expenses (in pipeline)
-            $provinceUnapprovedReportIds = DPReport::where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
+            // Unapproved expenses (in pipeline) — Phase 6: in-memory
+            $provinceUnapprovedReportIds = $allReports
+                ->where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
                 ->whereIn('project_id', $provinceProjectIds)
                 ->pluck('report_id');
 
@@ -2143,20 +2163,22 @@ public function budgetOverview()
         foreach ($approvedProjects->groupBy(function($p) { return $p->user->center ?? 'Unknown'; }) as $center => $projects) {
             if (empty($center) || $center === 'Unknown') continue;
 
-            $centerBudget = $projects->sum(fn ($p) => (float) ($p->opening_balance ?? 0));
+            $centerBudget = $projects->sum(fn ($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0));
 
             $centerProjectIds = $projects->pluck('project_id');
 
-            // Approved expenses
-            $centerApprovedReportIds = DPReport::approved()
+            // Approved expenses — Phase 6: in-memory from shared dataset
+            $centerApprovedReportIds = $allReports
+                ->whereIn('status', DPReport::APPROVED_STATUSES)
                 ->whereIn('project_id', $centerProjectIds)
                 ->pluck('report_id');
 
             $centerApprovedExpenses = DPAccountDetail::whereIn('report_id', $centerApprovedReportIds)
                 ->sum('total_expenses') ?? 0;
 
-            // Unapproved expenses (in pipeline)
-            $centerUnapprovedReportIds = DPReport::where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
+            // Unapproved expenses (in pipeline) — Phase 6: in-memory
+            $centerUnapprovedReportIds = $allReports
+                ->where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)
                 ->whereIn('project_id', $centerProjectIds)
                 ->pluck('report_id');
 
@@ -2187,10 +2209,11 @@ public function budgetOverview()
             $provincial = $projects->first()->user->parent;
             $provincialName = $provincial ? $provincial->name : 'Unknown';
 
-            $provincialBudget = $projects->sum(fn ($p) => (float) ($p->opening_balance ?? 0));
+            $provincialBudget = $projects->sum(fn ($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0));
 
             $provincialProjectIds = $projects->pluck('project_id');
-            $provincialApprovedReportIds = DPReport::approved()
+            $provincialApprovedReportIds = $allReports
+                ->whereIn('status', DPReport::APPROVED_STATUSES)
                 ->whereIn('project_id', $provincialProjectIds)
                 ->pluck('report_id');
 
@@ -2209,14 +2232,16 @@ public function budgetOverview()
             ];
         }
 
-        // Expense Trends Over Time (last 6 months)
+        // Expense Trends Over Time (last 6 months) — Phase 6: in-memory from shared dataset
         $expenseTrends = [];
         $current = now()->subMonths(6)->startOfMonth();
         while ($current <= now()) {
             $monthEnd = $current->copy()->endOfMonth();
+            $monthStart = $current->copy()->startOfMonth();
 
-            $monthReportIds = DPReport::approved()
-                ->whereBetween('created_at', [$current->copy()->startOfMonth(), $monthEnd])
+            $monthReportIds = $allReports
+                ->whereIn('status', DPReport::APPROVED_STATUSES)
+                ->filter(fn ($r) => $r->created_at >= $monthStart && $r->created_at <= $monthEnd)
                 ->pluck('report_id');
 
             $monthExpenses = DPAccountDetail::whereIn('report_id', $monthReportIds)
@@ -2231,11 +2256,12 @@ public function budgetOverview()
             $current->addMonth();
         }
 
-        // Top Projects by Budget (M3.3: use opening_balance for total-fund aggregation)
-        $topProjectsByBudget = $approvedProjects->sortByDesc(fn ($p) => (float) ($p->opening_balance ?? 0))->take(10)->map(function ($p) {
-            $projectBudget = (float) ($p->opening_balance ?? 0);
+        // Top Projects by Budget (M3.3 / Phase 2.5: resolver for total-fund aggregation) — Phase 6: in-memory
+        $topProjectsByBudget = $approvedProjects->sortByDesc(fn ($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0))->take(10)->map(function ($p) use ($resolvedFinancials, $allReports) {
+            $projectBudget = (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0);
 
-            $projectApprovedReportIds = DPReport::approved()
+            $projectApprovedReportIds = $allReports
+                ->whereIn('status', DPReport::APPROVED_STATUSES)
                 ->where('project_id', $p->project_id)
                 ->pluck('report_id');
 
@@ -2272,7 +2298,6 @@ public function budgetOverview()
             'expense_trends' => $expenseTrends,
             'top_projects_by_budget' => $topProjectsByBudget,
         ];
-        });
     }
 
     /**
@@ -2282,27 +2307,21 @@ public function budgetOverview()
      */
 
     /**
-     * Phase 3: Get province performance comparison data (with caching - 15 minutes TTL)
+     * Phase 3: Get province performance comparison data.
+     * Phase 4: Receives shared dataset and province partitions. Partitions are immutable.
+     *
+     * @param Collection $teamProjects
+     * @param array<int, array> $resolvedFinancials
+     * @param Collection $projectsByProvince (immutable)
+     * @param Collection $reportsByProvince (immutable)
      */
-    private function getProvinceComparisonData()
-    {
-        $cacheKey = 'coordinator_province_comparison_data';
-
-        return Cache::remember($cacheKey, now()->addMinutes(15), function () {
-            $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
-            $calc = $this->calculationService;
-
-            // Load all projects and reports once
-            $allProjects = Project::with(['user', 'user.parent', 'budgets'])->get();
-            $allReports = DPReport::with(['user'])->get();
-
-            $resolvedFinancials = [];
-            foreach ($allProjects as $project) {
-                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
-            }
-
-            $projectsByProvince = $allProjects->groupBy(fn($p) => $p->user->province ?? 'Unknown');
-            $reportsByProvince = $allReports->groupBy(fn($r) => $r->user->province ?? 'Unknown');
+    private function getProvinceComparisonData(
+        Collection $teamProjects,
+        array $resolvedFinancials,
+        Collection $projectsByProvince,
+        Collection $reportsByProvince
+    ) {
+        $calc = $this->calculationService;
 
             $usersByProvinceGrouped = User::whereNotNull('province')->get()->groupBy('province');
             $provincialCountByProvince = $usersByProvinceGrouped->map(fn($users) => $users->where('role', 'provincial')->count());
@@ -2380,41 +2399,32 @@ public function budgetOverview()
                 'most_utilized' => $rankedByUtilization->first(),
             ],
         ];
-        });
     }
 
     /**
-     * Phase 3: Get provincial management data with detailed stats (with caching - 10 minutes TTL)
+     * Phase 3: Get provincial management data with detailed stats.
+     * Phase 5: Receives shared dataset and resolved financial map; no per-project resolution.
+     *
+     * @param Collection $teamProjects
+     * @param array<int, array> $resolvedFinancials
+     * @param \Illuminate\Support\Collection $allReports
      */
-    private function getProvincialManagementData()
+    private function getProvincialManagementData(Collection $teamProjects, array $resolvedFinancials, $allReports)
     {
-        $cacheKey = 'coordinator_provincial_management_data';
+        $calc = $this->calculationService;
 
-        return Cache::remember($cacheKey, now()->addMinutes(10), function () {
-            $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
-            $calc = $this->calculationService;
-
-            // Load all projects and reports once
-            $allProjects = Project::with(['user', 'user.parent', 'budgets'])->get();
-            $allReports = DPReport::with(['user'])->get();
-
-            $resolvedFinancials = [];
-            foreach ($allProjects as $project) {
-                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
-            }
-
-            $provincials = User::where('role', 'provincial')
+        $provincials = User::where('role', 'provincial')
                 ->with(['children' => function($query) {
                     $query->whereIn('role', ['executor', 'applicant']);
                 }])
                 ->get()
-                ->map(function($provincial) use ($allProjects, $allReports, $resolvedFinancials, $calc) {
+                ->map(function($provincial) use ($teamProjects, $allReports, $resolvedFinancials, $calc) {
                 $teamUserIds = $provincial->children->pluck('id');
                 $teamUserIdsArray = $teamUserIds->toArray();
 
                 // Team projects - filter in memory
-                $teamProjects = $allProjects->whereIn('user_id', $teamUserIdsArray);
-                $approvedTeamProjects = $teamProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
+                $provincialTeamProjects = $teamProjects->whereIn('user_id', $teamUserIdsArray);
+                $approvedTeamProjects = $provincialTeamProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
 
                 // Team reports - filter in memory
                 $teamReports = $allReports->whereIn('user_id', $teamUserIdsArray);
@@ -2434,7 +2444,7 @@ public function budgetOverview()
                 // Last activity (most recent report or project)
                 $lastActivity = null;
                 $lastReport = $teamReports->sortByDesc('created_at')->first();
-                $lastProject = $teamProjects->sortByDesc('created_at')->first();
+                $lastProject = $provincialTeamProjects->sortByDesc('created_at')->first();
 
                 if ($lastReport && $lastProject) {
                     $lastActivity = $lastReport->created_at > $lastProject->created_at ?
@@ -2463,7 +2473,7 @@ public function budgetOverview()
                     'center' => $provincial->center ?? 'Unknown',
                     'status' => $provincial->status ?? 'active',
                     'team_members_count' => $teamUserIds->count(),
-                    'projects_count' => $teamProjects->count(),
+                    'projects_count' => $provincialTeamProjects->count(),
                     'approved_projects_count' => $approvedTeamProjects->count(),
                     'reports_count' => $teamReports->count(),
                     'pending_reports_count' => $pendingTeamReports->count(),
@@ -2499,43 +2509,34 @@ public function budgetOverview()
                     round($provincials->avg('performance_score'), 2) : 0,
             ],
         ];
-        });
     }
 
     /**
-     * Phase 3: Get system health indicators data (with caching - 5 minutes TTL)
+     * Phase 3: Get system health indicators data.
+     * Phase 5: Receives shared dataset and resolved financial map; no per-project resolution.
+     *
+     * @param Collection $teamProjects
+     * @param array<int, array> $resolvedFinancials
+     * @param \Illuminate\Support\Collection $allReports
      */
-    private function getSystemHealthData()
+    private function getSystemHealthData(Collection $teamProjects, array $resolvedFinancials, $allReports)
     {
-        $cacheKey = 'coordinator_system_health_data';
+        $calc = $this->calculationService;
 
-        return Cache::remember($cacheKey, now()->addMinutes(5), function () {
-            $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
-            $calc = $this->calculationService;
-
-            // Load system-wide data once with eager loading
-            $systemProjects = Project::with(['user', 'user.parent', 'budgets'])->get();
-            $systemReports = DPReport::with(['user'])->get();
-
-            $resolvedFinancials = [];
-            foreach ($systemProjects as $project) {
-                $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
-            }
-
-        $approvedProjects = $systemProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
+        $approvedProjects = $teamProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES);
         $totalBudget = $approvedProjects->sum(fn($p) => (float) ($resolvedFinancials[$p->project_id]['opening_balance'] ?? 0));
 
-        $approvedReportIds = $systemReports->whereIn('status', DPReport::APPROVED_STATUSES)->pluck('report_id');
+        $approvedReportIds = $allReports->whereIn('status', DPReport::APPROVED_STATUSES)->pluck('report_id');
         $totalExpenses = (float) (DPAccountDetail::whereIn('report_id', $approvedReportIds)->sum('total_expenses') ?? 0);
 
         // Calculate key indicators
         $budgetUtilization = $calc->calculateUtilization($totalExpenses, $totalBudget);
 
-        $approvalRate = $systemReports->count() > 0 ?
-            ($systemReports->whereIn('status', DPReport::APPROVED_STATUSES)->count() / $systemReports->count()) * 100 : 0;
+        $approvalRate = $allReports->count() > 0 ?
+            ($allReports->whereIn('status', DPReport::APPROVED_STATUSES)->count() / $allReports->count()) * 100 : 0;
 
         // Calculate average processing time
-        $approvedReports = $systemReports->whereIn('status', DPReport::APPROVED_STATUSES);
+        $approvedReports = $allReports->whereIn('status', DPReport::APPROVED_STATUSES);
         $avgProcessingTime = 0;
         if ($approvedReports->count() > 0) {
             $totalDays = $approvedReports->sum(function($report) {
@@ -2545,13 +2546,13 @@ public function budgetOverview()
         }
 
         // Report submission rate (reports per month)
-        $reportsLastMonth = $systemReports->whereBetween('created_at', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])->count();
-        $reportsThisMonth = $systemReports->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count();
+        $reportsLastMonth = $allReports->whereBetween('created_at', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])->count();
+        $reportsThisMonth = $allReports->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count();
         $submissionRate = $reportsLastMonth > 0 ? (($reportsThisMonth - $reportsLastMonth) / $reportsLastMonth) * 100 : 0;
 
         // Project completion rate
-        $completedProjects = $systemProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES)->count();
-        $completionRate = $systemProjects->count() > 0 ? ($completedProjects / $systemProjects->count()) * 100 : 0;
+        $completedProjects = $teamProjects->whereIn('status', ProjectStatus::APPROVED_STATUSES)->count();
+        $completionRate = $teamProjects->count() > 0 ? ($completedProjects / $teamProjects->count()) * 100 : 0;
 
         // User activity rate (active users in last 30 days)
         $recentActivities = \App\Models\ActivityHistory::where('created_at', '>=', now()->subDays(30))
@@ -2601,7 +2602,7 @@ public function budgetOverview()
             $alerts[] = ['type' => 'warning', 'message' => 'Average processing time is high (>10 days)', 'color' => 'warning'];
         }
 
-        $pendingReportsCount = $systemReports->where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)->count();
+        $pendingReportsCount = $allReports->where('status', DPReport::STATUS_FORWARDED_TO_COORDINATOR)->count();
         if ($pendingReportsCount > 50) {
             $alerts[] = ['type' => 'warning', 'message' => "High number of pending reports ({$pendingReportsCount})", 'color' => 'warning'];
         }
@@ -2612,7 +2613,7 @@ public function budgetOverview()
         while ($current <= now()) {
             $monthEnd = $current->copy()->endOfMonth();
 
-            $monthReports = $systemReports->whereBetween('created_at', [$current->copy()->startOfMonth(), $monthEnd]);
+            $monthReports = $allReports->whereBetween('created_at', [$current->copy()->startOfMonth(), $monthEnd]);
             $monthApprovalRate = $monthReports->count() > 0 ?
                 ($monthReports->whereIn('status', DPReport::APPROVED_STATUSES)->count() / $monthReports->count()) * 100 : 0;
 
@@ -2639,73 +2640,100 @@ public function budgetOverview()
             'alerts' => $alerts,
             'trends' => $healthTrends,
             'summary' => [
-                'total_projects' => $systemProjects->count(),
-                'total_reports' => $systemReports->count(),
+                'total_projects' => $teamProjects->count(),
+                'total_reports' => $allReports->count(),
                 'pending_reports' => $pendingReportsCount,
                 'total_budget' => $totalBudget,
                 'total_expenses' => $totalExpenses,
             ],
         ];
-        });
     }
 
-    // Approved Projects for Coordinators
+    // Approved Projects for Coordinators (Architecture upgrade: FY, ProjectAccessService, pagination, resolveCollection)
     public function approvedProjects(Request $request)
     {
         $coordinator = Auth::user();
+        $fy = $request->input('fy', FinancialYearHelper::currentFY());
 
-        // Base query for approved projects - coordinators can see all project types
-        // Use a subquery to get unique project IDs first, then fetch the full records
-        $projectIds = Project::approved()
-            ->distinct()
-            ->pluck('project_id');
-
-        $projectsQuery = Project::whereIn('project_id', $projectIds)
-            ->with('user');
-
-        // Optional province filter
-        if ($request->filled('province')) {
-            $projectsQuery->whereHas('user', function($q) use ($request) {
-                $q->where('province', $request->province);
-            });
+        // FY list for dropdown
+        $fyList = FinancialYearHelper::listAvailableFYFromProjects(Project::approved(), false);
+        if (empty($fyList)) {
+            $fyList = [FinancialYearHelper::currentFY()];
         }
 
-        // Optional project_type filter
+        // Base query: ProjectAccessService + FY + approved status
+        $projectsQuery = $this->projectAccessService->getVisibleProjectsQuery($coordinator, $fy)
+            ->whereIn('status', ProjectStatus::APPROVED_STATUSES);
+
+        // Filters
+        if ($request->filled('province')) {
+            $projectsQuery->whereHas('user', fn ($q) => $q->where('province', $request->province));
+        }
         if ($request->filled('project_type')) {
             $projectsQuery->where('project_type', $request->project_type);
         }
-
-        // Optional executor (user_id) filter
         if ($request->filled('user_id')) {
             $projectsQuery->where('user_id', $request->user_id);
         }
-
-        $projects = $projectsQuery->orderBy('project_id')->orderBy('user_id')->get();
-
-        // UI boundary: use resolver for amount_sanctioned display (no raw DB)
-        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
-        $resolvedFinancials = [];
-        foreach ($projects as $project) {
-            $resolvedFinancials[$project->project_id] = $resolver->resolve($project);
+        if ($request->filled('center')) {
+            $projectsQuery->whereHas('user', fn ($q) => $q->where('center', $request->center));
         }
 
-        // Fetch distinct project types
-        $projectTypes = Project::distinct()->pluck('project_type');
+        $projects = $projectsQuery
+            ->with(['user.parent', 'reports.accountDetails', 'budgets'])
+            ->latest()
+            ->paginate(100)
+            ->withQueryString();
 
-        // Fetch distinct provinces from users
-        $provinces = User::distinct()->pluck('province');
+        // Batch resolver (replaces per-project loop)
+        $resolvedFinancials = ProjectFinancialResolver::resolveCollection($projects->getCollection());
 
-        // Build the users query to show only executors
-        $usersQuery = User::where('role', 'executor');
+        // Filter options cache (FY-scoped for projectTypes)
+        $filterCacheKey = 'coordinator_approved_projects_filters_' . $fy;
+        $filterOptions = Cache::remember($filterCacheKey, now()->addMinutes(5), function () use ($fy) {
+            return [
+                'projectTypes' => Project::approved()
+                    ->inFinancialYear($fy)
+                    ->distinct()
+                    ->pluck('project_type')
+                    ->filter()
+                    ->sort()
+                    ->values(),
+                'provinces' => User::distinct()
+                    ->whereNotNull('province')
+                    ->pluck('province')
+                    ->filter()
+                    ->sort()
+                    ->values(),
+                'users' => User::whereIn('role', ['executor', 'applicant'])
+                    ->select('id', 'name', 'province', 'center', 'role')
+                    ->get(),
+                'centers' => User::distinct()
+                    ->whereNotNull('center')
+                    ->where('center', '!=', '')
+                    ->pluck('center')
+                    ->filter()
+                    ->sort()
+                    ->values(),
+            ];
+        });
 
-        // If a province is selected, filter executors by that province
-        if ($request->filled('province')) {
-            $usersQuery->where('province', $request->province);
-        }
+        $projectTypes = $filterOptions['projectTypes'];
+        $provinces = $filterOptions['provinces'];
+        $users = $filterOptions['users'];
+        $centers = $filterOptions['centers'];
 
-        $users = $usersQuery->get();
-
-        return view('coordinator.approvedProjects', compact('projects', 'coordinator', 'projectTypes', 'users', 'provinces', 'resolvedFinancials'));
+        return view('coordinator.approvedProjects', compact(
+            'projects',
+            'coordinator',
+            'projectTypes',
+            'users',
+            'provinces',
+            'centers',
+            'resolvedFinancials',
+            'fy',
+            'fyList'
+        ));
     }
 
     // Get executors by province for AJAX request
@@ -2884,39 +2912,71 @@ public function budgetOverview()
     }
 
     /**
-     * Invalidate dashboard cache when data changes
+     * Invalidate dashboard cache when data changes.
+     * Phase 7 prep: Key alignment with FY, dataset cache, dashboard cache.
      *
-     * This method is called after any action that modifies dashboard data
-     * (e.g., approve/revert reports, approve/revert projects) to ensure
-     * the dashboard shows fresh data. All widget cache keys are cleared.
+     * Called after approve/revert reports, approve/revert projects, bulk actions.
+     * Clears: FY-scoped widget caches, dataset cache, dashboard cache (Phase 7).
      *
      * @return void
      */
     private function invalidateDashboardCache()
     {
-        // Invalidate all dashboard-related cache keys
+        $availableFY = FinancialYearHelper::listAvailableFY();
+
+        // FY-scoped widget caches (correct keys used by coordinator dashboard)
+        foreach ($availableFY as $fy) {
+            Cache::forget("coordinator_pending_approvals_data_{$fy}");
+            Cache::forget("coordinator_provincial_overview_data_{$fy}");
+            Cache::forget("coordinator_system_activity_feed_data_{$fy}_50");
+
+            // Dataset cache (Phase 2)
+            DatasetCacheService::clearCoordinatorDataset($fy);
+        }
+
+        // Dashboard cache (Phase 7) — use tags when available (Redis)
+        $this->clearCoordinatorDashboardCache();
+
+        // Legacy keys (backward compatibility; may have been used before FY-scoped keys)
         Cache::forget('coordinator_pending_approvals_data');
         Cache::forget('coordinator_provincial_overview_data');
-        Cache::forget('coordinator_system_performance_data');
         Cache::forget('coordinator_system_activity_feed_data_50');
-        // Note: Budget overview cache now uses filter hash in key (coordinator_system_budget_overview_data_{hash})
-        // Since Laravel doesn't support wildcard deletion easily, cache will expire naturally (15 min TTL)
-        // For production, consider using cache tags if your driver supports it for better invalidation
-        // Old cache key without filters (kept for backward compatibility during transition)
+        Cache::forget('coordinator_system_performance_data');
         Cache::forget('coordinator_system_budget_overview_data');
         Cache::forget('coordinator_province_comparison_data');
         Cache::forget('coordinator_provincial_management_data');
         Cache::forget('coordinator_system_health_data');
 
-        // Also invalidate analytics cache (for all common time ranges)
+        // Analytics cache (legacy; all common time ranges)
         $timeRanges = [7, 30, 90, 180, 365];
         foreach ($timeRanges as $range) {
             Cache::forget("coordinator_system_analytics_data_{$range}");
         }
 
-        // Invalidate filter option caches
+        // Filter option caches
         Cache::forget('coordinator_report_list_filters');
         Cache::forget('coordinator_project_list_filters');
+    }
+
+    /**
+     * Clear Phase 7 coordinator dashboard cache.
+     * Dashboard keys: coordinator_dashboard_{fy}_{filterHash}_{analyticsRange}
+     *
+     * Uses cache tags when driver supports them (Redis). Phase 7 must store
+     * with Cache::tags(['coordinator_dashboard']). With file driver, no-op
+     * (cache expires by TTL).
+     *
+     * @return void
+     */
+    private function clearCoordinatorDashboardCache(): void
+    {
+        try {
+            Cache::tags(['coordinator_dashboard'])->flush();
+        } catch (\Throwable $e) {
+            Log::debug('clearCoordinatorDashboardCache: tags not supported (e.g. file driver)', [
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function pendingReports(Request $request)

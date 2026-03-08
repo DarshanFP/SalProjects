@@ -11,6 +11,47 @@ use Illuminate\Support\Collection;
 class ProjectQueryService
 {
     /**
+     * Get project query for provincial scope, filtered by FY.
+     * Returns Builder for projects where owner OR in-charge is in provincial's accessible user IDs.
+     * Phase 3.2: Shared dataset service for Provincial dashboard.
+     *
+     * @param User $provincial Provincial or general user
+     * @param string $fy Financial year (e.g. "2025-26")
+     * @return Builder
+     */
+    public static function forProvincial(User $provincial, string $fy): Builder
+    {
+        $accessibleUserIds = app(ProjectAccessService::class)->getAccessibleUserIds($provincial);
+
+        return Project::accessibleByUserIds($accessibleUserIds)
+            ->inFinancialYear($fy);
+    }
+
+    /**
+     * Coordinator Query Scope
+     *
+     * Returns the base project query for Coordinator dashboards.
+     *
+     * Coordinator has global visibility across all provinces.
+     * This method delegates to ProjectAccessService to ensure
+     * centralized access logic.
+     *
+     * Used by:
+     * - Coordinator dashboard dataset
+     * - Coordinator dataset caching layer
+     * - Coordinator performance pipeline
+     *
+     * @param User $coordinator
+     * @param string $fy
+     * @return Builder
+     */
+    public static function forCoordinator(User $coordinator, string $fy): Builder
+    {
+        return app(ProjectAccessService::class)
+            ->getVisibleProjectsQuery($coordinator, $fy);
+    }
+
+    /**
      * Get a query builder for projects where user is owner or in-charge, scoped by user's province.
      *
      * @param User $user
@@ -295,9 +336,10 @@ class ProjectQueryService
      *
      * @param User $user
      * @param array $with Relationships to eager load
+     * @param string|null $financialYear Optional FY filter (e.g. "2024-25"). When null, no FY filter applied.
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public static function getApprovedOwnedProjectsForUser(User $user, array $with = []): \Illuminate\Database\Eloquent\Collection
+    public static function getApprovedOwnedProjectsForUser(User $user, array $with = [], ?string $financialYear = null): \Illuminate\Database\Eloquent\Collection
     {
         $query = self::getOwnedProjectsQuery($user)
             ->whereIn('status', [
@@ -305,6 +347,10 @@ class ProjectQueryService
                 ProjectStatus::APPROVED_BY_GENERAL_AS_COORDINATOR,
                 ProjectStatus::APPROVED_BY_GENERAL_AS_PROVINCIAL,
             ]);
+
+        if ($financialYear !== null) {
+            $query->inFinancialYear($financialYear);
+        }
 
         if (!empty($with)) {
             $query->with($with);
@@ -360,5 +406,84 @@ class ProjectQueryService
         }
 
         return $query->get();
+    }
+
+    /**
+     * Get approved projects for the user limited to in-charge scope (projects.in_charge = user.id, user_id != user.id).
+     * Does NOT replace getApprovedProjectsForUser. Safe infrastructure for Executor dashboard scope separation.
+     *
+     * @param User $user
+     * @param array $with Relationships to eager load
+     * @param string|null $financialYear Optional FY filter (e.g. "2024-25"). When null, no FY filter applied.
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public static function getApprovedInChargeProjectsForUser(User $user, array $with = [], ?string $financialYear = null): \Illuminate\Database\Eloquent\Collection
+    {
+        $query = self::getInChargeProjectsQuery($user)
+            ->whereIn('status', [
+                ProjectStatus::APPROVED_BY_COORDINATOR,
+                ProjectStatus::APPROVED_BY_GENERAL_AS_COORDINATOR,
+                ProjectStatus::APPROVED_BY_GENERAL_AS_PROVINCIAL,
+            ]);
+
+        if ($financialYear !== null) {
+            $query->inFinancialYear($financialYear);
+        }
+
+        if (!empty($with)) {
+            $query->with($with);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Get approved projects for the user in owner OR in-charge scope (single query with distinct).
+     * Uses getProjectsForUserQuery (user_id = X OR in_charge = X) to avoid merging collections.
+     * distinct() ensures each project appears at most once when user is both owner and in-charge.
+     *
+     * @param User $user
+     * @param array $with Relationships to eager load
+     * @param string|null $financialYear Optional FY filter (e.g. "2024-25"). When null, no FY filter applied.
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public static function getApprovedProjectsForUserInFinancialYear(User $user, array $with = [], ?string $financialYear = null): \Illuminate\Database\Eloquent\Collection
+    {
+        $query = self::getProjectsForUserQuery($user)
+            ->whereIn('status', [
+                ProjectStatus::APPROVED_BY_COORDINATOR,
+                ProjectStatus::APPROVED_BY_GENERAL_AS_COORDINATOR,
+                ProjectStatus::APPROVED_BY_GENERAL_AS_PROVINCIAL,
+            ])
+            ->distinct();
+
+        if ($financialYear !== null) {
+            $query->inFinancialYear($financialYear);
+        }
+
+        if (!empty($with)) {
+            $query->with($with);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Get approved projects for the Executor scope selector.
+     * owned → owned only; in_charge → in-charge only; owned_and_in_charge → combined (single OR query).
+     *
+     * @param User $user
+     * @param string $scope One of: owned, in_charge, owned_and_in_charge
+     * @param array $with Relationships to eager load
+     * @param string|null $fy Optional FY filter. When null, no FY filter applied.
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public static function getApprovedProjectsForExecutorScope(User $user, string $scope, array $with = [], ?string $fy = null): \Illuminate\Database\Eloquent\Collection
+    {
+        return match ($scope) {
+            'in_charge' => self::getApprovedInChargeProjectsForUser($user, $with, $fy),
+            'owned_and_in_charge' => self::getApprovedProjectsForUserInFinancialYear($user, $with, $fy),
+            default => self::getApprovedOwnedProjectsForUser($user, $with, $fy),
+        };
     }
 }

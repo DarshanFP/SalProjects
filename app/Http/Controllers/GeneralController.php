@@ -26,6 +26,7 @@ use App\Services\ReportStatusService;
 use App\Services\ProjectQueryService;
 use App\Services\Budget\BudgetSyncService;
 use App\Services\Budget\DerivedCalculationService;
+use App\Support\FinancialYearHelper;
 use Carbon\Carbon;
 use Exception;
 
@@ -67,11 +68,15 @@ class GeneralController extends Controller
             abort(403, 'Access denied. Only General users can access this dashboard.');
         }
 
+        // Phase 3 FY: Default to current financial year; allow dropdown selection
+        $fy = $request->input('fy', FinancialYearHelper::currentFY());
+
         Log::info('General Dashboard Request', [
             'user_id' => $general->id,
             'province' => $request->get('province'),
             'center' => $request->get('center'),
             'coordinator_id' => $request->get('coordinator_id'),
+            'fy' => $fy,
         ]);
 
         // Get coordinator IDs under general
@@ -112,6 +117,10 @@ class GeneralController extends Controller
                 $query->where('province', $request->province);
             });
         }
+
+        // Phase 3 FY: Restrict project set to selected financial year (after role/filters)
+        $projectsFromCoordinatorsQuery->inFinancialYear($fy);
+        $projectsFromDirectTeamQuery->inFinancialYear($fy);
 
         $projectsFromCoordinators = $projectsFromCoordinatorsQuery
             ->with(['user.parent', 'reports.accountDetails', 'budgets'])
@@ -168,8 +177,8 @@ class GeneralController extends Controller
         // Get Phase 2 widget data (with caching and filters)
         $budgetOverviewData = $this->getBudgetOverviewData($request);
 
-        // Get Phase 3 widget data (with caching)
-        $systemPerformanceData = $this->getSystemPerformanceData();
+        // Get Phase 3 widget data (with caching) (Phase 3 FY)
+        $systemPerformanceData = $this->getSystemPerformanceData($request);
         $timeRange = $request->get('analytics_range', 30);
         $analyticsContext = $request->get('analytics_context', 'combined');
         $systemAnalyticsData = $this->getSystemAnalyticsData($timeRange, $analyticsContext);
@@ -180,6 +189,8 @@ class GeneralController extends Controller
         $activityFeedContext = $request->get('activity_context', 'combined');
         $systemActivityFeedData = $this->getSystemActivityFeedData($activityFeedLimit, $activityFeedContext);
         $systemHealthData = $this->getSystemHealthData();
+
+        $availableFY = FinancialYearHelper::listAvailableFY();
 
         return view('general.index', compact(
             'statistics',
@@ -199,7 +210,9 @@ class GeneralController extends Controller
             'systemAnalyticsData',
             'contextComparisonData',
             'systemActivityFeedData',
-            'systemHealthData'
+            'systemHealthData',
+            'fy',
+            'availableFY'
         ));
     }
 
@@ -3554,12 +3567,13 @@ class GeneralController extends Controller
     private function getBudgetOverviewData($request = null)
     {
         $general = Auth::user();
-        // Build cache key based on context and filters
+        // Phase 3 FY: Include fy in cache key
+        $fy = $request ? $request->input('fy', FinancialYearHelper::currentFY()) : FinancialYearHelper::currentFY();
         $context = $request ? ($request->get('budget_context', 'combined') ?? 'combined') : 'combined';
-        $filterHash = md5(json_encode($request ? $request->only(['province', 'center', 'project_type', 'coordinator_id', 'budget_context']) : []));
+        $filterHash = md5(json_encode($request ? $request->only(['province', 'center', 'project_type', 'coordinator_id', 'budget_context', 'fy']) : []));
         $cacheKey = "general_budget_overview_data_{$context}_{$filterHash}";
 
-        return Cache::remember($cacheKey, now()->addMinutes(15), function () use ($general, $request) {
+        return Cache::remember($cacheKey, now()->addMinutes(15), function () use ($general, $request, $fy) {
             $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
             $calc = app(\App\Services\Budget\DerivedCalculationService::class);
 
@@ -3663,12 +3677,13 @@ class GeneralController extends Controller
                 return $breakdown;
             };
 
-            // COORDINATOR HIERARCHY BUDGET
+            // COORDINATOR HIERARCHY BUDGET (Phase 3 FY)
             $coordinatorHierarchyProjectsQuery = Project::where(function($query) use ($allUserIdsUnderCoordinators) {
                 $query->whereIn('user_id', $allUserIdsUnderCoordinators)
                       ->orWhereIn('in_charge', $allUserIdsUnderCoordinators);
             })
             ->approved()
+            ->inFinancialYear($fy)
             ->with(['user.parent', 'user', 'reports.accountDetails', 'budgets']);
 
             // Apply filters for coordinator hierarchy
@@ -3692,12 +3707,13 @@ class GeneralController extends Controller
 
             $coordinatorHierarchyProjects = $coordinatorHierarchyProjectsQuery->get();
 
-            // DIRECT TEAM BUDGET
+            // DIRECT TEAM BUDGET (Phase 3 FY)
             $directTeamProjectsQuery = Project::where(function($query) use ($directTeamIds) {
                 $query->whereIn('user_id', $directTeamIds)
                       ->orWhereIn('in_charge', $directTeamIds);
             })
             ->approved() // Direct team projects approved by coordinator (General acting as Provincial)
+            ->inFinancialYear($fy)
             ->with(['user', 'reports.accountDetails', 'budgets']);
 
             // Apply filters for direct team
@@ -3980,12 +3996,13 @@ class GeneralController extends Controller
      * Get system performance data for widget (with caching - 10 minutes TTL)
      * Returns performance metrics for both coordinator hierarchy and direct team with comparisons
      */
-    private function getSystemPerformanceData()
+    private function getSystemPerformanceData($request = null)
     {
         $general = Auth::user();
-        $cacheKey = 'general_system_performance_data';
+        $fy = $request ? $request->input('fy', FinancialYearHelper::currentFY()) : FinancialYearHelper::currentFY();
+        $cacheKey = "general_system_performance_data_{$fy}";
 
-        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($general) {
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($general, $fy) {
             $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
             $calc = app(\App\Services\Budget\DerivedCalculationService::class);
 
@@ -4001,17 +4018,17 @@ class GeneralController extends Controller
             // Get all descendant user IDs under coordinators (recursive)
             $allUserIdsUnderCoordinators = $this->getAllDescendantUserIds($coordinatorIds);
 
-            // Get project IDs from coordinator hierarchy
+            // Get project IDs from coordinator hierarchy (Phase 3 FY)
             $coordinatorProjectIds = Project::where(function($query) use ($allUserIdsUnderCoordinators) {
                 $query->whereIn('user_id', $allUserIdsUnderCoordinators)
                       ->orWhereIn('in_charge', $allUserIdsUnderCoordinators);
-            })->pluck('project_id');
+            })->inFinancialYear($fy)->pluck('project_id');
 
-            // Get project IDs from direct team
+            // Get project IDs from direct team (Phase 3 FY)
             $directTeamProjectIds = Project::where(function($query) use ($directTeamIds) {
                 $query->whereIn('user_id', $directTeamIds)
                       ->orWhereIn('in_charge', $directTeamIds);
-            })->pluck('project_id');
+            })->inFinancialYear($fy)->pluck('project_id');
 
             // COORDINATOR HIERARCHY: Get projects and reports
             $coordinatorHierarchyProjects = Project::whereIn('project_id', $coordinatorProjectIds)

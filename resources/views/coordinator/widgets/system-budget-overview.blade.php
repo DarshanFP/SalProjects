@@ -39,6 +39,14 @@
         {{-- Filter Form (Always Visible - Like Provincial Dashboard) --}}
         <form method="GET" action="{{ route('coordinator.dashboard') }}" class="mb-4">
             <div class="row">
+                <div class="col-md-2">
+                    <label for="budget_filter_fy" class="form-label">Financial Year</label>
+                    <select name="fy" id="budget_filter_fy" class="form-select form-select-sm" onchange="this.form.submit()">
+                        @foreach($availableFY ?? [] as $year)
+                            <option value="{{ $year }}" {{ ($fy ?? '') == $year ? 'selected' : '' }}>FY {{ $year }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div class="col-md-3">
                     <label for="budget_filter_province" class="form-label">Province</label>
                     <select name="province" id="budget_filter_province" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -101,9 +109,12 @@
         </form>
 
         {{-- Active Filters Display (Always Visible When Filters Are Active) --}}
-        @if(request('province') || request('center') || request('project_type') || request('parent_id'))
+        @if(request('fy') || request('province') || request('center') || request('project_type') || request('parent_id'))
             <div class="alert alert-info mb-4">
                 <strong>Active Filters:</strong>
+                @if(request('fy'))
+                    <span class="badge badge-primary me-2">FY: {{ request('fy') }}</span>
+                @endif
                 @if(request('province'))
                     <span class="badge badge-success me-2">Province: {{ request('province') }}</span>
                 @endif

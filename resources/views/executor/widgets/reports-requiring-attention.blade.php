@@ -66,7 +66,7 @@
                                                 <span class="text-muted ms-2">- {{ $report->report_month_year }}</span>
                                             @endif
                                         </p>
-                                        <small class="text-muted">Last updated: {{ $report->updated_at->diffForHumans() }}</small>
+                                        <small class="text-muted">Last updated: {{ optional($report->updated_at)->diffForHumans() ?? '—' }}</small>
                                     </div>
                                     <div>
                                         <a href="{{ route('monthly.report.edit', $report->report_id) }}"
@@ -140,7 +140,7 @@ Edit
                                         @if($report->revert_reason)
                                             <small class="text-warning d-block mt-1">{{ Str::limit($report->revert_reason, 100) }}</small>
                                         @endif
-                                        <small class="text-muted">Reverted: {{ $report->updated_at->diffForHumans() }}</small>
+                                        <small class="text-muted">Reverted: {{ optional($report->updated_at)->diffForHumans() ?? '—' }}</small>
                                     </div>
                                     <div>
                                         <a href="{{ route('monthly.report.edit', $report->report_id) }}"

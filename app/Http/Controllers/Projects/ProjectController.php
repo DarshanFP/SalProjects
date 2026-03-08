@@ -22,6 +22,7 @@ use App\Services\ProjectStatusService;
 use App\Services\ProjectPhaseService;
 use App\Traits\HandlesErrors;
 use App\Services\ProjectQueryService;
+use App\Support\FinancialYearHelper;
 use App\Services\Budget\BudgetSyncGuard;
 use App\Helpers\SocietyVisibilityHelper;
 // Aliases for CCI Controllers with prefix 'CCI' -
@@ -290,19 +291,59 @@ class ProjectController extends Controller
 
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
 
-        // Fetch projects where the user is either the owner or the in-charge
-        // Exclude all approved projects (any approval status) for executors/applicants — M3 Phase 1
-        // Eager load relationships to prevent N+1 queries
-        $projects = \App\Services\ProjectQueryService::getProjectsForUserQuery($user)
-            ->notApproved()
-            ->with(['user', 'objectives', 'budgets'])
-            ->get();
+        $fy = $request->input('fy', FinancialYearHelper::nextFY());
+        $role = $request->input('role', 'owned');
+        $role = in_array($role, ['owner', 'owned', 'in_charge', 'owned_and_in_charge'], true) ? $role : 'owned';
+        if ($role === 'owner') {
+            $role = 'owned';
+        }
 
-        return view('projects.Oldprojects.index', compact('projects', 'user'));
+        $query = match ($role) {
+            'owned' => ProjectQueryService::getOwnedProjectsQuery($user),
+            'in_charge' => ProjectQueryService::getInChargeProjectsQuery($user),
+            default => ProjectQueryService::getProjectsForUserQuery($user),
+        };
+
+        $query->notApproved();
+
+        if ($fy) {
+            $query->inFinancialYear($fy);
+        }
+
+        $query->select([
+            'id',
+            'project_id',
+            'project_title',
+            'project_type',
+            'status',
+            'province_id',
+            'commencement_month_year',
+            'user_id',
+            'in_charge',
+        ])->with(['user:id,name']);
+
+        $projects = $query
+            ->orderBy('project_id')
+            ->cursorPaginate(15)
+            ->appends($request->query());
+
+        $availableFY = FinancialYearHelper::listAvailableFYFromProjects(
+            ProjectQueryService::getProjectsForUserQuery($user)
+        );
+        if (empty($availableFY)) {
+            $availableFY = FinancialYearHelper::listAvailableFY();
+        }
+        if ($fy && !in_array($fy, $availableFY, true)) {
+            $availableFY = array_merge([$fy], $availableFY);
+            $availableFY = array_values(array_unique($availableFY));
+            rsort($availableFY);
+        }
+
+        return view('projects.Oldprojects.index', compact('projects', 'user', 'availableFY', 'fy', 'role'));
     }
 
 
@@ -1641,16 +1682,58 @@ public function submitToProvincial(SubmitProjectRequest $request, $project_id)
 }
 
 // Approved Projects for Executors
-public function approvedProjects()
+public function approvedProjects(Request $request)
 {
     $user = Auth::user();
 
-    // Fetch approved projects where the user is either the owner or the in-charge
-    $projects = ProjectQueryService::getApprovedProjectsForUser($user)
-        ->sortBy(['project_id', 'user_id'])
-        ->values();
+    $fy = $request->input('fy', FinancialYearHelper::currentFY());
+    $role = $request->input('role', 'owned');
+    $role = in_array($role, ['owner', 'owned', 'in_charge', 'owned_and_in_charge'], true) ? $role : 'owned';
+    if ($role === 'owner') {
+        $role = 'owned';
+    }
 
-    return view('projects.Oldprojects.approved', compact('projects', 'user'));
+    $query = match ($role) {
+        'owned' => ProjectQueryService::getOwnedProjectsQuery($user),
+        'in_charge' => ProjectQueryService::getInChargeProjectsQuery($user),
+        default => ProjectQueryService::getProjectsForUserQuery($user),
+    };
+
+    $query->whereIn('status', ProjectStatus::APPROVED_STATUSES);
+
+    if ($fy) {
+        $query->inFinancialYear($fy);
+    }
+
+    $query->select([
+        'id',
+        'project_id',
+        'project_title',
+        'project_type',
+        'status',
+        'commencement_month_year',
+        'user_id',
+        'in_charge',
+    ])->with(['user:id,name']);
+
+    $projects = $query
+        ->orderBy('project_id')
+        ->cursorPaginate(15)
+        ->appends($request->query());
+
+    $availableFY = FinancialYearHelper::listAvailableFYFromProjects(
+        ProjectQueryService::getProjectsForUserQuery($user)
+    );
+    if (empty($availableFY)) {
+        $availableFY = FinancialYearHelper::listAvailableFY();
+    }
+    if ($fy && !in_array($fy, $availableFY, true)) {
+        $availableFY = array_merge([$fy], $availableFY);
+        $availableFY = array_values(array_unique($availableFY));
+        rsort($availableFY);
+    }
+
+    return view('projects.Oldprojects.approved', compact('projects', 'user', 'availableFY', 'fy', 'role'));
 }
 
 /**

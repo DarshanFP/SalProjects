@@ -27,12 +27,20 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    {{-- Enhanced Filters --}}
+                    {{-- Enhanced Filters (Phase 3.1: FY selector) --}}
                     <form method="GET" action="{{ route('provincial.projects.list') }}" class="mb-4">
                         <div class="row g-3">
+                            <div class="col-md-2">
+                                <label for="fy" class="form-label">Financial Year</label>
+                                <select name="fy" id="fy" class="form-select auto-filter">
+                                    @foreach($fyList ?? [] as $year)
+                                        <option value="{{ $year }}" {{ ($fy ?? '') == $year ? 'selected' : '' }}>FY {{ $year }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <div class="col-md-3">
                                 <label for="project_type" class="form-label">Project Type</label>
-                                <select name="project_type" id="project_type" class="form-select">
+                                <select name="project_type" id="project_type" class="form-select auto-filter">
                                     <option value="">All Project Types</option>
                                     @foreach($projectTypes as $type)
                                         <option value="{{ $type }}" {{ request('project_type') == $type ? 'selected' : '' }}>
@@ -43,7 +51,7 @@
                             </div>
                             <div class="col-md-3">
                                 <label for="user_id" class="form-label">Team Member</label>
-                                <select name="user_id" id="user_id" class="form-select">
+                                <select name="user_id" id="user_id" class="form-select auto-filter">
                                     <option value="">All Team Members</option>
                                     @foreach($users as $user)
                                         <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>
@@ -54,7 +62,7 @@
                             </div>
                             <div class="col-md-2">
                                 <label for="status" class="form-label">Status</label>
-                                <select name="status" id="status" class="form-select">
+                                <select name="status" id="status" class="form-select auto-filter">
                                     <option value="">All Statuses</option>
                                     @foreach(Project::$statusLabels as $key => $label)
                                         <option value="{{ $key }}" {{ request('status') == $key ? 'selected' : '' }}>
@@ -65,7 +73,7 @@
                             </div>
                             <div class="col-md-2">
                                 <label for="center" class="form-label">Center</label>
-                                <select name="center" id="center" class="form-select">
+                                <select name="center" id="center" class="form-select auto-filter">
                                     <option value="">All Centers</option>
                                     @foreach($centers ?? [] as $center)
                                         <option value="{{ $center }}" {{ request('center') == $center ? 'selected' : '' }}>
@@ -76,7 +84,7 @@
                             </div>
                             <div class="col-md-2">
                                 <label for="society_id" class="form-label">Society</label>
-                                <select name="society_id" id="society_id" class="form-select">
+                                <select name="society_id" id="society_id" class="form-select auto-filter">
                                     <option value="">All Societies</option>
                                     @foreach($societies ?? [] as $society)
                                         <option value="{{ $society->id }}" {{ request('society_id') == $society->id ? 'selected' : '' }}>
@@ -86,8 +94,7 @@
                                 </select>
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary me-2">Apply</button>
-                                <a href="{{ route('provincial.projects.list') }}" class="btn btn-secondary">Reset</a>
+                                <a href="{{ route('provincial.projects.list', ['fy' => \App\Support\FinancialYearHelper::currentFY()]) }}" class="btn btn-secondary">Reset</a>
                             </div>
                         </div>
                     </form>
@@ -236,6 +243,7 @@
                                 <tr>
                                     <th>S.No</th>
                                     <th>Project ID</th>
+                                    <th>Last Action</th>
                                     <th>Team Member</th>
                                     <th>Center</th>
                                     <th>Society</th>
@@ -278,6 +286,9 @@
                                                class="text-decoration-none fw-bold">
                                                 {{ $project->project_id }}
                                             </a>
+                                        </td>
+                                        <td>
+                                            <small>{{ $project->status_history_max_created_at ? \Carbon\Carbon::parse($project->status_history_max_created_at)->format('d/m/Y') : '—' }}</small>
                                         </td>
                                         <td>
                                             <div class="text-cell"
@@ -406,7 +417,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="15" class="py-4 text-center">
+                                        <td colspan="16" class="py-4 text-center">
                                             <i data-feather="inbox" class="text-muted" style="width: 48px; height: 48px;"></i>
                                             <p class="mt-3 text-muted">No projects found</p>
                                         </td>
@@ -491,6 +502,16 @@ document.addEventListener('DOMContentLoaded', function() {
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Phase 3.2.1/3.2.2: Auto-filter with submission guard
+    var filterSubmitting = false;
+    document.querySelectorAll('.auto-filter').forEach(function(el) {
+        el.addEventListener('change', function() {
+            if (filterSubmitting) return;
+            filterSubmitting = true;
+            this.closest('form').submit();
+        });
+    });
+
     if (typeof feather !== 'undefined') {
         feather.replace();
     }

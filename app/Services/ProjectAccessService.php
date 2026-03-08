@@ -96,22 +96,30 @@ class ProjectAccessService
      *
      * Coordinator: Global oversight. Returns unfiltered query (all projects).
      * No parent_id or hierarchy filter. No accessibleByUserIds applied.
+     *
+     * @param User $user
+     * @param string|null $financialYear Optional FY filter (e.g. "2024-25"). When null, no FY filter applied.
      */
-    public function getVisibleProjectsQuery(User $user): \Illuminate\Database\Eloquent\Builder
+    public function getVisibleProjectsQuery(User $user, ?string $financialYear = null): \Illuminate\Database\Eloquent\Builder
     {
         $query = Project::query();
         if (in_array($user->role, ['admin', 'coordinator', 'general'])) {
-            return $query;
-        }
-        if (in_array($user->role, ['executor', 'applicant'])) {
-            return $query->where(function ($q) use ($user) {
+            $baseQuery = $query;
+        } elseif (in_array($user->role, ['executor', 'applicant'])) {
+            $baseQuery = $query->where(function ($q) use ($user) {
                 $q->where('user_id', $user->id)->orWhere('in_charge', $user->id);
             });
-        }
-        if ($user->role === 'provincial') {
+        } elseif ($user->role === 'provincial') {
             $ids = $this->getAccessibleUserIds($user);
-            return $query->accessibleByUserIds($ids);
+            $baseQuery = $query->accessibleByUserIds($ids);
+        } else {
+            $baseQuery = $query->whereRaw('1 = 0');
         }
-        return $query->whereRaw('1 = 0');
+
+        if ($financialYear !== null) {
+            $baseQuery->inFinancialYear($financialYear);
+        }
+
+        return $baseQuery;
     }
 }
