@@ -2,9 +2,12 @@
 
 namespace App\Models\Reports\Monthly;
 
+use App\Models\OldProjects\Project;
+use App\Models\User;
 use App\Models\ReportComment;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use RuntimeException;
 
 /**
  *
@@ -157,6 +160,30 @@ class DPReport extends Model
         self::STATUS_APPROVED_BY_GENERAL_AS_COORDINATOR,
         self::STATUS_APPROVED_BY_GENERAL_AS_PROVINCIAL,
     ];
+
+    /**
+     * Statuses where executor/applicant may edit and re-submit a monthly report.
+     * Single source of truth — aligned with ReportStatusService::submitToProvincial (Phase 2).
+     */
+    public const EXECUTOR_EDITABLE_STATUSES = [
+        self::STATUS_DRAFT,
+        self::STATUS_REVERTED_BY_PROVINCIAL,
+        self::STATUS_REVERTED_BY_COORDINATOR,
+        self::STATUS_REVERTED_BY_GENERAL_AS_PROVINCIAL,
+        self::STATUS_REVERTED_BY_GENERAL_AS_COORDINATOR,
+        self::STATUS_REVERTED_TO_EXECUTOR,
+        self::STATUS_REVERTED_TO_APPLICANT,
+        self::STATUS_REVERTED_TO_PROVINCIAL,
+        self::STATUS_REVERTED_TO_COORDINATOR,
+    ];
+
+    /**
+     * @return list<string>
+     */
+    public static function executorEditableStatuses(): array
+    {
+        return self::EXECUTOR_EDITABLE_STATUSES;
+    }
 
     // Status labels for display
     public static $statusLabels = [
@@ -356,21 +383,11 @@ class DPReport extends Model
     }
 
     /**
-     * Check if report is editable
+     * Check if report is editable by executor/applicant (update + submit).
      */
     public function isEditable(): bool
     {
-        return in_array($this->status, [
-            self::STATUS_DRAFT,
-            self::STATUS_REVERTED_BY_PROVINCIAL,
-            self::STATUS_REVERTED_BY_COORDINATOR,
-            self::STATUS_REVERTED_BY_GENERAL_AS_PROVINCIAL,
-            self::STATUS_REVERTED_BY_GENERAL_AS_COORDINATOR,
-            self::STATUS_REVERTED_TO_EXECUTOR,
-            self::STATUS_REVERTED_TO_APPLICANT,
-            self::STATUS_REVERTED_TO_PROVINCIAL,
-            self::STATUS_REVERTED_TO_COORDINATOR,
-        ]);
+        return in_array($this->status, self::EXECUTOR_EDITABLE_STATUSES, true);
     }
 
     /**
@@ -403,6 +420,65 @@ class DPReport extends Model
         }
 
         return $this->accountDetails->sum('total_expenses') ?? 0.0;
+    }
+
+    /**
+     * Generate the next sequential report_id for a project (e.g. DP-0006-01).
+     */
+    public static function generateNextReportId(string $projectId): string
+    {
+        $latestReport = self::where('report_id', 'LIKE', "{$projectId}-%")
+            ->latest('report_id')
+            ->lockForUpdate()
+            ->first();
+
+        $maxSuffix = $latestReport
+            ? (int) explode('-', $latestReport->report_id)[2] + 1
+            : 1;
+
+        return "{$projectId}-" . str_pad((string) $maxSuffix, 2, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Persist a new report with society snapshot in a single INSERT (Wave 6A / Phase 1 hotfix).
+     * Snapshot fields are not mass-assignable; they are set from the project before save.
+     */
+    public static function createWithProjectSnapshot(array $attributes, Project $project): self
+    {
+        if (empty($project->society_id)) {
+            throw new RuntimeException(
+                'Cannot create report: project ' . ($project->project_id ?? 'unknown') . ' has no society_id.'
+            );
+        }
+
+        $report = new self();
+        $report->fill($attributes);
+        $report->society_id = $project->society_id;
+        $report->society_name = $project->society_name
+            ?? optional($project->society)->name;
+        $report->province_id = $project->province_id;
+        $report->save();
+
+        return $report;
+    }
+
+    /**
+     * Display values for report create basic-info fields (Phase 8).
+     * Aligns form with createWithProjectSnapshot() society source and project place.
+     *
+     * @return array{place: string, society_name: string}
+     */
+    public static function basicInfoForCreateForm(Project $project, ?User $user = null): array
+    {
+        $project->loadMissing('society');
+
+        return [
+            'place' => (string) ($project->place ?? $user?->center ?? ''),
+            'society_name' => (string) ($project->society_name
+                ?? optional($project->society)->name
+                ?? $user?->society_name
+                ?? ''),
+        ];
     }
 
     /**

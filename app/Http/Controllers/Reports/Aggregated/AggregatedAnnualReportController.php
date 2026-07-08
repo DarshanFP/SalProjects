@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Support\Reports\ReportResourceLookup;
 
 class AggregatedAnnualReportController extends Controller
 {
@@ -56,7 +57,7 @@ class AggregatedAnnualReportController extends Controller
      */
     public function create($project_id)
     {
-        $project = Project::where('project_id', $project_id)->firstOrFail();
+        $project = ReportResourceLookup::findProject($project_id);
         $user = Auth::user();
 
         if (!in_array($user->role, ['executor', 'applicant', 'coordinator', 'provincial'])) {
@@ -95,7 +96,7 @@ class AggregatedAnnualReportController extends Controller
             'use_ai' => 'nullable|boolean',
         ]);
 
-        $project = Project::where('project_id', $project_id)->firstOrFail();
+        $project = ReportResourceLookup::findProject($project_id);
         $user = Auth::user();
 
         try {

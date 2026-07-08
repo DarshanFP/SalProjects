@@ -321,26 +321,7 @@
 </script>
 
 <style>
-    .info-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr; /* Equal columns */
-        grid-gap: 20px; /* Increased spacing between rows */
-    }
-
-    .info-label {
-        font-weight: bold;
-        margin-right: 10px; /* Optional spacing after labels */
-    }
-
-    .info-value {
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        white-space: pre-wrap !important; /* Preserve line breaks from textareas */
-        line-height: 1.6;
-        padding-left: 10px; /* Optional padding before values */
-    }
-
-    /* Also preserve line breaks for form-control divs displaying textarea content */
+    /* Preserve line breaks for form-control divs displaying textarea content */
     .card-body .form-control:not(input):not(select):not(textarea) {
         white-space: pre-wrap !important;
         word-wrap: break-word !important;

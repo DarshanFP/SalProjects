@@ -79,18 +79,18 @@
                         </div>
                         <div class="mb-3">
                             <label for="total_beneficiaries" class="form-label">Total No. of Beneficiaries</label>
-                            <input type="number" name="total_beneficiaries" class="form-control" style="background-color: #202ba3;" value="{{ old('total_beneficiaries', $report->total_beneficiaries) }}">
+                            <input type="number" name="total_beneficiaries" class="form-control report-active-input" value="{{ old('total_beneficiaries', $report->total_beneficiaries) }}">
                         </div>
                         <div class="mb-3">
                             <label for="report_month_year" class="form-label">Reporting Month & Year</label>
                             <div class="d-flex">
-                                <select name="report_month" id="report_month" class="form-control select-input me-2 @error('report_month') is-invalid @enderror" style="background-color: #202ba3;">
+                                <select name="report_month" id="report_month" class="form-control select-input me-2 @error('report_month') is-invalid @enderror" class="form-control report-active-input">
                                     <option value="" disabled>Select Month</option>
                                     @foreach (range(1, 12) as $month)
                                         <option value="{{ $month }}" {{ (old('report_month', $report->report_month) == $month) ? 'selected' : '' }}>{{ date('F', mktime(0, 0, 0, $month, 1)) }}</option>
                                     @endforeach
                                 </select>
-                                <select name="report_year" id="report_year" class="form-control select-input @error('report_year') is-invalid @enderror" style="background-color: #202ba3;">
+                                <select name="report_year" id="report_year" class="form-control select-input @error('report_year') is-invalid @enderror" class="form-control report-active-input">
                                     <option value="" disabled>Select Year</option>
                                     @for ($year = date('Y'); $year >= 2020; $year--)
                                         <option value="{{ $year }}" {{ (old('report_year', $report->report_year) == $year) ? 'selected' : '' }}>{{ $year }}</option>
@@ -134,11 +134,11 @@
                         <div class="card-body">
                             <div class="mb-3">
                                 <label for="date[{{ $index }}]" class="form-label">Date</label>
-                                <input type="date" name="date[{{ $index }}]" class="form-control" value="{{ old("date.$index", $outlook->date) }}" style="background-color: #202ba3;">
+                                <input type="date" name="date[{{ $index }}]" class="form-control" value="{{ old("date.$index", $outlook->date) }}" class="form-control report-active-input">
                             </div>
                             <div class="mb-3">
                                 <label for="plan_next_month[{{ $index }}]" class="form-label">Action Plan for Next Month</label>
-                                <textarea name="plan_next_month[{{ $index }}]" class="form-control auto-resize-textarea" rows="3" style="background-color: #202ba3;">{{ old("plan_next_month.$index", $outlook->plan_next_month) }}</textarea>
+                                <textarea name="plan_next_month[{{ $index }}]" class="form-control auto-resize-textarea" rows="3" class="form-control report-active-input">{{ old("plan_next_month.$index", $outlook->plan_next_month) }}</textarea>
                             </div>
                         </div>
                     </div>
@@ -166,11 +166,19 @@
                     @include('reports.monthly.partials.edit.statements_of_account.individual_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report, 'project' => $project])
                 @elseif($project->project_type === 'Institutional Ongoing Group Educational proposal')
                     @include('reports.monthly.partials.edit.statements_of_account.institutional_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report, 'project' => $project])
-                @elseif($project->project_type === 'Development Projects')
+                @elseif(in_array($project->project_type, [
+                    'Development Projects',
+                    'NEXT PHASE - DEVELOPMENT PROPOSAL',
+                    'Livelihood Development Projects',
+                    'Residential Skill Training Proposal 2',
+                    'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER',
+                    'CHILD CARE INSTITUTION',
+                    'Rural-Urban-Tribal'
+                ], true))
                     @include('reports.monthly.partials.edit.statements_of_account.development_projects', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report, 'project' => $project])
                 @else
-                    {{-- Fallback to generic for other project types --}}
-                    @include('reports.monthly.partials.edit.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report, 'project' => $project])
+                    {{-- Fallback to default development projects structure --}}
+                    @include('reports.monthly.partials.edit.statements_of_account.development_projects', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'report' => $report, 'project' => $project])
                 @endif
 
                 <!-- Photos Section -->
@@ -291,11 +299,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="card-body">
                     <div class="mb-3">
                         <label for="date[${index}]" class="form-label">Date</label>
-                        <input type="date" name="date[${index}]" class="form-control" style="background-color: #202ba3;">
+                        <input type="date" name="date[${index}]" class="form-control report-active-input">
                     </div>
                     <div class="mb-3">
                         <label for="plan_next_month[${index}]" class="form-label">Action Plan for Next Month</label>
-                        <textarea name="plan_next_month[${index}]" class="form-control auto-resize-textarea" rows="3" style="background-color: #202ba3;"></textarea>
+                        <textarea name="plan_next_month[${index}]" class="form-control auto-resize-textarea" rows="3" class="form-control report-active-input"></textarea>
                     </div>
                 </div>
             </div>
@@ -383,8 +391,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const newPhotoHtml = `
                 <div class="mb-3 photo-group" data-index="${index}">
                     <label for="photo_${index}" class="form-label">Photo ${index + 1}</label>
-                    <input type="file" name="new_photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" style="background-color: #202ba3;">
-                    <textarea name="new_photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
+                    <input type="file" name="new_photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" class="form-control report-active-input">
+                    <textarea name="new_photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" class="form-control report-active-input"></textarea>
                     <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
                 </div>
             `;

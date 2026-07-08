@@ -21,7 +21,7 @@ use App\Services\Budget\DerivedCalculationService;
  *
  * @see Documentations/V2/Budgets/Overview/FINANCIAL_ENGINE_CONSOLIDATION_BLUEPRINT.md
  */
-class DirectMappedIndividualBudgetStrategy implements ProjectFinancialStrategyInterface
+class DirectMappedIndividualBudgetStrategy implements ProjectFinancialStrategyInterface, TypeDerivedFundFieldsInterface
 {
     public function __construct(
         protected DerivedCalculationService $calculationService
@@ -33,6 +33,28 @@ class DirectMappedIndividualBudgetStrategy implements ProjectFinancialStrategyIn
      * M3.7: For non-approved returns amount_requested from type, amount_sanctioned = 0, opening_balance = forwarded + local.
      */
     public function resolve(Project $project): array
+    {
+        $resolved = $this->resolveFromTypeTables($project);
+
+        // M3.7 Phase 1: Canonical separation. Do not treat sanctioned as requested; return requested separately.
+        if (BudgetSyncGuard::isApproved($project)) {
+            $resolved['amount_sanctioned'] = (float) ($project->amount_sanctioned ?? 0);
+            $resolved['amount_requested'] = 0.0;
+            $resolved['opening_balance'] = (float) ($project->opening_balance ?? 0);
+        } else {
+            $resolved['amount_requested'] = (float) ($resolved['amount_sanctioned'] ?? 0);
+            $resolved['amount_sanctioned'] = 0.0;
+            $resolved['opening_balance'] = (float) ($resolved['amount_forwarded'] ?? 0) + (float) ($resolved['local_contribution'] ?? 0);
+        }
+
+        return $this->normalize($resolved);
+    }
+
+    /**
+     * Compute fund fields from type-specific tables (IIES, IES, ILP, IAH, IGE).
+     * Does not read stored amount_sanctioned / opening_balance for approved projects.
+     */
+    public function resolveFromTypeTables(Project $project): array
     {
         $projectType = $project->project_type ?? '';
 
@@ -46,16 +68,7 @@ class DirectMappedIndividualBudgetStrategy implements ProjectFinancialStrategyIn
             default => $this->fallbackFromProject($project),
         };
 
-        // M3.7 Phase 1: Canonical separation. Do not treat sanctioned as requested; return requested separately.
-        if (BudgetSyncGuard::isApproved($project)) {
-            $resolved['amount_sanctioned'] = (float) ($project->amount_sanctioned ?? 0);
-            $resolved['amount_requested'] = 0.0;
-            $resolved['opening_balance'] = (float) ($project->opening_balance ?? 0);
-        } else {
-            $resolved['amount_requested'] = (float) ($resolved['amount_sanctioned'] ?? 0);
-            $resolved['amount_sanctioned'] = 0.0;
-            $resolved['opening_balance'] = (float) ($resolved['amount_forwarded'] ?? 0) + (float) ($resolved['local_contribution'] ?? 0);
-        }
+        $resolved['amount_requested'] = 0.0;
 
         return $this->normalize($resolved);
     }

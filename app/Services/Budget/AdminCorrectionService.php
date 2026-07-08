@@ -40,7 +40,8 @@ class AdminCorrectionService
     public function acceptSuggested(Project $project, User $admin, ?string $comment = null): void
     {
         $this->assertApproved($project);
-        $resolved = $this->resolver->resolve($project, true);
+        $financialResolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $resolved = $financialResolver->resolveTypeDerivedFundFields($project);
         $stored = $this->getStoredValues($project);
 
         DB::transaction(function () use ($project, $admin, $resolved, $stored, $comment) {

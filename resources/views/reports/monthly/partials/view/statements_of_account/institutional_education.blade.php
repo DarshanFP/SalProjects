@@ -165,7 +165,7 @@
             <h5>Budgets Details</h5><br>
 
             <div class="table-responsive budget-details-table-wrapper">
-                <table class="table table-bordered table-custom budget-details-table">
+                <table class="table table-bordered table-custom budget-details-table report-view-table">
                     <thead>
                         <tr>
                             <th class="col-particulars">Particulars</th>

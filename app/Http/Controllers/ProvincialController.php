@@ -479,22 +479,7 @@ class ProvincialController extends Controller
                     }
 
                     // Exclude drafts and editable statuses (where executor/applicant has edit access)
-                    // Only show approved and unapproved expenses for reports where executor/applicant has edit access
-                    // Since all projects here are for executors/applicants under provincial, they have edit access
-                    $editableStatuses = [
-                        DPReport::STATUS_DRAFT,
-                        DPReport::STATUS_REVERTED_BY_PROVINCIAL,
-                        DPReport::STATUS_REVERTED_BY_COORDINATOR,
-                        DPReport::STATUS_REVERTED_BY_GENERAL_AS_PROVINCIAL,
-                        DPReport::STATUS_REVERTED_BY_GENERAL_AS_COORDINATOR,
-                        DPReport::STATUS_REVERTED_TO_EXECUTOR,
-                        DPReport::STATUS_REVERTED_TO_APPLICANT,
-                        DPReport::STATUS_REVERTED_TO_PROVINCIAL,
-                        DPReport::STATUS_REVERTED_TO_COORDINATOR,
-                    ];
-
-                    // Exclude drafts and updated statuses - only include submitted/forwarded/approved reports
-                    if (in_array($report->status, $editableStatuses)) {
+                    if (in_array($report->status, DPReport::EXECUTOR_EDITABLE_STATUSES, true)) {
                         continue;
                     }
 

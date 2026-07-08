@@ -13,21 +13,3 @@
         </div>
     </div>
 </div>
-
-<style>
-    .info-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr; /* Equal columns */
-        grid-gap: 20px; /* Increased spacing between rows */
-    }
-
-    .info-label {
-        font-weight: bold;
-        margin-right: 10px; /* Optional spacing after labels */
-    }
-
-    .info-value {
-        word-wrap: break-word;
-        padding-left: 10px; /* Optional padding before values */
-    }
-</style>

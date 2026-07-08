@@ -10,7 +10,6 @@ use App\Models\Reports\Monthly\DPAccountDetail;
 use App\Models\Reports\Monthly\DPPhoto;
 use App\Models\Reports\Monthly\DPOutlook;
 use App\Models\OldProjects\Project;
-use App\Models\OldProjects\ProjectBudget;
 use App\Models\User;
 use App\Helpers\NumberFormatHelper;
 use PhpOffice\PhpWord\PhpWord;
@@ -20,6 +19,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Mpdf\Mpdf;
 use Illuminate\Support\Facades\Storage;
+use App\Support\Reports\ReportResourceLookup;
 
 class ExportReportController extends Controller
 {
@@ -46,9 +46,9 @@ class ExportReportController extends Controller
         ini_set('memory_limit', '512M');
 
         try {
-            $report = DPReport::where('report_id', $report_id)
-                ->with(['objectives.activities', 'accountDetails', 'photos', 'outlooks', 'user'])
-                ->firstOrFail();
+            $report = ReportResourceLookup::findReport($report_id, [
+                'objectives.activities', 'accountDetails', 'photos', 'outlooks', 'user',
+            ]);
 
             $user = Auth::user();
 
@@ -58,8 +58,10 @@ class ExportReportController extends Controller
             switch ($user->role) {
                 case 'executor':
                 case 'applicant':
-                    // Executors/Applicants can download their own reports
-                    if ($report->user_id === $user->id) {
+                    // Executors/Applicants can download reports they own or are in-charge of
+                    $isOwner = (int) $report->user_id === (int) $user->id;
+                    $isInCharge = $report->project && (int) $report->project->in_charge === (int) $user->id;
+                    if ($isOwner || $isInCharge) {
                         $hasAccess = true;
                     }
                     break;
@@ -90,10 +92,9 @@ class ExportReportController extends Controller
                 );
             }
 
-            // Get associated project and budgets using project-type-specific method
             $project = Project::where('project_id', $report->project_id)->first();
 
-            // Get actual account details from the report instead of project budgets
+            // SOA rows from saved report account details (canonical persisted values, not project budget re-fetch)
             $budgets = $report->accountDetails;
 
             // Group photos by activity (and Unassigned) and prepare for PDF (with size optimization)
@@ -115,6 +116,21 @@ class ExportReportController extends Controller
                     break;
                 case 'Residential Skill Training Proposal 2':
                     $traineeProfiles = $this->residentialSkillTrainingController->getTraineeProfiles($report_id);
+                    $education = [];
+                    foreach ($traineeProfiles as $profile) {
+                        $category = $profile->education_category;
+                        $number = $profile->number;
+                        switch ($category) {
+                            case 'Below 9th standard': $education['below_9'] = $number; break;
+                            case '10th class failed': $education['class_10_fail'] = $number; break;
+                            case '10th class passed': $education['class_10_pass'] = $number; break;
+                            case 'Intermediate': $education['intermediate'] = $number; break;
+                            case 'Intermediate and above': $education['above_intermediate'] = $number; break;
+                            case 'Total': $education['total'] = $number; break;
+                            default: $education['other'] = $category; $education['other_count'] = $number; break;
+                        }
+                    }
+                    $report->education = $education;
                     break;
                 case 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER':
                     $inmateProfiles = $this->crisisInterventionCenterController->getInmateProfiles($report_id);
@@ -260,9 +276,9 @@ class ExportReportController extends Controller
     public function downloadDoc($report_id)
     {
         try {
-            $report = DPReport::where('report_id', $report_id)
-                ->with(['objectives.activities', 'accountDetails', 'photos', 'outlooks', 'user'])
-                ->firstOrFail();
+            $report = ReportResourceLookup::findReport($report_id, [
+                'objectives.activities', 'accountDetails', 'photos', 'outlooks', 'user',
+            ]);
 
             $user = Auth::user();
 
@@ -272,8 +288,10 @@ class ExportReportController extends Controller
             switch ($user->role) {
                 case 'executor':
                 case 'applicant':
-                    // Executors/Applicants can download their own reports
-                    if ($report->user_id === $user->id) {
+                    // Executors/Applicants can download reports they own or are in-charge of
+                    $isOwner = (int) $report->user_id === (int) $user->id;
+                    $isInCharge = $report->project && (int) $report->project->in_charge === (int) $user->id;
+                    if ($isOwner || $isInCharge) {
                         $hasAccess = true;
                     }
                     break;
@@ -304,10 +322,9 @@ class ExportReportController extends Controller
                 );
             }
 
-            // Get associated project and budgets using project-type-specific method
             $project = Project::where('project_id', $report->project_id)->first();
 
-            // Get actual account details from the report instead of project budgets
+            // SOA rows from saved report account details (canonical persisted values, not project budget re-fetch)
             $budgets = $report->accountDetails;
 
             // Group photos by activity (and Unassigned) for DOC
@@ -401,21 +418,6 @@ class ExportReportController extends Controller
 
         return $groupedPhotos;
     }
-
-    /**
-     * Get budget data based on project type
-     */
-    private function getBudgetDataByProjectType($project)
-    {
-        if (!$project) {
-            return collect();
-        }
-
-        return \App\Services\Budget\BudgetCalculationService::getBudgetsForExport($project);
-    }
-
-    // Budget calculation methods removed - now using BudgetCalculationService
-    // See: app/Services/Budget/BudgetCalculationService.php
 
     // General info
     private function addGeneralInfoSection(PhpWord $phpWord, $report, $project)
@@ -540,18 +542,14 @@ class ExportReportController extends Controller
 
             $table->addRow();
             $table->addCell(1000)->addText("S.No.", ['bold' => true]);
-            $table->addCell(3000)->addText("Trainee Name", ['bold' => true]);
-            $table->addCell(2000)->addText("Age", ['bold' => true]);
-            $table->addCell(3000)->addText("Skill Training", ['bold' => true]);
-            $table->addCell(3000)->addText("Progress", ['bold' => true]);
+            $table->addCell(6000)->addText("Education of Trainees", ['bold' => true]);
+            $table->addCell(3000)->addText("Number", ['bold' => true]);
 
             foreach ($traineeProfiles as $index => $profile) {
                 $table->addRow();
                 $table->addCell(1000)->addText($index + 1);
-                $table->addCell(3000)->addText($profile->trainee_name ?? 'N/A');
-                $table->addCell(2000)->addText($profile->age ?? 'N/A');
-                $table->addCell(3000)->addText($profile->skill_training ?? 'N/A');
-                $table->addCell(3000)->addText($profile->progress ?? 'N/A');
+                $table->addCell(6000)->addText($profile->education_category ?? 'N/A');
+                $table->addCell(3000)->addText((string)($profile->number ?? 0));
             }
         } else {
             $section->addText("No trainee profile data available.", ['italic' => true]);
@@ -573,18 +571,16 @@ class ExportReportController extends Controller
 
             $table->addRow();
             $table->addCell(1000)->addText("S.No.", ['bold' => true]);
-            $table->addCell(3000)->addText("Inmate Name", ['bold' => true]);
-            $table->addCell(2000)->addText("Age", ['bold' => true]);
-            $table->addCell(3000)->addText("Reason for Admission", ['bold' => true]);
+            $table->addCell(4000)->addText("Age Category", ['bold' => true]);
             $table->addCell(3000)->addText("Status", ['bold' => true]);
+            $table->addCell(2000)->addText("Number", ['bold' => true]);
 
             foreach ($inmateProfiles as $index => $profile) {
                 $table->addRow();
                 $table->addCell(1000)->addText($index + 1);
-                $table->addCell(3000)->addText($profile->inmate_name ?? 'N/A');
-                $table->addCell(2000)->addText($profile->age ?? 'N/A');
-                $table->addCell(3000)->addText($profile->reason_for_admission ?? 'N/A');
-                $table->addCell(3000)->addText($profile->status ?? 'N/A');
+                $table->addCell(4000)->addText($profile->age_category ?? 'N/A');
+                $table->addCell(3000)->addText($profile->status ? ucfirst($profile->status) : 'N/A');
+                $table->addCell(2000)->addText((string)($profile->number ?? 0));
             }
         } else {
             $section->addText("No inmate profile data available.", ['italic' => true]);

@@ -22,44 +22,44 @@
                         </div>
                         <div class="col-md-11">
                             <label for="dla_beneficiary_name[{{ $index }}]" class="form-label">Name of the Beneficiary</label>
-                            <input type="text" name="dla_beneficiary_name[{{ $index }}]" class="form-control" value="{{ $annexure->dla_beneficiary_name }}" style="background-color: #202ba3;">
+                            <input type="text" name="dla_beneficiary_name[{{ $index }}]" class="form-control" value="{{ $annexure->dla_beneficiary_name }}" class="form-control report-active-input">
                         </div>
                     </div>
                     <!-- Repeat for other fields -->
                     <!-- Date of support given -->
                     <div class="mb-3">
                         <label for="dla_support_date[{{ $index }}]" class="form-label">Date of support given</label>
-                        <input type="date" name="dla_support_date[{{ $index }}]" class="form-control" value="{{ $annexure->dla_support_date }}" style="background-color: #202ba3;">
+                        <input type="date" name="dla_support_date[{{ $index }}]" class="form-control" value="{{ $annexure->dla_support_date }}" class="form-control report-active-input">
                     </div>
                     <!-- Nature of self-employment -->
                     <div class="mb-3">
                         <label for="dla_self_employment[{{ $index }}]" class="form-label">Nature of self-employment</label>
-                        <input type="text" name="dla_self_employment[{{ $index }}]" class="form-control" value="{{ $annexure->dla_self_employment }}" style="background-color: #202ba3;">
+                        <input type="text" name="dla_self_employment[{{ $index }}]" class="form-control" value="{{ $annexure->dla_self_employment }}" class="form-control report-active-input">
                     </div>
                     <!-- Amount sanctioned -->
                     <div class="mb-3">
                         <label for="dla_amount_sanctioned[{{ $index }}]" class="form-label">Amount sanctioned</label>
-                        <input type="number" name="dla_amount_sanctioned[{{ $index }}]" class="form-control" value="{{ $annexure->dla_amount_sanctioned }}" style="background-color: #202ba3;">
+                        <input type="number" name="dla_amount_sanctioned[{{ $index }}]" class="form-control" value="{{ $annexure->dla_amount_sanctioned }}" class="form-control report-active-input">
                     </div>
                     <!-- Monetary profit gained - Monthly -->
                     <div class="mb-3">
                         <label for="dla_monthly_profit[{{ $index }}]" class="form-label">Monetary profit gained - Monthly</label>
-                        <input type="number" name="dla_monthly_profit[{{ $index }}]" class="form-control" value="{{ $annexure->dla_monthly_profit }}" style="background-color: #202ba3;">
+                        <input type="number" name="dla_monthly_profit[{{ $index }}]" class="form-control" value="{{ $annexure->dla_monthly_profit }}" class="form-control report-active-input">
                     </div>
                     <!-- Monetary profit gained - Per annum -->
                     <div class="mb-3">
                         <label for="dla_annual_profit[{{ $index }}]" class="form-label">Monetary profit gained - Per annum</label>
-                        <input type="number" name="dla_annual_profit[{{ $index }}]" class="form-control" value="{{ $annexure->dla_annual_profit }}" style="background-color: #202ba3;">
+                        <input type="number" name="dla_annual_profit[{{ $index }}]" class="form-control" value="{{ $annexure->dla_annual_profit }}" class="form-control report-active-input">
                     </div>
                     <!-- Project’s impact in the life of the beneficiary -->
                     <div class="mb-3">
                         <label for="dla_impact[{{ $index }}]" class="form-label">Project’s impact in the life of the beneficiary</label>
-                        <textarea name="dla_impact[{{ $index }}]" class="form-control auto-resize-textarea" style="background-color: #202ba3;">{{ $annexure->dla_impact }}</textarea>
+                        <textarea name="dla_impact[{{ $index }}]" class="form-control auto-resize-textarea report-active-input">{{ $annexure->dla_impact }}</textarea>
                     </div>
                     <!-- Challenges faced if any -->
                     <div class="mb-3">
                         <label for="dla_challenges[{{ $index }}]" class="form-label">Challenges faced if any is it</label>
-                        <textarea name="dla_challenges[{{ $index }}]" class="form-control auto-resize-textarea" style="background-color: #202ba3;">{{ $annexure->dla_challenges }}</textarea>
+                        <textarea name="dla_challenges[{{ $index }}]" class="form-control auto-resize-textarea report-active-input">{{ $annexure->dla_challenges }}</textarea>
                     </div>
                 </div>
             </div>
@@ -90,43 +90,43 @@
                         </div>
                         <div class="col-md-11">
                             <label for="dla_beneficiary_name[${currentIndex}]" class="form-label">Name of the Beneficiary</label>
-                            <input type="text" name="dla_beneficiary_name[${currentIndex}]" class="form-control" style="background-color: #202ba3;">
+                            <input type="text" name="dla_beneficiary_name[${currentIndex}]" class="form-control report-active-input">
                         </div>
                     </div>
                     <!-- Date of support given -->
                     <div class="mb-3">
                         <label for="dla_support_date[${currentIndex}]" class="form-label">Date of support given</label>
-                        <input type="date" name="dla_support_date[${currentIndex}]" class="form-control" style="background-color: #202ba3;">
+                        <input type="date" name="dla_support_date[${currentIndex}]" class="form-control report-active-input">
                     </div>
                     <!-- Nature of self-employment -->
                     <div class="mb-3">
                         <label for="dla_self_employment[${currentIndex}]" class="form-label">Nature of self-employment</label>
-                        <input type="text" name="dla_self_employment[${currentIndex}]" class="form-control" style="background-color: #202ba3;">
+                        <input type="text" name="dla_self_employment[${currentIndex}]" class="form-control report-active-input">
                     </div>
                     <!-- Amount sanctioned -->
                     <div class="mb-3">
                         <label for="dla_amount_sanctioned[${currentIndex}]" class="form-label">Amount sanctioned</label>
-                        <input type="number" name="dla_amount_sanctioned[${currentIndex}]" class="form-control" style="background-color: #202ba3;">
+                        <input type="number" name="dla_amount_sanctioned[${currentIndex}]" class="form-control report-active-input">
                     </div>
                     <!-- Monetary profit gained - Monthly -->
                     <div class="mb-3">
                         <label for="dla_monthly_profit[${currentIndex}]" class="form-label">Monetary profit gained - Monthly</label>
-                        <input type="number" name="dla_monthly_profit[${currentIndex}]" class="form-control" style="background-color: #202ba3;">
+                        <input type="number" name="dla_monthly_profit[${currentIndex}]" class="form-control report-active-input">
                     </div>
                     <!-- Monetary profit gained - Per annum -->
                     <div class="mb-3">
                         <label for="dla_annual_profit[${currentIndex}]" class="form-label">Monetary profit gained - Per annum</label>
-                        <input type="number" name="dla_annual_profit[${currentIndex}]" class="form-control" style="background-color: #202ba3;">
+                        <input type="number" name="dla_annual_profit[${currentIndex}]" class="form-control report-active-input">
                     </div>
                     <!-- Project’s impact in the life of the beneficiary -->
                     <div class="mb-3">
                         <label for="dla_impact[${currentIndex}]" class="form-label">Project’s impact in the life of the beneficiary</label>
-                        <textarea name="dla_impact[${currentIndex}]" class="form-control auto-resize-textarea" style="background-color: #202ba3;"></textarea>
+                        <textarea name="dla_impact[${currentIndex}]" class="form-control auto-resize-textarea report-active-input"></textarea>
                     </div>
                     <!-- Challenges faced if any -->
                     <div class="mb-3">
                         <label for="dla_challenges[${currentIndex}]" class="form-label">Challenges faced if any is it</label>
-                        <textarea name="dla_challenges[${currentIndex}]" class="form-control auto-resize-textarea" style="background-color: #202ba3;"></textarea>
+                        <textarea name="dla_challenges[${currentIndex}]" class="form-control auto-resize-textarea report-active-input"></textarea>
                     </div>
                 </div>
             </div>

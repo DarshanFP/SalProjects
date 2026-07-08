@@ -25,7 +25,7 @@ class DPReportFactory extends Factory
             'status' => \App\Models\Reports\Monthly\DPReport::STATUS_DRAFT,
             'project_type' => \App\Constants\ProjectType::DEVELOPMENT_PROJECTS,
             'project_title' => fake()->sentence(4),
-            'report_month_year' => now()->format('Y-m'),
+            'report_month_year' => now()->startOfMonth()->format('Y-m-d'),
         ];
     }
 }

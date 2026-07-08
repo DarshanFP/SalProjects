@@ -17,7 +17,7 @@
                                class="form-control @error("attachment_files.$index") is-invalid @enderror"
                                accept=".pdf, .doc, .docx, .xls, .xlsx"
                                onchange="validateAttachmentFile(this, {{ $index }})"
-                               style="background-color: #202ba3;">
+                               class="form-control report-active-input">
                         <small class="text-muted">(Max 2MB. Allowed: PDF, DOC, DOCX, XLS, XLSX)</small>
                         @error("attachment_files.$index")
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -29,7 +29,7 @@
                                class="form-control @error("attachment_names.$index") is-invalid @enderror"
                                placeholder="Enter descriptive name"
                                value="{{ old("attachment_names.$index") }}"
-                               style="background-color: #202ba3;">
+                               class="form-control report-active-input">
                         @error("attachment_names.$index")
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -128,7 +128,7 @@ function addAttachment() {
                                class="form-control"
                                accept=".pdf, .doc, .docx, .xls, .xlsx"
                                onchange="validateAttachmentFile(this, ${index})"
-                               style="background-color: #202ba3;">
+                               class="form-control report-active-input">
                         <small class="text-muted">(Max 2MB. Allowed: PDF, DOC, DOCX, XLS, XLSX)</small>
                     </div>
                     <div class="col-md-4">
@@ -136,7 +136,7 @@ function addAttachment() {
                         <input type="text" name="attachment_names[]" id="attachment_name_${index}"
                                class="form-control"
                                placeholder="Enter descriptive name"
-                               style="background-color: #202ba3;">
+                               class="form-control report-active-input">
                     </div>
                     <div class="col-md-4">
                         <label for="attachment_description_${index}" class="form-label">Description</label>

@@ -7,9 +7,9 @@
         <div class="mb-3">
             <label for="account_period" class="form-label">Account Statement Period:</label>
             <div class="d-flex">
-                <input type="date" name="account_period_start" class="form-control" value="{{ old('account_period_start', $report->account_period_start) }}" style="background-color: #202ba3;">
+                <input type="date" name="account_period_start" class="form-control" value="{{ old('account_period_start', $report->account_period_start) }}" class="form-control report-active-input">
                 <span class="mx-2">to</span>
-                <input type="date" name="account_period_end" class="form-control" value="{{ old('account_period_end', $report->account_period_end) }}" style="background-color: #202ba3;">
+                <input type="date" name="account_period_end" class="form-control" value="{{ old('account_period_end', $report->account_period_end) }}" class="form-control report-active-input">
             </div>
         </div>
         <div class="mb-3">
@@ -46,7 +46,7 @@
                         <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ old('amount_sanctioned.' . $index, $accountDetail->amount_sanctioned) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
                         <td><input type="number" name="total_amount[]" class="form-control" value="{{ old('total_amount.' . $index, $accountDetail->amount_forwarded + $accountDetail->amount_sanctioned) }}" readonly></td>
                         <td><input type="number" name="expenses_last_month[]" class="form-control" value="{{ old('expenses_last_month.' . $index, $accountDetail->expenses_last_month) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
-                        <td><input type="number" name="expenses_this_month[]" class="form-control" value="{{ old('expenses_this_month.' . $index, $accountDetail->expenses_this_month) }}" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
+                        <td><input type="number" name="expenses_this_month[]" class="form-control" value="{{ old('expenses_this_month.' . $index, $accountDetail->expenses_this_month) }}" oninput="calculateRowTotals(this.closest('tr'))" class="form-control report-active-input"></td>
                         <td><input type="number" name="total_expenses[]" class="form-control" value="{{ old('total_expenses.' . $index, $accountDetail->total_expenses) }}" readonly></td>
                         <td><input type="number" name="balance_amount[]" class="form-control" value="{{ old('balance_amount.' . $index, $accountDetail->balance_amount) }}" readonly></td>
                         <td>
@@ -189,12 +189,12 @@ function addAccountRow() {
         <input type="hidden" name="account_detail_id[${currentRowCount}]" value="">
         <input type="hidden" name="is_budget_row[${currentRowCount}]" value="0">
         <td>${currentRowCount + 1}</td>
-        <td><input type="text" name="particulars[]" class="form-control" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="amount_forwarded[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="amount_sanctioned[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
+        <td><input type="text" name="particulars[]" class="form-control report-active-input"></td>
+        <td><input type="number" name="amount_forwarded[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" class="form-control report-active-input"></td>
+        <td><input type="number" name="amount_sanctioned[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" class="form-control report-active-input"></td>
         <td><input type="number" name="total_amount[]" class="form-control" readonly></td>
-        <td><input type="number" name="expenses_last_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="expenses_this_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
+        <td><input type="number" name="expenses_last_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" class="form-control report-active-input"></td>
+        <td><input type="number" name="expenses_this_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" class="form-control report-active-input"></td>
         <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
         <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>
         <td><button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button></td>

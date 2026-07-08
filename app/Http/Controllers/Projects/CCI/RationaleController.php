@@ -68,10 +68,16 @@ class RationaleController extends Controller
         try {
             Log::info('Editing CCI Rationale', ['project_id' => $projectId]);
 
-            $rationale = ProjectCCIRationale::where('project_id', $projectId)->firstOrFail();
+            $rationale = ProjectCCIRationale::where('project_id', $projectId)->first();
+
+            if (! $rationale) {
+                Log::warning('No CCI Rationale record found; using empty model for edit form', ['project_id' => $projectId]);
+                $rationale = new ProjectCCIRationale(['project_id' => $projectId]);
+            }
+
             return $rationale;
         } catch (\Exception $e) {
-            Log::error('Error editing CCI Rationale', ['error' => $e->getMessage()]);
+            Log::error('Error editing CCI Rationale', ['project_id' => $projectId, 'error' => $e->getMessage()]);
             return null;
         }
     }

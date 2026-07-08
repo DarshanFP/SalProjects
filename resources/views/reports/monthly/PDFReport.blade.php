@@ -14,6 +14,20 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             border: 1px solid #ddd;
+            page-break-inside: auto;
+        }
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        thead {
+            display: table-header-group;
+        }
+        tfoot {
+            display: table-footer-group;
+        }
+        .section-header {
+            page-break-after: avoid;
         }
         .info-table td, .details-table td, .activities-table td, .account-table td {
             padding: 5px 10px;
@@ -49,7 +63,7 @@
         }
         .budget-row { background-color: #e8f4fd; }
         .budget-badge {
-            background-color: #17a2b8;
+            background-color: #0f766e;
             color: white;
             padding: 2px 6px;
             border-radius: 3px;
@@ -403,6 +417,138 @@
         <div class="no-photos">
             <p>No photos or documentation found for this report.</p>
         </div>
+    @endif
+
+    <!-- Type-Specific Annexures & Profiles -->
+    @if(isset($annexures) && count($annexures) > 0)
+        <div class="section-header">Project's Impact in the Life of the Beneficiaries</div>
+        @foreach($annexures as $index => $annexure)
+            <div style="margin-bottom: 15px; page-break-inside: avoid;">
+                <div style="font-weight: bold; background-color: #e9ecef; padding: 5px; margin-bottom: 5px;">Impact {{ $index + 1 }}</div>
+                <table class="details-table" style="margin-bottom: 10px;">
+                    <tr><td class="details-label">Beneficiary Name</td><td>{{ $annexure->dla_beneficiary_name }}</td></tr>
+                    <tr><td class="details-label">Date of Support</td><td>{{ \Carbon\Carbon::parse($annexure->dla_support_date)->format('d-m-Y') }}</td></tr>
+                    <tr><td class="details-label">Self-Employment Nature</td><td>{{ $annexure->dla_self_employment }}</td></tr>
+                    <tr><td class="details-label">Amount Sanctioned</td><td>{{ format_indian($annexure->dla_amount_sanctioned ?? 0, 2) }}</td></tr>
+                    <tr><td class="details-label">Monthly Profit Gained</td><td>{{ format_indian($annexure->dla_monthly_profit ?? 0, 2) }}</td></tr>
+                    <tr><td class="details-label">Annual Profit Gained</td><td>{{ format_indian($annexure->dla_annual_profit ?? 0, 2) }}</td></tr>
+                    <tr><td class="details-label">Impact</td><td>{{ $annexure->dla_impact }}</td></tr>
+                    <tr><td class="details-label">Challenges Faced</td><td>{{ $annexure->dla_challenges }}</td></tr>
+                </table>
+            </div>
+        @endforeach
+    @endif
+
+    @if(isset($ageProfiles) && count($ageProfiles) > 0)
+        <div class="section-header">Age Profile of Children in the Institution</div>
+        <table class="account-table">
+            <tr class="header-row">
+                <td>Age Group</td>
+                <td>Education</td>
+                <td>Up to Previous Year</td>
+                <td>Present Academic Year</td>
+            </tr>
+            @php
+                $ageGroups = [
+                    'Children below 5 years' => 'below_5',
+                    'Children between 6 to 10 years' => '6_10',
+                    'Children between 11 to 15 years' => '11_15',
+                    '16 and above' => '16_above',
+                ];
+                $ageProfilesGrouped = $ageProfiles->groupBy('age_group');
+            @endphp
+            @foreach($ageGroups as $ageGroup => $prefix)
+                @php
+                    $ageGroupData = $ageProfilesGrouped->get($ageGroup, collect());
+                    $ageGroupEntries = $ageGroupData->where('education', '!=', 'Total')->values();
+                    $totalEntry = $ageGroupData->where('education', 'Total')->first();
+                @endphp
+                @foreach($ageGroupEntries as $entry)
+                    <tr>
+                        <td>{{ $ageGroup }}</td>
+                        <td>{{ $entry->education }}</td>
+                        <td>{{ $entry->up_to_previous_year }}</td>
+                        <td>{{ $entry->present_academic_year }}</td>
+                    </tr>
+                @endforeach
+                @if($totalEntry)
+                    <tr class="budget-row">
+                        <td colspan="2"><strong>Total {{ $ageGroup }}</strong></td>
+                        <td><strong>{{ $totalEntry->up_to_previous_year }}</strong></td>
+                        <td><strong>{{ $totalEntry->present_academic_year }}</strong></td>
+                    </tr>
+                @endif
+            @endforeach
+            @php
+                $grandTotalEntry = $ageProfiles->where('age_group', 'All Categories')->where('education', 'Grand Total')->first();
+            @endphp
+            @if($grandTotalEntry)
+                <tr class="total-row">
+                    <td colspan="2"><strong>Grand Total</strong></td>
+                    <td><strong>{{ $grandTotalEntry->up_to_previous_year }}</strong></td>
+                    <td><strong>{{ $grandTotalEntry->present_academic_year }}</strong></td>
+                </tr>
+            @endif
+        </table>
+    @endif
+
+    @if(isset($report->education) && !empty($report->education))
+        <div class="section-header">Information about the Trainees</div>
+        <table class="account-table">
+            <tr class="header-row">
+                <td>Education of Trainees</td>
+                <td>Number</td>
+            </tr>
+            <tr><td>Below 9th standard</td><td>{{ $report->education['below_9'] ?? 0 }}</td></tr>
+            <tr><td>10th class failed</td><td>{{ $report->education['class_10_fail'] ?? 0 }}</td></tr>
+            <tr><td>10th class passed</td><td>{{ $report->education['class_10_pass'] ?? 0 }}</td></tr>
+            <tr><td>Intermediate</td><td>{{ $report->education['intermediate'] ?? 0 }}</td></tr>
+            <tr><td>Intermediate and above</td><td>{{ $report->education['above_intermediate'] ?? 0 }}</td></tr>
+            <tr><td>{{ $report->education['other'] ?? 'Other (if any)' }}</td><td>{{ $report->education['other_count'] ?? 0 }}</td></tr>
+            <tr class="total-row"><td><strong>Total</strong></td><td><strong>{{ $report->education['total'] ?? 0 }}</strong></td></tr>
+        </table>
+    @endif
+
+    @if(isset($inmateProfiles) && count($inmateProfiles) > 0)
+        <div class="section-header">Profile of Inmates for the Last Four Months</div>
+        <table class="account-table">
+            <tr class="header-row">
+                <td>Age Category</td>
+                <td>Status</td>
+                <td>Number</td>
+            </tr>
+            @php
+                $cicGroups = [
+                    'Children below 18 yrs' => 'children_below_18',
+                    'Women between 18 – 30 years' => 'women_18_30',
+                    'Women between 31 – 50 years' => 'women_31_50',
+                    'Women above 50' => 'women_above_50',
+                ];
+                $cicStatuses = ['unmarried', 'married', 'divorcee', 'deserted'];
+                $cicProfilesGrouped = $inmateProfiles->groupBy('age_category');
+            @endphp
+            @foreach($cicGroups as $ageGroupName => $ageGroupKey)
+                @php
+                    $profiles = $cicProfilesGrouped->get($ageGroupName, collect());
+                    $profilesByStatus = $profiles->groupBy(fn($item) => strtolower(trim($item->status)));
+                @endphp
+                @foreach($cicStatuses as $status)
+                    @php $cnt = $profilesByStatus->get(strtolower($status))?->sum('number') ?? 0; @endphp
+                    <tr>
+                        <td>{{ $ageGroupName }}</td>
+                        <td>{{ ucfirst($status) }}</td>
+                        <td>{{ $cnt }}</td>
+                    </tr>
+                @endforeach
+                @php
+                    $tot = $profilesByStatus->get('total')?->sum('number') ?? 0;
+                @endphp
+                <tr class="budget-row">
+                    <td colspan="2"><strong>Total {{ $ageGroupName }}</strong></td>
+                    <td><strong>{{ $tot }}</strong></td>
+                </tr>
+            @endforeach
+        </table>
     @endif
 
     <!-- Comments by Project Monitoring Committee (PMC) -->

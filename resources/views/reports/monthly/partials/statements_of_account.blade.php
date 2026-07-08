@@ -3,6 +3,7 @@
     // Map project types to partial names
     $projectTypeMap = [
         'Development Projects' => 'development_projects',
+        'NEXT PHASE - DEVELOPMENT PROPOSAL' => 'development_projects',
         'Livelihood Development Projects' => 'development_projects',
         'Individual - Livelihood Application' => 'individual_livelihood',
         'Individual - Access to Health' => 'individual_health',

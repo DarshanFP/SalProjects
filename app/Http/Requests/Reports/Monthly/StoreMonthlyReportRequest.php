@@ -2,17 +2,78 @@
 
 namespace App\Http\Requests\Reports\Monthly;
 
+use App\Models\OldProjects\Project;
+use App\Models\Reports\Monthly\DPReport;
+use App\Services\Reports\MonthlyReportCreateAuthorization;
 use Illuminate\Foundation\Http\FormRequest;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class StoreMonthlyReportRequest extends FormRequest
 {
+    private ?string $authFailureReason = null;
+
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return auth()->check() && in_array(auth()->user()->role, ['executor', 'applicant']);
+        $context = [
+            'user_id' => auth()->id(),
+            'user_role' => auth()->user()?->role,
+            'project_id' => $this->input('project_id'),
+        ];
+
+        if (!auth()->check()) {
+            $this->authFailureReason = 'unauthenticated';
+            Log::warning('Monthly report store denied: user not authenticated', $context);
+
+            return false;
+        }
+
+        $user = auth()->user();
+        if (!in_array($user->role, ['executor', 'applicant'], true)) {
+            $this->authFailureReason = 'invalid_role';
+            Log::warning('Monthly report store denied: invalid role', $context);
+
+            return false;
+        }
+
+        $projectId = $this->input('project_id');
+        if (!$projectId) {
+            $this->authFailureReason = 'missing_project_id';
+            Log::warning('Monthly report store denied: missing project_id', $context);
+
+            return false;
+        }
+
+        $project = Project::where('project_id', $projectId)->first();
+        if (!$project) {
+            $this->authFailureReason = 'project_not_found';
+            Log::warning('Monthly report store denied: project not found', $context);
+
+            return false;
+        }
+
+        $result = MonthlyReportCreateAuthorization::check($user, $project);
+        if (!$result['allowed']) {
+            $this->authFailureReason = $result['reason'];
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function failedAuthorization(): void
+    {
+        Log::warning('Monthly report store authorization failed', [
+            'user_id' => auth()->id(),
+            'user_role' => auth()->user()?->role,
+            'project_id' => $this->input('project_id'),
+            'auth_failure_reason' => $this->authFailureReason,
+        ]);
+
+        parent::failedAuthorization();
     }
 
     /**
@@ -178,27 +239,40 @@ class StoreMonthlyReportRequest extends FormRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            // Skip date validation for draft saves
             $isDraft = $this->has('save_as_draft') && $this->input('save_as_draft') == '1';
-            if ($isDraft) {
-                return;
-            }
-
-            // Validate that report month/year is not in the future (beyond current month)
             $reportMonth = $this->input('report_month');
             $reportYear = $this->input('report_year');
+            $projectId = $this->input('project_id');
 
-            if ($reportMonth && $reportYear) {
+            if (!$isDraft && $reportMonth && $reportYear) {
                 try {
                     $reportDate = Carbon::create($reportYear, $reportMonth, 1)->startOfMonth();
-                    $currentDate = Carbon::now()->startOfMonth();
                     $nextMonth = Carbon::now()->addMonth()->startOfMonth();
 
-                    // Report cannot be for a month more than 1 month in the future
                     if ($reportDate->isAfter($nextMonth)) {
                         $validator->errors()->add(
                             'report_month',
                             'Reporting month cannot be more than one month in the future.'
+                        );
+                    }
+                } catch (\Exception $e) {
+                    $validator->errors()->add(
+                        'report_month',
+                        'Invalid reporting month and year combination.'
+                    );
+                }
+            }
+
+            if ($projectId && $reportMonth && $reportYear) {
+                try {
+                    if (MonthlyReportCreateAuthorization::reportExistsForPeriod(
+                        $projectId,
+                        (int) $reportMonth,
+                        (int) $reportYear
+                    )) {
+                        $validator->errors()->add(
+                            'report_month',
+                            'A report already exists for this project and reporting period.'
                         );
                     }
                 } catch (\Exception $e) {

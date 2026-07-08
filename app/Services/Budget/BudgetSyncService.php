@@ -5,10 +5,11 @@ namespace App\Services\Budget;
 use App\Models\OldProjects\Project;
 
 /**
- * Budget Sync Service (Phase 2)
+ * Budget Sync Service (Phase 2 / Phase 4)
  *
  * Controlled, explicit writes to `projects` for PRE-APPROVAL projects only.
  * Populates canonical project-level budget fields so approval and reporting read correct data.
+ * Phase 4 adds explicit repair for approved projects with stale fund fields.
  * All writes are guarded, feature-flagged, and logged.
  *
  * @see Documentations/V1/Basic Info fund Mapping Issue/PHASE_WISE_BUDGET_ALIGNMENT_IMPLEMENTATION_PLAN.md
@@ -17,9 +18,14 @@ class BudgetSyncService
 {
     protected ProjectFundFieldsResolver $resolver;
 
-    public function __construct(ProjectFundFieldsResolver $resolver)
-    {
+    protected ApprovedProjectFundFieldAudit $fundFieldAudit;
+
+    public function __construct(
+        ProjectFundFieldsResolver $resolver,
+        ApprovedProjectFundFieldAudit $fundFieldAudit
+    ) {
         $this->resolver = $resolver;
+        $this->fundFieldAudit = $fundFieldAudit;
     }
 
     /**
@@ -131,6 +137,58 @@ class BudgetSyncService
         BudgetAuditLogger::logSync(
             $project->project_id ?? $project->id,
             'pre_approval',
+            $oldValues,
+            $this->getStoredValues($project->fresh()),
+            $project->project_type ?? ''
+        );
+
+        return true;
+    }
+
+    /**
+     * Repair approved project fund fields from type-specific source tables (Phase 4).
+     * Explicit CLI/admin action — not gated by sync feature flags.
+     *
+     * @param Project $project Must have relations needed by resolver loaded or loadable.
+     * @param string $trigger Audit log trigger label (e.g. cli_repair, admin_accept_suggested)
+     * @return bool True when an update was performed
+     */
+    public function repairApprovedProject(Project $project, string $trigger = 'approved_repair'): bool
+    {
+        if (!$project->isApproved()) {
+            BudgetAuditLogger::logGuardRejection(
+                $project->project_id ?? $project->id,
+                'approved_repair: project is not approved'
+            );
+            return false;
+        }
+
+        $financialResolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        $resolved = $financialResolver->resolveTypeDerivedFundFields($project);
+        $oldValues = $this->getStoredValues($project);
+
+        if (!$this->fundFieldAudit->needsRepair($oldValues, $resolved)) {
+            return false;
+        }
+
+        if (($resolved['amount_sanctioned'] ?? 0) <= ApprovedProjectFundFieldAudit::TOLERANCE) {
+            BudgetAuditLogger::logGuardRejection(
+                $project->project_id ?? $project->id,
+                'approved_repair: type-derived amount_sanctioned is zero — skipped'
+            );
+            return false;
+        }
+
+        $updatePayload = [];
+        foreach (ApprovedProjectFundFieldAudit::FUND_KEYS as $key) {
+            $updatePayload[$key] = $resolved[$key] ?? $oldValues[$key];
+        }
+
+        $project->update($updatePayload);
+
+        BudgetAuditLogger::logSync(
+            $project->project_id ?? $project->id,
+            $trigger,
             $oldValues,
             $this->getStoredValues($project->fresh()),
             $project->project_type ?? ''

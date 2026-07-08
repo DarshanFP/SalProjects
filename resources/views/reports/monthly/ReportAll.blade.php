@@ -34,11 +34,11 @@
                         </div>
                         <div class="mb-3">
                             <label for="place" class="form-label">Place</label>
-                            <input type="text" name="place" class="form-control readonly-input" value="{{ $user->center }}" readonly>
+                            <input type="text" name="place" class="form-control readonly-input" value="{{ $reportBasicInfo['place'] ?? $project->place }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label for="society_name" class="form-label">Name of the Society / Trust</label>
-                            <input type="text" name="society_name" class="form-control readonly-input" value="{{ $user->society_name }}" readonly>
+                            <input type="text" name="society_name" class="form-control readonly-input" value="{{ $reportBasicInfo['society_name'] ?? '' }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label for="commencement_month_year" class="form-label">Month & Year of Commencement of the Project</label>
@@ -50,18 +50,18 @@
                         </div>
                         <div class="mb-3">
                             <label for="total_beneficiaries" class="form-label">Total No. of Beneficiaries</label>
-                            <input type="number" name="total_beneficiaries" class="form-control" style="background-color: #202ba3;">
+                            <input type="number" name="total_beneficiaries" class="form-control report-active-input">
                         </div>
                         <div class="mb-3">
                             <label for="report_month_year" class="form-label">Reporting Month & Year</label>
                             <div class="d-flex">
-                                <select name="report_month" id="report_month" class="form-control select-input me-2 @error('report_month') is-invalid @enderror" style="background-color: #202ba3;">
+                                <select name="report_month" id="report_month" class="form-control select-input me-2 @error('report_month') is-invalid @enderror" class="form-control report-active-input">
                                     <option value="" disabled selected>Select Month</option>
                                     @foreach (range(1, 12) as $month)
                                         <option value="{{ $month }}" {{ old('report_month') == $month ? 'selected' : '' }}>{{ date('F', mktime(0, 0, 0, $month, 1)) }}</option>
                                     @endforeach
                                 </select>
-                                <select name="report_year" id="report_year" class="form-control select-input @error('report_year') is-invalid @enderror" style="background-color: #202ba3;">
+                                <select name="report_year" id="report_year" class="form-control select-input @error('report_year') is-invalid @enderror" class="form-control report-active-input">
                                     <option value="" disabled selected>Select Year</option>
                                     @for ($year = date('Y'); $year >= 2020; $year--)
                                         <option value="{{ $year }}" {{ old('report_year') == $year ? 'selected' : '' }}>{{ $year }}</option>
@@ -85,40 +85,8 @@
                 @elseif($project->project_type === 'PROJECT PROPOSAL FOR CRISIS INTERVENTION CENTER')
                     @include('reports.monthly.partials.create.crisis_intervention_center', ['report' => $project])
 
-
-
-{{--
-                @elseif($project->project_type === 'CHILD CARE INSTITUTION')
-                    @include('reports.monthly.partials.create.child_care_institution', ['report' => $project])
-
-                @elseif($project->project_type === 'Rural-Urban-Tribal')
-                    @include('reports.monthly.partials.rural_urban_tribal', ['report' => $project])
-
-                @elseif($project->project_type === 'NEXT PHASE - DEVELOPMENT PROPOSAL')
-                    @include('reports.monthly.partials.next_phase_development', ['report' => $project])
-
-
-                @elseif($project->project_type === 'Individual - Ongoing Educational support')
-                    @include('reports.monthly.partials.individual_ongoing_educational', ['report' => $project])
-
-                @elseif($project->project_type === 'Individual - Livelihood Application')
-                    @include('reports.monthly.partials.individual_livelihood', ['report' => $project])
-
-                @elseif($project->project_type === 'Individual - Access to Health')
-                    @include('reports.monthly.partials.individual_access_health', ['report' => $project])
-
-                @elseif($project->project_type === 'Individual - Initial - Educational support')
-                    @include('reports.monthly.partials.individual_initial_educational', ['report' => $project]) --}}
-
-
-                    @endif
-
-                    <!-- already in ReportAll.blade.php -->
-                {{-- @elseif($project->project_type === 'Development Projects')
-                    @include('reports.monthly.partials.development_projects', ['report' => $project]) --}}
-
-                 <!-- Include project type Partial Ends -->
-
+                @endif
+                {{-- CCI, Edu-RUT, NPD, DP, and individual types: no extra top section on create (see Phase6_1 decision matrix). --}}
 
                 <!-- Include Objectives Section Partial -->
                 @include('reports.monthly.partials.create.objectives')
@@ -137,11 +105,11 @@
                         <div class="card-body">
                             <div class="mb-3">
                                 <label for="date[{{ $index }}]" class="form-label">Date</label>
-                                <input type="date" name="date[{{ $index }}]" class="form-control" value="{{ $value }}" style="background-color: #202ba3;">
+                                <input type="date" name="date[{{ $index }}]" class="form-control" value="{{ $value }}" class="form-control report-active-input">
                             </div>
                             <div class="mb-3">
                                 <label for="plan_next_month[{{ $index }}]" class="form-label">Action Plan for Next Month</label>
-                                <textarea name="plan_next_month[{{ $index }}]" class="form-control auto-resize-textarea" rows="3" style="background-color: #202ba3;">{{ old("plan_next_month.$index") }}</textarea>
+                                <textarea name="plan_next_month[{{ $index }}]" class="form-control auto-resize-textarea" rows="3" class="form-control report-active-input">{{ old("plan_next_month.$index") }}</textarea>
                             </div>
                         </div>
                     </div>
@@ -150,80 +118,14 @@
 
                 <button type="button" class="btn btn-primary" onclick="addOutlook()">Add More Outlook</button>
 
-                <!-- Statements of Account Section  -->
-                @if($project->project_type === 'Individual - Initial - Educational support')
-                    @include('reports.monthly.partials.statements_of_account.individual_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'project' => $project])
-                @elseif($project->project_type === 'Individual - Ongoing Educational support')
-                    @include('reports.monthly.partials.statements_of_account.individual_ongoing_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'project' => $project])
-                @elseif($project->project_type === 'Individual - Livelihood Application')
-                    @include('reports.monthly.partials.statements_of_account.individual_livelihood', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'project' => $project])
-                @elseif($project->project_type === 'Individual - Access to Health')
-                    @include('reports.monthly.partials.statements_of_account.individual_health', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'project' => $project])
-                @elseif($project->project_type === 'Institutional - Initial - Educational support')
-                    @include('reports.monthly.partials.statements_of_account.institutional_education', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'project' => $project])
-                @elseif($project->project_type === 'Development Projects')
-                    @include('reports.monthly.partials.statements_of_account.development_projects', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'project' => $project])
-                @else
-                    {{-- Fallback to generic for other project types --}}
-                    @include('reports.monthly.partials.create.statements_of_account', ['budgets' => $budgets, 'lastExpenses' => $lastExpenses, 'project' => $project])
-                @endif
-
-
-                <!-- Photos Section -->
-                {{-- <div class="mb-3 card">
-                    <div class="card-header">
-                        <h4>5. Photos</h4>
-                    </div>
-                    <div class="card-body">
-                        <div id="photos-container">
-                            @foreach(old('photo_descriptions', ['']) as $index => $value)
-                            <div class="mb-3 photo-group" data-index="{{ $index }}">
-                                <label for="photo_{{ $index }}" class="form-label">Photo {{ $index + 1 }}</label>
-                                <input type="file" name="photos[]" class="mb-2 form-control" accept="image/*" onchange="checkFileSize(this)" style="background-color: #202ba3;">
-                                <textarea name="photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $value }}</textarea>
-                                <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-                            </div>
-                            @endforeach
-                        </div>
-                        <button type="button" class="mt-3 btn btn-primary" onclick="addPhoto()">Add More Photo</button>
-                    </div>
-                </div> --}}
-                {{-- <div class="mb-3 card">
-                    <div class="card-header">
-                        <h4>5. Photos</h4>
-                    </div>
-                    <div class="card-body">
-                        <div id="photos-container">
-                            @foreach(old('photo_descriptions', ['']) as $index => $value)
-                            <div class="mb-3 photo-group" data-index="{{ $index }}">
-                                <label for="photo_{{ $index }}" class="form-label">Photo {{ $index + 1 }}</label>
-                                <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" style="background-color: #202ba3;">
-                                <textarea name="photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $value }}</textarea>
-                                <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-                            </div>
-                            @endforeach
-                        </div>
-                        <button type="button" class="mt-3 btn btn-primary" onclick="addPhoto()">Add More Photo</button>
-                    </div>
-                </div> --}}
-                {{-- <div class="mb-3 card">
-                    <div class="card-header">
-                        <h4>5. Photos</h4>
-                    </div>
-                    <div class="card-body">
-                        <div id="photos-container">
-                            @foreach(old('photo_descriptions', ['']) as $index => $value)
-                            <div class="mb-3 photo-group" data-index="{{ $index }}">
-                                <label for="photo_{{ $index }}" class="form-label">Photo {{ $index + 1 }}</label>
-                                <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" style="background-color: #202ba3;">
-                                <textarea name="photo_descriptions[]" class="form-control auto-resize-textarea" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;">{{ $value }}</textarea>
-                                <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-                            </div>
-                            @endforeach
-                        </div>
-                        <button type="button" class="mt-3 btn btn-primary" onclick="addPhoto()">Add More Photo</button>
-                    </div>
-                </div> --}}
+                <!-- Statements of Account (type-aware router — all 12 project types) -->
+                @include('reports.monthly.partials.statements_of_account', [
+                    'project' => $project,
+                    'budgets' => $budgets,
+                    'lastExpenses' => $lastExpenses,
+                    'amountSanctioned' => $amountSanctioned,
+                    'amountForwarded' => $amountForwarded,
+                ])
 
                 @include('reports.monthly.partials.create.photos')
 
@@ -262,11 +164,11 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label for="date[${index}]" class="form-label">Date</label>
-                        <input type="date" name="date[${index}]" class="form-control" style="background-color: #202ba3;">
+                        <input type="date" name="date[${index}]" class="form-control report-active-input">
                     </div>
                     <div class="mb-3">
                         <label for="plan_next_month[${index}]" class="form-label">Action Plan for Next Month</label>
-                        <textarea name="plan_next_month[${index}]" class="form-control auto-resize-textarea" rows="3" style="background-color: #202ba3;"></textarea>
+                        <textarea name="plan_next_month[${index}]" class="form-control auto-resize-textarea" rows="3" class="form-control report-active-input"></textarea>
                     </div>
                 </div>
             </div>
@@ -349,215 +251,8 @@
         reindexOutlooks();
     });
 
-    // Photo and Description Section
-
-//     function addPhoto() {
-//     const photosContainer = document.getElementById('photos-container');
-//     const currentPhotos = photosContainer.children.length;
-
-//     if (currentPhotos < 10) {
-//         const index = currentPhotos;
-//         const newPhotoHtml = `
-//             <div class="mb-3 photo-group" data-index="${index}">
-//                 <label for="photo_${index}" class="form-label">Photo ${index + 1}</label>
-//                 <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" style="background-color: #202ba3;">
-//                 <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
-//                 <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-//             </div>
-//         `;
-//         photosContainer.insertAdjacentHTML('beforeend', newPhotoHtml);
-//         updatePhotoLabels();
-//     } else {
-//         alert('You can upload a maximum of 10 photos.');
-//     }
-// }
-
-// function removePhoto(button) {
-//     const photoGroup = button.closest('.photo-group');
-//     photoGroup.remove();
-//     updatePhotoLabels();
-// }
-
-// function updatePhotoLabels() {
-//     const photoGroups = document.querySelectorAll('.photo-group');
-//     photoGroups.forEach((group, index) => {
-//         const label = group.querySelector('label');
-//         label.textContent = `Photo ${index + 1}`;
-//     });
-// }
-
-// function validateFileInput(input) {
-//     const allowedTypes = ['image/jpeg', 'image/png'];
-//     const maxSize = 5 * 1024 * 1024; // 5MB
-
-//     const file = input.files[0];
-
-//     if (file) {
-//         if (!allowedTypes.includes(file.type)) {
-//             alert('Invalid file type. Please upload a JPEG or PNG image.');
-//             input.value = ''; // Clear the file input
-//             return false;
-//         }
-
-//         if (file.size > maxSize) {
-//             alert('File size exceeds 5MB. Please upload a smaller image.');
-//             input.value = ''; // Clear the file input
-//             return false;
-//         }
-//     }
-
-//     return true;
-// }
-
-// document.addEventListener('DOMContentLoaded', function() {
-//     updatePhotoLabels();
-// });
-
-//PDF issue unsolved in below code
-
-// function addPhoto() {
-//     const photosContainer = document.getElementById('photos-container');
-//     const currentPhotos = photosContainer.children.length;
-
-//     if (currentPhotos < 10) {
-//         const index = currentPhotos;
-//         const newPhotoHtml = `
-//             <div class="mb-3 photo-group" data-index="${index}">
-//                 <label for="photo_${index}" class="form-label">Photo ${index + 1}</label>
-//                 <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" style="background-color: #202ba3;">
-//                 <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
-//                 <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-//             </div>
-//         `;
-//         photosContainer.insertAdjacentHTML('beforeend', newPhotoHtml);
-//         updatePhotoLabels();
-//     } else {
-//         alert('You can upload a maximum of 10 photos.');
-//     }
-// }
-
-// function removePhoto(button) {
-//     const photoGroup = button.closest('.photo-group');
-//     photoGroup.remove();
-//     updatePhotoLabels();
-// }
-
-// function updatePhotoLabels() {
-//     const photoGroups = document.querySelectorAll('.photo-group');
-//     photoGroups.forEach((group, index) => {
-//         const label = group.querySelector('label');
-//         label.textContent = `Photo ${index + 1}`;
-//     });
-// }
-
-// function validateFileInput(input) {
-//     // Define allowed image types
-//     const allowedImageTypes = ['image/jpeg', 'image/png'];
-
-//     // Get the file from the input
-//     const file = input.files[0];
-
-//     if (file) {
-//         // Check if the file type is not allowed
-//         if (!allowedImageTypes.includes(file.type)) {
-//             // Specifically handle the case where the file is a PDF
-//             if (file.type === 'application/pdf') {
-//                 alert('PDF files are not allowed. Please upload a JPEG or PNG image.');
-//                 input.value = ''; // Clear the file input
-//                 return false;
-//             } else {
-//                 alert('Invalid file type. Please upload a JPEG or PNG image.');
-//                 input.value = ''; // Clear the file input
-//                 return false;
-//             }
-//         }
-
-//         // Define maximum file size (5MB)
-//         const maxSize = 5 * 1024 * 1024; // 5MB
-
-//         // Check if the file size exceeds the limit
-//         if (file.size > maxSize) {
-//             alert('File size exceeds 5MB. Please upload a smaller image.');
-//             input.value = ''; // Clear the file input
-//             return false;
-//         }
-//     }
-
-//     return true;
-// }
-
-// // Event listener to run validation on document load (if needed)
-// document.addEventListener('DOMContentLoaded', function() {
-//     updatePhotoLabels();
-// });function addPhoto() {
-
-
-// Function to validate file input
-function validateFileInput(input) {
-    const allowedTypes = ['image/jpeg', 'image/png'];
-    const maxSize = 5 * 1024 * 1024; // 5MB
-
-    const file = input.files[0];
-
-    if (file) {
-        if (!allowedTypes.includes(file.type)) {
-            alert('Invalid file type. Please upload a JPEG or PNG image.');
-            input.value = ''; // Clear the file input
-            return false;
-        }
-
-        if (file.size > maxSize) {
-            alert('File size exceeds 5MB. Please upload a smaller image.');
-            input.value = ''; // Clear the file input
-            return false;
-        }
-    }
-
-    return true;
-}
-
-// Function to add a new photo input
-// function addPhoto() {
-//     const photosContainer = document.getElementById('photos-container');
-//     const currentPhotos = photosContainer.children.length;
-
-//     if (currentPhotos < 10) {
-//         const index = currentPhotos;
-//         const newPhotoHtml = `
-//             <div class="mb-3 photo-group" data-index="${index}">
-//                 <label for="photo_${index}" class="form-label">Photo ${index + 1}</label>
-//                 <input type="file" name="photos[]" class="mb-2 form-control" accept="image/jpeg, image/png" onchange="validateFileInput(this)" style="background-color: #202ba3;">
-//                 <textarea name="photo_descriptions[]" class="form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
-//                 <button type="button" class="mt-2 btn btn-danger" onclick="removePhoto(this)">Remove</button>
-//             </div>
-//         `;
-//         photosContainer.insertAdjacentHTML('beforeend', newPhotoHtml);
-//         updatePhotoLabels();
-//     } else {
-//         alert('You can upload a maximum of 10 photos.');
-//     }
-// }
-
-// // Function to remove a photo input
-// function removePhoto(button) {
-//     const photoGroup = button.closest('.photo-group');
-//     photoGroup.remove();
-//     updatePhotoLabels();
-// }
-
-// // Function to update photo labels
-// function updatePhotoLabels() {
-//     const photoGroups = document.querySelectorAll('.photo-group');
-//     photoGroups.forEach((group, index) => {
-//         const label = group.querySelector('label');
-//         label.textContent = `Photo ${index + 1}`;
-//     });
-// }
-
-document.addEventListener('DOMContentLoaded', function() {
-    // updatePhotoLabels(); // Removed - function is commented out and not needed
-
-    // Save Draft Functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Save Draft Functionality
     const saveDraftBtn = document.getElementById('saveDraftBtn');
     const createForm = document.getElementById('createReportForm');
 

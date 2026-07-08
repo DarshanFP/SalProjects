@@ -14,6 +14,7 @@ use App\Models\Province;
 use App\Models\Center;
 use App\Models\ActivityHistory;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -27,9 +28,11 @@ use App\Services\Budget\BudgetSyncService;
 use App\Services\Budget\DerivedCalculationService;
 use App\Services\DatasetCacheService;
 use App\Services\ProjectAccessService;
+use App\Services\ProjectQueryService;
 use App\Domain\Budget\ProjectFinancialResolver;
 use App\Support\FinancialYearHelper;
 use App\Constants\ProjectStatus;
+use App\Helpers\TableFormatter;
 use App\Http\Requests\Projects\ApproveProjectRequest;
 use Carbon\Carbon;
 use Exception;
@@ -512,10 +515,9 @@ class CoordinatorController extends Controller
             }
         }
 
-        // Base query: use ProjectAccessService (coordinator = global oversight); optional FY for list aggregation
-        $projectsQuery = $this->projectAccessService->getVisibleProjectsQuery($coordinator, $fy)
-            ->with(['user.parent', 'reports.accountDetails', 'budgets'])
-            ->withMax('statusHistory', 'created_at');
+        // Base query: ProjectQueryService delegates to ProjectAccessService (coordinator = global oversight)
+        $projectsQuery = ProjectQueryService::forCoordinator($coordinator, $fy)
+            ->with(['user.parent', 'reports.accountDetails', 'budgets', 'latestActivityHistory.changedBy']);
 
         // Search functionality
         if ($request->filled('search')) {
@@ -588,9 +590,6 @@ class CoordinatorController extends Controller
             $projectsQuery->whereDate('created_at', '<=', $request->end_date);
         }
 
-        // Get total count before pagination
-        $totalProjects = $projectsQuery->count();
-
         // Apply sorting at query level for better performance
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
@@ -603,57 +602,94 @@ class CoordinatorController extends Controller
             $projectsQuery->orderBy('created_at', $sortOrder);
         }
 
-        // Pagination: Limit to 100 projects per page for performance
-        $perPage = $request->get('per_page', 100);
-        $currentPage = $request->get('page', 1);
+        // Phase 4: Provincial pattern — full dataset for resolver + grand totals, then paginate
+        $fullDatasetQuery = clone $projectsQuery;
+        $fullDataset = $fullDatasetQuery->limit(10000)->get();
+        // Step 3: Prevent memory risk — SQL-level limit prevents loading full dataset into memory
 
-        $resolver = app(\App\Domain\Budget\ProjectFinancialResolver::class);
+        // Step 4: Run resolver once on full dataset
+        $resolvedFinancials = ProjectFinancialResolver::resolveCollection($fullDataset);
         $calc = app(\App\Services\Budget\DerivedCalculationService::class);
-        // Get paginated projects
-        $projects = $projectsQuery->skip(($currentPage - 1) * $perPage)
-            ->take($perPage)
-            ->get()
-            ->map(function($project) use ($resolver, $calc) {
-                $financials = $resolver->resolve($project);
-                $projectBudget = (float) ($financials['opening_balance'] ?? 0);
 
-                // Calculate expenses from approved reports (optimized - use direct query instead of loading all)
-                $projectApprovedReportIds = DPReport::approved()
-                    ->where('project_id', $project->project_id)
-                    ->pluck('report_id');
+        // Step 5: Build enriched financials map and compute grand totals
+        $enrichedFinancials = [];
+        $grandTotals = [
+            'total_projects' => $fullDataset->count(),
+            'total_budget' => 0,
+            'total_expenses' => 0,
+            'total_remaining' => 0,
+        ];
 
-                $totalExpenses = DPAccountDetail::whereIn('report_id', $projectApprovedReportIds)
-                    ->sum('total_expenses') ?? 0;
+        foreach ($fullDataset as $project) {
+            $financials = $resolvedFinancials[$project->project_id] ?? [];
+            $projectBudget = (float) ($financials['opening_balance'] ?? 0);
 
-                $budgetUtilization = $calc->calculateUtilization($totalExpenses, $projectBudget);
-                $remainingBudget = $calc->calculateRemainingBalance($projectBudget, $totalExpenses);
-
-                // Health indicator based on utilization
-                $healthIndicator = 'good';
-                if ($budgetUtilization >= 90) {
-                    $healthIndicator = 'critical';
-                } elseif ($budgetUtilization >= 75) {
-                    $healthIndicator = 'warning';
-                } elseif ($budgetUtilization >= 50) {
-                    $healthIndicator = 'moderate';
+            $totalExpenses = 0;
+            foreach ($project->reports ?? [] as $report) {
+                if ($report->isApproved() && $report->accountDetails) {
+                    $totalExpenses += $report->accountDetails->sum('total_expenses');
                 }
+            }
 
-                $project->calculated_budget = $projectBudget;
-                $project->calculated_expenses = $totalExpenses;
-                $project->calculated_remaining = $remainingBudget;
-                $project->budget_utilization = round($budgetUtilization, 2);
-                $project->health_indicator = $healthIndicator;
-                $project->reports_count = $project->reports ? $project->reports->count() : 0;
-                $project->approved_reports_count = $projectApprovedReportIds->count();
+            $budgetUtilization = $calc->calculateUtilization($totalExpenses, $projectBudget);
+            $remainingBudget = $calc->calculateRemainingBalance($projectBudget, $totalExpenses);
 
-                return $project;
-            });
+            $healthIndicator = 'good';
+            if ($budgetUtilization > 90) {
+                $healthIndicator = 'critical';
+            } elseif ($budgetUtilization > 75) {
+                $healthIndicator = 'warning';
+            }
+
+            $enrichedFinancials[$project->project_id] = [
+                'calculated_budget' => $projectBudget,
+                'calculated_expenses' => $totalExpenses,
+                'calculated_remaining' => $remainingBudget,
+                'budget_utilization' => round($budgetUtilization, 2),
+                'health_indicator' => $healthIndicator,
+                'reports_count' => $project->reports ? $project->reports->count() : 0,
+                'approved_reports_count' => collect($project->reports ?? [])->filter(fn($r) => $r->isApproved())->count(),
+            ];
+
+            $grandTotals['total_budget'] += $projectBudget;
+            $grandTotals['total_expenses'] += $totalExpenses;
+            $grandTotals['total_remaining'] += $remainingBudget;
+        }
+
+        // Phase 5: Status distribution (memory-efficient countBy, reuses $fullDataset)
+        $statusDistribution = $fullDataset
+            ->pluck('status')
+            ->countBy()
+            ->toArray();
+
+        // Step 6: Paginate base query (unchanged)
+        $perPage = TableFormatter::resolvePerPage($request, 100);
+        /** @var LengthAwarePaginator $projects */
+        $projects = $projectsQuery->paginate($perPage);
+        $projects->withQueryString();
+
+        // Step 7: Attach financials to page items from enriched map
+        $collection = collect($projects->items());
+        $collection->transform(function ($project) use ($enrichedFinancials) {
+            $financials = $enrichedFinancials[$project->project_id] ?? [];
+            $project->calculated_budget = $financials['calculated_budget'] ?? 0;
+            $project->calculated_expenses = $financials['calculated_expenses'] ?? 0;
+            $project->calculated_remaining = $financials['calculated_remaining'] ?? 0;
+            $project->budget_utilization = $financials['budget_utilization'] ?? 0;
+            $project->health_indicator = $financials['health_indicator'] ?? 'good';
+            $project->reports_count = $financials['reports_count'] ?? 0;
+            $project->approved_reports_count = $financials['approved_reports_count'] ?? 0;
+            return $project;
+        });
 
         // Apply additional sorting for calculated fields (after fetching)
         if ($sortBy === 'budget_utilization') {
-            $projects = $projects->sortBy(function($project) use ($sortOrder) {
+            $sorted = $collection->sortBy(function ($project) use ($sortOrder) {
                 return $project->budget_utilization;
             }, SORT_REGULAR, $sortOrder === 'desc')->values();
+            $projects->setCollection($sorted);
+        } else {
+            $projects->setCollection($collection);
         }
 
         // Fetch filter options (cached for 5 minutes)
@@ -669,16 +705,6 @@ class CoordinatorController extends Controller
             ];
         });
 
-        // Create pagination metadata
-        $paginationData = [
-            'current_page' => $currentPage,
-            'per_page' => $perPage,
-            'total' => $totalProjects,
-            'last_page' => ceil($totalProjects / $perPage),
-            'from' => (($currentPage - 1) * $perPage) + 1,
-            'to' => min($currentPage * $perPage, $totalProjects),
-        ];
-
         // Extract filter options for compact()
         $provinces = $filterOptions['provinces'];
         $centers = $filterOptions['centers'];
@@ -686,13 +712,16 @@ class CoordinatorController extends Controller
         $provincials = $filterOptions['provincials'];
         $projectTypes = $filterOptions['projectTypes'];
         $statuses = $filterOptions['statuses'];
-        $pagination = $paginationData;
+        $allowedPageSizes = TableFormatter::ALLOWED_PAGE_SIZES;
+        $currentPerPage = $perPage;
 
         // Get filter presets (stored in session for now, can be moved to database later)
         $filterPresets = session('project_filter_presets', []);
 
         return view('coordinator.ProjectList', compact(
             'projects',
+            'grandTotals',
+            'statusDistribution',
             'coordinator',
             'projectTypes',
             'users',
@@ -701,7 +730,8 @@ class CoordinatorController extends Controller
             'provincials',
             'statuses',
             'filterPresets',
-            'pagination',
+            'allowedPageSizes',
+            'currentPerPage',
             'fy',
             'fyList'
         ));
@@ -2679,11 +2709,12 @@ public function budgetOverview(Request $request)
             $projectsQuery->whereHas('user', fn ($q) => $q->where('center', $request->center));
         }
 
+        /** @var LengthAwarePaginator $projects */
         $projects = $projectsQuery
-            ->with(['user.parent', 'reports.accountDetails', 'budgets'])
+            ->with(['user.parent', 'reports.accountDetails', 'budgets', 'statusHistory'])
             ->latest()
-            ->paginate(100)
-            ->withQueryString();
+            ->paginate(100);
+        $projects->withQueryString();
 
         // Batch resolver (replaces per-project loop)
         $resolvedFinancials = ProjectFinancialResolver::resolveCollection($projects->getCollection());

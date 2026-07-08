@@ -42,7 +42,8 @@ class StatisticsController extends Controller
             $statistics = ProjectCCIStatistics::where('project_id', $projectId)->first();
 
             if (! $statistics) {
-                Log::warning('No Statistics data found', ['project_id' => $projectId]);
+                Log::warning('No CCI Statistics data found for show; returning empty model', ['project_id' => $projectId]);
+                return new ProjectCCIStatistics(['project_id' => $projectId]);
             }
 
             return $statistics;

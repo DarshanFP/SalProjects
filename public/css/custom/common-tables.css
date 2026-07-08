@@ -26,3 +26,103 @@
     font-size: 0.75rem;
     white-space: nowrap;
 }
+
+/* Global text wrapping for detail/content tables outside card context */
+.content-table-wrap th,
+.content-table-wrap td,
+.detail-table th,
+.detail-table td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal !important;
+    vertical-align: top;
+}
+
+.detail-table:not(:has(thead)) th {
+    width: 35%;
+    min-width: 120px;
+}
+
+.detail-table:not(:has(thead)) td {
+    max-width: 0;
+}
+
+/* Wide project list tables (coordinator / provincial dashboards) */
+.card .table-responsive > .table.project-list-table,
+.card .table-responsive > .table.provincial-project-list-table {
+    table-layout: auto;
+    width: 100%;
+}
+
+.card .table-responsive > .table.project-list-table th,
+.card .table-responsive > .table.project-list-table td,
+.card .table-responsive > .table.provincial-project-list-table th,
+.card .table-responsive > .table.provincial-project-list-table td {
+    padding: 0.4rem 0.5rem;
+    vertical-align: middle;
+    min-width: fit-content;
+}
+
+.card .table-responsive > .table.project-list-table th,
+.card .table-responsive > .table.provincial-project-list-table th {
+    white-space: nowrap !important;
+    font-weight: 600;
+    word-break: normal;
+}
+
+.card .table-responsive > .table.project-list-table td,
+.card .table-responsive > .table.provincial-project-list-table td {
+    white-space: normal !important;
+    overflow-wrap: break-word;
+    word-break: normal;
+}
+
+.card .table-responsive > .table.project-list-table .col-actions,
+.card .table-responsive > .table.provincial-project-list-table .col-actions {
+    width: 160px;
+    min-width: 160px;
+    max-width: 160px;
+}
+
+.card .table-responsive > .table.project-list-table .btn,
+.card .table-responsive > .table.provincial-project-list-table .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.card .table-responsive > .table.project-list-table .badge,
+.card .table-responsive > .table.provincial-project-list-table .badge {
+    white-space: normal;
+}
+
+/* ============================================
+   REPORT FORM & VIEW TABLE STANDARDIZATION (CSS-02 FIX)
+   ============================================ */
+.report-form-table,
+.report-view-table {
+    width: 100%;
+    margin-bottom: 1rem;
+    border-collapse: collapse;
+}
+
+.report-form-table th,
+.report-view-table th {
+    background-color: #0f1629 !important;
+    color: #d0d6e1 !important;
+    font-weight: 600;
+    text-align: center;
+    vertical-align: middle;
+    padding: 0.6rem 0.5rem;
+    border: 1px solid #172340 !important;
+}
+
+.report-form-table td,
+.report-view-table td {
+    vertical-align: middle;
+    padding: 0.5rem;
+    border: 1px solid #172340 !important;
+}
+

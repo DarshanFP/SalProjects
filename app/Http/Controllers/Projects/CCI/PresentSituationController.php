@@ -70,10 +70,16 @@ class PresentSituationController extends Controller
         try {
             Log::info('Editing CCI Present Situation', ['project_id' => $projectId]);
 
-            $presentSituation = ProjectCCIPresentSituation::where('project_id', $projectId)->firstOrFail();
+            $presentSituation = ProjectCCIPresentSituation::where('project_id', $projectId)->first();
+
+            if (! $presentSituation) {
+                Log::warning('No CCI Present Situation record found; using empty model for edit form', ['project_id' => $projectId]);
+                $presentSituation = new ProjectCCIPresentSituation(['project_id' => $projectId]);
+            }
+
             return $presentSituation;
         } catch (\Exception $e) {
-            Log::error('Error editing CCI Present Situation', ['error' => $e->getMessage()]);
+            Log::error('Error editing CCI Present Situation', ['project_id' => $projectId, 'error' => $e->getMessage()]);
             return null;
         }
     }

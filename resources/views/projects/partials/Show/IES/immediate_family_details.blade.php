@@ -9,6 +9,7 @@
         @endphp
 
         @if($familyDetails)
+            <div class="table-responsive">
             <table class="table table-bordered">
                 <tr>
                     <th>Mother Expired</th>
@@ -96,6 +97,7 @@
                 </tr>
                 @endif
             </table>
+            </div>
         @else
             <p class="text-muted">No family details recorded.</p>
         @endif

@@ -125,37 +125,34 @@
                             width: 10%;
                             text-align: center;
                         }
+
                     </style>
 
                     <div class="table-responsive">
                         <table class="table table-bordered my-projects-table">
                             <thead>
                                 <tr>
+                                    <th>S.No</th>
                                     <th>Project ID</th>
                                     <th>Executor</th>
                                     <th class="project-title">Project Title</th>
                                     <th class="project-type">Project Type</th>
+                                    <th>Date Approved</th>
                                     <th class="amount-sanctioned">Amount Sanctioned</th>
                                     <th class="amount-forwarded">Amount Forwarded</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($projects as $project)
                                     <tr>
-                                        <td>{{ $project->project_id }}</td>
+                                        <td>{{ \App\Helpers\TableFormatter::resolveSerial($loop, $projects, $projects->hasPages()) }}</td>
+                                        <td><a href="{{ route('coordinator.projects.show', $project->project_id) }}">{{ $project->project_id }}</a></td>
                                         <td>{{ $project->user->name ?? 'N/A' }}</td>
                                         <td class="project-title">{{ $project->project_title }}</td>
                                         <td class="project-type">{{ $project->project_type }}</td>
+                                        <td>{{ ($approval = $project->statusHistory->first(fn($h) => in_array($h->new_status, \App\Constants\ProjectStatus::APPROVED_STATUSES))) ? $approval->created_at->format('d/m/Y') : 'N/A' }}</td>
                                         <td class="amount-sanctioned">{{ format_indian((float) (($resolvedFinancials[$project->project_id] ?? [])['amount_sanctioned'] ?? 0), 2) }}</td>
                                         <td class="amount-forwarded">{{ format_indian($project->amount_forwarded ?? 0, 2) }}</td>
-                                        <td>
-                                            {{ \App\Models\OldProjects\Project::$statusLabels[$project->status] ?? $project->status }}
-                                        </td>
-                                        <td>
-                                            <a href="{{ route('coordinator.projects.show', $project->project_id) }}" class="btn btn-primary btn-sm">View Project</a>
-                                        </td>
                                     </tr>
                                 @empty
                                     <tr>

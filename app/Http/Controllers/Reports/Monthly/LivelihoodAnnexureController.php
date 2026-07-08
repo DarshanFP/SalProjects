@@ -39,7 +39,10 @@ class LivelihoodAnnexureController extends Controller
             'dla_challenges.*' => 'nullable|string',
         ]);
 
-        // Save or update annexure data
+        // Clear existing annexure data for the report to prevent orphan rows on edit
+        QRDLAnnexure::where('report_id', $report_id)->delete();
+
+        // Save annexure data
         foreach ($validatedData['dla_beneficiary_name'] ?? [] as $index => $beneficiaryName) {
             QRDLAnnexure::updateOrCreate(
                 [

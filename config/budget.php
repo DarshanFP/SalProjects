@@ -22,6 +22,13 @@ return [
     | To enable per environment: set in .env or override in config.
     | Example: BUDGET_RESOLVER_ENABLED=true (add to .env)
     |
+    | Phase 4 (reporting repair): enable after staging validation to sync fund fields
+    | on type budget save and before coordinator approval:
+    |   BUDGET_RESOLVER_ENABLED=true
+    |   BUDGET_SYNC_ON_TYPE_SAVE=true
+    |   BUDGET_SYNC_BEFORE_APPROVAL=true
+    | Approved-project batch repair uses CLI (reports:repair-project-fund-fields), not these flags.
+    |
     */
     'resolver_enabled' => env('BUDGET_RESOLVER_ENABLED', false),
     'sync_to_projects_on_type_save' => env('BUDGET_SYNC_ON_TYPE_SAVE', false),
@@ -115,6 +122,19 @@ return [
 
         // Rural-Urban-Tribal - Direct Mapping (Phase-based)
         'Rural-Urban-Tribal' => [
+            'model' => ProjectBudget::class,
+            'strategy' => DirectMappingStrategy::class,
+            'fields' => [
+                'particular' => 'particular',
+                'amount' => 'this_phase',
+                'id' => 'id',
+            ],
+            'phase_based' => true,
+            'phase_selection' => 'current',
+        ],
+
+        // NEXT PHASE - DEVELOPMENT PROPOSAL (NPD) - Direct Mapping (Phase-based, same as DP)
+        'NEXT PHASE - DEVELOPMENT PROPOSAL' => [
             'model' => ProjectBudget::class,
             'strategy' => DirectMappingStrategy::class,
             'fields' => [

@@ -5,46 +5,109 @@ namespace App\Http\Requests\Reports\Monthly;
 use Illuminate\Foundation\Http\FormRequest;
 use Carbon\Carbon;
 use App\Models\Reports\Monthly\DPReport;
-use App\Constants\ProjectStatus;
+use Illuminate\Support\Facades\Log;
 
 class UpdateMonthlyReportRequest extends FormRequest
 {
+    private ?string $authFailureReason = null;
+
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
+        $reportId = $this->route('report_id');
+        $context = [
+            'report_id' => $reportId,
+            'user_id' => auth()->id(),
+            'user_role' => auth()->user()?->role,
+            'save_as_draft' => $this->input('save_as_draft'),
+        ];
+
         if (!auth()->check()) {
+            $this->authFailureReason = 'unauthenticated';
+            Log::warning('Monthly report update denied: user not authenticated', $context);
+
             return false;
         }
 
         $user = auth()->user();
-        $report_id = $this->route('report_id');
-
-        $report = DPReport::where('report_id', $report_id)->first();
+        $report = DPReport::with(['project', 'user'])->where('report_id', $reportId)->first();
 
         if (!$report) {
+            $this->authFailureReason = 'report_not_found';
+            Log::warning('Monthly report update denied: report not found', $context);
+
             return false;
         }
 
-        // Only executor/applicant can edit their own reports
-        // Only if status is draft or reverted
-        $editableStatuses = [
-            'draft',
-            ProjectStatus::REVERTED_BY_PROVINCIAL,
-            ProjectStatus::REVERTED_BY_COORDINATOR,
-        ];
+        $context['report_status'] = $report->status;
+        $context['report_user_id'] = $report->user_id;
+        $context['project_id'] = $report->project_id;
+        $context['is_editable'] = $report->isEditable();
+        $context['allowed_statuses'] = DPReport::executorEditableStatuses();
 
-        if (!in_array($report->status, $editableStatuses)) {
-            return false;
+        if ($user->role === 'coordinator') {
+            Log::info('Monthly report update authorized for coordinator', $context);
+            return true;
         }
 
-        // Check if user owns the report or is in-charge
-        if ($user->role === 'executor' || $user->role === 'applicant') {
-            return $report->user_id === $user->id || $report->project->in_charge == $user->id;
+        if ($user->role === 'provincial') {
+            // Provincial can update reports from executors under them
+            $isParent = $report->user && (int) $report->user->parent_id === (int) $user->id;
+            if (!$isParent) {
+                $this->authFailureReason = 'not_executor_parent';
+                Log::warning('Monthly report update denied: provincial is not executor parent', $context);
+                return false;
+            }
+            Log::info('Monthly report update authorized for provincial', $context);
+            return true;
         }
 
+        if (in_array($user->role, ['executor', 'applicant'], true)) {
+            if (!$report->isEditable()) {
+                $this->authFailureReason = 'status_not_editable';
+                Log::warning('Monthly report update denied: status not editable', $context);
+
+                return false;
+            }
+
+            $isOwner = (int) $report->user_id === (int) $user->id;
+            $isInCharge = $report->project && (int) $report->project->in_charge === (int) $user->id;
+
+            if (!$isOwner && !$isInCharge) {
+                $this->authFailureReason = 'not_owner_or_in_charge';
+                $context['project_in_charge'] = $report->project?->in_charge;
+                Log::warning('Monthly report update denied: user is not owner or in-charge', $context);
+
+                return false;
+            }
+
+            Log::info('Monthly report update authorized', array_merge($context, [
+                'authorized_via' => $isOwner ? 'owner' : 'in_charge',
+            ]));
+
+            return true;
+        }
+
+        $this->authFailureReason = 'invalid_role';
+        Log::warning('Monthly report update denied: invalid role', $context);
         return false;
+    }
+
+    /**
+     * Log and respond when authorize() returns false.
+     */
+    protected function failedAuthorization(): void
+    {
+        Log::warning('UpdateMonthlyReportRequest failed authorization', [
+            'reason' => $this->authFailureReason ?? 'unknown',
+            'report_id' => $this->route('report_id'),
+            'user_id' => auth()->id(),
+            'user_role' => auth()->user()?->role,
+        ]);
+
+        parent::failedAuthorization();
     }
 
     /**
@@ -224,17 +287,27 @@ class UpdateMonthlyReportRequest extends FormRequest
             if ($reportMonth && $reportYear) {
                 try {
                     $reportDate = Carbon::create($reportYear, $reportMonth, 1)->startOfMonth();
-                    $currentDate = Carbon::now()->startOfMonth();
                     $nextMonth = Carbon::now()->addMonth()->startOfMonth();
 
                     // Report cannot be for a month more than 1 month in the future
                     if ($reportDate->isAfter($nextMonth)) {
+                        Log::warning('Monthly report update validation failed: report month too far in future', [
+                            'report_id' => $this->route('report_id'),
+                            'report_month' => $reportMonth,
+                            'report_year' => $reportYear,
+                        ]);
                         $validator->errors()->add(
                             'report_month',
                             'Reporting month cannot be more than one month in the future.'
                         );
                     }
                 } catch (\Exception $e) {
+                    Log::warning('Monthly report update validation failed: invalid report period', [
+                        'report_id' => $this->route('report_id'),
+                        'report_month' => $reportMonth,
+                        'report_year' => $reportYear,
+                        'error' => $e->getMessage(),
+                    ]);
                     $validator->errors()->add(
                         'report_month',
                         'Invalid reporting month and year combination.'

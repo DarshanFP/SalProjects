@@ -43,7 +43,7 @@
                     <div id="photos-preview_{{ $groupIndex }}" class="photos-preview" style="display: flex; flex-wrap: wrap;"></div>
                     <div class="mt-2">
                         <label class="form-label">Link to Activity</label>
-                        <select name="photo_activity_id[{{ $groupIndex }}]" class="form-control photo-activity-select" data-group-index="{{ $groupIndex }}" style="background-color: #202ba3;">
+                        <select name="photo_activity_id[{{ $groupIndex }}]" class="form-control photo-activity-select" data-group-index="{{ $groupIndex }}" class="form-control report-active-input">
                             <option value="__unassigned__">— Unassigned —</option>
                         </select>
                         @error("photo_activity_id.$groupIndex")
@@ -161,7 +161,7 @@
                 <div id="photos-preview_${newGroupIndex}" class="photos-preview" style="display: flex; flex-wrap: wrap;"></div>
                 <div class="mt-2">
                     <label class="form-label">Link to Activity</label>
-                    <select name="photo_activity_id[${newGroupIndex}]" class="form-control photo-activity-select" data-group-index="${newGroupIndex}" style="background-color: #202ba3;">
+                    <select name="photo_activity_id[${newGroupIndex}]" class="form-control photo-activity-select" data-group-index="${newGroupIndex}" class="form-control report-active-input">
                         <option value="__unassigned__">— Unassigned —</option>
                     </select>
                 </div>
@@ -432,7 +432,7 @@
                     <div id="file-text-${newGroupIndex}" class="file-text">No files selected</div>
                 </div>
                 <div id="photos-preview_${newGroupIndex}" class="photos-preview" style="display: flex; flex-wrap: wrap;"></div>
-                <textarea name="photo_descriptions[${newGroupIndex}]" class="mt-2 form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" style="background-color: #202ba3;"></textarea>
+                <textarea name="photo_descriptions[${newGroupIndex}]" class="mt-2 form-control" rows="3" placeholder="Brief Description (WHO WHERE WHAT WHEN)" class="form-control report-active-input"></textarea>
             </div>
         `;
 

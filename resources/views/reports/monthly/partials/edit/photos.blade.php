@@ -23,7 +23,7 @@
                         {{-- Link to Activity first (same as create) --}}
                         <div class="mb-3">
                             <label class="form-label">Link to Activity</label>
-                            <select name="photo_activity_id[{{ $groupKey }}]" class="form-control photo-activity-select" style="background-color: #202ba3;">
+                            <select name="photo_activity_id[{{ $groupKey }}]" class="form-control photo-activity-select" class="form-control report-active-input">
                                 <option value="__unassigned__" @if($groupKey === '_unassigned_') selected @endif>— Unassigned —</option>
                                 @foreach($report->objectives ?? [] as $obj)
                                     @php $actCount = count($obj->activities ?? []); @endphp
@@ -85,7 +85,7 @@
                         <div id="photos-preview_{{ $groupIndex }}" class="photos-preview" style="display: flex; flex-wrap: wrap;"></div>
                         <div class="mt-2">
                             <label class="form-label">Link to Activity</label>
-                            <select name="photo_activity_id[{{ $groupIndex }}]" class="form-control photo-activity-select" data-group-index="{{ $groupIndex }}" style="background-color: #202ba3;">
+                            <select name="photo_activity_id[{{ $groupIndex }}]" class="form-control photo-activity-select" data-group-index="{{ $groupIndex }}" class="form-control report-active-input">
                                 <option value="__unassigned__">— Unassigned —</option>
                             </select>
                         </div>
@@ -247,7 +247,7 @@
                 <div id="photos-preview_${newGroupIndex}" class="photos-preview" style="display: flex; flex-wrap: wrap;"></div>
                 <div class="mt-2">
                     <label class="form-label">Link to Activity</label>
-                    <select name="photo_activity_id[${newGroupIndex}]" class="form-control photo-activity-select" data-group-index="${newGroupIndex}" style="background-color: #202ba3;">
+                    <select name="photo_activity_id[${newGroupIndex}]" class="form-control photo-activity-select" data-group-index="${newGroupIndex}" class="form-control report-active-input">
                         <option value="__unassigned__">— Unassigned —</option>
                     </select>
                 </div>

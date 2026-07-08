@@ -19,6 +19,7 @@ class ProjectFactory extends Factory
     public function definition(): array
     {
         return [
+            'project_id' => 'TEST-' . strtoupper(substr(uniqid(), -8)),
             'project_type' => \App\Constants\ProjectType::DEVELOPMENT_PROJECTS,
             'project_title' => fake()->sentence(4),
             'user_id' => 1, // Will be overridden in tests

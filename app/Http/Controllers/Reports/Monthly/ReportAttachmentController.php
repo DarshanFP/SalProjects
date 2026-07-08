@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Models\Reports\Monthly\DPPhoto;
+use App\Support\Reports\ReportResourceLookup;
 
 class ReportAttachmentController extends Controller
 {
@@ -151,7 +152,7 @@ class ReportAttachmentController extends Controller
     {
         Log::info('ReportAttachmentController@update - Data received', ['report_id' => $report_id]);
 
-        $report = DPReport::where('report_id', $report_id)->firstOrFail();
+        $report = ReportResourceLookup::findReport($report_id);
 
         if (!$request->hasFile('file')) {
             return response()->json(['message' => 'No new file uploaded, existing files retained'], 200);
@@ -352,8 +353,8 @@ class ReportAttachmentController extends Controller
     public function testFileStructure($report_id)
     {
         try {
-            $report = DPReport::where('report_id', $report_id)->firstOrFail();
-            $project = Project::where('project_id', $report->project_id)->firstOrFail();
+            $report = ReportResourceLookup::findReport($report_id);
+            $project = ReportResourceLookup::findProject($report->project_id);
 
             $monthYear = date('m_Y', strtotime($report->report_month_year));
             $attachmentsPath = "REPORTS/{$project->project_id}/{$report_id}/attachments/{$monthYear}";
@@ -412,8 +413,8 @@ class ReportAttachmentController extends Controller
     public function testCreateAttachment($report_id)
     {
         try {
-            $report = DPReport::where('report_id', $report_id)->firstOrFail();
-            $project = Project::where('project_id', $report->project_id)->firstOrFail();
+            $report = ReportResourceLookup::findReport($report_id);
+            $project = ReportResourceLookup::findProject($report->project_id);
 
             // Create a test file
             $testContent = "This is a test attachment file created at " . now();

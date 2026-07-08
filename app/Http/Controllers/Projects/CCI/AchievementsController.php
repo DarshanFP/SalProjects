@@ -79,16 +79,28 @@ class AchievementsController extends Controller
         try {
             Log::info('Editing CCI Achievements', ['project_id' => $projectId]);
 
-            $achievements = ProjectCCIAchievements::where('project_id', $projectId)->firstOrFail();
+            $achievements = ProjectCCIAchievements::where('project_id', $projectId)->first();
+
+            if (! $achievements) {
+                Log::warning('No CCI Achievements record found; using empty model for edit form', ['project_id' => $projectId]);
+                $achievements = new ProjectCCIAchievements(['project_id' => $projectId]);
+                $achievements->academic_achievements = [];
+                $achievements->sport_achievements = [];
+                $achievements->other_achievements = [];
+
+                return $achievements;
+            }
 
             // Decode the JSON fields
             $achievements->academic_achievements = json_decode($achievements->academic_achievements);
             $achievements->sport_achievements = json_decode($achievements->sport_achievements);
             $achievements->other_achievements = json_decode($achievements->other_achievements);
 
+            Log::info('CCI Achievements loaded for edit', ['project_id' => $projectId]);
+
             return $achievements;
         } catch (\Exception $e) {
-            Log::error('Error editing CCI Achievements', ['error' => $e->getMessage()]);
+            Log::error('Error editing CCI Achievements', ['project_id' => $projectId, 'error' => $e->getMessage()]);
             return null;
         }
     }

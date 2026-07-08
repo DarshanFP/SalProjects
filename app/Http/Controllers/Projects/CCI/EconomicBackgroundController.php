@@ -76,11 +76,16 @@ class EconomicBackgroundController extends Controller
         try {
             Log::info('Editing CCI Economic Background', ['project_id' => $projectId]);
 
-            $economicBackground = ProjectCCIEconomicBackground::where('project_id', $projectId)->firstOrFail();
+            $economicBackground = ProjectCCIEconomicBackground::where('project_id', $projectId)->first();
+
+            if (! $economicBackground) {
+                Log::warning('No CCI Economic Background record found; using empty model for edit form', ['project_id' => $projectId]);
+                $economicBackground = new ProjectCCIEconomicBackground(['project_id' => $projectId]);
+            }
 
             return $economicBackground;
         } catch (\Exception $e) {
-            Log::error('Error editing CCI Economic Background', ['error' => $e->getMessage()]);
+            Log::error('Error editing CCI Economic Background', ['project_id' => $projectId, 'error' => $e->getMessage()]);
             throw $e;
         }
     }

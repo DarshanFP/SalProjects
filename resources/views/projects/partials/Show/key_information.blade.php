@@ -69,13 +69,3 @@
         @endif
     </div>
 </div>
-
-<style>
-/* Preserve line breaks in Key Information display */
-.info-value {
-    white-space: pre-wrap !important;
-    word-wrap: break-word !important;
-    overflow-wrap: break-word !important;
-    line-height: 1.6 !important;
-}
-</style>

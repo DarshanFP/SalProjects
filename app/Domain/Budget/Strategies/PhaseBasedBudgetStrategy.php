@@ -19,7 +19,7 @@ use App\Services\Budget\DerivedCalculationService;
  *
  * @see Documentations/V2/Budgets/Overview/FINANCIAL_ENGINE_CONSOLIDATION_BLUEPRINT.md
  */
-class PhaseBasedBudgetStrategy implements ProjectFinancialStrategyInterface
+class PhaseBasedBudgetStrategy implements ProjectFinancialStrategyInterface, TypeDerivedFundFieldsInterface
 {
     public function __construct(
         protected DerivedCalculationService $calculationService
@@ -66,6 +66,42 @@ class PhaseBasedBudgetStrategy implements ProjectFinancialStrategyInterface
             'amount_sanctioned' => max(0, $sanctioned),
             'amount_requested' => max(0, $requested),
             'opening_balance' => max(0, $opening),
+        ]);
+    }
+
+    /**
+     * Derive fund fields from phase budgets and project contribution fields.
+     * Used for approved-project repair when stored sanctioned/opening are wrong.
+     */
+    public function resolveFromTypeTables(Project $project): array
+    {
+        $forwarded = (float) ($project->amount_forwarded ?? 0);
+        $local = (float) ($project->local_contribution ?? 0);
+        $currentPhase = (int) ($project->current_phase ?? 1);
+
+        $project->loadMissing('budgets');
+        $phaseBudgets = $project->relationLoaded('budgets')
+            ? $project->budgets->where('phase', $currentPhase)
+            : collect();
+
+        if ($phaseBudgets->isNotEmpty()) {
+            $thisPhaseValues = $phaseBudgets->map(fn ($b) => (float) ($b->this_phase ?? 0));
+            $overall = $this->calculationService->calculateProjectTotal($thisPhaseValues);
+        } else {
+            $overall = (float) ($project->overall_project_budget ?? 0);
+        }
+
+        $combined = $forwarded + $local;
+        $sanctioned = max(0.0, $this->calculateAmountSanctioned($overall, $combined));
+        $opening = $sanctioned + $combined;
+
+        return $this->normalize([
+            'overall_project_budget' => $overall,
+            'amount_forwarded' => $forwarded,
+            'local_contribution' => $local,
+            'amount_sanctioned' => $sanctioned,
+            'amount_requested' => 0.0,
+            'opening_balance' => $opening,
         ]);
     }
 

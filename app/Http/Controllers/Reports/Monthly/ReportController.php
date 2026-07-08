@@ -31,6 +31,9 @@ use App\Services\ReportMonitoringService;
 use App\Services\ReportPhotoOptimizationService;
 use App\Services\ReportStatusService;
 use App\Services\Budget\BudgetAuditLogger;
+use App\Domain\Budget\ProjectFinancialResolver;
+use App\Services\Reports\MonthlyReportCreateAuthorization;
+use App\Support\Reports\ReportResourceLookup;
 use App\Models\User;
 use App\Traits\HandlesReportPhotoActivity;
 
@@ -65,10 +68,13 @@ class ReportController extends Controller
         Log::info('Entering create method', ['project_id' => $project_id]);
 
         // Eager load relationships to prevent N+1 queries
-        $project = Project::where('project_id', $project_id)
-            ->with(['user', 'budgets', 'objectives.results', 'objectives.risks', 'objectives.activities.timeframes'])
-            ->firstOrFail();
+        $project = ReportResourceLookup::findProject($project_id, [
+            'user', 'society', 'budgets', 'objectives.results', 'objectives.risks', 'objectives.activities.timeframes',
+        ]);
         Log::info('Project retrieved successfully', ['project' => $project]);
+
+        $user = Auth::user();
+        MonthlyReportCreateAuthorization::abortUnlessAllowed($user, $project);
 
         // Get budget data based on project type
         $budgets = $this->getBudgetDataByProjectType($project);
@@ -84,17 +90,28 @@ class ReportController extends Controller
         // ReportAttachment
         $attachments = []; // Placeholder, add logic to fetch attachments if required
 
-        $amountSanctioned = $project->amount_sanctioned ?? 0.00;
+        $amountSanctioned = $this->resolveReportOverviewSanctioned($project);
         $amountForwarded = 0.00; // Always set to 0 - no longer used in reports
         Log::info('Sanctioned amount', [
             'amountSanctioned' => $amountSanctioned,
+            'stored_amount_sanctioned' => $project->amount_sanctioned ?? 0,
         ]);
 
         $lastExpenses = $this->getLastExpenses($project);
 
-        $user = Auth::user();
+        $reportBasicInfo = DPReport::basicInfoForCreateForm($project, $user);
 
-        return view('reports.monthly.ReportAll', compact('project', 'user', 'amountSanctioned', 'amountForwarded', 'budgets', 'lastExpenses', 'attachments', 'objectives'));
+        return view('reports.monthly.ReportAll', compact(
+            'project',
+            'user',
+            'amountSanctioned',
+            'amountForwarded',
+            'budgets',
+            'lastExpenses',
+            'attachments',
+            'objectives',
+            'reportBasicInfo'
+        ));
     }
 
     /**
@@ -394,16 +411,19 @@ class ReportController extends Controller
 
     private function createReport($validatedData, $report_id)
     {
-        // Wave 6A Phase 5: Society snapshot set from project only (not from request); set after create so not mass-assigned.
         $project = Project::where('project_id', $validatedData['project_id'])->first();
 
-        $report = DPReport::create([
+        if (!$project) {
+            throw new Exception('Project not found: ' . $validatedData['project_id']);
+        }
+
+        $report = DPReport::createWithProjectSnapshot([
             'report_id' => $report_id,
             'user_id' => auth()->id() ?? null,
             'project_id' => $validatedData['project_id'],
             'project_title' => $validatedData['project_title'] ?? '',
             'project_type' => $validatedData['project_type'] ?? '',
-            'place' => $validatedData['place'] ?? '',
+            'place' => $validatedData['place'] ?? $project->place ?? '',
             'commencement_month_year' => $validatedData['commencement_month_year'] ?? null,
             'in_charge' => $validatedData['in_charge'] ?? '',
             'total_beneficiaries' => $validatedData['total_beneficiaries'] ?? 0,
@@ -415,20 +435,13 @@ class ReportController extends Controller
             'amount_forwarded_overview' => 0.0, // Always set to 0 for backward compatibility
             'amount_in_hand' => $validatedData['amount_in_hand'] ?? 0.0,
             'total_balance_forwarded' => $validatedData['total_balance_forwarded'] ?? 0.0,
-            'status' => 'draft'
+            'status' => DPReport::STATUS_DRAFT,
+        ], $project);
+
+        Log::info('Report created successfully', [
+            'report_id' => $report->report_id,
+            'society_id' => $report->society_id,
         ]);
-
-        if ($project) {
-            $report->society_id = $project->society_id;
-            $report->society_name = $project->society_name;
-            $report->province_id = $project->province_id;
-            $report->save();
-        }
-
-        if (!$report) {
-            throw new Exception('Failed to create report');
-        }
-        Log::info('Report created successfully', ['report_id' => $report->report_id]);
 
         return $report;
     }
@@ -959,18 +972,7 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
 
     protected function generateReportId($project_id)
     {
-        $latestReport = DPReport::where('report_id', 'LIKE', "{$project_id}-%")
-                                ->latest('report_id')
-                                ->lockForUpdate()
-                                ->first();
-
-        if ($latestReport) {
-            $max_suffix = intval(explode('-', $latestReport->report_id)[2]) + 1;
-        } else {
-            $max_suffix = 1; // Start from 01 if no reports found
-        }
-
-        return "{$project_id}-" . str_pad($max_suffix, 2, '0', STR_PAD_LEFT);
+        return DPReport::generateNextReportId($project_id);
     }
 
     public function index()
@@ -1036,7 +1038,7 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             // Coordinator can see all reports (no filtering needed)
             // No additional filters - coordinators see everything
         }
-        $report = $report->firstOrFail();
+        $report = ReportResourceLookup::firstReportOrAbort($report, $report_id);
         Log::info('Report retrieved successfully', ['report' => $report]);
 
         // Decode expected_outcome for objectives
@@ -1057,9 +1059,9 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
 
         // Retrieve associated project with eager loading to prevent N+1 queries.
         // objectives.activities.timeframes: required for Provincial activity monitoring (Phase 1–2).
-        $project = Project::where('project_id', $report->project_id)
-            ->with(['user', 'budgets', 'objectives.activities.timeframes'])
-            ->firstOrFail();
+        $project = ReportResourceLookup::findProject($report->project_id, [
+            'user', 'budgets', 'objectives.activities.timeframes',
+        ]);
         Log::info('Project retrieved successfully', ['project_id' => $project->project_id]);
 
         // Report month (1–12) for activity monitoring (Phase 2). Null if report_month_year not set.
@@ -1272,8 +1274,28 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             abort(403, 'Access denied');
         }
 
-        $report = $reportQuery->firstOrFail();
-        Log::info('Report retrieved for editing', ['report_id' => $report_id]);
+        $report = ReportResourceLookup::firstReportOrAbort($reportQuery, $report_id);
+
+        if (in_array($user->role, ['executor', 'applicant'], true)) {
+            if (!$report->isEditable()) {
+                Log::warning('Report edit page denied: status not editable', [
+                    'report_id' => $report_id,
+                    'report_status' => $report->status,
+                    'user_id' => $user->id,
+                    'user_role' => $user->role,
+                    'allowed_statuses' => DPReport::executorEditableStatuses(),
+                ]);
+                abort(403, 'This report cannot be edited in its current status: ' . ($report->status ?? 'unknown'));
+            }
+
+            Log::info('Report edit page authorized for executor/applicant', [
+                'report_id' => $report_id,
+                'report_status' => $report->status,
+                'user_id' => $user->id,
+            ]);
+        }
+
+        Log::info('Report retrieved for editing', ['report_id' => $report_id, 'status' => $report->status]);
 
         // Decode expected_outcome for each objective
         foreach ($report->objectives as $objective) {
@@ -1310,7 +1332,7 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
         Log::info('Grouped photos by activity', ['count' => count($groupedPhotos)]);
 
         // Fetch the associated project
-        $project = Project::where('project_id', $report->project_id)->firstOrFail();
+        $project = ReportResourceLookup::findProject($report->project_id);
         Log::info('Project retrieved successfully', ['project_id' => $project->project_id]);
 
         // Get budget data based on project type
@@ -1323,17 +1345,18 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
                                     ->get();
         Log::info('Objectives retrieved with activities and results', ['objectives' => $objectives->toArray()]);
 
-        // Sanctioned amount from canonical project (Phase 4: projects.amount_sanctioned)
-        $amountSanctioned = $project->amount_sanctioned ?? 0.00;
+        // Sanctioned amount for SOA overview (Phase 4: fallback when stored is zero)
+        $amountSanctioned = $this->resolveReportOverviewSanctioned($project);
         $amountForwarded = 0.00; // Always set to 0 - no longer used in reports
         Log::info('Sanctioned amount', [
             'amountSanctioned' => $amountSanctioned,
+            'stored_amount_sanctioned' => $project->amount_sanctioned ?? 0,
         ]);
 
-        // Phase 4 (read-only): Optional note when report overview is 0 but project has non-zero sanctioned
+        // Phase 4 (read-only): Note when report overview is 0 but resolved overview is non-zero
         $reportSanctionedOverview = (float) ($report->amount_sanctioned_overview ?? 0);
-        $projectSanctioned = (float) ($project->amount_sanctioned ?? 0);
-        $showBudgetDiscrepancyNote = $reportSanctionedOverview <= 0 && $projectSanctioned > 0;
+        $resolvedOverview = (float) $amountSanctioned;
+        $showBudgetDiscrepancyNote = $reportSanctionedOverview <= 0 && $resolvedOverview > 0;
 
         $months = [
             'January', 'February', 'March', 'April', 'May', 'June',
@@ -1478,8 +1501,23 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
                 abort(403, 'Access denied');
             }
 
-            $report = $reportQuery->firstOrFail();
-            Log::info('Report found', ['report_id' => $report->report_id, 'user_id' => $report->user_id]);
+            $report = ReportResourceLookup::firstReportOrAbort($reportQuery, $report_id);
+            Log::info('Report found for update', [
+                'report_id' => $report->report_id,
+                'report_status' => $report->status,
+                'user_id' => $report->user_id,
+                'is_editable' => $report->isEditable(),
+            ]);
+
+            if (in_array($user->role, ['executor', 'applicant'], true) && !$report->isEditable()) {
+                Log::warning('Report update blocked in controller: status not editable', [
+                    'report_id' => $report->report_id,
+                    'report_status' => $report->status,
+                    'user_id' => $user->id,
+                    'allowed_statuses' => DPReport::executorEditableStatuses(),
+                ]);
+                abort(403, 'This report cannot be updated in its current status.');
+            }
 
             // Capture previous status before update (in case status changes)
             $previousStatus = $report->status;
@@ -1543,11 +1581,20 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             return redirect()->route('monthly.report.index')->with('success', 'Report updated successfully.');
         } catch (ValidationException $ve) {
             DB::rollBack();
-            Log::error('Validation failed', ['errors' => $ve->errors()]);
+            Log::error('Monthly report update validation failed', [
+                'report_id' => $report_id,
+                'errors' => $ve->errors(),
+                'user_id' => auth()->id(),
+            ]);
             return back()->withErrors($ve->errors())->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to update report', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('Failed to update report', [
+                'report_id' => $report_id,
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return back()->withErrors(['msg' => 'Failed to update report due to an error: ' . $e->getMessage()]);
         }
     }
@@ -1664,7 +1711,7 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             abort(403, 'Access denied');
         }
 
-        $report = $reportQuery->firstOrFail();
+        $report = ReportResourceLookup::firstReportOrAbort($reportQuery, $report_id);
         Log::info('Report retrieved for review', ['report' => $report]);
 
         return view('reports.monthly.review', compact('report'));
@@ -1700,7 +1747,7 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
             abort(403, 'Access denied');
         }
 
-        $report = $reportQuery->firstOrFail();
+        $report = ReportResourceLookup::firstReportOrAbort($reportQuery, $report_id);
 
         try {
             $reason = $request->input('revert_reason');
@@ -1738,12 +1785,17 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
 
     public function submit(Request $request, $report_id)
     {
-        Log::info('Entering submit method', ['report_id' => $report_id]);
+        Log::info('Entering submit method', ['report_id' => $report_id, 'user_id' => Auth::id()]);
 
         $user = Auth::user();
 
         // Only executors and applicants can submit reports
-        if (!in_array($user->role, ['executor', 'applicant'])) {
+        if (!in_array($user->role, ['executor', 'applicant'], true)) {
+            Log::warning('Report submit denied: invalid role', [
+                'report_id' => $report_id,
+                'user_id' => $user->id,
+                'user_role' => $user->role,
+            ]);
             abort(403, 'Only executors and applicants can submit reports.');
         }
 
@@ -1756,16 +1808,54 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
         // Find the report
         $report = DPReport::where('report_id', $report_id)
                          ->whereIn('project_id', $projectIds)
-                         ->firstOrFail();
+                         ->first();
+
+        if (!$report) {
+            Log::warning('Report submit denied: report not found or access denied', [
+                'report_id' => $report_id,
+                'user_id' => $user->id,
+                'project_ids_count' => $projectIds->count(),
+            ]);
+            abort(404, 'Report not found.');
+        }
+
+        Log::info('Report found for submit', [
+            'report_id' => $report_id,
+            'report_status' => $report->status,
+            'is_editable' => $report->isEditable(),
+            'project_id' => $report->project_id,
+        ]);
+
+        if (!$report->isEditable()) {
+            Log::warning('Report submit denied: status not submittable', [
+                'report_id' => $report_id,
+                'report_status' => $report->status,
+                'allowed_statuses' => DPReport::executorEditableStatuses(),
+                'user_id' => $user->id,
+            ]);
+            return redirect()->route('monthly.report.index')
+                ->with('error', 'Report cannot be submitted in current status: ' . $report->status);
+        }
 
         try {
+            $previousStatus = $report->status;
+
             // Use ReportStatusService to submit and log status change
             ReportStatusService::submitToProvincial($report, $user);
+
+            Log::info('Report submitted to provincial successfully', [
+                'report_id' => $report_id,
+                'previous_status' => $previousStatus,
+                'new_status' => $report->status,
+                'user_id' => $user->id,
+            ]);
 
             return redirect()->route('monthly.report.index')->with('success', 'Report submitted to Provincial successfully.');
         } catch (\Exception $e) {
             Log::error('Failed to submit report', [
                 'report_id' => $report_id,
+                'report_status' => $report->status,
+                'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
             return redirect()->route('monthly.report.index')->with('error', $e->getMessage());
@@ -1784,11 +1874,11 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
         }
 
         // Find the report
-        $report = DPReport::where('report_id', $report_id)
+        $reportQuery = DPReport::where('report_id', $report_id)
                          ->whereHas('user', function ($query) use ($user) {
                              $query->where('parent_id', $user->id);
-                         })
-                         ->firstOrFail();
+                         });
+        $report = ReportResourceLookup::firstReportOrAbort($reportQuery, $report_id);
 
         try {
             // Use ReportStatusService to forward and log status change
@@ -1816,7 +1906,7 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
         }
 
         // Find the report
-        $report = DPReport::where('report_id', $report_id)->with('user')->firstOrFail();
+        $report = ReportResourceLookup::findReport($report_id, ['user']);
 
         try {
             // Use ReportStatusService to approve and log status change
@@ -1937,7 +2027,7 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
                                     // Coordinator can remove any photo (no additional filter)
                                 });
 
-            $photo = $photoQuery->firstOrFail();
+            $photo = ReportResourceLookup::firstPhotoOrAbort($photoQuery, $photo_id);
 
             // Delete the file from storage first (faster operation)
             $fileDeleted = false;
@@ -1982,5 +2072,33 @@ private function storeActivities($request, $objective, $objectiveIndex, $objecti
                 'message' => 'Failed to remove photo: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * SOA overview sanctioned amount: stored value, or type-derived fallback when approved and stored is zero.
+     */
+    private function resolveReportOverviewSanctioned(Project $project): float
+    {
+        $stored = (float) ($project->amount_sanctioned ?? 0);
+
+        if ($stored > 0 || !$project->isApproved()) {
+            return $stored;
+        }
+
+        $resolver = app(ProjectFinancialResolver::class);
+        $derived = $resolver->resolveTypeDerivedFundFields($project);
+        $derivedSanctioned = (float) ($derived['amount_sanctioned'] ?? 0);
+
+        if ($derivedSanctioned > 0) {
+            Log::warning('Report overview using type-derived sanctioned amount (stored was zero)', [
+                'project_id' => $project->project_id,
+                'project_type' => $project->project_type,
+                'stored_amount_sanctioned' => $stored,
+                'derived_amount_sanctioned' => $derivedSanctioned,
+            ]);
+            return $derivedSanctioned;
+        }
+
+        return $stored;
     }
 }

@@ -58,11 +58,16 @@ class PersonalSituationController extends Controller
         try {
             Log::info('Editing CCI Personal Situation', ['project_id' => $projectId]);
 
-            $personalSituation = ProjectCCIPersonalSituation::where('project_id', $projectId)->firstOrFail();
+            $personalSituation = ProjectCCIPersonalSituation::where('project_id', $projectId)->first();
+
+            if (! $personalSituation) {
+                Log::warning('No CCI Personal Situation record found; using empty model for edit form', ['project_id' => $projectId]);
+                $personalSituation = new ProjectCCIPersonalSituation(['project_id' => $projectId]);
+            }
 
             return $personalSituation;
         } catch (\Exception $e) {
-            Log::error('Error editing CCI Personal Situation', ['error' => $e->getMessage()]);
+            Log::error('Error editing CCI Personal Situation', ['project_id' => $projectId, 'error' => $e->getMessage()]);
             throw $e;
         }
     }

@@ -9,14 +9,14 @@
             <div class="d-flex">
                 <input type="date" name="account_period_start" class="form-control @error('account_period_start') is-invalid @enderror"
                        value="{{ old('account_period_start', $report->account_period_start ?? '') }}"
-                       style="background-color: #202ba3;">
+                       class="form-control report-active-input">
                 @error('account_period_start')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
                 <span class="mx-2">to</span>
                 <input type="date" name="account_period_end" class="form-control @error('account_period_end') is-invalid @enderror"
                        value="{{ old('account_period_end', $report->account_period_end ?? '') }}"
-                       style="background-color: #202ba3;">
+                       class="form-control report-active-input">
                 @error('account_period_end')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
@@ -151,78 +151,86 @@
             </div>
         </div>
 
-        <table class="table table-bordered budget-statements-table">
-            <thead>
-                <tr>
-                    <th>No.</th>
-                    <th>Particulars</th>
-                    <th>Amount Sanctioned Current Year</th>
-                    <th>Total Amount</th>
-                    <th>Expenses Up to Last Month</th>
-                    <th>Expenses of This Month</th>
-                    <th>Total Expenses (5+6)</th>
-                    <th>Balance Amount</th>
-                    <th class="budget-action-col">Action</th>
-                </tr>
-            </thead>
-            <tbody id="account-rows">
-                @if(isset($report) && $report->accountDetails)
-                    {{-- Edit Mode: Use saved account details --}}
-                    @foreach ($report->accountDetails as $index => $accountDetail)
-                        <tr data-row-type="{{ $accountDetail->is_budget_row ? 'budget' : 'additional' }}">
-                            <input type="hidden" name="account_detail_id[{{$index}}]" value="{{ $accountDetail->account_detail_id }}">
-                            <input type="hidden" name="is_budget_row[{{$index}}]" value="{{ $accountDetail->is_budget_row ? '1' : '0' }}">
-                            <td>{{ $index + 1 }}</td>
-                            <td class="particulars-cell">
-                                @if($accountDetail->is_budget_row)
-                                    <input type="hidden" name="particulars[]" value="{{ old('particulars.' . $index, $accountDetail->particulars) }}">
-                                    <span class="particulars-text">{{ old('particulars.' . $index, $accountDetail->particulars) }}</span>
-                                @else
-                                    <input type="text" name="particulars[]" class="form-control" value="{{ old('particulars.' . $index, $accountDetail->particulars) }}" readonly>
-                                @endif
-                            </td>
-                            <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ old('amount_sanctioned.' . $index, $accountDetail->amount_sanctioned) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
-                            <td><input type="number" name="total_amount[]" class="form-control" value="{{ old('total_amount.' . $index, $accountDetail->amount_sanctioned) }}" readonly></td>
-                            <td><input type="number" name="expenses_last_month[]" class="form-control" value="{{ old('expenses_last_month.' . $index, $accountDetail->expenses_last_month) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
-                            <td><input type="number" name="expenses_this_month[]" class="form-control" value="{{ old('expenses_this_month.' . $index, $accountDetail->expenses_this_month) }}" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
-                            <td><input type="number" name="total_expenses[]" class="form-control" value="{{ old('total_expenses.' . $index, $accountDetail->total_expenses) }}" readonly></td>
-                            <td><input type="number" name="balance_amount[]" class="form-control" value="{{ old('balance_amount.' . $index, $accountDetail->balance_amount) }}" readonly></td>
-                            <td class="budget-action-col">@if(!$accountDetail->is_budget_row)<button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button>@endif</td>
-                        </tr>
-                    @endforeach
-                @elseif(isset($budgets))
-                    {{-- Create Mode: Use IIES project budgets --}}
-                    @foreach($budgets as $index => $budget)
-                    <tr data-row-type="budget">
-                        <input type="hidden" name="is_budget_row[{{$index}}]" value="1">
-                        <td>{{ $index + 1 }}</td>
-                        <td class="particulars-cell"><input type="hidden" name="particulars[]" value="{{ old('particulars.'.$index, $budget->iies_particular) }}"><span class="particulars-text">{{ old('particulars.'.$index, $budget->iies_particular) }}</span></td>
-                        <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ old('amount_sanctioned.'.$index, $budget->iies_amount ?? 0.00) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
-                        <td><input type="number" name="total_amount[]" class="form-control" value="{{ old('total_amount.'.$index, $budget->iies_amount ?? 0.00) }}" readonly></td>
-                        <td><input type="number" name="expenses_last_month[]" class="form-control" value="{{ old('expenses_last_month.'.$index, $lastExpenses[$budget->iies_particular] ?? 0.00) }}" readonly></td>
-                        <td><input type="number" name="expenses_this_month[]" class="form-control" value="{{ old('expenses_this_month.'.$index, 0.00) }}" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
-                        <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
-                        <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>
-                        <td class="budget-action-col"></td>
+        <div class="table-responsive">
+            <table class="table table-bordered budget-statements-table report-form-table">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Particulars</th>
+                        <th>Amount Sanctioned Current Year</th>
+                        <th>Total Amount</th>
+                        <th>Expenses Up to Last Month</th>
+                        <th>Expenses of This Month</th>
+                        <th>Total Expenses (5+6)</th>
+                        <th>Balance Amount</th>
+                        <th class="budget-action-col">Action</th>
                     </tr>
-                    @endforeach
-                @endif
-            </tbody>
-            <tfoot>
-                <tr>
-                    <th>Total</th>
-                    <th></th>
-                    <th><input type="number" id="total_sanctioned" class="form-control" readonly></th>
-                    <th><input type="number" id="total_amount_total" class="form-control" readonly></th>
-                    <th><input type="number" id="total_expenses_last_month" class="form-control" readonly></th>
-                    <th><input type="number" id="total_expenses_this_month" class="form-control" readonly></th>
-                    <th><input type="number" id="total_expenses_total" class="form-control" readonly></th>
-                    <th><input type="number" id="total_balance" class="form-control" readonly></th>
-                    <th class="budget-action-col"></th>
-                </tr>
-            </tfoot>
-        </table>
-        <button type="button" class="btn btn-primary" onclick="addAccountRow()">Add Additional Expense Row</button>
+                </thead>
+                <tbody id="account-rows">
+                    @if(isset($report) && $report->accountDetails && $report->accountDetails->count() > 0)
+                        {{-- Edit Mode: Use saved account details --}}
+                        @foreach ($report->accountDetails as $index => $accountDetail)
+                            <tr data-row-type="{{ $accountDetail->is_budget_row ? 'budget' : 'additional' }}">
+                                <input type="hidden" name="account_detail_id[{{$index}}]" value="{{ $accountDetail->account_detail_id }}">
+                                <input type="hidden" name="is_budget_row[{{$index}}]" value="{{ $accountDetail->is_budget_row ? '1' : '0' }}">
+                                <td>{{ $index + 1 }}</td>
+                                <td class="particulars-cell">
+                                    @if($accountDetail->is_budget_row)
+                                        <input type="hidden" name="particulars[]" value="{{ old('particulars.' . $index, $accountDetail->particulars) }}">
+                                        <span class="particulars-text">{{ old('particulars.' . $index, $accountDetail->particulars) }}</span>
+                                    @else
+                                        <input type="text" name="particulars[]" class="form-control" value="{{ old('particulars.' . $index, $accountDetail->particulars) }}">
+                                    @endif
+                                </td>
+                                <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ old('amount_sanctioned.' . $index, $accountDetail->amount_sanctioned) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
+                                <td><input type="number" name="total_amount[]" class="form-control" value="{{ old('total_amount.' . $index, $accountDetail->amount_sanctioned) }}" readonly></td>
+                                <td><input type="number" name="expenses_last_month[]" class="form-control" value="{{ old('expenses_last_month.' . $index, $accountDetail->expenses_last_month) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
+                                <td><input type="number" name="expenses_this_month[]" class="form-control" value="{{ old('expenses_this_month.' . $index, $accountDetail->expenses_this_month) }}" oninput="calculateRowTotals(this.closest('tr'))" class="form-control report-active-input"></td>
+                                <td><input type="number" name="total_expenses[]" class="form-control" value="{{ old('total_expenses.' . $index, $accountDetail->total_expenses) }}" readonly></td>
+                                <td><input type="number" name="balance_amount[]" class="form-control" value="{{ old('balance_amount.' . $index, $accountDetail->balance_amount) }}" readonly></td>
+                                <td class="budget-action-col">
+                                    @if(!$accountDetail->is_budget_row)
+                                        <button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button>
+                                    @else
+                                        <span class="badge scheduled-months-badge">Budget Row</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    @elseif(isset($budgets))
+                        {{-- Fallback Create Mode: Use project budgets if report has no accountDetails --}}
+                        @foreach($budgets as $index => $budget)
+                        <tr data-row-type="budget">
+                            <input type="hidden" name="is_budget_row[{{$index}}]" value="1">
+                            <td>{{ $index + 1 }}</td>
+                            <td class="particulars-cell"><input type="hidden" name="particulars[]" value="{{ old('particulars.'.$index, $budget->name) }}"><span class="particulars-text">{{ old('particulars.'.$index, $budget->name) }}</span></td>
+                            <td><input type="number" name="amount_sanctioned[]" class="form-control" value="{{ old('amount_sanctioned.'.$index, $budget->total_amount ?? 0.00) }}" oninput="calculateRowTotals(this.closest('tr'))" readonly></td>
+                            <td><input type="number" name="total_amount[]" class="form-control" value="{{ old('total_amount.'.$index, $budget->total_amount ?? 0.00) }}" readonly></td>
+                            <td><input type="number" name="expenses_last_month[]" class="form-control" value="{{ old('expenses_last_month.'.$index, $lastExpenses[$budget->name] ?? 0.00) }}" readonly></td>
+                            <td><input type="number" name="expenses_this_month[]" class="form-control" value="{{ old('expenses_this_month.'.$index, 0.00) }}" oninput="calculateRowTotals(this.closest('tr'))" class="form-control report-active-input"></td>
+                            <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
+                            <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>
+                            <td class="budget-action-col"></td>
+                        </tr>
+                        @endforeach
+                    @endif
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total</th>
+                        <th></th>
+                        <th><input type="number" id="total_sanctioned" class="form-control" readonly></th>
+                        <th><input type="number" id="total_amount_total" class="form-control" readonly></th>
+                        <th><input type="number" id="total_expenses_last_month" class="form-control" readonly></th>
+                        <th><input type="number" id="total_expenses_this_month" class="form-control" readonly></th>
+                        <th><input type="number" id="total_expenses_total" class="form-control" readonly></th>
+                        <th><input type="number" id="total_balance" class="form-control" readonly></th>
+                        <th class="budget-action-col"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <button type="button" class="btn btn-primary mt-3" onclick="addAccountRow()">Add Additional Expense Row</button>
 
         <div class="mt-3">
             <label for="total_balance_forwarded" class="form-label">Total Balance Amount Forwarded for the Following Month: Rs.</label>
@@ -330,11 +338,11 @@ function addAccountRow() {
     newRow.innerHTML = `
         <input type="hidden" name="is_budget_row[${currentRowCount}]" value="0">
         <td>${currentRowCount + 1}</td>
-        <td class="particulars-cell"><input type="text" name="particulars[]" class="form-control" placeholder="Enter expense description" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="amount_sanctioned[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
+        <td class="particulars-cell"><input type="text" name="particulars[]" class="form-control" placeholder="Enter expense description" class="form-control report-active-input"></td>
+        <td><input type="number" name="amount_sanctioned[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" class="form-control report-active-input"></td>
         <td><input type="number" name="total_amount[]" class="form-control" readonly></td>
-        <td><input type="number" name="expenses_last_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
-        <td><input type="number" name="expenses_this_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" style="background-color: #202ba3;"></td>
+        <td><input type="number" name="expenses_last_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" class="form-control report-active-input"></td>
+        <td><input type="number" name="expenses_this_month[]" class="form-control" value="0" oninput="calculateRowTotals(this.closest('tr'))" class="form-control report-active-input"></td>
         <td><input type="number" name="total_expenses[]" class="form-control" readonly></td>
         <td><input type="number" name="balance_amount[]" class="form-control" readonly></td>
         <td class="budget-action-col"><button type="button" class="btn btn-danger btn-sm" onclick="removeAccountRow(this)">Remove</button></td>

@@ -419,7 +419,9 @@ Route::middleware(['auth', 'role:executor,applicant'])->group(function () {
     // Activity History Routes for Executor/Applicant
     Route::get('/activities/my-activities', [ActivityHistoryController::class, 'myActivities'])->name('activities.my-activities');
 
-    Route::get('/test-expenses/{project_id}', [ReportController::class, 'testFetchLatestTotalExpenses']);
+    if (config('app.debug')) {
+        Route::get('/test-expenses/{project_id}', [ReportController::class, 'testFetchLatestTotalExpenses']);
+    }
 
     // Project Application Routes for Executor
     Route::prefix('executor/projects')->group(function () {
@@ -469,7 +471,7 @@ Route::prefix('reports/monthly')->group(function () {
     Route::delete('/reports/monthly/attachments/{id}', [ReportAttachmentController::class, 'remove'])->name('reports.attachments.remove');
     Route::delete('/photos/{id}', [ReportController::class, 'removePhoto'])->name('photos.remove');
 
-    // Monthly Development Project (developmentProject/reportform: activity-based photos)
+    // Legacy DP create path (Phase 7: redirects to monthly.report.create; store deprecated)
     Route::get('development-project/create/{project_id}', [MonthlyDevelopmentProjectController::class, 'createForm'])->name('monthly.developmentProject.create');
     Route::post('development-project/store', [MonthlyDevelopmentProjectController::class, 'store'])->name('monthly.developmentProject.store');
 });
@@ -530,10 +532,11 @@ Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,gener
     Route::get('reports/monthly/attachments/download/{id}', [ReportAttachmentController::class, 'downloadAttachment'])->name('reports.attachments.download');
     //Check file existence
     Route::get('reports/monthly/check-file/{id}', [ReportAttachmentController::class, 'checkFileExists'])->name('monthly.report.checkFile');
-    //Test file structure
-    Route::get('reports/monthly/test-structure/{report_id}', [ReportAttachmentController::class, 'testFileStructure'])->name('monthly.report.testStructure');
-    //Test create attachment
-    Route::get('reports/monthly/test-create-attachment/{report_id}', [ReportAttachmentController::class, 'testCreateAttachment'])->name('monthly.report.testCreateAttachment');
+    if (config('app.debug')) {
+        // Debug-only attachment diagnostics (Phase 9)
+        Route::get('reports/monthly/test-structure/{report_id}', [ReportAttachmentController::class, 'testFileStructure'])->name('monthly.report.testStructure');
+        Route::get('reports/monthly/test-create-attachment/{report_id}', [ReportAttachmentController::class, 'testCreateAttachment'])->name('monthly.report.testCreateAttachment');
+    }
     //View Montly Reports
     Route::get('show/{report_id}', [ReportController::class, 'show'])->name('monthly.report.show');
 
@@ -542,6 +545,8 @@ Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,gener
     Route::get('reports/monthly/downloadDoc/{report_id}', [ExportReportController::class, 'downloadDoc'])->name('monthly.report.downloadDoc');
 });
 
+// Legacy quarterly program reports (require authentication)
+Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,general'])->group(function () {
     // Quarterly Development Project Reporting Routes for Executor
     Route::prefix('reports/quarterly/development-project')->group(function () {
         Route::get('create', [DevelopmentProjectController::class, 'create'])->name('quarterly.developmentProject.create');
@@ -590,7 +595,6 @@ Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,gener
         Route::get('{id}', [InstitutionalSupportController::class, 'show'])->name('quarterly.institutionalSupport.show');
     });
 
-
     // Quarterly Women in Distress Reporting Routes
     Route::prefix('reports/quarterly/women-in-distress')->group(function () {
         Route::get('create', [WomenInDistressController::class, 'create'])->name('quarterly.womenInDistress.create');
@@ -602,6 +606,7 @@ Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,gener
         Route::get('list', [WomenInDistressController::class, 'index'])->name('quarterly.womenInDistress.index');
         Route::get('{id}', [WomenInDistressController::class, 'show'])->name('quarterly.womenInDistress.show');
     });
+});
 
 // Aggregated Report Routes (Quarterly, Half-Yearly, Annual) (General has COMPLETE coordinator access)
 Route::middleware(['auth', 'role:executor,applicant,provincial,coordinator,general'])->group(function () {

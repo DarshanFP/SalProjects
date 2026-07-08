@@ -12,6 +12,20 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             border: 1px solid #ddd;
+            page-break-inside: auto;
+        }
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        thead {
+            display: table-header-group;
+        }
+        tfoot {
+            display: table-footer-group;
+        }
+        .section-header {
+            page-break-after: avoid;
         }
         .info-table td, .details-table td, .activities-table td, .account-table td {
             padding: 5px 10px;

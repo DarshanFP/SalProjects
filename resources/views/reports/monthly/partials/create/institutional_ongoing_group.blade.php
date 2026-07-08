@@ -25,22 +25,22 @@
                         </select>
                     </td>
                     <td>
-                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                     <td>
-                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                 </tr>
                 <tr>
                     <td>Children below 5 years</td>
                     <td>
-                        <input type="text" name="education[]" class="form-control" placeholder="If any other, mention here" style="background-color: #202ba3;">
+                        <input type="text" name="education[]" class="form-control" placeholder="If any other, mention here" class="form-control report-active-input">
                     </td>
                     <td>
-                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                     <td>
-                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                 </tr>
                 <!-- Total row for Children below 5 years -->
@@ -59,22 +59,22 @@
                         </select>
                     </td>
                     <td>
-                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                     <td>
-                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                 </tr>
                 <tr>
                     <td>Children between 6 to 10 years</td>
                     <td>
-                        <input type="text" name="education[]" class="form-control" placeholder="If any other, mention here" style="background-color: #202ba3;">
+                        <input type="text" name="education[]" class="form-control" placeholder="If any other, mention here" class="form-control report-active-input">
                     </td>
                     <td>
-                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                     <td>
-                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                 </tr>
                 <!-- Total row for Children between 6 to 10 years -->
@@ -93,22 +93,22 @@
                         </select>
                     </td>
                     <td>
-                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                     <td>
-                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                 </tr>
                 <tr>
                     <td>Children between 11 to 15 years</td>
                     <td>
-                        <input type="text" name="education[]" class="form-control" placeholder="If any other, mention here" style="background-color: #202ba3;">
+                        <input type="text" name="education[]" class="form-control" placeholder="If any other, mention here" class="form-control report-active-input">
                     </td>
                     <td>
-                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                     <td>
-                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                 </tr>
                 <!-- Total row for Children between 11 to 15 years -->
@@ -127,22 +127,22 @@
                         </select>
                     </td>
                     <td>
-                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                     <td>
-                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                 </tr>
                 <tr>
                     <td>16 and above</td>
                     <td>
-                        <input type="text" name="education[]" class="form-control" placeholder="If any other, mention here" style="background-color: #202ba3;">
+                        <input type="text" name="education[]" class="form-control" placeholder="If any other, mention here" class="form-control report-active-input">
                     </td>
                     <td>
-                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="up_to_previous_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                     <td>
-                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                        <input type="number" name="present_academic_year[]" class="form-control" oninput="calculateAgeTotals()" class="form-control report-active-input">
                     </td>
                 </tr>
                 <!-- Total row for 16 and above -->

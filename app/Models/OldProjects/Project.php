@@ -856,4 +856,15 @@ public function activityHistory()
         ->orderBy('created_at', 'desc');
 }
 
+/**
+ * Latest activity (status change) per project - one record per project for Last Action display.
+ * Uses latestOfMany so eager loading returns one row per project, not one total.
+ */
+public function latestActivityHistory()
+{
+    return $this->hasOne(ActivityHistory::class, 'related_id', 'project_id')
+        ->where('type', 'project')
+        ->latestOfMany('created_at');
+}
+
 }

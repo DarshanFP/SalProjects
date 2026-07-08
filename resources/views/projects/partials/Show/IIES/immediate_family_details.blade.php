@@ -8,6 +8,7 @@
             $familyDetails = $project->iiesImmediateFamilyDetails ?? new \App\Models\OldProjects\IIES\ProjectIIESImmediateFamilyDetails();
         @endphp
 
+        <div class="table-responsive">
         <table class="table table-bordered">
             <tr>
                 <th>Father Expired</th>
@@ -72,6 +73,7 @@
             </tr>
             @endif
         </table>
+        </div>
     </div>
 </div>
 

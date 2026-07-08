@@ -1212,8 +1212,9 @@ public function edit($project_id)
                 $cicBasicInfo = $this->cicBasicInfoController->edit($project->project_id);
                 break;
 
+            case ProjectType::CHILD_CARE_INSTITUTION:
             case 'CHILD CARE INSTITUTION':
-                Log::info('ProjectController@edit - Fetching CCI data');
+                Log::info('ProjectController@edit - Fetching CCI data', ['project_id' => $project->project_id]);
                 $achievements = $this->cciAchievementsController->edit($project->project_id);
                 $ageProfile = $this->cciAgeProfileController->edit($project->project_id);
                 $targetGroup = $this->cciAnnexedTargetGroupController->edit($project->project_id);
@@ -1222,6 +1223,11 @@ public function edit($project_id)
                 $presentSituation = $this->cciPresentSituationController->edit($project->project_id);
                 $rationale = $this->cciRationaleController->edit($project->project_id);
                 $statistics = $this->cciStatisticsController->edit($project->project_id);
+                Log::info('ProjectController@edit - CCI section data loaded', [
+                    'project_id' => $project->project_id,
+                    'has_statistics' => $statistics !== null,
+                    'has_achievements' => $achievements !== null,
+                ]);
                 break;
 
             case 'Institutional Ongoing Group Educational proposal':
@@ -1250,9 +1256,19 @@ public function edit($project_id)
                 $RSTtargetGroup = $this->rstTargetGroupController->edit($project->project_id);
                 break;
 
+            case ProjectType::DEVELOPMENT_PROJECTS:
             case 'Development Projects':
-                Log::info('ProjectController@edit - Fetching Development Projects data');
+                Log::info('ProjectController@edit - Fetching Development Projects data', ['project_id' => $project->project_id]);
                 $beneficiariesArea = $this->rstBeneficiariesAreaController->edit($project->project_id);
+                break;
+
+            case ProjectType::NEXT_PHASE_DEVELOPMENT_PROPOSAL:
+            case 'NEXT PHASE - DEVELOPMENT PROPOSAL':
+                Log::info('ProjectController@edit - Fetching NEXT PHASE - DEVELOPMENT PROPOSAL data', ['project_id' => $project->project_id]);
+                $beneficiariesArea = $this->rstBeneficiariesAreaController->edit($project->project_id);
+                Log::info('ProjectController@edit - NPD section data loaded (development-style beneficiaries area)', [
+                    'project_id' => $project->project_id,
+                ]);
                 break;
 
             case 'Individual - Ongoing Educational support':
@@ -1310,7 +1326,8 @@ public function edit($project_id)
 
             default:
                 Log::warning('ProjectController@edit - Unknown project type', [
-                    'project_type' => $project->project_type
+                    'project_id' => $project_id,
+                    'project_type' => $project->project_type,
                 ]);
                 break;
         }
@@ -1366,6 +1383,7 @@ public function edit($project_id)
     } catch (\Exception $e) {
         Log::error('ProjectController@edit - Error retrieving project data', [
             'project_id' => $project_id,
+            'project_type' => isset($project) ? $project->project_type : null,
             'error' => $e->getMessage(),
             'trace' => $e->getTraceAsString()
         ]);
@@ -1686,7 +1704,7 @@ public function approvedProjects(Request $request)
 {
     $user = Auth::user();
 
-    $fy = $request->input('fy', FinancialYearHelper::currentFY());
+    $fy = $request->input('fy', '');
     $role = $request->input('role', 'owned');
     $role = in_array($role, ['owner', 'owned', 'in_charge', 'owned_and_in_charge'], true) ? $role : 'owned';
     if ($role === 'owner') {

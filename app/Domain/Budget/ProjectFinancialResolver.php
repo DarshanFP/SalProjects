@@ -5,6 +5,7 @@ namespace App\Domain\Budget;
 use App\Domain\Budget\Strategies\DirectMappedIndividualBudgetStrategy;
 use App\Domain\Budget\Strategies\PhaseBasedBudgetStrategy;
 use App\Domain\Budget\Strategies\ProjectFinancialStrategyInterface;
+use App\Domain\Budget\Strategies\TypeDerivedFundFieldsInterface;
 use App\Models\OldProjects\Project;
 use App\Services\Budget\DerivedCalculationService;
 use Illuminate\Support\Collection;
@@ -78,6 +79,40 @@ class ProjectFinancialResolver
         $this->assertFinancialInvariants($project, $normalized);
 
         return $normalized;
+    }
+
+    /**
+     * Resolve fund fields from type-specific source tables without reading stale
+     * approved-project DB values for amount_sanctioned / opening_balance.
+     *
+     * Used for approved-project repair and report overview fallback.
+     *
+     * @return array{
+     *     overall_project_budget: float,
+     *     amount_forwarded: float,
+     *     local_contribution: float,
+     *     amount_sanctioned: float,
+     *     amount_requested: float,
+     *     opening_balance: float
+     * }
+     */
+    public function resolveTypeDerivedFundFields(Project $project): array
+    {
+        $strategy = $this->getStrategyForProject($project);
+
+        if ($strategy instanceof TypeDerivedFundFieldsInterface) {
+            $result = $strategy->resolveFromTypeTables($project);
+        } else {
+            $result = $strategy->resolve($project);
+        }
+
+        $forwarded = (float) ($result['amount_forwarded'] ?? 0);
+        $local = (float) ($result['local_contribution'] ?? 0);
+        $sanctioned = (float) ($result['amount_sanctioned'] ?? 0);
+        $result['amount_requested'] = 0.0;
+        $result['opening_balance'] = round($sanctioned + $forwarded + $local, 2);
+
+        return $this->normalize($result);
     }
 
     /**

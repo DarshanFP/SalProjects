@@ -102,7 +102,7 @@ class NotificationService
     public static function notifyRejection(
         User $user,
         string $relatedType,
-        int $relatedId,
+        int|string $relatedId,
         string $relatedTitle,
         ?string $reason = null
     ): Notification {
@@ -158,7 +158,7 @@ class NotificationService
     public static function notifyStatusChange(
         User $user,
         string $relatedType,
-        int $relatedId,
+        int|string $relatedId,
         string $relatedTitle,
         string $oldStatus,
         string $newStatus

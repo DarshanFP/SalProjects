@@ -3,6 +3,7 @@
 @section('content')
 @php
     use App\Constants\ProjectStatus;
+    use App\Helpers\TableFormatter;
 @endphp
 <div class="page-content">
     <div class="row justify-content-center">
@@ -152,6 +153,29 @@
                         </div>
                     </form>
 
+                    {{-- Per-page selector (Phase 1) --}}
+                    @if(isset($allowedPageSizes) && isset($currentPerPage))
+                    <div class="mb-3 d-flex align-items-center gap-2">
+                        <form method="GET" action="{{ route('coordinator.projects.list') }}" class="d-flex align-items-center gap-2">
+                            @foreach(request()->except('per_page', 'page') as $key => $value)
+                                @if(is_array($value))
+                                    @foreach($value as $v)
+                                        <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
+                                    @endforeach
+                                @else
+                                    <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                                @endif
+                            @endforeach
+                            <label for="per_page" class="mb-0 form-label">Per page</label>
+                            <select name="per_page" id="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                                @foreach($allowedPageSizes as $size)
+                                    <option value="{{ $size }}" {{ $currentPerPage == $size ? 'selected' : '' }}>{{ $size }}</option>
+                                @endforeach
+                            </select>
+                        </form>
+                    </div>
+                    @endif
+
                     {{-- Active Filters Display --}}
                     @if(request()->anyFilled(['fy', 'search', 'province', 'status', 'project_type', 'provincial_id', 'user_id', 'center', 'start_date', 'end_date']))
                     <div class="mb-3 alert alert-info">
@@ -195,10 +219,80 @@
                     </div>
                     @endif
 
+                    {{-- Phase 4: Grand Totals Summary Card --}}
+                    @if(isset($grandTotals))
+                    <div class="mb-4 row">
+                        <div class="col-md-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <span class="text-muted small d-block">Total Projects</span>
+                                    <h5 class="mb-0 fw-bold">{{ number_format($grandTotals['total_projects'] ?? 0) }}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <span class="text-muted small d-block">Total Budget</span>
+                                    <h5 class="mb-0 fw-bold">{{ format_indian_currency($grandTotals['total_budget'] ?? 0, 2) }}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <span class="text-muted small d-block">Total Expenses</span>
+                                    <h5 class="mb-0 fw-bold">{{ format_indian_currency($grandTotals['total_expenses'] ?? 0, 2) }}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <span class="text-muted small d-block">Total Remaining</span>
+                                    <h5 class="mb-0 fw-bold">{{ format_indian_currency($grandTotals['total_remaining'] ?? 0, 2) }}</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Phase 5: Status Distribution Cards --}}
+                    @if(!empty($statusDistribution))
+                    <div class="row mb-3">
+                        @foreach($statusDistribution as $status => $count)
+                            @php
+                                $statusLabel = \App\Models\OldProjects\Project::$statusLabels[$status] ?? ucfirst(str_replace('_', ' ', $status));
+                                $borderClass = match($status) {
+                                    ProjectStatus::APPROVED_BY_COORDINATOR => 'border-start border-3 border-success',
+                                    ProjectStatus::FORWARDED_TO_COORDINATOR => 'border-start border-3 border-info',
+                                    ProjectStatus::REVERTED_BY_COORDINATOR, ProjectStatus::REVERTED_BY_PROVINCIAL => 'border-start border-3 border-warning',
+                                    ProjectStatus::REJECTED_BY_COORDINATOR => 'border-start border-3 border-danger',
+                                    ProjectStatus::DRAFT => 'border-start border-3 border-secondary',
+                                    default => 'border-start border-3 border-primary',
+                                };
+                            @endphp
+                            <div class="col-md-3 mb-2">
+                                <div class="card {{ $borderClass }} shadow-sm h-100">
+                                    <div class="card-body py-2">
+                                        <div class="text-xs font-weight-bold text-uppercase mb-1 text-muted small">
+                                            {{ Str::limit($statusLabel, 30) }}
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                            {{ $count }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    @endif
+
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover" id="projectsTable">
+                        <table class="table table-bordered table-hover project-list-table" id="projectsTable">
                             <thead class="thead-light">
                                 <tr>
+                                    <th>S.No</th>
                                     <th>Project ID</th>
                                     <th>Last Action</th>
                                     <th>Project Title</th>
@@ -214,7 +308,7 @@
                                     <th>Utilization</th>
                                     <th>Health</th>
                                     <th>Reports</th>
-                                    <th>Actions</th>
+                                    <th class="col-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -248,13 +342,23 @@
                                     @endphp
                                     <tr>
                                         <td>
+                                            {{ TableFormatter::resolveSerial($loop, $projects ?? null, true) }}
+                                        </td>
+                                        <td>
                                             <a href="{{ route('coordinator.projects.show', $project->project_id) }}"
                                                class="text-primary font-weight-bold">
                                                 {{ $project->project_id }}
                                             </a>
                                         </td>
                                         <td>
-                                            <small>{{ $project->status_history_max_created_at ? \Carbon\Carbon::parse($project->status_history_max_created_at)->format('d/m/Y') : '—' }}</small>
+                                            @php
+                                                $lastAction = $project->latestActivityHistory;
+                                                $lastActionName = $lastAction?->changed_by_user_name ?? $lastAction?->changedBy?->name ?? '—';
+                                                $lastActionDate = $lastAction?->created_at ? $lastAction->created_at->format('d/m/Y') : '—';
+                                            @endphp
+                                            <span style="color: #fabc05;">{{ $lastActionName }}</span>
+                                            <br>
+                                            <small style="color: #66d1d1;">{{ $lastActionDate }}</small>
                                         </td>
                                         <td>
                                             {{ Str::limit($project->project_title ?? 'N/A', 40) }}
@@ -315,7 +419,7 @@
                                             <br>
                                             <small class="text-muted">{{ $project->approved_reports_count ?? 0 }} approved</small>
                                         </td>
-                                        <td>
+                                        <td class="col-actions">
                                             <div class="btn-group btn-group-sm" role="group">
                                                 <a href="{{ route('coordinator.projects.show', $project->project_id) }}"
                                                    class="btn btn-primary btn-sm">
@@ -424,7 +528,7 @@
                                     @endif
                                 @empty
                                     <tr>
-                                        <td colspan="16" class="py-4 text-center text-muted">
+                                        <td colspan="17" class="py-4 text-center text-muted">
                                             No projects found matching the filters.
                                         </td>
                                     </tr>
@@ -433,39 +537,22 @@
                         </table>
                     </div>
 
-                    {{-- Pagination --}}
-                    @if(isset($pagination) && $pagination['total'] > $pagination['per_page'])
-                    <div class="mt-3 d-flex justify-content-between align-items-center">
+                    {{-- Pagination (Phase 1: Laravel paginator) --}}
+                    @if(isset($projects) && $projects->hasPages())
+                    <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div>
                             <small class="text-muted">
-                                Showing {{ $pagination['from'] }} to {{ $pagination['to'] }} of {{ $pagination['total'] }} projects
+                                Showing {{ $projects->firstItem() }} to {{ $projects->lastItem() }} of {{ $projects->total() }} projects
                             </small>
                         </div>
                         <div>
-                            @if($pagination['current_page'] > 1)
-                                <a href="{{ request()->fullUrlWithQuery(['page' => $pagination['current_page'] - 1]) }}"
-                                   class="btn btn-sm btn-secondary">Previous</a>
-                            @endif
-
-                            @for($i = max(1, $pagination['current_page'] - 2); $i <= min($pagination['last_page'], $pagination['current_page'] + 2); $i++)
-                                @if($i == $pagination['current_page'])
-                                    <span class="btn btn-sm btn-primary">{{ $i }}</span>
-                                @else
-                                    <a href="{{ request()->fullUrlWithQuery(['page' => $i]) }}"
-                                       class="btn btn-sm btn-outline-secondary">{{ $i }}</a>
-                                @endif
-                            @endfor
-
-                            @if($pagination['current_page'] < $pagination['last_page'])
-                                <a href="{{ request()->fullUrlWithQuery(['page' => $pagination['current_page'] + 1]) }}"
-                                   class="btn btn-sm btn-secondary">Next</a>
-                            @endif
+                            {{ $projects->links() }}
                         </div>
                     </div>
-                    @elseif(isset($pagination))
+                    @elseif(isset($projects) && $projects->total() > 0)
                     <div class="mt-3">
                         <small class="text-muted">
-                            Showing {{ $pagination['total'] }} project(s)
+                            Showing {{ $projects->total() }} project(s)
                         </small>
                     </div>
                     @endif

@@ -18,21 +18,26 @@ class ReportStatusService
      */
     public static function submitToProvincial(DPReport $report, User $user): bool
     {
-        $allowedStatuses = [
-            DPReport::STATUS_DRAFT,
-            DPReport::STATUS_REVERTED_BY_PROVINCIAL,
-            DPReport::STATUS_REVERTED_BY_COORDINATOR,
-            DPReport::STATUS_REVERTED_BY_GENERAL_AS_PROVINCIAL,
-            DPReport::STATUS_REVERTED_BY_GENERAL_AS_COORDINATOR,
-            DPReport::STATUS_REVERTED_TO_EXECUTOR,
-            DPReport::STATUS_REVERTED_TO_APPLICANT,
-            DPReport::STATUS_REVERTED_TO_PROVINCIAL,
-            DPReport::STATUS_REVERTED_TO_COORDINATOR,
-        ];
+        $allowedStatuses = DPReport::EXECUTOR_EDITABLE_STATUSES;
 
-        if (!in_array($report->status, $allowedStatuses)) {
+        if (!in_array($report->status, $allowedStatuses, true)) {
+            Log::warning('Report submit to provincial denied: status not allowed', [
+                'report_id' => $report->report_id,
+                'project_id' => $report->project_id,
+                'current_status' => $report->status,
+                'allowed_statuses' => $allowedStatuses,
+                'user_id' => $user->id,
+                'user_role' => $user->role,
+            ]);
             throw new \Exception('Report cannot be submitted in current status: ' . $report->status);
         }
+
+        Log::info('Report submit to provincial: status check passed', [
+            'report_id' => $report->report_id,
+            'current_status' => $report->status,
+            'user_id' => $user->id,
+            'user_role' => $user->role,
+        ]);
 
         $previousStatus = $report->status;
         $report->status = DPReport::STATUS_SUBMITTED_TO_PROVINCIAL;

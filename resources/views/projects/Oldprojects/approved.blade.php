@@ -23,6 +23,11 @@
                             <option value="owned_and_in_charge" {{ ($role ?? '') == 'owned_and_in_charge' ? 'selected' : '' }}>All My Projects</option>
                         </select>
                     </form>
+                    @if(!empty($fy))
+                        <p class="text-muted small mb-3">
+                            Projects with no commencement date are hidden when a financial year is selected.
+                        </p>
+                    @endif
                     <script>
                         document.querySelectorAll('.dashboard-select').forEach(function(el) {
                             el.addEventListener('change', function() { this.closest('form').submit(); });

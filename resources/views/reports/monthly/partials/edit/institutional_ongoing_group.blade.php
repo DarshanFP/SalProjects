@@ -61,10 +61,10 @@
                             </select>
                         </td>
                         <td>
-                            <input type="number" name="up_to_previous_year[]" class="form-control" value="{{ $entry1->up_to_previous_year ?? '' }}" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                            <input type="number" name="up_to_previous_year[]" class="form-control" value="{{ $entry1->up_to_previous_year ?? '' }}" oninput="calculateAgeTotals()" class="form-control report-active-input">
                         </td>
                         <td>
-                            <input type="number" name="present_academic_year[]" class="form-control" value="{{ $entry1->present_academic_year ?? '' }}" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                            <input type="number" name="present_academic_year[]" class="form-control" value="{{ $entry1->present_academic_year ?? '' }}" oninput="calculateAgeTotals()" class="form-control report-active-input">
                         </td>
                     </tr>
 
@@ -72,13 +72,13 @@
                     <tr>
                         <td>{{ $ageGroup }}</td>
                         <td>
-                            <input type="text" name="education[]" class="form-control" placeholder="If any other, mention here" value="{{ (isset($entry2) && !in_array($entry2->education, array_merge($options, ['If any other, mention here']))) ? $entry2->education : '' }}" style="background-color: #202ba3;">
+                            <input type="text" name="education[]" class="form-control" placeholder="If any other, mention here" value="{{ (isset($entry2) && !in_array($entry2->education, array_merge($options, ['If any other, mention here']))) ? $entry2->education : '' }}" class="form-control report-active-input">
                         </td>
                         <td>
-                            <input type="number" name="up_to_previous_year[]" class="form-control" value="{{ $entry2->up_to_previous_year ?? '' }}" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                            <input type="number" name="up_to_previous_year[]" class="form-control" value="{{ $entry2->up_to_previous_year ?? '' }}" oninput="calculateAgeTotals()" class="form-control report-active-input">
                         </td>
                         <td>
-                            <input type="number" name="present_academic_year[]" class="form-control" value="{{ $entry2->present_academic_year ?? '' }}" oninput="calculateAgeTotals()" style="background-color: #202ba3;">
+                            <input type="number" name="present_academic_year[]" class="form-control" value="{{ $entry2->present_academic_year ?? '' }}" oninput="calculateAgeTotals()" class="form-control report-active-input">
                         </td>
                     </tr>
 
